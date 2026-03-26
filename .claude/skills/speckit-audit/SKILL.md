@@ -1,48 +1,77 @@
 ---
 name: "speckit-audit"
-description: "Run a PRD compliance audit against the current implementation. Called automatically at the end of /speckit.implement. Attempts to fix gaps, or requires documented blockers before proceeding."
+description: "Run a PRD compliance audit against the current implementation. Called automatically at the end of /speckit.implement. Checks both directions: PRD→Spec and Spec→Code→Test. Attempts to fix gaps, or requires documented blockers."
 ---
 
 ## PRD Compliance Audit
 
-This audit runs as the final step of `/speckit.implement`. It verifies the implementation matches the PRD and spec, attempts to fix any gaps, and provides an escape hatch for legitimate blockers.
+This audit runs as the final step of `/speckit.implement`. It checks compliance in **both directions** and either fixes gaps or documents blockers.
 
 ### Phase 1: Gather Context
 
-1. Read `docs/PRD.md` for product requirements.
+1. Read `docs/PRD.md` — extract every functional requirement, user story, and deliverable.
 2. Read `.specify/memory/constitution.md` for governing principles.
 3. Find all specs in `specs/*/spec.md` — extract all FR-NNN requirements.
 4. Find all tasks in `specs/*/tasks.md` — verify all are marked `[x]`.
 
-### Phase 2: Audit
+### Phase 2: PRD → Spec Coverage (CRITICAL — run this FIRST)
 
-For each PRD functional requirement:
+**For each requirement in the PRD** (functional requirements, deliverables, user stories):
+
+Check if at least one spec FR covers it. Produce a table:
+
+```
+| PRD Requirement | Covered by FR | Status |
+|-----------------|---------------|--------|
+| "base starter from Takeout" | FR-001, FR-002 | PASS |
+| "clear docs for setup" | — | FAIL |
+```
+
+**If any PRD requirement has NO covering FR, this is a FAIL — not a note, not LOW priority.**
+
+For each uncovered PRD requirement:
+
+1. **Add the missing FR** to `specs/<feature>/spec.md`:
+   - Assign the next available FR number (e.g., FR-020)
+   - Write a testable requirement that satisfies the PRD
+   - Add an acceptance scenario under the appropriate user story
+
+2. **Add a task** to `specs/<feature>/tasks.md` for the new FR
+
+3. **Implement the new FR** — write the code and tests
+
+4. **If the FR cannot be added** (PRD requirement is contradictory, out of scope, or blocked):
+   - Document in `specs/<feature>/blockers.md` (see Phase 4)
+
+**Do NOT proceed to Phase 3 until every PRD requirement has a covering FR (or a documented blocker).**
+
+### Phase 3: Spec → Code → Test Coverage
+
+For each FR-NNN in the spec:
 
 | Check | How | Grade |
 |-------|-----|-------|
-| PRD → Spec coverage | Does a spec FR cover this PRD requirement? | PASS / FAIL |
-| Spec → Code coverage | Does source code contain `// FR-NNN` referencing this FR? | PASS / FAIL |
-| Code → Test coverage | Does a test reference the acceptance scenario? | PASS / FAIL |
+| Spec → Code | Does source code contain `// FR-NNN` comment? | PASS / FAIL |
+| Code → Test | Does a test reference the acceptance scenario? | PASS / FAIL |
 | Tech stack | Does the implementation use the PRD's required tech stack? | PASS / FAIL |
 | Scope creep | Is anything built that wasn't in the spec? | PASS / WARN |
 
 Produce a summary table:
 ```
-| FR | PRD→Spec | Spec→Code | Code→Test | Status |
-|----|----------|-----------|-----------|--------|
-| FR-001 | PASS | PASS | PASS | ✓ |
-| FR-002 | PASS | FAIL | — | ✗ |
+| FR | Spec→Code | Code→Test | Status |
+|----|-----------|-----------|--------|
+| FR-001 | PASS | PASS | ✓ |
+| FR-020 | PASS | PASS | ✓ (new — added in Phase 2) |
 ```
 
-Calculate overall compliance: `(passing checks / total checks) * 100`
-
-### Phase 3: Fix or Block
+### Phase 4: Fix or Block
 
 **If compliance >= 100%**: Report PASS. Implementation is complete.
 
 **If compliance < 100%**: For each failing check:
 
 1. **Attempt to fix** — if the gap is:
+   - PRD requirement has no FR → **add FR to spec, implement it, test it** (Phase 2)
    - Missing `// FR-NNN` comment → add it to the correct function
    - Missing test scenario reference → add the comment to the test
    - Missing test for an acceptance scenario → write the test
@@ -59,7 +88,7 @@ Calculate overall compliance: `(passing checks / total checks) * 100`
 
    Create or append to `specs/<feature>/blockers.md`:
    ```markdown
-   ## Blocker: FR-NNN — [requirement description]
+   ## Blocker: [PRD requirement or FR-NNN] — [description]
 
    **Status**: BLOCKED
    **Reason**: [specific reason this cannot be fixed]
@@ -69,14 +98,13 @@ Calculate overall compliance: `(passing checks / total checks) * 100`
    ```
 
 3. **After all gaps are addressed** (fixed or blocked):
-   - Re-run the audit on fixed items
+   - Re-run the full audit (Phase 2 + Phase 3) on fixed items
    - If any blockers were written, **STOP and ask the user**:
      ```
      PRD Audit: X of Y requirements pass. Z blockers documented.
 
      Blockers:
-     - FR-NNN: [reason]
-     - FR-NNN: [reason]
+     - [requirement]: [reason]
 
      These are documented in specs/<feature>/blockers.md.
      Do you want to proceed with these known gaps? (yes/no)
@@ -85,21 +113,25 @@ Calculate overall compliance: `(passing checks / total checks) * 100`
    - If user says no → halt, leave blockers.md for review
    - If user says yes → proceed, implementation is accepted with documented gaps
 
-### Phase 4: Report
+### Phase 5: Report
 
 Final output:
 ```
-PRD Compliance: XX% (Y/Z requirements)
-- PASS: N requirements fully implemented and tested
-- FIXED: N gaps resolved during audit
+PRD Coverage: XX% (Y/Z PRD requirements have covering FRs)
+FR Compliance: XX% (Y/Z FRs implemented and tested)
+
+- PASS: N requirements fully covered end-to-end
+- FIXED: N gaps resolved during audit (including N new FRs added)
 - BLOCKED: N requirements with documented blockers
 - FAIL: N requirements still failing (should be 0)
 ```
 
 ### Rules
 
+- **Phase 2 (PRD→Spec) runs FIRST and is a hard gate** — uncovered PRD requirements are not notes or warnings, they are failures that must be addressed
 - Read actual source files, not just filenames
 - Quote specific file:line when citing gaps
 - Distinguish "not implemented" from "implemented differently than specified"
 - Never silently skip a failing requirement — every gap must be fixed or blocked
+- New FRs added during audit get the next sequential number
 - The user MUST confirm if any blockers exist before the audit passes
