@@ -15,23 +15,31 @@ The PRD at `docs/PRD.md` is the authoritative source for scope, goals, and succe
 Claude Code hooks in `.claude/settings.json` physically block code changes without specs and prevent secret commits. These hooks are non-negotiable and must not be disabled.
 
 ### V. E2E Testing Required
-Every CLI, API, or user-facing tool must have end-to-end tests that exercise the real compiled artifact the way a user would use it. Unit tests are not sufficient — if `kit create my-app && cd my-app && bun dev` doesn't work, the unit tests are lying. E2E tests run the actual binary against real file operations in temp directories.
+Every CLI, API, or user-facing tool must have end-to-end tests that exercise the real compiled artifact the way a user would use it. Unit tests are not sufficient. E2E tests run the actual binary against real file operations in temp directories.
 
 ### VI. Small, Focused Changes
 Each task touches one bounded area. Files stay under 500 lines. No premature abstractions.
 
+### VII. Interface Contracts Before Implementation (NON-NEGOTIABLE)
+The plan phase MUST produce `contracts/interfaces.md` defining exact function signatures (name, parameters, return types, sync vs async) for every exported function. All implementation — including parallel sub-agents — MUST match these signatures exactly. If a signature needs to change, update the contract FIRST.
+
+### VIII. Incremental Task Completion (NON-NEGOTIABLE)
+Each task in tasks.md MUST be marked `[X]` immediately after completion — not batched at the end. Commit after each completed phase. This creates a reviewable audit trail in git history showing task-by-task progress.
+
 ## Development Workflow
 
 1. Read this constitution
-2. Check PRD at `docs/PRD.md`
-3. Write spec in `specs/<feature>/spec.md`
-4. Commit spec before code
-5. Implement with FR traceability
-6. Write tests with scenario traceability
-7. Verify: tests pass, >=80% coverage, build succeeds
+2. Read `docs/session-prompt.md` for full onboarding
+3. Check PRD at `docs/PRD.md`
+4. /speckit.specify → spec.md
+5. /speckit.plan → plan.md + contracts/interfaces.md
+6. /speckit.tasks → tasks.md
+7. Commit all artifacts before code
+8. /speckit.implement → execute tasks incrementally, PRD audit
+9. Verify: tests pass, >=80% coverage, build succeeds
 
 ## Governance
 
 This constitution supersedes all other practices. Amendments require a version bump.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-26
+**Version**: 2.0.0 | **Ratified**: 2026-03-26
