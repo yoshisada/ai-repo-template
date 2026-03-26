@@ -14,7 +14,10 @@ The PRD at `docs/PRD.md` is the authoritative source for scope, goals, and succe
 ### IV. Hooks Enforce Rules
 Claude Code hooks in `.claude/settings.json` physically block code changes without specs and prevent secret commits. These hooks are non-negotiable and must not be disabled.
 
-### V. Small, Focused Changes
+### V. E2E Testing Required
+Every CLI, API, or user-facing tool must have end-to-end tests that exercise the real compiled artifact the way a user would use it. Unit tests are not sufficient — if `kit create my-app && cd my-app && bun dev` doesn't work, the unit tests are lying. E2E tests run the actual binary against real file operations in temp directories.
+
+### VI. Small, Focused Changes
 Each task touches one bounded area. Files stay under 500 lines. No premature abstractions.
 
 ## Development Workflow
