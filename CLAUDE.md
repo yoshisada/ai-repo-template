@@ -19,24 +19,38 @@ Create `specs/<feature>/tasks.md` with ordered, dependency-aware task breakdown.
 ### 5. Commit All Artifacts Before Code
 spec.md, plan.md, and tasks.md MUST exist before any `src/` edits. Hooks enforce this.
 
-### 6. Implement with Traceability (/speckit.implement)
+### 6. Implement via /speckit.implement ONLY
+**Do NOT write implementation code directly.** Run `/speckit.implement` which:
+- Reads tasks.md and executes tasks phase-by-phase
+- Marks each completed task as `[X]` in tasks.md
+- Hooks verify tasks are being checked off — raw edits to src/ are BLOCKED until at least one task is marked `[X]`
 - Every function MUST reference its spec FR in a comment
 - Every test MUST reference the acceptance scenario it validates
+- **After all tasks complete, runs PRD audit automatically** (see step 7)
 
-### 5. Test with Coverage Gate
+### 7. PRD Audit (runs inside /speckit.implement)
+After implementation completes, `/speckit.implement` runs `/speckit.audit` which:
+- Checks every PRD requirement has a spec FR, implementation, and test
+- **Attempts to fix** gaps (missing comments, missing tests, missing implementation)
+- **If a gap cannot be fixed**: documents the reason in `specs/<feature>/blockers.md`
+- **If blockers exist**: STOPS and asks for user confirmation before proceeding
+- Reports overall compliance percentage
+
+### 8. Test with Coverage Gate
 - Run tests after every code change
 - New/changed code MUST achieve >=80% test coverage
 - Run `npm test` or `vitest run` to verify
 
-### 6. Verify Before Done
+### 9. Verify Before Done
 - Tests pass
 - Build succeeds
 - Coverage >=80%
+- PRD audit passed (or blockers acknowledged)
 - No lint errors
 
 ## File Organization
 
-- `src/` — source code (BLOCKED by hooks without a spec)
+- `src/` — source code (BLOCKED by hooks without spec + implement)
 - `tests/` — test files
 - `specs/` — feature specifications
 - `docs/` — documentation and PRD
@@ -44,30 +58,31 @@ spec.md, plan.md, and tasks.md MUST exist before any `src/` edits. Hooks enforce
 - `.specify/` — speckit configuration
 - `.claude/` — Claude Code hooks, skills, agents
 
-## Hooks Enforcement
+## Hooks Enforcement (4 Gates)
 
 This repo has PreToolUse hooks that:
-- **Block** edits to `src/` when no spec exists in `specs/`
-- **Block** commits that include .env files
-- **Allow** edits to docs, specs, config, and scripts always
+- **Gate 1**: Block edits to `src/` unless `specs/*/spec.md` exists
+- **Gate 2**: Block edits to `src/` unless `specs/*/plan.md` exists
+- **Gate 3**: Block edits to `src/` unless `specs/*/tasks.md` exists
+- **Gate 4**: Block edits to `src/` unless tasks.md has at least one `[X]` mark (forces `/speckit.implement`)
+- **Always block** commits that include .env files
+- **Always allow** edits to docs, specs, config, scripts, and tests
 
-If a hook blocks you, complete the speckit workflow first (specify → plan → tasks). That's the point.
+If a hook blocks you, complete the full speckit workflow: specify → plan → tasks → implement.
 
 ## Available Commands
 
-### Speckit Workflow
-- `/speckit.constitution` — View/update project principles
-- `/speckit.specify` — Create a feature spec
-- `/speckit.plan` — Create implementation plan
-- `/speckit.tasks` — Generate task breakdown
-- `/speckit.implement` — Execute tasks
-- `/speckit.analyze` — Cross-artifact consistency check
-- `/speckit.audit` — PRD compliance audit (custom)
-- `/speckit.coverage` — Check test coverage gate (custom)
+### Speckit Workflow (run in this order)
+1. `/speckit.specify` — Create a feature spec
+2. `/speckit.plan` — Create implementation plan
+3. `/speckit.tasks` — Generate task breakdown
+4. `/speckit.implement` — Execute tasks + PRD audit
+5. `/speckit.audit` — PRD compliance audit (also runs inside implement)
 
-### Ruflo/Claude-Flow
-- `/claude-flow-swarm` — Multi-agent swarm coordination
-- `/claude-flow-memory` — Persistent memory across sessions
+### Other
+- `/speckit.constitution` — View/update project principles
+- `/speckit.analyze` — Cross-artifact consistency check
+- `/speckit.coverage` — Check test coverage gate
 
 ## Security
 
