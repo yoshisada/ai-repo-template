@@ -7,16 +7,19 @@ Every code change MUST follow this order. No exceptions.
 ### 1. Read Constitution
 Before ANY code change, read `.specify/memory/constitution.md`.
 
-### 2. Find or Create Spec
-Every feature needs a spec in `specs/<feature>/spec.md` with:
-- User stories with Given/When/Then acceptance scenarios
-- Functional requirements with unique IDs (FR-001, FR-002, ...)
-- Measurable success criteria
+### 2. Specify (/speckit.specify)
+Create `specs/<feature>/spec.md` with user stories, FRs, and success criteria.
 
-### 3. Commit Spec Before Code
-The spec MUST be committed to git before any implementation begins.
+### 3. Plan (/speckit.plan)
+Create `specs/<feature>/plan.md` with technical approach, phases, and file list.
 
-### 4. Implement with Traceability
+### 4. Tasks (/speckit.tasks)
+Create `specs/<feature>/tasks.md` with ordered, dependency-aware task breakdown.
+
+### 5. Commit All Artifacts Before Code
+spec.md, plan.md, and tasks.md MUST exist before any `src/` edits. Hooks enforce this.
+
+### 6. Implement with Traceability (/speckit.implement)
 - Every function MUST reference its spec FR in a comment
 - Every test MUST reference the acceptance scenario it validates
 
@@ -48,7 +51,7 @@ This repo has PreToolUse hooks that:
 - **Block** commits that include .env files
 - **Allow** edits to docs, specs, config, and scripts always
 
-If a hook blocks you, write the spec first. That's the point.
+If a hook blocks you, complete the speckit workflow first (specify → plan → tasks). That's the point.
 
 ## Available Commands
 

@@ -1,20 +1,28 @@
 # Feature Specifications
 
-Every feature gets a spec before implementation.
+Every feature requires three artifacts before implementation can begin.
 
 ## Workflow
 
-1. Create a directory: `specs/<feature-name>/`
-2. Write `spec.md` using the template at `.specify/templates/spec-template.md`
-3. Include: user stories, acceptance scenarios, FRs, success criteria
-4. Commit the spec before writing any code
-5. Implement, referencing FRs in comments
-6. Write tests, referencing acceptance scenarios
+1. **Specify**: Create `specs/<feature>/spec.md` — user stories, FRs, success criteria
+2. **Plan**: Create `specs/<feature>/plan.md` — technical approach, phases, file list
+3. **Tasks**: Create `specs/<feature>/tasks.md` — ordered task breakdown referencing FRs
+4. Commit all three artifacts
+5. **Implement**: Write code referencing FRs in comments
+6. **Test**: Write tests referencing acceptance scenarios
+7. **Verify**: Tests pass, >=80% coverage, build succeeds
 
 ## Enforcement
 
-Claude Code hooks in `.claude/settings.json` will **block edits to `src/`** if no spec exists in this directory. This is intentional — write the spec first.
+Claude Code hooks block `src/` edits until **all three artifacts** exist:
+- `spec.md` — run `/speckit.specify`
+- `plan.md` — run `/speckit.plan`
+- `tasks.md` — run `/speckit.tasks`
 
-## Template
+This is intentional. Complete the workflow before writing code.
 
-See `.specify/templates/spec-template.md` for the full template.
+## Templates
+
+- Spec: `.specify/templates/spec-template.md`
+- Plan: `.specify/templates/plan-template.md`
+- Tasks: `.specify/templates/tasks-template.md`

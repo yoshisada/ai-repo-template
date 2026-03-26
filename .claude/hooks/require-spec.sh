@@ -1,6 +1,9 @@
 #!/bin/bash
-# FR-003, FR-004: Block Edit/Write on src/ files when no spec exists in specs/
-# Allows edits to docs, specs, config, scripts, and non-src files always.
+# Block Edit/Write on src/ files unless the full speckit workflow is complete:
+# 1. spec.md exists
+# 2. plan.md exists
+# 3. tasks.md exists
+# Allows edits to docs, specs, config, scripts, tests, and non-src files always.
 
 set -euo pipefail
 
@@ -13,13 +16,12 @@ if [[ "$TOOL_NAME" != "Edit" && "$TOOL_NAME" != "Write" ]]; then
   exit 0
 fi
 
-# If no file path, allow (e.g. creating new files via Write)
+# If no file path, allow
 if [[ -z "$FILE_PATH" ]]; then
   exit 0
 fi
 
-# FR-004: Always allow edits to non-src files
-# Allow: docs/, specs/, scripts/, .claude/, .specify/, config files, tests/, package.json, etc.
+# Always allow edits to non-src files
 case "$FILE_PATH" in
   */docs/*|*/specs/*|*/scripts/*|*/.claude/*|*/.specify/*|*/tests/*|\
   *CLAUDE.md|*README.md|*.json|*.yml|*.yaml|*.toml|*.md|*.gitignore|\
@@ -28,21 +30,40 @@ case "$FILE_PATH" in
     ;;
 esac
 
-# FR-003: Check if any spec exists in specs/
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-if ls "$PROJECT_DIR"/specs/*/spec.md >/dev/null 2>&1; then
-  exit 0  # Spec found, allow edit
+MISSING=""
+
+# Check 1: spec.md exists
+if ! ls "$PROJECT_DIR"/specs/*/spec.md >/dev/null 2>&1; then
+  MISSING="$MISSING\n  - spec.md (run /speckit.specify)"
 fi
 
-# No spec found — block the edit
+# Check 2: plan.md exists
+if ! ls "$PROJECT_DIR"/specs/*/plan.md >/dev/null 2>&1; then
+  MISSING="$MISSING\n  - plan.md (run /speckit.plan)"
+fi
+
+# Check 3: tasks.md exists
+if ! ls "$PROJECT_DIR"/specs/*/tasks.md >/dev/null 2>&1; then
+  MISSING="$MISSING\n  - tasks.md (run /speckit.tasks)"
+fi
+
+# If nothing missing, allow
+if [[ -z "$MISSING" ]]; then
+  exit 0
+fi
+
+# Block with specific guidance on what's missing
 cat >&2 <<EOF
-BLOCKED: No spec found in specs/.
+BLOCKED: Speckit workflow incomplete. Missing artifacts:
+$(echo -e "$MISSING")
 
-Before writing code, you must:
-1. Create a feature spec: specs/<feature-name>/spec.md
-2. Include user stories, FRs, and success criteria
-3. Commit the spec to git
+The full workflow before writing code:
+1. /speckit.specify  → creates spec.md
+2. /speckit.plan     → creates plan.md
+3. /speckit.tasks    → creates tasks.md
+4. Then implement
 
-Run /speckit.specify to create one, or manually create specs/<name>/spec.md.
+Each artifact must exist in specs/<feature>/ before editing src/ files.
 EOF
 exit 2
