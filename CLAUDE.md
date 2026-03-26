@@ -49,11 +49,22 @@ After implementation completes, `/speckit.implement` runs `/speckit.audit` which
 - New/changed code MUST achieve >=80% test coverage
 - Run `npm test` or `vitest run` to verify
 
-### 9. Verify Before Done
+### 9. Smoke Test (runs inside /speckit.implement)
+After tests pass, the `smoke-tester` agent runs a runtime verification:
+- Detects project type (CLI, web app, mobile, API) from plan.md
+- Scaffolds a fresh project in a temp directory
+- Actually runs it (starts dev server, executes CLI commands, hits endpoints)
+- For web: uses Playwright headless or curl to verify the server responds
+- For CLI: runs the binary and checks output/exit codes
+- For mobile: runs Maestro flow if available, otherwise verifies prebuild
+- Reports PASS/FAIL with exact error output if something breaks
+
+### 10. Verify Before Done
 - Tests pass
 - Build succeeds
 - Coverage >=80%
 - PRD audit passed (or blockers acknowledged)
+- Smoke test passed
 - No lint errors
 
 ## Implementation Rules

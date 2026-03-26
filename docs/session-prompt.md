@@ -41,10 +41,9 @@ Commit all artifacts (spec, plan, contracts, tasks) before writing any implement
 
 ## After implementation
 
-The PRD audit runs as the final task in `/speckit.implement`. If it finds gaps:
-1. It tries to fix them (add missing FR comments, write missing tests)
-2. If unfixable, it documents blockers in `specs/<feature>/blockers.md`
-3. It asks you to confirm before proceeding
+The final steps of `/speckit.implement` run automatically:
+1. **PRD audit** — checks every PRD requirement has a covering FR, implementation, and test. Fixes gaps or documents blockers.
+2. **Smoke test** — the `smoke-tester` agent scaffolds a fresh project in a temp dir and actually runs it (starts server, executes commands, verifies responses). This catches "tests pass but the app doesn't work" situations.
 
 ## Start
 
