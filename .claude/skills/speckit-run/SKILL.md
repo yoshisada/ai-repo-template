@@ -89,30 +89,61 @@ Each teammate should run the speckit commands (`/speckit.specify`, `/speckit.pla
 ## Step 2: Create the Team and Tasks
 
 1. Use `TeamCreate` with a descriptive name (e.g., `speckit-{feature}`)
-2. Use `TaskCreate` to create tasks based on your PRD analysis — tasks should reflect the actual work needed, not a fixed template
-3. Set task dependencies using `TaskCreate` or `TaskUpdate`:
-   - All implementation tasks depend on the specifier task
-   - Researcher task (if present) depends on the specifier task
-   - Implementer tasks depend on the researcher task (if present)
-   - Audit tasks depend on all implementation tasks
-   - Retrospective depends on all audit tasks
-   - PR creation depends on all audit tasks
-4. Leave tasks unassigned initially — teammates will self-claim them via `TaskUpdate`
+2. Use `TaskCreate` to create ALL tasks. You MUST create every task listed in the **Mandatory Tasks** section below, plus any additional tasks from your PRD analysis.
+3. Set task dependencies using `TaskCreate` or `TaskUpdate` (see dependency rules below)
+4. Assign tasks to teammates by setting `owner` via `TaskUpdate`
+
+### Mandatory Tasks (NON-NEGOTIABLE — always create these)
+
+Every pipeline run MUST include these tasks regardless of feature complexity. Do NOT skip any of them:
+
+| # | Task | Owner | Depends On | Why Mandatory |
+|---|------|-------|------------|---------------|
+| 1 | Specify + plan + research + tasks | specifier | — | Produces all spec artifacts |
+| N | Implementation (1+ tasks) | implementer(s) | specifier | Builds the feature |
+| A | Audit + smoke test + create PR | auditor | all implementers | Quality gate + deliverable |
+| R | **Retrospective** | **retrospective** | **auditor** | **Self-improvement — feeds back into the skill and template. ALWAYS the second-to-last task. MUST run BEFORE shutdown.** |
+
+The retrospective task exists to make every pipeline run improve the next one. Skipping it means repeating the same friction forever.
+
+### Additional Tasks (PRD-dependent)
+
+Based on your PRD analysis, you may add:
+- Multiple implementation tasks (one per independent component) for parallelism
+- A separate researcher task if external deps need resolving
+- Multiple audit tasks split by concern (compliance, tests, smoke) for parallelism
+
+### Task Dependencies
+
+Wire dependencies following these rules:
+- All implementation tasks depend on the specifier task
+- Researcher task (if present) depends on the specifier task
+- Implementer tasks depend on the researcher task (if present)
+- Audit tasks depend on ALL implementation tasks
+- **Retrospective depends on audit** (it runs after the PR is created but BEFORE shutdown)
 
 ### Task Dependency Example
 
 ```
-Task 1: Specify (no deps)          → owner: specifier
-Task 2: Research (depends: 1)      → owner: researcher
-Task 3: Impl Phase 1 (depends: 2)  → owner: impl-core
-Task 4: Impl Phase 2 (depends: 2)  → owner: impl-modules
-Task 5: Audit compliance (depends: 3, 4) → owner: audit-compliance
-Task 6: Audit smoke (depends: 3, 4)      → owner: audit-smoke
-Task 7: Create PR (depends: 5, 6)        → owner: audit-pr
-Task 8: Retrospective (depends: 7)       → owner: retrospective
+Task 1: Specify (no deps)                → owner: specifier
+Task 2: Research (depends: 1)            → owner: researcher
+Task 3: Impl CLI (depends: 2)            → owner: impl-cli
+Task 4: Impl templates (depends: 2)      → owner: impl-templates
+Task 5: Audit + smoke + PR (depends: 3, 4) → owner: auditor
+Task 6: Retrospective (depends: 5)       → owner: retrospective  ← ALWAYS LAST
 ```
 
 The system automatically unblocks dependent tasks when their dependencies complete.
+
+### Pre-Spawn Checklist
+
+Before spawning any teammates, verify:
+- [ ] Specifier task exists
+- [ ] At least one implementation task exists
+- [ ] Audit task exists
+- [ ] **Retrospective task exists** ← if this is missing, add it now
+- [ ] All dependencies are wired correctly
+- [ ] Every task has an owner assigned
 
 ## Step 3: Spawn Teammates
 
@@ -167,10 +198,13 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 - Peer DM visibility: when teammates message each other, a brief summary appears in their idle notification. This is informational — you don't need to respond.
 - Use broadcast sparingly — token costs scale with team size.
 
-## Step 5: Retrospective
+## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
-Before shutting down teammates, spawn a **retrospective agent** that:
+**STOP. Before sending ANY shutdown requests, the retrospective MUST run.**
 
+The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on the audit task). Once the auditor completes and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
+
+The retrospective teammate's job:
 1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
 2. Collects their responses
 3. Reviews the pipeline artifacts for additional evidence:
@@ -183,15 +217,17 @@ Before shutting down teammates, spawn a **retrospective agent** that:
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
 5. Reports the issue URL back to the lead
+6. Marks its task as completed via `TaskUpdate`
 
-Run this BEFORE sending shutdown requests to the other teammates so they can still respond.
+**Only proceed to Step 6 after the retrospective task is marked completed.**
 
 ## Step 6: Report and Cleanup
 
-1. **Shut down teammates gracefully**: Send each teammate `SendMessage` with `message: {type: "shutdown_request"}`. They can approve or reject — if rejected, check why before retrying.
-2. **Wait for all teammates to shut down** before cleaning up.
-3. **Clean up**: Use `TeamDelete` to remove the team and task directories.
-4. **Summarize** the pipeline results:
+1. **Verify retrospective ran**: Check `TaskList` — the retrospective task MUST be completed. If not, go back to Step 5.
+2. **Shut down teammates gracefully**: Send each teammate `SendMessage` with `message: {type: "shutdown_request"}`. They can approve or reject — if rejected, check why before retrying.
+3. **Wait for all teammates to shut down** before cleaning up.
+4. **Clean up**: Use `TeamDelete` to remove the team and task directories.
+5. **Summarize** the pipeline results:
 
 ```
 ## Pipeline Report: {feature branch name}
