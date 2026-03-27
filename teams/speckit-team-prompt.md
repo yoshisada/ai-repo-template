@@ -1,50 +1,60 @@
 # Speckit Pipeline — Agent Team Prompt
 
-Paste this into a fresh `claude` session from the `ai-repo-template/` directory.
+Paste this into a fresh `claude` session from your project directory (must have `.specify/` and `docs/PRD.md`).
 
 ---
 
 ## Prompt
 
 ```
-Create an agent team to run a spec-first development pipeline for this repo. The pipeline has 4 phases, each with an implementer and auditor. Here's the team:
+Create an agent team to run a spec-first development pipeline for this repo. Read docs/PRD.md to understand the scope, then design the team.
 
-Spawn 4 teammates:
+Spawn teammates based on what the PRD needs:
 
-1. **spec-planner** — Responsible for the front half of the pipeline:
+1. **specifier** — Responsible for the front half of the pipeline:
    - Read docs/PRD.md and .specify/memory/constitution.md
    - Create a git branch for the feature
-   - Generate specs/<feature>/spec.md with user stories, FRs (FR-001, FR-002...), acceptance criteria using .specify/templates/spec-template.md
-   - Then generate specs/<feature>/plan.md, research.md, data-model.md, contracts/interfaces.md, quickstart.md using .specify/templates/plan-template.md and .specify/templates/interfaces-template.md
-   - Then resolve any external dependencies referenced in the PRD (clone starters to vendor/)
-   - Then generate specs/<feature>/tasks.md with phased task breakdown using .specify/templates/tasks-template.md
-   - Finally, git commit all spec artifacts
-   - Message the phase-1-2-implementer when done with the feature name and branch
+   - Run /speckit.specify to generate specs/<feature>/spec.md
+   - Run /speckit.plan to generate plan.md, research.md, data-model.md, contracts/interfaces.md, quickstart.md
+   - Resolve any external dependencies referenced in the PRD (clone starters to vendor/, verify packages)
+   - Run /speckit.tasks to generate tasks.md
+   - Git commit all spec artifacts
+   - Message the implementers when done with the feature name and branch
 
-2. **phase-1-2-implementer** — Waits for spec-planner, then:
+2. **implementer(s)** — Wait for specifier, then:
    - Read specs/<feature>/tasks.md and contracts/interfaces.md
-   - Implement Phase 1 (Setup) tasks: write code matching contract signatures exactly, add // FR-NNN comments, write tests, mark tasks [X], commit
-   - Then implement Phase 2 (Foundational) tasks with same rules, commit
-   - Message the auditor after each phase is committed
-
-3. **phase-3-4-implementer** — Waits for auditor to approve phases 1-2, then:
-   - Implement Phase 3 (User Stories) tasks, commit
-   - Implement Phase 4 (Polish & cross-cutting) tasks, commit
-   - Run the full test suite
+   - Run /speckit.implement for their assigned phases/components
+   - Write code matching contract signatures exactly, add // FR-NNN comments, write tests
+   - Mark tasks [X] in tasks.md immediately after each completion
+   - Commit after each phase
    - Message the auditor when done
 
-4. **auditor** — Reviews and verifies after each implementation phase:
-   - After phases 1-2: verify FR comments exist in code, signatures match contracts/interfaces.md, tests reference acceptance scenarios, tests aren't stubs. Fix gaps or document in specs/<feature>/blockers.md. Message phase-3-4-implementer to proceed.
-   - After phases 3-4: do the same audit, then run a FULL PRD compliance audit (bidirectional: PRD->Spec and Spec->Code->Test). Then do a smoke test: build the project, run it in a temp dir, verify it works. Report PASS/FAIL.
-   - Finally: push the branch and create a PR with gh pr create
+   For complex PRDs with independent components, spawn multiple implementers — one per component, each owning different files. They can work in parallel.
 
-Require plan approval for spec-planner before they start writing specs — I want to review the approach.
+3. **auditor** — Waits for all implementers to finish, then:
+   - Run /speckit.audit for PRD compliance (bidirectional: PRD→Spec and Spec→Code→Test)
+   - Verify FR comments exist in code, signatures match contracts, tests reference acceptance scenarios, tests aren't stubs
+   - Run the full test suite and verify >=80% coverage
+   - Do a smoke test: build and run the project in a temp dir, verify runtime behavior
+   - Fix gaps or document in specs/<feature>/blockers.md
+   - Push the branch and create a PR with gh pr create
+   - Report PASS/FAIL for each check
+
+4. **retrospective** — Runs last, before shutdown:
+   - Message all still-running teammates: "What friction did you hit? What would you change?"
+   - Review blockers.md, git log, test results, task list for evidence
+   - Create a GitHub issue on ai-repo-template with findings and proposed changes
 
 Important rules for ALL teammates:
 - Read .specify/memory/constitution.md before any code changes — its principles are NON-NEGOTIABLE
+- Run the speckit slash commands (/speckit.specify, /speckit.plan, etc.) — don't reimplement their logic
 - Every exported function MUST match specs/<feature>/contracts/interfaces.md exactly
 - Mark tasks [X] in tasks.md IMMEDIATELY after completing each one
+- Use TaskUpdate to track task progress (in_progress → completed)
+- After completing a task, check TaskList for the next available work
+- Message teammates by NAME when their work is unblocked
 - Commit after each phase, not in one big batch
 - No async unless the contract says async. No any types. Concrete types only.
 - Coverage gate: >=80%
+- No two teammates should edit the same file
 ```
