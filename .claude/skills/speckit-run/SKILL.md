@@ -229,8 +229,14 @@ The retrospective teammate's job:
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
    - **Timing breakdown** — per-role wall-clock durations and total pipeline time
-5. Reports the issue URL back to the lead
-6. Marks its task as completed via `TaskUpdate`
+6. If any proposed changes are **high-confidence fixes** (clear bugs, documented friction that hit multiple agents, or violations of the constitution), create a PR with exact diffs:
+   - Clone the ai-repo-template repo (if not already present) and create a branch: `retro/{feature}-{date}`
+   - Apply ONLY changes that are **absolutely required** — fixes for problems that caused real friction or failures during this run. Do NOT include speculative improvements or nice-to-haves.
+   - Each changed file must have a clear justification tied to evidence from the retro (teammate feedback, blockers, fixup commits)
+   - Open a PR with `gh pr create -R yoshisada/ai-repo-template` linking back to the retro issue
+   - If no changes meet the high-confidence bar, skip the PR and note "No high-confidence fixes identified" in the issue
+7. Reports the issue URL (and PR URL if created) back to the lead
+8. Marks its task as completed via `TaskUpdate`
 
 **Only proceed to Step 6 after the retrospective task is marked completed.**
 
@@ -255,7 +261,7 @@ The retrospective teammate's job:
 | Implementation | [Done/Failed] | {phases completed, tasks done} |
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
-| Retrospective | [Done/Failed] | {issue URL} |
+| Retrospective | [Done/Failed] | {issue URL}, {PR URL or "no fixes needed"} |
 
 **Branch**: {branch name}
 **PR**: {URL}
