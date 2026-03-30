@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/require-spec.sh"
+            "command": "bash plugin/hooks/require-spec.sh"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/block-env-commit.sh"
+            "command": "bash plugin/hooks/block-env-commit.sh"
           }
         ]
       }
