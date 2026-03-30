@@ -65,13 +65,16 @@ Check out the branch this feature branch was started from (its merge-base branch
 
 ## Step 2: Check Out Base Branch
 
-1. Ensure there are no uncommitted changes that would be lost:
+1. Ensure there are no uncommitted changes to tracked files that would revert:
    ```bash
    git status --porcelain
    ```
-   If there are uncommitted changes, warn the user:
+   Only warn about **modified tracked files** (lines starting with `M` or `D`). Untracked files (`??`) carry over across checkouts and do not need a warning.
+
+   If there are modified tracked files, warn:
    ```
-   ⚠️  You have uncommitted changes. These will remain on {current-branch} but won't be visible after checkout.
+   ⚠️  You have uncommitted changes to tracked files. These will revert to {base-branch}'s version after checkout:
+   {list of M/D files}
    Stash them first? (y/n)
    ```
    If they say yes: `git stash push -m "speckit-reset stash from {current-branch}"`
