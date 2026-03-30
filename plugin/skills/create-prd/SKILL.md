@@ -90,33 +90,47 @@ This context shapes the clarifying questions and ensures the feature PRD stays c
 
 ## Step 3: Ask Clarifying Questions
 
-Ask a concise set of questions in **one message**. Do not ask questions the user has already answered in their input. If the user provided enough detail, skip directly to generation (Step 5) after confirming.
+**Ask questions ONE AT A TIME.** Do not dump all questions in one message. After each answer, move to the next question.
 
-### Mode A Questions (New Product) — up to 10 questions
+### Conversation flow rules
 
-Required coverage:
-- **Product**: 1-sentence pitch — what the product is and is not
-- **Users**: Primary persona, context (B2B/B2C), who pays (if relevant)
-- **Problem**: Top pain point, why now
-- **Use cases**: Top 3 workflows/journeys
-- **MVP**: Single core problem the MVP must solve, expected time-to-ship constraint
-- **Scope control**: 3-5 "definitely not in MVP" items
-- **Success**: 3 measurable success criteria (with a time window)
-- **Constraints**: Platforms, integrations, compliance/security constraints
-- **Tech stack** (required): Preferences/constraints — offer to pick defaults if unknown
-- **Risks/unknowns**: Biggest unknowns to validate
-- **Absolute musts**: Ask at the end for the top priorities (tech stack is always #1)
+1. **Skip questions the user already answered** in their initial input. Extract everything you can from what they gave you.
+2. **Offer multiple-choice when you can infer likely answers.** If the user's input gives you enough context to propose options, present 2-4 choices (labeled a/b/c/d) with a brief explanation of each. Always include a final option: "Other — describe your own."
+3. **One question per message.** Keep each question short (1-3 sentences max). Include the multiple-choice options if applicable.
+4. **Acknowledge the answer briefly** before asking the next question (e.g., "Got it — B2B SaaS for dev teams."). Do not repeat back their full answer.
+5. **Stop early if you have enough.** If the user provided a rich description and you can fill in the remaining answers with high confidence, present your assumptions as a summary and ask: "I'm going to proceed with these assumptions — anything you'd change?" Then skip to generation.
 
-### Mode B Questions (Feature Addition) — up to 7 questions
+### Mode A Questions (New Product) — ask in this order
 
-Required coverage:
-- **Feature**: 1-sentence description — what this feature does and does not do
-- **Motivation**: What problem does this solve? Why now? Which users asked for it?
-- **Use cases**: Top 2-3 user journeys for this feature
-- **Scope control**: What is explicitly NOT part of this feature
-- **Impact**: How does this interact with existing features? Any breaking changes?
-- **Tech stack additions**: Any new dependencies or infrastructure needed beyond what the product already uses?
-- **Success**: 2-3 measurable success criteria for this feature specifically
+1. **Product pitch**: What is this product in one sentence?
+2. **Users**: Who is the primary user?
+   - _Offer multiple-choice if inferable, e.g.:_ `a) B2B — dev teams  b) B2B — enterprise ops  c) B2C — consumers  d) Other`
+3. **Problem**: What's the #1 pain point this solves? Why now?
+4. **Use cases**: What are the top 3 things a user does with this product?
+5. **MVP scope**: What single core problem must the MVP solve? How fast do you want to ship?
+   - _Offer multiple-choice for timeline, e.g.:_ `a) 1-2 weeks  b) 1 month  c) 2-3 months  d) No constraint`
+6. **Scope control**: Name 3-5 things that are definitely NOT in the MVP.
+   - _Offer suggestions based on what you've heard so far, e.g.:_ `Based on what you've described, these are probably out of MVP scope: a) Admin dashboard  b) Multi-tenancy  c) Analytics  d) Mobile app — agree, or adjust?`
+7. **Tech stack**: Any preferences or constraints?
+   - _Offer a recommended stack based on the product type, e.g.:_ `For a web app like this, I'd suggest: a) Next.js + TypeScript + Prisma  b) Vite + React + Drizzle  c) You choose the best fit  d) I have something specific in mind`
+8. **Constraints**: Platforms, integrations, compliance, or security requirements?
+9. **Success metrics**: How do you measure success? (3 measurable criteria with a time window)
+   - _Offer suggestions, e.g.:_ `a) X users in 30 days  b) Y% retention at 2 weeks  c) Z conversion rate  d) Custom`
+10. **Risks & absolute musts**: Biggest unknowns? And what are the non-negotiable priorities? (Tech stack is always #1)
+
+### Mode B Questions (Feature Addition) — ask in this order
+
+1. **Feature**: What does this feature do in one sentence?
+2. **Motivation**: What problem does this solve? Why now?
+   - _Offer multiple-choice if inferable, e.g.:_ `a) User-requested  b) Competitive pressure  c) Internal need  d) Growth opportunity`
+3. **Use cases**: Top 2-3 user journeys for this feature
+4. **Scope control**: What is explicitly NOT part of this feature?
+   - _Suggest likely exclusions based on feature description_
+5. **Impact**: How does this interact with existing features? Any breaking changes?
+   - _Offer multiple-choice, e.g.:_ `a) Standalone — no impact  b) Extends existing feature  c) Replaces existing feature  d) Breaking changes expected`
+6. **Tech stack additions**: Anything new needed beyond the current stack?
+   - _Offer:_ `a) No — current stack is fine  b) Need a new dependency (specify)  c) New infrastructure needed`
+7. **Success**: 2-3 measurable success criteria for this feature
 
 ### If the user cannot or will not answer
 
