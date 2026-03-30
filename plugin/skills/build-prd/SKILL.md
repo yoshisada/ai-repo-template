@@ -43,7 +43,7 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
    For feature PRDs, also read `docs/PRD.md` for inherited product context (tech stack, users, constraints).
 4. Read `.specify/memory/constitution.md` — note any constraints that affect team structure.
 5. Create a fresh git branch from main.
-6. **PRD freeze**: After reading the PRD, confirm with the user: "The PRD is now frozen for this pipeline run. Any changes to requirements after this point require a scope-change pause (see Step 4). Proceed?" Do NOT start spawning teammates until the user confirms. If the PRD needs updates, make them now before the pipeline starts — not after the specifier has already produced artifacts.
+6. **PRD freeze**: The PRD is frozen the moment you read it. Do NOT ask the user for confirmation — just proceed. Log a one-line message: "PRD frozen — starting pipeline." If the user needs to change requirements mid-run, they can trigger a scope-change pause (see Step 4 in Monitor and Steer).
 
 ## Step 1: Analyze the PRD and Design the Team
 
