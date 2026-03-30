@@ -1,5 +1,5 @@
 ---
-name: speckit-reset
+name: reset-prd
 description: Check out the base branch this feature branch was started from, abandoning the current feature branch.
 compatibility: Requires a git repository
 metadata:
@@ -77,7 +77,7 @@ Check out the branch this feature branch was started from (its merge-base branch
    {list of M/D files}
    Stash them first? (y/n)
    ```
-   If they say yes: `git stash push -m "speckit-reset stash from {current-branch}"`
+   If they say yes: `git stash push -m "reset-prd stash from {current-branch}"`
 
 2. Check out the base branch:
    ```bash
@@ -140,5 +140,5 @@ To delete the feature branch (if you're done with it):
   git branch -d {feature-branch}
 
 To start a new pipeline:
-  /speckit.run
+  /build-prd
 ```

@@ -1,0 +1,31 @@
+{
+  "name": "@yoshisada/speckit-harness",
+  "version": "1.0.0",
+  "description": "Spec-first development harness for Claude Code",
+  "author": "yoshisada",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yoshisada/ai-repo-template.git",
+    "directory": "plugin"
+  },
+  "bin": {
+    "speckit-harness": "./bin/init.mjs"
+  },
+  "files": [
+    ".claude-plugin/",
+    "skills/",
+    "agents/",
+    "hooks/",
+    "templates/",
+    "scaffold/",
+    "bin/"
+  ],
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "speckit",
+    "spec-first",
+    "prd"
+  ]
+}

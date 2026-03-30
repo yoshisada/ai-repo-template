@@ -1,0 +1,25 @@
+{
+  "name": "speckit-harness",
+  "owner": {
+    "name": "yoshisada"
+  },
+  "metadata": {
+    "description": "Spec-first development harness for Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "speckit-harness",
+      "source": "./plugin",
+      "description": "Spec-first development harness with 4-gate enforcement, PRD-driven workflow, and agent teams. Includes 15 skills, 4 agents, hooks, and templates.",
+      "version": "1.0.0",
+      "author": {
+        "name": "yoshisada"
+      },
+      "repository": "https://github.com/yoshisada/ai-repo-template",
+      "license": "MIT",
+      "keywords": ["speckit", "spec-first", "prd", "tdd", "agents"],
+      "category": "development"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-name: speckit-run
+name: build-prd
 description: Run the complete speckit pipeline using an agent team. Reads the PRD to determine team structure, then orchestrates specify → plan → tasks → implement → audit → PR.
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
@@ -20,7 +20,13 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
 ## Pre-Flight
 
 1. If no user input was provided, ask the user for a feature description.
-2. Read `docs/PRD.md` — extract the feature scope, functional requirements, deliverables, and any named external dependencies.
+2. **Locate the PRD** — check for a PRD in this order:
+   - If user input matches a feature slug: read `docs/features/*-<slug>/PRD.md`
+   - If `docs/features/` contains exactly one feature PRD folder: read that feature PRD
+   - Otherwise: read `docs/PRD.md` (the product-level PRD)
+   - If none found, tell the user to run `/create-prd` first.
+   Extract the feature scope, functional requirements, deliverables, and any named external dependencies.
+   For feature PRDs, also read `docs/PRD.md` for inherited product context (tech stack, users, constraints).
 3. Read `.specify/memory/constitution.md` — note any constraints that affect team structure.
 4. Create a fresh git branch from main.
 5. **PRD freeze**: After reading the PRD, confirm with the user: "The PRD is now frozen for this pipeline run. Any changes to requirements after this point require a scope-change pause (see Step 4). Proceed?" Do NOT start spawning teammates until the user confirms. If the PRD needs updates, make them now before the pipeline starts — not after the specifier has already produced artifacts.
