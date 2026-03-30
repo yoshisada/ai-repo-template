@@ -1,6 +1,6 @@
 ---
 name: create-prd
-description: Create PRDs from product ideas or feature requests. Asks clarifying questions, then generates structured PRD artifacts. Supports two modes — new product (full PRD set) and feature addition (scoped feature PRD). Use when the user says "create a PRD", "PRD this", "add a feature", or similar.
+description: Create PRDs from product ideas or feature requests. Asks clarifying questions, then generates structured PRD artifacts. Supports three modes — PRD-only repo (multi-product), new product, and feature addition. Use when the user says "create a PRD", "PRD this", "add a feature", or similar.
 ---
 
 # Create PRD
@@ -15,12 +15,26 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## Step 0: Detect Repo Type
+
+Before choosing a mode, determine if this is a **PRD-only repo** — a repo used exclusively for product design documents, not implementation.
+
+A repo is PRD-only if **any** of these are true:
+- No `src/` directory exists (or it only contains `.gitkeep`)
+- Multiple product directories already exist under a top-level `products/` or `prds/` folder
+- The repo name or README suggests it's a design/PRD collection (e.g., "product-specs", "prds", "design-docs")
+- The user explicitly says "this is a PRD repo" or "I just use this for PRDs"
+
+If PRD-only → use **Mode C**.
+Otherwise → continue to Step 1 for Mode A or B detection.
+
 ## Step 1: Detect Mode
 
 Determine which mode to operate in:
 
 ### Mode A: New Product PRD
 Use when:
+- NOT a PRD-only repo
 - `docs/PRD.md` does not exist, or is still the empty template (contains placeholder text like `[Describe what this product does]`)
 - The user explicitly says "create a PRD", "PRD this", "new product", or similar
 - There is no existing product context to build on
@@ -32,6 +46,7 @@ Use when:
 
 ### Mode B: Feature PRD
 Use when:
+- NOT a PRD-only repo
 - `docs/PRD.md` already contains real product content (not placeholders)
 - The user says "add a feature", "new feature", "extend the product", or describes functionality to add to an existing product
 - There is existing product context (tech stack, users, constraints) to inherit
@@ -39,14 +54,36 @@ Use when:
 **Output**: 1 file in `docs/features/<YYYY-MM-DD>-<feature-slug>/`
 - `docs/features/<YYYY-MM-DD>-<feature-slug>/PRD.md`
 
-If the mode is ambiguous, ask the user: "Is this a new product or a feature addition to the existing product?"
+### Mode C: PRD-Only Repo
+Use when:
+- Repo is detected as PRD-only (see Step 0)
+- The user wants to create a new product PRD or add a feature to an existing product in the collection
 
-## Step 2: Read Context (Mode B only)
+**Output**: Files organized by product name under a `products/` directory:
 
-If operating in Mode B (Feature PRD):
-1. Read `docs/PRD.md` — extract the product overview, tech stack, target users, and constraints
-2. Read `docs/PRD-MVP.md` if it exists — understand current scope and excluded features
-3. Read `docs/PRD-Phases.md` if it exists — understand the roadmap and which phase this feature belongs to
+```
+products/
+└── <product-slug>/
+    ├── PRD.md
+    ├── PRD-MVP.md
+    ├── PRD-Phases.md
+    └── features/
+        └── <YYYY-MM-DD>-<feature-slug>/
+            └── PRD.md
+```
+
+If Mode C and `products/<product-slug>/PRD.md` already exists, treat it as a feature addition to that product (same as Mode B but under the product directory).
+
+If the mode is ambiguous, ask the user: "Is this a new product, a feature addition, or should I treat this as a PRD-only repo?"
+
+## Step 2: Read Context (Mode B and Mode C feature additions)
+
+If operating in Mode B or adding a feature in Mode C:
+1. Read the parent product PRD — extract the product overview, tech stack, target users, and constraints
+   - Mode B: `docs/PRD.md`
+   - Mode C: `products/<product-slug>/PRD.md`
+2. Read the MVP doc if it exists — understand current scope and excluded features
+3. Read the Phases doc if it exists — understand the roadmap and which phase this feature belongs to
 4. Read `.specify/memory/constitution.md` if it exists — note any governing constraints
 
 This context shapes the clarifying questions and ensures the feature PRD stays consistent with the product.
@@ -125,6 +162,27 @@ Use `assets/Feature-PRD.template.md` as the structure.
 
 Before writing, restate the feature in 1-2 sentences and identify how it fits into the existing product.
 
+### Mode C: PRD-Only Repo
+
+#### New product in the collection
+
+Same templates as Mode A, but output to `products/<product-slug>/`:
+
+1. **`products/<product-slug>/PRD.md`** — using `assets/PRD.template.md`
+2. **`products/<product-slug>/PRD-MVP.md`** — using `assets/PRD-MVP.template.md`
+3. **`products/<product-slug>/PRD-Phases.md`** — using `assets/PRD-Phases.template.md`
+
+Create `products/` at the repo root if it doesn't exist. The `<product-slug>` should be a short, kebab-case name for the product (e.g., `billing-app`, `mobile-client`).
+
+#### Feature addition to existing product
+
+Same as Mode B, but under the product directory:
+
+1. Create `products/<product-slug>/features/<YYYY-MM-DD>-<feature-slug>/PRD.md`
+2. Link back to `products/<product-slug>/PRD.md`
+
+Before writing, list existing products in `products/` so the user can choose which product to add the feature to (or create a new one).
+
 ### MVP Rules (both modes)
 
 - Solve **one core user problem**
@@ -152,6 +210,12 @@ After generating the PRD artifacts:
 
 **Mode B**:
 > Feature PRD is ready. To build this feature, run `/build-prd <feature-slug>` which will execute the full speckit pipeline against this feature PRD.
+
+**Mode C** (new product):
+> PRD is ready at `products/<product-slug>/`. To build this product, run `/create-repo <product-slug>` to scaffold a new repo, then `/build-prd` inside that repo.
+
+**Mode C** (feature addition):
+> Feature PRD is ready at `products/<product-slug>/features/<feature-slug>/`. To build this feature, open the product's repo and run `/build-prd <feature-slug>`.
 
 ## Do Not Overwrite
 
