@@ -17,23 +17,12 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty). The user input is the feature description.
 
-## Time Tracking
-
-**IMPORTANT**: Track wall-clock time for the pipeline and each teammate. This provides a rough proxy for resource usage when token counts are unavailable.
-
-1. Record the pipeline start time (ISO 8601) before spawning any teammates.
-2. When creating each task via `TaskCreate`, include `metadata: { "startedAt": "" }`.
-3. Instruct each teammate to record their start time in task metadata via `TaskUpdate` with `metadata: { "startedAt": "<ISO timestamp>" }` when they begin work.
-4. When a teammate completes their task, they should set `metadata: { "completedAt": "<ISO timestamp>" }`.
-5. The retrospective and final report use these timestamps to calculate per-role and total durations.
-
 ## Pre-Flight
 
 1. If no user input was provided, ask the user for a feature description.
 2. Read `docs/PRD.md` — extract the feature scope, functional requirements, deliverables, and any named external dependencies.
 3. Read `.specify/memory/constitution.md` — note any constraints that affect team structure.
 4. Create a fresh git branch from main.
-5. Record the pipeline start time: `pipeline_start = <current ISO 8601 timestamp>`.
 
 ## Step 1: Analyze the PRD and Design the Team
 
@@ -51,7 +40,7 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
    - **audit-pr**: Creates the PR with stats from all other auditors
 
    For simple features, one auditor can do all of these. For complex features, split them so each auditor starts with a clean context and a focused lens.
-5. **Retrospective** — Messages all teammates for feedback and token usage, creates a GitHub issue with findings, and opens an improvement PR if warranted. Runs last, before shutdown.
+5. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
 
 ### Scaling Up
 
@@ -169,7 +158,7 @@ Each teammate's prompt should include:
 - Which tasks they own (by task ID or description)
 - Instructions to run the appropriate speckit commands for their tasks
 - The feature description from user input
-- Instructions to use `TaskUpdate` to mark tasks in-progress when starting and completed when done, including `metadata: { "startedAt": "<ISO timestamp>" }` when starting and `metadata: { "completedAt": "<ISO timestamp>" }` when done
+- Instructions to use `TaskUpdate` to mark tasks in-progress when starting and completed when done
 - Instructions to use `SendMessage` to notify dependent teammates when unblocked
 - Instructions to check `TaskList` after completing each task to find the next available work
 - Instructions to read `~/.claude/teams/{team-name}/config.json` to discover other teammates by name
@@ -216,28 +205,19 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on the audit task). Once the auditor completes and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
 
 The retrospective teammate's job:
-1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure? Also, please report your total token usage (input + output tokens)."
-2. Collects their responses (feedback + token counts)
+1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
+2. Collects their responses
 3. Reviews the pipeline artifacts for additional evidence:
    - `specs/{feature}/blockers.md` — documented blockers
    - `git log` — commit flow and any fixup commits that indicate rework
    - Test results — any failures, flaky tests, environment issues
    - Task list — tasks that were stuck, reassigned, or took unusually long
-4. Collects timing data from task metadata (`startedAt`, `completedAt`) via `TaskGet` for each task, calculates per-role durations and total pipeline wall-clock time.
-5. Creates a GitHub issue on the **ai-repo-template** repo with `gh issue create -R yoshisada/ai-repo-template` containing:
+4. Creates a GitHub issue on the **ai-repo-template** repo with `gh issue create -R yoshisada/ai-repo-template` containing:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
-   - **Token usage** — per-teammate token counts (input + output) and pipeline total
-   - **Timing breakdown** — per-role wall-clock durations and total pipeline time
-6. If any proposed changes are **high-confidence fixes** (clear bugs, documented friction that hit multiple agents, or violations of the constitution), create a PR with exact diffs:
-   - Clone the ai-repo-template repo (if not already present) and create a branch: `retro/{feature}-{date}`
-   - Apply ONLY changes that are **absolutely required** — fixes for problems that caused real friction or failures during this run. Do NOT include speculative improvements or nice-to-haves.
-   - Each changed file must have a clear justification tied to evidence from the retro (teammate feedback, blockers, fixup commits)
-   - Open a PR with `gh pr create -R yoshisada/ai-repo-template` linking back to the retro issue
-   - If no changes meet the high-confidence bar, skip the PR and note "No high-confidence fixes identified" in the issue
-7. Reports the issue URL (and PR URL if created) back to the lead
-8. Marks its task as completed via `TaskUpdate`
+5. Reports the issue URL back to the lead
+6. Marks its task as completed via `TaskUpdate`
 
 **Only proceed to Step 6 after the retrospective task is marked completed.**
 
@@ -262,7 +242,7 @@ The retrospective teammate's job:
 | Implementation | [Done/Failed] | {phases completed, tasks done} |
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
-| Retrospective | [Done/Failed] | {issue URL}, {PR URL or "no fixes needed"} |
+| Retrospective | [Done/Failed] | {issue URL} |
 
 **Branch**: {branch name}
 **PR**: {URL}
@@ -271,19 +251,6 @@ The retrospective teammate's job:
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
 **Retrospective**: {issue URL}
-**Wall-Clock Time**: {total pipeline duration}
-**Total Tokens**: {pipeline total tokens}
-
-### Timing & Token Breakdown
-
-| Role | Duration | Tokens (in/out) |
-|------|----------|-----------------|
-| Specifier | {duration} | {input}/{output} |
-| Researcher | {duration or N/A} | {input}/{output} |
-| Implementer(s) | {duration — longest if parallel} | {input}/{output} |
-| Auditor | {duration} | {input}/{output} |
-| Retrospective | {duration} | {input}/{output} |
-| **Total Pipeline** | **{start to finish}** | **{total input}/{total output}** |
 ```
 
 ## Error Handling
