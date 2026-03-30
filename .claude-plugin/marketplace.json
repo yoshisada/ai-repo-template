@@ -12,7 +12,7 @@
       "name": "speckit-harness",
       "source": {
         "source": "git-subdir",
-        "url": "yoshisada/ai-repo-template",
+        "url": "https://github.com/yoshisada/ai-repo-template.git",
         "path": "plugin"
       },
       "description": "Spec-first development harness with 4-gate enforcement, PRD-driven workflow, and agent teams. Includes 15 skills, 4 agents, hooks, and templates.",
