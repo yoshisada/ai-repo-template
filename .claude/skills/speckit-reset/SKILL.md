@@ -84,17 +84,61 @@ Check out the branch this feature branch was started from (its merge-base branch
    git checkout {base-branch}
    ```
 
-## Step 3: Report
+## Step 3: Sync Latest ai-repo-template
+
+After checking out the base branch, update the project with the latest skills, templates, and configuration from the `ai-repo-template` repository.
+
+1. Check if `ai-repo-template/` exists in the working directory:
+   ```bash
+   ls ai-repo-template/
+   ```
+   If it doesn't exist, skip this step and note it in the report.
+
+2. Pull the latest from `ai-repo-template`:
+   ```bash
+   cd ai-repo-template && git pull && cd ..
+   ```
+
+3. Sync skills, templates, and config into the project:
+   ```bash
+   # Skills
+   rsync -a --delete ai-repo-template/.claude/skills/ .claude/skills/
+
+   # Specify templates and memory
+   rsync -a --delete ai-repo-template/.specify/templates/ .specify/templates/
+   rsync -a ai-repo-template/.specify/memory/constitution.md .specify/memory/constitution.md
+
+   # Hooks and agents (if present)
+   rsync -a ai-repo-template/.claude/settings.json .claude/settings.json 2>/dev/null || true
+   rsync -a --delete ai-repo-template/.claude/agents/ .claude/agents/ 2>/dev/null || true
+   ```
+
+4. Check if anything changed:
+   ```bash
+   git status --porcelain
+   ```
+   If there are changes, commit them:
+   ```bash
+   git add .claude/ .specify/
+   git commit -m "chore: sync latest ai-repo-template skills and templates"
+   ```
+   If nothing changed, report "Already up to date."
+
+## Step 4: Report
 
 ```
 ## Reset Complete
 
 Checked out: `{base-branch}`
 Previous branch: `{feature-branch}` (still exists, not deleted)
+Template sync: {up to date | N files updated — committed as {hash}}
 
 To return to your feature branch:
   git checkout {feature-branch}
 
 To delete the feature branch (if you're done with it):
   git branch -d {feature-branch}
+
+To start a new pipeline:
+  /speckit.run
 ```
