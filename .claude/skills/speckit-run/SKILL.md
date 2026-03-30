@@ -17,23 +17,13 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty). The user input is the feature description.
 
-## Time Tracking
-
-**IMPORTANT**: Track wall-clock time for the pipeline and each teammate. This provides a rough proxy for resource usage when token counts are unavailable.
-
-1. Record the pipeline start time (ISO 8601) before spawning any teammates.
-2. When creating each task via `TaskCreate`, include `metadata: { "startedAt": "" }`.
-3. Instruct each teammate to record their start time in task metadata via `TaskUpdate` with `metadata: { "startedAt": "<ISO timestamp>" }` when they begin work.
-4. When a teammate completes their task, they should set `metadata: { "completedAt": "<ISO timestamp>" }`.
-5. The retrospective and final report use these timestamps to calculate per-role and total durations.
-
 ## Pre-Flight
 
 1. If no user input was provided, ask the user for a feature description.
 2. Read `docs/PRD.md` — extract the feature scope, functional requirements, deliverables, and any named external dependencies.
 3. Read `.specify/memory/constitution.md` — note any constraints that affect team structure.
 4. Create a fresh git branch from main.
-5. Record the pipeline start time: `pipeline_start = <current ISO 8601 timestamp>`.
+5. **PRD freeze**: After reading the PRD, confirm with the user: "The PRD is now frozen for this pipeline run. Any changes to requirements after this point require a scope-change pause (see Step 4). Proceed?" Do NOT start spawning teammates until the user confirms. If the PRD needs updates, make them now before the pipeline starts — not after the specifier has already produced artifacts.
 
 ## Step 1: Analyze the PRD and Design the Team
 
@@ -41,8 +31,8 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
 
 The pipeline always flows through these roles. This is the minimum — you MUST have at least one teammate per role:
 
-1. **Specifier** — Runs `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`. Produces all spec artifacts and commits them. Always runs first.
-2. **Researcher** — Resolves external dependencies referenced in the PRD. Clones starters to `vendor/`, documents findings in `research.md`. Runs after specifier if the PRD names external projects; skip this role if there are no external deps.
+1. **Specifier** — Runs `/speckit.specify`, then `/speckit.plan`, then `/speckit.tasks` **in a single uninterrupted pass**. All three commands MUST execute back-to-back without stopping. The specifier MUST NOT go idle between commands. Produces all spec artifacts and commits them. Always runs first.
+2. **Researcher** — Resolves external dependencies referenced in the PRD. Clones starters to `vendor/`, documents findings in `research.md`. Runs after specifier if the PRD names external projects; skip this role if there are no external deps. **PRD naming authority**: The researcher MUST NOT rename, substitute, or "improve" directory names, file names, or identifiers that the PRD explicitly specifies. If the PRD says `apps/electron`, the researcher documents `apps/electron` — not `apps/desktop`, not `apps/electron-app`, not any "technology-agnostic" alternative. The PRD is the naming authority. If the researcher believes a PRD name is wrong, they must flag it to the team lead for resolution rather than silently substituting a different name.
 3. **Implementer** — Runs `/speckit.implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
 4. **Auditor** — Runs after all implementers finish. Each auditor gets a **fresh context** (no implementation history polluting their judgment). Split auditors by concern so they can run in parallel:
    - **audit-compliance**: Runs `/speckit.audit` — PRD→Spec→Code→Test verification
@@ -68,7 +58,13 @@ Ask yourself:
 1. How many independent file sets can be implemented in parallel? → That many implementers.
 2. Are there external deps to fetch? → Add a researcher.
 3. Is a single audit pass sufficient? → If not, split auditors by concern.
-4. What's the total teammate count? → Keep it under 6. More teammates = more coordination overhead. Aim for 5-6 tasks per teammate.
+4. What's the total teammate count? → Keep it under 8. More teammates = more coordination overhead.
+
+### Implementer Sizing Rule
+
+**After tasks.md is generated**, check the task count per implementer. If any single implementer would own more than 20 tasks, split them into multiple implementers by component or phase. A single implementer doing 50+ tasks will take too long, delaying the auditor and causing the pipeline to bottleneck.
+
+Example: If tasks.md has 73 tasks split across CLI (20), templates (27), and modules (16), spawn 3 implementers — not 1 or 2. The "keep under 6" guidance applies to non-implementer roles; add implementers as needed to keep each one under ~20 tasks.
 
 ### Example Team Structures
 
@@ -113,7 +109,7 @@ Every pipeline run MUST include these tasks regardless of feature complexity. Do
 | 1 | Specify + plan + research + tasks | specifier | — | Produces all spec artifacts |
 | N | Implementation (1+ tasks) | implementer(s) | specifier | Builds the feature |
 | A | Audit + smoke test + create PR | auditor | all implementers | Quality gate + deliverable |
-| R | **Retrospective** | **retrospective** | **auditor** | **Self-improvement — feeds back into the skill and template. ALWAYS the second-to-last task. MUST run BEFORE shutdown.** |
+| R | **Retrospective** | **retrospective** | **ALL other tasks (audit + every implementer + specifier + researcher)** | **Self-improvement — feeds back into the skill and template. ALWAYS the last task before shutdown. MUST NOT start until every other task is completed or explicitly cancelled.** |
 
 The retrospective task exists to make every pipeline run improve the next one. Skipping it means repeating the same friction forever.
 
@@ -124,6 +120,21 @@ Based on your PRD analysis, you may add:
 - A separate researcher task if external deps need resolving
 - Multiple audit tasks split by concern (compliance, tests, smoke) for parallelism
 
+### Task Granularity Rule
+
+**Each implementer MUST have exactly one task that represents ALL of their work.** The implementer MUST NOT mark this task as `completed` until every phase and every sub-task in `tasks.md` that they own is finished and committed. The auditor depends on these task completions, so premature completion signals cause the auditor to run against incomplete code.
+
+Include this in every implementer's prompt:
+
+```
+Do NOT mark your task as `completed` via TaskUpdate until ALL of the following are true:
+- Every task assigned to you in tasks.md is marked [X]
+- Every phase you own has been committed
+- You have no remaining uncommitted work
+
+Your task completion is the signal that triggers the auditor. If you mark it done early, the auditor will audit incomplete code and produce invalid findings.
+```
+
 ### Task Dependencies
 
 Wire dependencies following these rules:
@@ -131,20 +142,20 @@ Wire dependencies following these rules:
 - Researcher task (if present) depends on the specifier task
 - Implementer tasks depend on the researcher task (if present)
 - Audit tasks depend on ALL implementation tasks
-- **Retrospective depends on audit** (it runs after the PR is created but BEFORE shutdown)
+- **Retrospective depends on EVERY other task** — list all task IDs (specifier, researcher, every implementer, auditor) as `addBlockedBy` dependencies when creating the retrospective task via `TaskCreate`. Do NOT depend on only the auditor — that leaves a race condition where implementers may still be running.
 
 ### Task Dependency Example
 
 ```
-Task 1: Specify (no deps)                → owner: specifier
-Task 2: Research (depends: 1)            → owner: researcher
-Task 3: Impl CLI (depends: 2)            → owner: impl-cli
-Task 4: Impl templates (depends: 2)      → owner: impl-templates
-Task 5: Audit + smoke + PR (depends: 3, 4) → owner: auditor
-Task 6: Retrospective (depends: 5)       → owner: retrospective  ← ALWAYS LAST
+Task 1: Specify (no deps)                         → owner: specifier
+Task 2: Research (depends: 1)                     → owner: researcher
+Task 3: Impl CLI (depends: 2)                     → owner: impl-cli
+Task 4: Impl templates (depends: 2)               → owner: impl-templates
+Task 5: Audit + smoke + PR (depends: 3, 4)        → owner: auditor
+Task 6: Retrospective (depends: 1, 2, 3, 4, 5)   → owner: retrospective  ← depends on ALL tasks
 ```
 
-The system automatically unblocks dependent tasks when their dependencies complete.
+The system automatically unblocks dependent tasks when their dependencies complete. The retrospective will not unblock until every single dependency is marked `completed`.
 
 ### Pre-Spawn Checklist
 
@@ -169,10 +180,76 @@ Each teammate's prompt should include:
 - Which tasks they own (by task ID or description)
 - Instructions to run the appropriate speckit commands for their tasks
 - The feature description from user input
-- Instructions to use `TaskUpdate` to mark tasks in-progress when starting and completed when done, including `metadata: { "startedAt": "<ISO timestamp>" }` when starting and `metadata: { "completedAt": "<ISO timestamp>" }` when done
+- Instructions to use `TaskUpdate` to mark tasks in-progress when starting and completed when done
 - Instructions to use `SendMessage` to notify dependent teammates when unblocked
 - Instructions to check `TaskList` after completing each task to find the next available work
 - Instructions to read `~/.claude/teams/{team-name}/config.json` to discover other teammates by name
+
+### Specifier Prompt — Chaining Requirement (NON-NEGOTIABLE)
+
+The specifier's prompt MUST include these exact instructions to prevent stalling between commands:
+
+```
+You MUST run all three speckit commands in a single uninterrupted pass:
+1. Run `/speckit.specify` with the feature description
+2. IMMEDIATELY after specify completes, run `/speckit.plan` — do NOT stop, do NOT wait, do NOT go idle
+3. IMMEDIATELY after plan completes, run `/speckit.tasks` — do NOT stop, do NOT wait, do NOT go idle
+4. ONLY after all three are done: commit all artifacts, mark your task completed, and notify downstream teammates
+
+Each slash command will report "completion" and suggest next steps — IGNORE those suggestions and proceed to the next command in this list. Your task is NOT complete until spec.md, plan.md, contracts/interfaces.md, and tasks.md all exist and are committed.
+```
+
+**Why this is needed**: Each `/speckit.*` skill ends by reporting completion and suggesting the next command. Without explicit chaining instructions, the specifier agent treats each skill completion as a stopping point and goes idle, requiring a manual nudge from the team lead to continue. This caused a ~10 minute stall in the 015 pipeline run.
+
+### Researcher Prompt — PRD Naming Authority (NON-NEGOTIABLE)
+
+The researcher's prompt MUST include these exact instructions:
+
+```
+When documenting findings in research.md:
+- If the PRD explicitly names a directory, file, package, or identifier, you MUST use that exact name. Do NOT substitute a "better", "cleaner", or "technology-agnostic" name.
+- Example: If the PRD says `apps/electron`, document `apps/electron` — not `apps/desktop`.
+- If you believe a PRD name is incorrect or problematic, flag it to the team lead with your reasoning. Do NOT silently rename it in your research output.
+- Verify every directory name, package name, and file path in your research.md against the PRD before committing. Any mismatch is a bug.
+```
+
+**Why this is needed**: In the 015 pipeline, the researcher substituted `apps/desktop` for the PRD's `apps/electron`, documenting it as "technology-agnostic naming." This cascaded into spec artifacts and module definitions, requiring two fixup commits (`b142ba9`, `a8b35cc`) and manual mid-pipeline renaming across all affected files.
+
+### Auditor Prompt — Implementation Completeness Check (NON-NEGOTIABLE)
+
+The auditor's prompt MUST include these exact instructions:
+
+```
+Before starting your audit, verify that ALL implementation is truly complete:
+1. Run `TaskList` and check that every implementer task has status `completed` — not `in_progress`, not `pending`
+2. Read `tasks.md` and verify that every task assigned to implementers is marked `[X]`
+3. If ANY implementer task is still in progress or unchecked, do NOT begin auditing. Instead:
+   - Message the team lead: "Audit blocked — implementer task {id} is not yet complete."
+   - Wait for the team lead to confirm all implementation is done before proceeding.
+
+Do NOT audit a partially-complete implementation. Your audit findings are only valid against the final state of the code.
+```
+
+**Why this is needed**: In the 015 pipeline, the auditor started at 20:05 and documented blockers (missing v2 template, missing Zero/Drizzle/Auth), but the implementer committed those exact fixes at 20:06 and 20:12. The auditor was working against incomplete implementation because it began as soon as its task dependency resolved — but the implementer had marked its coarse-grained task as "completed" before finishing all phases of work.
+
+### Auditor Prompt — Blocker Reconciliation Before PR (NON-NEGOTIABLE)
+
+The auditor's prompt MUST also include:
+
+```
+Before creating the PR, reconcile blockers.md against the current code state:
+1. Re-read every blocker in blockers.md
+2. For each blocker, check if the code has been updated since it was documented:
+   - Run `git log --oneline` and check for commits that may have addressed the blocker
+   - Read the affected files to verify current state
+3. If a blocker has been resolved by a later commit, update its status to "RESOLVED" with the commit hash
+4. Update the compliance summary table to reflect the actual final state
+5. Commit the updated blockers.md before creating the PR
+
+The PR must reflect the FINAL state of the code, not a point-in-time snapshot from mid-implementation.
+```
+
+**Why this is needed**: In the 015 pipeline, blockers.md cited B-001 (missing v2 template), B-002 (missing Zero/Drizzle/Auth), and B-003 (only 2 UI components) as critical gaps with 65% compliance. But the implementer fixed all three in later commits. The blockers.md was never updated, so the PR would have shipped with a stale 65% compliance figure when the actual number was higher.
 
 ### Key Rules for All Teammates
 
@@ -187,6 +264,7 @@ Include these in every teammate prompt:
 - Mark tasks `[X]` in tasks.md IMMEDIATELY after completing each one
 - Commit after each phase, not in one big batch
 - Coverage gate: >=80%
+- **Scope-change protocol**: If you receive a message containing "SCOPE CHANGE" from the team lead, finish your current task, commit your work, and STOP. Do not start any new tasks until you receive a "RESUME" message. After resuming, re-read `tasks.md` and `contracts/interfaces.md` before starting your next task — they may have changed.
 
 ### Teammate Idle Behavior
 
@@ -209,34 +287,49 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 - Peer DM visibility: when teammates message each other, a brief summary appears in their idle notification. This is informational — you don't need to respond.
 - Use broadcast sparingly — token costs scale with team size.
 
+### Handling Scope Changes Mid-Pipeline
+
+If the user changes scope, updates the PRD, or asks to modify requirements while implementers are already running:
+
+1. **Immediately broadcast a PAUSE to all implementers**: Send each implementer a message: "SCOPE CHANGE — stop current work after finishing your current task. Do NOT start any new tasks. Commit what you have and wait for further instructions."
+2. **Wait for all implementers to acknowledge** the pause. Check `TaskList` — no implementer should have tasks in `in_progress` state after acknowledging. If an implementer doesn't respond, send the pause message again.
+3. **Update spec artifacts**: Have the specifier (or yourself) update `spec.md`, `plan.md`, `contracts/interfaces.md`, and `tasks.md` to reflect the new scope. Commit the updated artifacts.
+4. **Notify implementers of what changed**: Send each implementer a targeted message listing which tasks are added, removed, or modified. Reference the updated `tasks.md` and `contracts/interfaces.md`.
+5. **Resume**: Send each implementer a message: "RESUME — scope change applied. Re-read tasks.md and contracts/interfaces.md before starting your next task."
+
+**Why this matters**: Without an explicit pause, implementers work against stale spec artifacts. Their code won't match updated contracts, causing rework and audit failures. The pause-update-resume cycle ensures all agents work from the same source of truth.
+
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
 **STOP. Before sending ANY shutdown requests, the retrospective MUST run.**
 
-The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on the audit task). Once the auditor completes and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
+The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on all other tasks). Once every task is completed and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
+
+### Safety-Net Gate (retrospective agent prompt MUST include this)
+
+Before the retrospective agent starts any work, it MUST run `TaskList` and verify that **every non-retrospective task** has status `completed` or `cancelled`. If ANY task is still `pending` or `in_progress`:
+1. Do NOT proceed with retrospective work
+2. Send a message to the team lead: "Retrospective blocked — task {task_id} ({task_name}) is still {status}. Waiting."
+3. Wait for the team lead to resolve the blocker (nudge the stuck agent, cancel the task, or mark it completed)
+4. Re-check `TaskList` after receiving a follow-up message from the team lead
+
+Include these instructions verbatim in the retrospective teammate's prompt when spawning it in Step 3.
 
 The retrospective teammate's job:
-1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
-2. Collects their responses
-3. Reviews the pipeline artifacts for additional evidence:
+1. **Run the safety-net gate above** — verify all tasks are done before proceeding
+2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
+3. Collects their responses
+4. Reviews the pipeline artifacts for additional evidence:
    - `specs/{feature}/blockers.md` — documented blockers
    - `git log` — commit flow and any fixup commits that indicate rework
    - Test results — any failures, flaky tests, environment issues
    - Task list — tasks that were stuck, reassigned, or took unusually long
-4. Collects timing data from task metadata (`startedAt`, `completedAt`) via `TaskGet` for each task, calculates per-role durations and total pipeline wall-clock time.
 5. Creates a GitHub issue on the **ai-repo-template** repo with `gh issue create -R yoshisada/ai-repo-template` containing:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
-   - **Timing breakdown** — per-role wall-clock durations and total pipeline time
-6. If any proposed changes are **high-confidence fixes** (clear bugs, documented friction that hit multiple agents, or violations of the constitution), create a PR with exact diffs:
-   - Clone the ai-repo-template repo (if not already present) and create a branch: `retro/{feature}-{date}`
-   - Apply ONLY changes that are **absolutely required** — fixes for problems that caused real friction or failures during this run. Do NOT include speculative improvements or nice-to-haves.
-   - Each changed file must have a clear justification tied to evidence from the retro (teammate feedback, blockers, fixup commits)
-   - Open a PR with `gh pr create -R yoshisada/ai-repo-template` linking back to the retro issue
-   - If no changes meet the high-confidence bar, skip the PR and note "No high-confidence fixes identified" in the issue
-7. Reports the issue URL (and PR URL if created) back to the lead
-8. Marks its task as completed via `TaskUpdate`
+6. Reports the issue URL back to the lead
+7. Marks its task as completed via `TaskUpdate`
 
 **Only proceed to Step 6 after the retrospective task is marked completed.**
 
@@ -261,7 +354,7 @@ The retrospective teammate's job:
 | Implementation | [Done/Failed] | {phases completed, tasks done} |
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
-| Retrospective | [Done/Failed] | {issue URL}, {PR URL or "no fixes needed"} |
+| Retrospective | [Done/Failed] | {issue URL} |
 
 **Branch**: {branch name}
 **PR**: {URL}
@@ -270,18 +363,6 @@ The retrospective teammate's job:
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
 **Retrospective**: {issue URL}
-**Wall-Clock Time**: {total pipeline duration}
-
-### Timing Breakdown
-
-| Role | Duration |
-|------|----------|
-| Specifier | {duration} |
-| Researcher | {duration or N/A} |
-| Implementer(s) | {duration — longest if parallel} |
-| Auditor | {duration} |
-| Retrospective | {duration} |
-| **Total Pipeline** | **{start to finish}** |
 ```
 
 ## Error Handling
