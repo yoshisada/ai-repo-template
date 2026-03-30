@@ -51,7 +51,7 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
    - **audit-pr**: Creates the PR with stats from all other auditors
 
    For simple features, one auditor can do all of these. For complex features, split them so each auditor starts with a clean context and a focused lens.
-5. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
+5. **Retrospective** — Messages all teammates for feedback and token usage, creates a GitHub issue with findings, and opens an improvement PR if warranted. Runs last, before shutdown.
 
 ### Scaling Up
 
@@ -216,8 +216,8 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on the audit task). Once the auditor completes and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
 
 The retrospective teammate's job:
-1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
-2. Collects their responses
+1. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure? Also, please report your total token usage (input + output tokens)."
+2. Collects their responses (feedback + token counts)
 3. Reviews the pipeline artifacts for additional evidence:
    - `specs/{feature}/blockers.md` — documented blockers
    - `git log` — commit flow and any fixup commits that indicate rework
@@ -228,6 +228,7 @@ The retrospective teammate's job:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
+   - **Token usage** — per-teammate token counts (input + output) and pipeline total
    - **Timing breakdown** — per-role wall-clock durations and total pipeline time
 6. If any proposed changes are **high-confidence fixes** (clear bugs, documented friction that hit multiple agents, or violations of the constitution), create a PR with exact diffs:
    - Clone the ai-repo-template repo (if not already present) and create a branch: `retro/{feature}-{date}`
@@ -271,17 +272,18 @@ The retrospective teammate's job:
 **Smoke Test**: {PASS/FAIL}
 **Retrospective**: {issue URL}
 **Wall-Clock Time**: {total pipeline duration}
+**Total Tokens**: {pipeline total tokens}
 
-### Timing Breakdown
+### Timing & Token Breakdown
 
-| Role | Duration |
-|------|----------|
-| Specifier | {duration} |
-| Researcher | {duration or N/A} |
-| Implementer(s) | {duration — longest if parallel} |
-| Auditor | {duration} |
-| Retrospective | {duration} |
-| **Total Pipeline** | **{start to finish}** |
+| Role | Duration | Tokens (in/out) |
+|------|----------|-----------------|
+| Specifier | {duration} | {input}/{output} |
+| Researcher | {duration or N/A} | {input}/{output} |
+| Implementer(s) | {duration — longest if parallel} | {input}/{output} |
+| Auditor | {duration} | {input}/{output} |
+| Retrospective | {duration} | {input}/{output} |
+| **Total Pipeline** | **{start to finish}** | **{total input}/{total output}** |
 ```
 
 ## Error Handling
