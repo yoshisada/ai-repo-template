@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "speckit-harness",
-      "source": "./plugin",
+      "source": "../plugin",
       "description": "Spec-first development harness with 4-gate enforcement, PRD-driven workflow, and agent teams. Includes 15 skills, 4 agents, hooks, and templates.",
       "version": "1.0.0",
       "author": {
