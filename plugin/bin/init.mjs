@@ -7,12 +7,16 @@
  * Safe to run multiple times (idempotent) — existing files are not overwritten
  * unless --force is passed.
  *
+ * When installed as a Claude Code plugin, skills/agents/hooks are auto-discovered
+ * from the plugin directory. This script only creates project-specific files
+ * (CLAUDE.md, constitution, PRD, directory structure, templates).
+ *
  * Usage:
  *   npx @yoshisada/speckit-harness init [--force]
- *   npx @yoshisada/speckit-harness update     # re-sync skills/agents/templates only
+ *   npx @yoshisada/speckit-harness update     # re-sync templates to latest
  */
 
-import { existsSync, mkdirSync, cpSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -41,17 +45,6 @@ function copyIfMissing(src, dest, description) {
   }
   ensureDir(dirname(dest));
   copyFileSync(src, dest);
-  log(`+ ${description}`);
-  return true;
-}
-
-function copyDirIfMissing(src, dest, description) {
-  if (existsSync(dest) && !force) {
-    log(`✓ ${description} (exists)`);
-    return false;
-  }
-  ensureDir(dirname(dest));
-  cpSync(src, dest, { recursive: true });
   log(`+ ${description}`);
   return true;
 }
@@ -126,47 +119,9 @@ function syncShared() {
     );
   }
 
-  // Hook scripts — copy into .claude/hooks/ so settings.json can reference local paths
-  ensureDir(join(PROJECT_DIR, ".claude", "hooks"));
-  copyFileSync(
-    join(PLUGIN_ROOT, "hooks", "require-spec.sh"),
-    join(PROJECT_DIR, ".claude", "hooks", "require-spec.sh")
-  );
-  copyFileSync(
-    join(PLUGIN_ROOT, "hooks", "block-env-commit.sh"),
-    join(PROJECT_DIR, ".claude", "hooks", "block-env-commit.sh")
-  );
-  log("↻ .claude/hooks/ (require-spec.sh, block-env-commit.sh)");
-
-  // Settings.json — create if missing, don't overwrite if customized
-  const settingsPath = join(PROJECT_DIR, ".claude", "settings.json");
-  if (!existsSync(settingsPath)) {
-    ensureDir(dirname(settingsPath));
-    writeFileSync(
-      settingsPath,
-      JSON.stringify(
-        {
-          hooks: {
-            PreToolUse: [
-              {
-                matcher: "Edit|Write",
-                hooks: [{ type: "command", command: "bash .claude/hooks/require-spec.sh" }],
-              },
-              {
-                matcher: "Bash",
-                hooks: [{ type: "command", command: "bash .claude/hooks/block-env-commit.sh" }],
-              },
-            ],
-          },
-        },
-        null,
-        2
-      ) + "\n"
-    );
-    log("+ .claude/settings.json (hooks configured)");
-  } else {
-    log("✓ .claude/settings.json (exists — not overwriting)");
-  }
+  // Note: skills, agents, and hooks are auto-discovered by Claude Code
+  // from the plugin directory. No need to copy them into the project.
+  log("✓ Skills, agents, hooks provided by plugin (auto-discovered)");
 }
 
 // ── Verify ──
@@ -175,9 +130,6 @@ function verify() {
   console.log("\nVerifying...\n");
   const checks = [
     ["CLAUDE.md", "Workflow rules"],
-    [".claude/settings.json", "Hooks configuration"],
-    [".claude/hooks/require-spec.sh", "Spec enforcement hook"],
-    [".claude/hooks/block-env-commit.sh", "Secret commit blocker"],
     [".specify/memory/constitution.md", "Constitution"],
     [".specify/templates/spec-template.md", "Spec template"],
     ["docs/PRD.md", "PRD placeholder"],
@@ -194,16 +146,26 @@ function verify() {
     }
   }
 
-  console.log("");
-  if (passed === checks.length) {
-    console.log(`✓ All ${checks.length} checks passed — setup complete!\n`);
+  // Check plugin is reachable
+  const pluginJson = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
+  if (existsSync(pluginJson)) {
+    log("✓ speckit-harness plugin (installed)");
+    passed++;
   } else {
-    console.log(`✗ ${passed}/${checks.length} checks passed — some items need attention.\n`);
+    log("✗ speckit-harness plugin — not found");
+  }
+  const total = checks.length + 1;
+
+  console.log("");
+  if (passed === total) {
+    console.log(`✓ All ${total} checks passed — setup complete!\n`);
+  } else {
+    console.log(`✗ ${passed}/${total} checks passed — some items need attention.\n`);
   }
 
   console.log("Next steps:");
-  console.log("  1. Edit docs/PRD.md with your product requirements (or run /create-prd)");
-  console.log("  2. Run /build-prd to start building");
+  console.log("  1. Edit docs/PRD.md with your product requirements (or run /speckit-harness:create-prd)");
+  console.log("  2. Run /speckit-harness:build-prd to start building");
   console.log("");
 }
 
@@ -223,7 +185,7 @@ switch (command) {
     console.log("Usage: speckit-harness <init|update> [--force]");
     console.log("");
     console.log("  init     Scaffold a new project with spec-first infrastructure");
-    console.log("  update   Re-sync skills, agents, hooks, and templates to latest");
+    console.log("  update   Re-sync templates to latest plugin version");
     console.log("  --force  Overwrite existing project files (use with caution)");
     process.exit(1);
 }
