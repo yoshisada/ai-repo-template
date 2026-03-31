@@ -106,16 +106,16 @@ You operate in three modes depending on when you're invoked:
 - **Uses**: Headless Playwright
 
 ### Mode: `live` (user-invoked via /qa-pass)
-- Run `/qa-pass` — visible browser walkthrough the user can watch in real time
-- Uses `/chrome` (Claude-in-Chrome) instead of headless Playwright
-- The user's actual Chrome browser opens and they see every click, navigation, and form fill
-- Takes screenshots via `take_screenshot` and snapshots via `take_snapshot` at every significant state
-- Checks `list_console_messages` for JS errors on every page
-- Tests responsive by resizing the browser viewport (tablet 768px, mobile 375px)
-- After the walkthrough, spawns the `ux-evaluator` agent to review screenshots for design/UX feedback
-- Produces a combined functional + UX report at `qa-results/latest/QA-PASS-REPORT.md`
-- **Uses**: /chrome (visible Chrome window)
-- **Requires**: Chrome + Claude-in-Chrome extension
+- Run `/qa-pass` — orchestrates a **3-agent team**:
+  - **qa-agent**: Walks through every flow in visible Chrome, sends PASS/FAIL to reporter
+  - **ux-agent**: 3-layer UX evaluation (axe-core + accessibility tree + visual), sends findings to reporter
+  - **qa-reporter**: Files each finding as a GitHub issue, cross-checks completeness, produces final report
+- The user watches in real time as Chrome navigates, clicks, fills forms
+- UX evaluation uses programmatic checks (axe-core, contrast ratios, layout checks via `evaluate_script`) for measurable issues, plus LLM vision for design quality
+- All findings filed as GitHub issues with `qa-pass` label
+- Final report at `qa-results/latest/QA-PASS-REPORT.md` includes issue links
+- **Uses**: /chrome (visible Chrome window) + agent teams
+- **Requires**: Chrome + Claude-in-Chrome extension + agent teams enabled
 
 **How to determine mode**:
 - If the prompt says "checkpoint" or "mid-pipeline QA" → checkpoint mode

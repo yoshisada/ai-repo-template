@@ -92,7 +92,11 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
 3. **Implementer** — Runs `/speckit.implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
 4. **QA Engineer** — **(Web/frontend projects only)** Runs the `qa-engineer` agent. Unlike other auditors, the QA engineer is **long-lived** — it starts after the specifier finishes (so it knows what to test) and runs in parallel with implementers. It operates in two modes:
    - **Checkpoint mode** (during implementation): Each time an implementer completes a phase and notifies the QA engineer, it spins up the dev server, tests the newly completed flows with Playwright, records video of failures, and sends **actionable feedback directly to the responsible implementer** via `SendMessage`. The implementer fixes the issue and notifies QA for re-test. This creates a tight feedback loop that catches visual bugs while the implementer still has context.
-   - **Final mode** (after all implementation): Records video of ALL flows (pass and fail), runs responsive/viewport tests, and produces the full `qa-results/` artifact set with QA report for the PR.
+   - **Final mode** (after all implementation): Spins up a **3-agent QA team** (same architecture as `/qa-pass`):
+     - **qa-agent**: Walks through every flow (headless Playwright for pipeline, /chrome if available), sends results to qa-reporter
+     - **ux-agent**: 3-layer UX evaluation — injects axe-core via `evaluate_script` (programmatic WCAG), reads accessibility tree (heuristics), reviews screenshots (visual design). Sends findings to qa-reporter.
+     - **qa-reporter**: Files each finding as a GitHub issue with `qa-pass` AND `build-prd` labels. Cross-checks completeness (every flow tested? every page evaluated?). Produces `qa-results/latest/QA-PASS-REPORT.md`.
+     The audit-pr agent includes the QA report summary and issue links in the PR body.
 
    The QA engineer tracks its checkpoint history in `qa-results/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
 
@@ -581,7 +585,7 @@ The retrospective teammate's job:
 | Tasks | [Done/Failed] | {phase count, task count} |
 | Commit | [Done/Failed] | {commit hash} |
 | Implementation | [Done/Failed] | {phases completed, tasks done} |
-| Visual QA | [Pass/Fail/Skipped] | {flows tested, checkpoints run, issues found/fixed, video count} |
+| Visual QA | [Pass/Fail/Skipped] | {flows tested, checkpoints run, issues found/fixed, video count, GitHub issues filed} |
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
 | Retrospective | [Done/Failed] | {issue URL} |
@@ -592,7 +596,7 @@ The retrospective teammate's job:
 **Compliance**: {percentage}
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
-**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, see qa-results/latest/QA-REPORT.md
+**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see qa-results/latest/QA-PASS-REPORT.md
 **Retrospective**: {issue URL}
 ```
 
