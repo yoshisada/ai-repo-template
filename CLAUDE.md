@@ -126,9 +126,11 @@ If a hook blocks you, either:
 - `/debug-fix` — Apply a fix and verify it (used by `/debug`)
 
 ### Visual QA
+- `/qa-pass` — **Live visible QA walkthrough** using /chrome. Watch in real time as every flow is tested. Includes UI/UX evaluation. Requires Chrome + Claude-in-Chrome extension.
 - `/qa-setup` — Install Playwright and scaffold QA test infrastructure
 - `/qa-checkpoint` — Quick QA pass on recently completed flows (feedback loop)
-- `/qa-final` — Full QA suite with video recording for PR
+- `/qa-final` — Full QA suite with video recording for PR (headless Playwright)
+- `/ux-evaluate` — Standalone UI/UX design review using /chrome. Evaluates heuristics, visual design, accessibility, and interaction quality.
 
 ### Other
 - `/speckit.constitution` — View/update project principles

@@ -85,7 +85,7 @@ qa-results/.env.test
 
 ## Operating Modes
 
-You operate in two modes depending on when you're invoked:
+You operate in three modes depending on when you're invoked:
 
 ### Mode: `checkpoint` (during implementation)
 - Run `/qa-checkpoint` — it handles testing, feedback, and logging
@@ -94,6 +94,7 @@ You operate in two modes depending on when you're invoked:
 - Record video of failures only (save full recording for final pass)
 - Keep a running log at `qa-results/checkpoints.md`
 - Be fast — checkpoint passes should take < 5 minutes
+- **Uses**: Headless Playwright
 
 ### Mode: `final` (after all implementation is done)
 - Run `/qa-final` — it handles the full suite, video export, and report generation
@@ -102,8 +103,25 @@ You operate in two modes depending on when you're invoked:
 - Run responsive/viewport tests
 - Produce the full QA report and export all video artifacts
 - This is the deliverable that gets attached to the PR
+- **Uses**: Headless Playwright
 
-**How to determine mode**: Check your prompt from the team lead. If it says "checkpoint" or "mid-pipeline QA", run in checkpoint mode. If it says "final QA" or you're running as an auditor after implementation, run in final mode. Default to checkpoint if unclear.
+### Mode: `live` (user-invoked via /qa-pass)
+- Run `/qa-pass` — visible browser walkthrough the user can watch in real time
+- Uses `/chrome` (Claude-in-Chrome) instead of headless Playwright
+- The user's actual Chrome browser opens and they see every click, navigation, and form fill
+- Takes screenshots via `take_screenshot` and snapshots via `take_snapshot` at every significant state
+- Checks `list_console_messages` for JS errors on every page
+- Tests responsive by resizing the browser viewport (tablet 768px, mobile 375px)
+- After the walkthrough, spawns the `ux-evaluator` agent to review screenshots for design/UX feedback
+- Produces a combined functional + UX report at `qa-results/latest/QA-PASS-REPORT.md`
+- **Uses**: /chrome (visible Chrome window)
+- **Requires**: Chrome + Claude-in-Chrome extension
+
+**How to determine mode**:
+- If the prompt says "checkpoint" or "mid-pipeline QA" → checkpoint mode
+- If the prompt says "final QA" or you're running as an auditor → final mode
+- If the prompt says "live", "qa-pass", or you're invoked via `/qa-pass` → live mode
+- Default to checkpoint if unclear
 
 ## E2E Coverage Requirement (NON-NEGOTIABLE)
 
