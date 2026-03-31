@@ -2,7 +2,9 @@
 
 ## Quick Start
 
-New session? Read `docs/session-prompt.md` for the full onboarding prompt.
+New session? Run `/resume` to auto-detect where you left off and get your next steps.
+
+First time? Run `/init` to set up the speckit harness in an existing repo, or `/create-repo` for a brand new repo.
 
 ## Mandatory Workflow (NON-NEGOTIABLE)
 
@@ -131,6 +133,12 @@ If a hook blocks you, either:
 - `/qa-checkpoint` — Quick QA pass on recently completed flows (feedback loop)
 - `/qa-final` — Full QA suite with video recording for PR (headless Playwright)
 - `/ux-evaluate` — Standalone UI/UX design review using /chrome. Evaluates heuristics, visual design, accessibility, and interaction quality.
+
+### Other
+### Project Setup
+- `/init` — Add speckit to an existing repo (scaffolds structure, hooks, and optionally generates specs from existing code)
+- `/resume` — Pick up where you left off. Auto-detects in-progress features, uncommitted work, and tells you exactly what to do next. Run this at the start of every session.
+- `/create-repo` — Create a brand new GitHub repo with speckit pre-configured
 
 ### Other
 - `/speckit.constitution` — View/update project principles
