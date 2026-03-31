@@ -1,4 +1,12 @@
-# AI Repo Template — Claude Code Instructions
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What This Repo Is
+
+This is the **speckit-harness** Claude Code plugin (`@yoshisada/speckit-harness`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
+
+**This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin/bin/init.mjs`.
 
 ## Quick Start
 
@@ -6,9 +14,86 @@ New session? Run `/resume` to auto-detect where you left off and get your next s
 
 First time? Run `/init` to set up the speckit harness in an existing repo, or `/create-repo` for a brand new repo.
 
+## Build & Development
+
+```bash
+# No build step — skills/agents/hooks are markdown and shell scripts
+# Plugin is published as an npm package:
+npm publish --access public    # from plugin/ directory
+
+# Run the scaffold locally (simulates what consumers do):
+node plugin/bin/init.mjs init          # scaffold a project
+node plugin/bin/init.mjs update        # re-sync templates
+
+# Version management:
+./scripts/version-bump.sh release      # bump release segment
+./scripts/version-bump.sh feature      # bump feature segment
+./scripts/version-bump.sh pr           # bump pr segment
+cat VERSION                            # check current version
+```
+
+There is no test suite for the plugin itself. Testing is done by running the pipeline on consumer projects via `/build-prd`.
+
+## Architecture
+
+```
+plugin/
+├── .claude-plugin/
+│   ├── plugin.json          # Plugin manifest (name, version, description)
+│   └── marketplace.json     # Distribution config for Claude Code marketplace
+├── skills/                  # 28 skills — auto-discovered as /skill-name commands
+│   ├── build-prd/           # Master pipeline orchestrator (agent teams)
+│   ├── speckit-*/           # Specify → Plan → Tasks → Implement → Audit workflow
+│   ├── debug*/              # Bug fix loop (diagnose → fix → verify)
+│   ├── qa-*/                # QA testing (setup, checkpoint, final, live pass)
+│   ├── ux-evaluate/         # UI/UX design review
+│   ├── init/                # Add speckit to existing repo
+│   ├── resume/              # Session pickup — detect in-progress work
+│   └── create-repo/         # New GitHub repo with speckit pre-configured
+├── agents/                  # 7 agents — spawned as team members
+│   ├── qa-engineer.md       # Visual QA with Playwright + /chrome (3 modes)
+│   ├── ux-evaluator.md      # Design review (heuristics, a11y, visual, interaction)
+│   ├── debugger.md          # Diagnose→fix→verify loop with 21 techniques
+│   ├── prd-auditor.md       # PRD→Spec→Code→Test compliance
+│   ├── smoke-tester.md      # Runtime verification (starts app, hits endpoints)
+│   ├── spec-enforcer.md     # FR comment + test traceability
+│   └── test-runner.md       # Run tests, report results
+├── hooks/                   # 4 PreToolUse hooks — enforce workflow gates
+│   ├── require-spec.sh      # 4-gate: blocks src/ edits without spec+plan+tasks+[X]
+│   ├── version-increment.sh # Auto-increment VERSION 4th segment on code edits
+│   ├── block-env-commit.sh  # Prevent .env files from being committed
+│   └── require-feature-branch.sh  # Enforce branch naming conventions
+├── templates/               # Spec, plan, tasks, interfaces, constitution templates
+├── scaffold/                # Files copied into consumer projects by init.mjs
+├── bin/init.mjs             # npm entrypoint — scaffolds consumer project structure
+└── package.json             # npm package: @yoshisada/speckit-harness
+```
+
+### How the pieces connect
+
+**Skills** are user-invocable commands (`/skill-name`). They contain the logic and instructions.
+
+**Agents** are spawned by skills (especially `/build-prd`) as team members. Each agent has a specific role and model assignment (sonnet for complex work, haiku for simple validation).
+
+**Hooks** are shell scripts that run before every Edit/Write/Bash tool use. They enforce the workflow — you can't skip steps because the hooks block you.
+
+**Templates** are copied into consumer projects and used by speckit skills to generate standardized spec/plan/tasks artifacts.
+
+### Key pipeline flow (build-prd)
+
+```
+/build-prd
+  → Reads PRD, designs agent team
+  → Spawns: specifier → [researcher] → implementer(s) → [qa-engineer] → auditor(s) → retrospective
+  → QA engineer runs alongside implementers (checkpoint feedback loop)
+  → Debugger spawned on-demand in background when agents get stuck
+  → Retrospective analyzes prompt/communication effectiveness
+  → Creates PR with build-prd label
+```
+
 ## Mandatory Workflow (NON-NEGOTIABLE)
 
-Every code change MUST follow this order. No exceptions.
+Every code change in a consumer project MUST follow this order. No exceptions.
 
 ### 1. Read Constitution
 Before ANY code change, read `.specify/memory/constitution.md`.
@@ -19,7 +104,7 @@ Create `specs/<feature>/spec.md` with user stories, FRs, and success criteria.
 ### 3. Plan (/speckit.plan)
 Create `specs/<feature>/plan.md` with technical approach, phases, and file list.
 
-**Interface contracts are mandatory.** The plan MUST produce `specs/<feature>/contracts/interfaces.md` defining exact function signatures (name, params, return type, sync vs async) for every exported function. Use `.specify/templates/interfaces-template.md` as the format. These signatures are the single source of truth — all implementation tasks and parallel agents MUST match them exactly.
+**Interface contracts are mandatory.** The plan MUST produce `specs/<feature>/contracts/interfaces.md` defining exact function signatures (name, params, return type, sync vs async) for every exported function. These signatures are the single source of truth — all implementation tasks and parallel agents MUST match them exactly.
 
 ### 4. Tasks (/speckit.tasks)
 Create `specs/<feature>/tasks.md` with ordered, dependency-aware task breakdown.
@@ -39,74 +124,43 @@ spec.md, plan.md, tasks.md, and contracts/ MUST exist before any `src/` edits. H
 - **After all tasks complete, runs PRD audit automatically** (see step 7)
 
 ### 7. PRD Audit (runs inside /speckit.implement)
-After implementation completes, `/speckit.implement` runs `/speckit.audit` which:
-- Checks every PRD requirement has a spec FR, implementation, and test
-- **Attempts to fix** gaps (missing comments, missing tests, missing implementation)
-- **If a gap cannot be fixed**: documents the reason in `specs/<feature>/blockers.md`
-- **If blockers exist**: STOPS and asks for user confirmation before proceeding
-- Reports overall compliance percentage
+Checks every PRD requirement has a spec FR, implementation, and test. Attempts to fix gaps. Documents unfixable gaps in `specs/<feature>/blockers.md`. Reports compliance percentage.
 
 ### 8. Test with Coverage Gate
-- Run tests after every code change
-- New/changed code MUST achieve >=80% test coverage
-- Run `npm test` or `vitest run` to verify
+New/changed code MUST achieve >=80% test coverage. Run `npm test` or `vitest run`.
 
 ### 9. Smoke Test (runs inside /speckit.implement)
-After tests pass, the `smoke-tester` agent runs a runtime verification:
-- Detects project type (CLI, web app, mobile, API) from plan.md
-- Scaffolds a fresh project in a temp directory
-- Actually runs it (starts dev server, executes CLI commands, hits endpoints)
-- For web: uses Playwright headless or curl to verify the server responds
-- For CLI: runs the binary and checks output/exit codes
-- For mobile: runs Maestro flow if available, otherwise verifies prebuild
-- Reports PASS/FAIL with exact error output if something breaks
+The `smoke-tester` agent scaffolds a fresh project, starts it, and verifies it actually works at runtime.
 
 ### 10. Verify Before Done
-- Tests pass
-- Build succeeds
-- Coverage >=80%
-- PRD audit passed (or blockers acknowledged)
-- Smoke test passed
-- No lint errors
+Tests pass, build succeeds, coverage >=80%, PRD audit passed (or blockers acknowledged), smoke test passed, no lint errors.
 
 ## Implementation Rules
 
 ### Incremental Progress (NON-NEGOTIABLE)
 - Mark each task `[X]` in tasks.md **immediately** after completing it
 - Commit after each completed phase, not at the end
-- This creates a reviewable audit trail in git history
 - If a task fails, leave it `[ ]` and document why before moving on
 
 ### Interface Contract Compliance
 - Every exported function signature MUST match `contracts/interfaces.md`
 - If you need to change a signature, update `contracts/interfaces.md` FIRST
-- Parallel agents receive the contracts file as their source of truth
 - No `async` unless the contract says `async`. No renamed functions. No changed return types.
 
 ### Sub-Agent Coordination
-When using parallel agents for implementation:
 - Give every agent the `contracts/interfaces.md` file
 - Each agent owns specific files — no two agents write to the same file
 - Agent output is verified against the contracts before merging
 
-## File Organization
-
-- `src/` — source code (BLOCKED by hooks without spec + implement)
-- `tests/` — test files
-- `specs/` — feature specifications (spec, plan, tasks, contracts, blockers)
-- `docs/` — documentation, PRD, and session prompt
-- `scripts/` — setup and utility scripts
-- `.specify/` — speckit configuration and templates
-- `.claude/` — Claude Code hooks, skills, agents
-
 ## Hooks Enforcement (4 Gates)
 
-This repo has PreToolUse hooks that:
+PreToolUse hooks that run on every Edit/Write:
 - **Gate 1**: Block edits to `src/` unless `specs/*/spec.md` exists
 - **Gate 2**: Block edits to `src/` unless `specs/*/plan.md` exists
 - **Gate 3**: Block edits to `src/` unless `specs/*/tasks.md` exists
-- **Gate 4**: Block edits to `src/` unless tasks.md has at least one `[X]` mark (forces `/speckit.implement`)
+- **Gate 4**: Block edits to `src/` unless tasks.md has at least one `[X]` mark
 - **Always block** commits that include .env files
+- **Auto-increment** VERSION 4th segment on code file edits
 - **Always allow** edits to docs, specs, config, scripts, and tests
 
 If a hook blocks you, either:
@@ -114,6 +168,11 @@ If a hook blocks you, either:
 - Run `/debug` to fix a bug in an already-specced feature (existing specs satisfy the gates)
 
 ## Available Commands
+
+### Project Setup
+- `/init` — Add speckit to an existing repo
+- `/resume` — Pick up where you left off (run at start of every session)
+- `/create-repo` — Create a brand new GitHub repo with speckit
 
 ### Speckit Workflow (run in this order)
 1. `/speckit.specify` — Create a feature spec
@@ -123,27 +182,24 @@ If a hook blocks you, either:
 5. `/speckit.audit` — PRD compliance audit (also runs inside implement)
 
 ### Debugging (no spec required)
-- `/debug [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Reads existing specs for context, then runs a diagnose→fix→verify loop.
+- `/debug [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number.
 - `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/debug`)
 - `/debug-fix` — Apply a fix and verify it (used by `/debug`)
 
 ### Visual QA
-- `/qa-pass` — **Live visible QA walkthrough** using /chrome. Watch in real time as every flow is tested. Includes UI/UX evaluation. Requires Chrome + Claude-in-Chrome extension.
+- `/qa-pass` — **Live visible walkthrough** using /chrome. Includes UI/UX evaluation. Requires Chrome + Claude-in-Chrome extension.
 - `/qa-setup` — Install Playwright and scaffold QA test infrastructure
 - `/qa-checkpoint` — Quick QA pass on recently completed flows (feedback loop)
 - `/qa-final` — Full QA suite with video recording for PR (headless Playwright)
-- `/ux-evaluate` — Standalone UI/UX design review using /chrome. Evaluates heuristics, visual design, accessibility, and interaction quality.
-
-### Other
-### Project Setup
-- `/init` — Add speckit to an existing repo (scaffolds structure, hooks, and optionally generates specs from existing code)
-- `/resume` — Pick up where you left off. Auto-detects in-progress features, uncommitted work, and tells you exactly what to do next. Run this at the start of every session.
-- `/create-repo` — Create a brand new GitHub repo with speckit pre-configured
+- `/ux-evaluate` — Standalone UI/UX design review using /chrome
 
 ### Other
 - `/speckit.constitution` — View/update project principles
 - `/speckit.analyze` — Cross-artifact consistency check
 - `/speckit.coverage` — Check test coverage gate
+- `/build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
+- `/issue [#N]` — Analyze a GitHub issue and propose improvements
+- `/report-issue` — Quick capture bugs/friction to docs/backlog/
 
 ## Versioning
 
@@ -156,13 +212,11 @@ Format: `release.feature.pr.edit` — `000.000.000.000`
 | **pr** (3rd) | `./scripts/version-bump.sh pr` | Resets edit to 0 |
 | **edit** (4th) | Auto — increments on every file edit (Edit/Write hook) | — |
 
-- Stored in `VERSION` file (project root) and synced to `plugin/package.json`
-- Edit counter only increments for code files (src/, tests/, plugin/) — not docs, specs, config
-- The `.version.lock` directory is transient (concurrency lock) — do not commit it
-- Add `.version.lock` to `.gitignore`
+Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The `.version.lock` directory is a transient concurrency lock — do not commit it.
 
 ## Security
 
 - NEVER commit .env, credentials, or API keys
 - Validate input at system boundaries
 - Hooks will block .env commits automatically
+- QA credentials go in `qa-results/.env.test` (gitignored)
