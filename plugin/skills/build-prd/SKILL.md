@@ -54,14 +54,22 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
 1. **Specifier** — Runs `/speckit.specify`, then `/speckit.plan`, then `/speckit.tasks` **in a single uninterrupted pass**. All three commands MUST execute back-to-back without stopping. The specifier MUST NOT go idle between commands. Produces all spec artifacts and commits them. Always runs first.
 2. **Researcher** — Resolves external dependencies referenced in the PRD. Clones starters to `vendor/`, documents findings in `research.md`. Runs after specifier if the PRD names external projects; skip this role if there are no external deps. **PRD naming authority**: The researcher MUST NOT rename, substitute, or "improve" directory names, file names, or identifiers that the PRD explicitly specifies. If the PRD says `apps/electron`, the researcher documents `apps/electron` — not `apps/desktop`, not `apps/electron-app`, not any "technology-agnostic" alternative. The PRD is the naming authority. If the researcher believes a PRD name is wrong, they must flag it to the team lead for resolution rather than silently substituting a different name.
 3. **Implementer** — Runs `/speckit.implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
-4. **Auditor** — Runs after all implementers finish. Each auditor gets a **fresh context** (no implementation history polluting their judgment). Split auditors by concern so they can run in parallel:
+4. **QA Engineer** — **(Web/frontend projects only)** Runs the `qa-engineer` agent. Unlike other auditors, the QA engineer is **long-lived** — it starts after the specifier finishes (so it knows what to test) and runs in parallel with implementers. It operates in two modes:
+   - **Checkpoint mode** (during implementation): Each time an implementer completes a phase and notifies the QA engineer, it spins up the dev server, tests the newly completed flows with Playwright, records video of failures, and sends **actionable feedback directly to the responsible implementer** via `SendMessage`. The implementer fixes the issue and notifies QA for re-test. This creates a tight feedback loop that catches visual bugs while the implementer still has context.
+   - **Final mode** (after all implementation): Records video of ALL flows (pass and fail), runs responsive/viewport tests, and produces the full `qa-results/` artifact set with QA report for the PR.
+
+   The QA engineer tracks its checkpoint history in `qa-results/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
+
+   **Skip this role** for CLI-only, API-only, or non-visual projects.
+
+5. **Auditor** — Runs after all implementers AND the QA engineer's final pass finish. Each auditor gets a **fresh context** (no implementation history polluting their judgment). Split auditors by concern so they can run in parallel:
    - **audit-compliance**: Runs `/speckit.audit` — PRD→Spec→Code→Test verification
    - **audit-tests**: Verifies test quality — no stubs, real assertions, coverage gate
    - **audit-smoke**: Builds and runs the project in a temp dir, verifies runtime behavior
-   - **audit-pr**: Creates the PR with stats from all other auditors
+   - **audit-pr**: Creates the PR with stats from all other auditors. If a QA engineer ran, includes QA video links and the `qa-results/latest/QA-REPORT.md` summary in the PR body.
 
    For simple features, one auditor can do all of these. For complex features, split them so each auditor starts with a clean context and a focused lens.
-5. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
+6. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
 
 ### Scaling Up
 
@@ -70,6 +78,7 @@ Based on what you read in the PRD, decide where to add parallelism:
 - **Multiple independent components?** (e.g., CLI + templates + module system) → Spawn multiple implementers, one per component, working on different files in parallel. They all depend on the specifier finishing but can run concurrently with each other.
 - **Large module count?** (e.g., 5 installable modules) → Spawn one implementer per module, each owning its own files.
 - **Complex external deps?** → Spawn a dedicated researcher alongside the specifier so research can start as soon as the plan is done.
+- **Web/frontend project?** → Spawn a `qa-engineer` that runs alongside implementers. It starts after the specifier (needs spec to know what to test) and runs checkpoint passes as implementers complete phases. Implementers message the QA engineer when a phase is done; QA tests it and sends feedback back. This is the only role that runs in parallel with implementers rather than after them.
 - **Multiple audit concerns?** (compliance, test quality, runtime) → Spawn multiple auditors with different focus areas running in parallel. Each auditor gets a fresh context — no implementation history — so their judgment isn't biased by what they saw being built.
 
 ### Decision Checklist
@@ -77,8 +86,9 @@ Based on what you read in the PRD, decide where to add parallelism:
 Ask yourself:
 1. How many independent file sets can be implemented in parallel? → That many implementers.
 2. Are there external deps to fetch? → Add a researcher.
-3. Is a single audit pass sufficient? → If not, split auditors by concern.
-4. What's the total teammate count? → Keep it under 8. More teammates = more coordination overhead.
+3. Does this feature have a visual/frontend component? → Add a `qa-engineer` running alongside implementers.
+4. Is a single audit pass sufficient? → If not, split auditors by concern.
+5. What's the total teammate count? → Keep it under 8. More teammates = more coordination overhead.
 
 ### Implementer Sizing Rule
 
@@ -101,6 +111,15 @@ specifier → researcher ─┐
                          └→ impl-tmpl ─┘→ audit-tests ─┤→ retrospective
 ```
 5 teammates, 2 implementers in parallel, 2 auditors in parallel.
+
+**Web frontend feature** (UI + API, visual QA with feedback loop):
+```
+specifier ─┐
+           ├→ impl-ui ───┐
+           ├→ impl-api ──┤→ qa-engineer (final) ─┐→ audit-pr ─┐
+           └→ qa-engineer ┘  (checkpoints ↔ impls)└→ audit-compliance ─┤→ retrospective
+```
+6 teammates. `qa-engineer` starts after specifier, runs checkpoint passes during implementation (sends feedback to `impl-ui`/`impl-api`, receives "fix ready" notifications back). After all implementers finish, QA switches to final mode for the full video report. Auditors depend on both implementers AND QA final pass.
 
 **Complex feature** (CLI + 3 modules + external starter):
 ```
@@ -128,8 +147,9 @@ Every pipeline run MUST include these tasks regardless of feature complexity. Do
 |---|------|-------|------------|---------------|
 | 1 | Specify + plan + research + tasks | specifier | — | Produces all spec artifacts |
 | N | Implementation (1+ tasks) | implementer(s) | specifier | Builds the feature |
-| A | Audit + smoke test + create PR | auditor | all implementers | Quality gate + deliverable |
-| R | **Retrospective** | **retrospective** | **ALL other tasks (audit + every implementer + specifier + researcher)** | **Self-improvement — feeds back into the skill and template. ALWAYS the last task before shutdown. MUST NOT start until every other task is completed or explicitly cancelled.** |
+| Q | Visual QA (checkpoints + final) | qa-engineer | specifier | **(Web/frontend only)** Feedback loop during impl + final video report. Create this task if the PRD has any visual/frontend component. The QA engineer does NOT wait for implementers to finish — it runs alongside them. |
+| A | Audit + smoke test + create PR | auditor | all implementers + qa-engineer (if present) | Quality gate + deliverable |
+| R | **Retrospective** | **retrospective** | **ALL other tasks** | **Self-improvement — feeds back into the skill and template. ALWAYS the last task before shutdown. MUST NOT start until every other task is completed or explicitly cancelled.** |
 
 The retrospective task exists to make every pipeline run improve the next one. Skipping it means repeating the same friction forever.
 
@@ -138,6 +158,7 @@ The retrospective task exists to make every pipeline run improve the next one. S
 Based on your PRD analysis, you may add:
 - Multiple implementation tasks (one per independent component) for parallelism
 - A separate researcher task if external deps need resolving
+- A `qa-engineer` task for web/frontend projects (runs alongside implementers, not after)
 - Multiple audit tasks split by concern (compliance, tests, smoke) for parallelism
 
 ### Task Granularity Rule
@@ -161,10 +182,11 @@ Wire dependencies following these rules:
 - All implementation tasks depend on the specifier task
 - Researcher task (if present) depends on the specifier task
 - Implementer tasks depend on the researcher task (if present)
-- Audit tasks depend on ALL implementation tasks
-- **Retrospective depends on EVERY other task** — list all task IDs (specifier, researcher, every implementer, auditor) as `addBlockedBy` dependencies when creating the retrospective task via `TaskCreate`. Do NOT depend on only the auditor — that leaves a race condition where implementers may still be running.
+- **QA engineer task (if present) depends on the specifier task** — it starts alongside implementers, NOT after them. It needs the spec to know what to test but does NOT need implementation to be complete.
+- Audit tasks depend on ALL implementation tasks AND the qa-engineer task (if present)
+- **Retrospective depends on EVERY other task** — list all task IDs (specifier, researcher, every implementer, qa-engineer, auditor) as `addBlockedBy` dependencies when creating the retrospective task via `TaskCreate`. Do NOT depend on only the auditor — that leaves a race condition where implementers may still be running.
 
-### Task Dependency Example
+### Task Dependency Example (CLI project, no QA)
 
 ```
 Task 1: Specify (no deps)                         → owner: specifier
@@ -175,6 +197,19 @@ Task 5: Audit + smoke + PR (depends: 3, 4)        → owner: auditor
 Task 6: Retrospective (depends: 1, 2, 3, 4, 5)   → owner: retrospective  ← depends on ALL tasks
 ```
 
+### Task Dependency Example (Web frontend project, with QA)
+
+```
+Task 1: Specify (no deps)                         → owner: specifier
+Task 2: Impl UI (depends: 1)                      → owner: impl-ui
+Task 3: Impl API (depends: 1)                     → owner: impl-api
+Task 4: Visual QA (depends: 1)                    → owner: qa-engineer  ← starts with implementers, NOT after
+Task 5: Audit + PR (depends: 2, 3, 4)             → owner: auditor      ← waits for impls AND QA final pass
+Task 6: Retrospective (depends: 1, 2, 3, 4, 5)   → owner: retrospective
+```
+
+Note: Task 4 (QA) depends only on the specifier, so it unblocks at the same time as the implementers. The QA engineer runs checkpoint passes during implementation by communicating with implementers via `SendMessage`. It only marks its task as `completed` after its final pass (all flows tested, video exported). The auditor waits for this completion before starting.
+
 The system automatically unblocks dependent tasks when their dependencies complete. The retrospective will not unblock until every single dependency is marked `completed`.
 
 ### Pre-Spawn Checklist
@@ -182,6 +217,7 @@ The system automatically unblocks dependent tasks when their dependencies comple
 Before spawning any teammates, verify:
 - [ ] Specifier task exists
 - [ ] At least one implementation task exists
+- [ ] QA engineer task exists (if web/frontend project)
 - [ ] Audit task exists
 - [ ] **Retrospective task exists** ← if this is missing, add it now
 - [ ] All dependencies are wired correctly
@@ -237,19 +273,86 @@ When documenting findings in research.md:
 
 **Why this is needed**: In the 015 pipeline, the researcher substituted `apps/desktop` for the PRD's `apps/electron`, documenting it as "technology-agnostic naming." This cascaded into spec artifacts and module definitions, requiring two fixup commits (`b142ba9`, `a8b35cc`) and manual mid-pipeline renaming across all affected files.
 
+### QA Engineer Prompt — Feedback Loop Protocol (NON-NEGOTIABLE for web/frontend projects)
+
+The QA engineer's prompt MUST include these exact instructions:
+
+```
+You are the QA engineer for this pipeline. You run the `qa-engineer` agent definition.
+
+## SKILLS — use these instead of doing everything manually
+- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds qa-results/, generates test matrix and test stubs from the spec.
+- `/qa-checkpoint` — Run each time an implementer completes a phase. Tests new flows, sends feedback, logs progress.
+- `/qa-final` — Run AFTER all implementers finish. Full suite with video on every test, responsive tests, exports artifacts, generates QA report.
+
+## WORKFLOW
+1. On startup: Run `/qa-setup`
+2. If `/qa-setup` reports credential-dependent flows, message the team lead immediately:
+   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in qa-results/.env.test (template at qa-results/.env.test.example)."
+   Do NOT block on this — continue testing non-auth flows while waiting.
+3. Watch for messages from implementers saying a phase is complete
+4. When notified: Run `/qa-checkpoint`
+5. When an implementer messages "fix ready": Run `/qa-checkpoint [flow-name]` to re-test
+6. If team lead provides credentials (or says "credentials ready"): re-check qa-results/.env.test and unblock auth flows
+7. After ALL implementers are done: Run `/qa-final`
+8. Mark your task as completed via TaskUpdate ONLY after `/qa-final` is done and artifacts are committed
+9. Notify the auditor that QA is complete and videos are ready
+
+## CREDENTIALS
+- NEVER hardcode or guess credentials — always load from qa-results/.env.test
+- NEVER log, screenshot, or expose credentials in video recordings
+- If credentials aren't provided, mark affected flows as SKIPPED in the QA report — do NOT block the pipeline
+
+## FEEDBACK RULES
+- For each FAILURE: send actionable feedback directly to the responsible implementer via SendMessage:
+  - What you tested (user flow + steps)
+  - What went wrong (with screenshot path)
+  - Suggested fix direction
+  - Severity (Critical/Major/Minor)
+- For each PASS: send brief confirmation to the implementer
+- Re-test promptly when an implementer says "fix ready" — you're in their critical path
+
+Do NOT mark your task as completed until the final pass is done and all artifacts are committed.
+Your task completion is the signal that triggers the auditor — it needs your QA report and video links for the PR.
+```
+
+**Why this is needed**: A QA engineer that only runs after implementation misses the chance to catch visual bugs while the implementer still has context. By running checkpoint passes during implementation and sending feedback directly to implementers, bugs get fixed in the same phase they're introduced — not discovered hours later in a final audit.
+
+### Implementer Prompt — QA Feedback Protocol (when QA engineer is present)
+
+When a QA engineer is on the team, add this to every implementer's prompt:
+
+```
+A QA engineer (qa-engineer) is testing your work as you build it. After completing each phase:
+1. Commit your work
+2. Send a message to qa-engineer: "Phase N complete — [list of user flows now testable]. Dev server runs on port [port]."
+3. Continue to your next phase — do NOT wait for QA results
+4. If qa-engineer sends you feedback about a failure:
+   a. Read the feedback carefully (it includes what they tested, what failed, and a suggested fix)
+   b. Fix the issue in your current phase if possible, or note it for a dedicated fix pass
+   c. After fixing, message qa-engineer: "Fix ready for [flow name] — please re-test"
+5. QA feedback fixes are part of your work — do NOT mark your task as completed until QA issues in your scope are resolved
+```
+
 ### Auditor Prompt — Implementation Completeness Check (NON-NEGOTIABLE)
 
 The auditor's prompt MUST include these exact instructions:
 
 ```
-Before starting your audit, verify that ALL implementation is truly complete:
+Before starting your audit, verify that ALL implementation AND QA are truly complete:
 1. Run `TaskList` and check that every implementer task has status `completed` — not `in_progress`, not `pending`
-2. Read `tasks.md` and verify that every task assigned to implementers is marked `[X]`
-3. If ANY implementer task is still in progress or unchecked, do NOT begin auditing. Instead:
-   - Message the team lead: "Audit blocked — implementer task {id} is not yet complete."
-   - Wait for the team lead to confirm all implementation is done before proceeding.
+2. If a qa-engineer task exists, verify it is also `completed` (QA final pass done, videos exported)
+3. Read `tasks.md` and verify that every task assigned to implementers is marked `[X]`
+4. If ANY implementer or qa-engineer task is still in progress or unchecked, do NOT begin auditing. Instead:
+   - Message the team lead: "Audit blocked — task {id} is not yet complete."
+   - Wait for the team lead to confirm all work is done before proceeding.
 
 Do NOT audit a partially-complete implementation. Your audit findings are only valid against the final state of the code.
+
+If a QA engineer ran, read `qa-results/latest/QA-REPORT.md` and include its findings in your audit:
+- Reference the QA pass/fail verdict
+- Link video artifacts in the PR body (qa-results/latest/videos/*.webm)
+- Flag any remaining QA failures as blockers
 ```
 
 **Why this is needed**: In the 015 pipeline, the auditor started at 20:05 and documented blockers (missing v2 template, missing Zero/Drizzle/Auth), but the implementer committed those exact fixes at 20:06 and 20:12. The auditor was working against incomplete implementation because it began as soon as its task dependency resolved — but the implementer had marked its coarse-grained task as "completed" before finishing all phases of work.
@@ -335,13 +438,13 @@ Create a task for this agent in Step 2 (e.g., "Mid-pipeline structural check") w
 
 If the user changes scope, updates the PRD, or asks to modify requirements while implementers are already running:
 
-1. **Immediately broadcast a PAUSE to all implementers**: Send each implementer a message: "SCOPE CHANGE — stop current work after finishing your current task. Do NOT start any new tasks. Commit what you have and wait for further instructions."
-2. **Wait for all implementers to acknowledge** the pause. Check `TaskList` — no implementer should have tasks in `in_progress` state after acknowledging. If an implementer doesn't respond, send the pause message again.
+1. **Immediately broadcast a PAUSE to all implementers and the QA engineer**: Send each a message: "SCOPE CHANGE — stop current work after finishing your current task. Do NOT start any new tasks. Commit what you have and wait for further instructions."
+2. **Wait for all to acknowledge** the pause. Check `TaskList` — no implementer or QA engineer should have tasks in `in_progress` state after acknowledging. If someone doesn't respond, send the pause message again.
 3. **Update spec artifacts**: Have the specifier (or yourself) update `spec.md`, `plan.md`, `contracts/interfaces.md`, and `tasks.md` to reflect the new scope. Commit the updated artifacts.
-4. **Notify implementers of what changed**: Send each implementer a targeted message listing which tasks are added, removed, or modified. Reference the updated `tasks.md` and `contracts/interfaces.md`.
-5. **Resume**: Send each implementer a message: "RESUME — scope change applied. Re-read tasks.md and contracts/interfaces.md before starting your next task."
+4. **Notify everyone of what changed**: Send each implementer a targeted message listing which tasks are added, removed, or modified. Send the QA engineer a message listing which user flows changed so it can update its test matrix.
+5. **Resume**: Send each a message: "RESUME — scope change applied. Re-read tasks.md and contracts/interfaces.md before starting your next task." The QA engineer should re-run `/qa-setup` to regenerate the test matrix.
 
-**Why this matters**: Without an explicit pause, implementers work against stale spec artifacts. Their code won't match updated contracts, causing rework and audit failures. The pause-update-resume cycle ensures all agents work from the same source of truth.
+**Why this matters**: Without an explicit pause, implementers work against stale spec artifacts and the QA engineer tests against outdated flows. The pause-update-resume cycle ensures all agents work from the same source of truth.
 
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
@@ -396,6 +499,7 @@ The retrospective teammate's job:
 | Tasks | [Done/Failed] | {phase count, task count} |
 | Commit | [Done/Failed] | {commit hash} |
 | Implementation | [Done/Failed] | {phases completed, tasks done} |
+| Visual QA | [Pass/Fail/Skipped] | {flows tested, checkpoints run, issues found/fixed, video count} |
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
 | Retrospective | [Done/Failed] | {issue URL} |
@@ -406,13 +510,110 @@ The retrospective teammate's job:
 **Compliance**: {percentage}
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
+**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, see qa-results/latest/QA-REPORT.md
 **Retrospective**: {issue URL}
 ```
 
-## Error Handling
+## Error Handling — Debug Loop (On-Demand)
 
-- If a teammate fails, check its last message and task status
+The `debugger` agent is NOT part of the standard pipeline. It is spawned **on-demand in the background** when an issue can't be resolved by the agent that encountered it. The pipeline does not wait for or depend on the debugger — it runs alongside the pipeline as a background helper.
+
+**When NOT to spawn a debugger:**
+- Implementer hits a normal bug and fixes it on the next attempt — this is normal development, not a debug loop
+- QA sends feedback and the implementer fixes it — the feedback loop is already working
+- A test fails and the fix is obvious from the error message
+
+**When to spawn a debugger:**
+- An implementer is stuck on the same error after 2+ attempts and has asked for help
+- QA reports a failure that the implementer can't reproduce or understand
+- Smoke test fails with a non-obvious error
+- An auditor finds a gap that no one can figure out how to fix
+- A build fails and the error message is cryptic or misleading
+
+| Failure Source | Trigger (team lead judgment call) | Debugger Gets |
+|---------------|----------------------------------|---------------|
+| **QA engineer** | Implementer can't fix after 2 attempts | QA's failure report + implementer's failed fix attempts |
+| **Smoke tester** | Non-obvious FAIL result | Smoke test output (command, stderr, exit code) |
+| **Test runner** | Failing test with unclear root cause | Failing test name, file, error message |
+| **Auditor** | Implementation gap that no one can fix | Blocker description from auditor |
+| **Build** | Cryptic build failure | Build output |
+| **Implementer** | Implementer explicitly reports being stuck | Implementer's description + what they've tried |
+
+### How to Spawn the Debugger
+
+```
+Spawn a debugger agent with:
+- team_name: [team name]
+- name: "debugger" (or "debugger-2" if one is already running)
+- run_in_background: true
+- mode: "bypassPermissions"
+
+Prompt must include:
+- The failure report (copy the exact message from the reporting agent)
+- Which agent reported it
+- The working directory and branch
+- Any prior fix attempts (from the implementer or previous debugger runs)
+- Instructions to use /debug-diagnose first, then /debug-fix
+- Instructions to message the original reporter when fixed
+- Instructions to message team lead if escalating
+```
+
+### Debug Loop Flow
+
+```
+Agent reports failure
+  │
+  ├─ Team lead spawns debugger agent
+  │
+  ├─ Debugger runs /debug-diagnose → classifies issue, selects technique
+  │
+  ├─ Debugger runs /debug-fix → applies fix, verifies
+  │     │
+  │     ├─ PASS → debugger notifies reporter, reporter re-verifies
+  │     │           │
+  │     │           ├─ Reporter confirms fix → debugger marks done
+  │     │           └─ Reporter says still broken → debugger iterates
+  │     │
+  │     └─ FAIL → debugger iterates (max 3 attempts per technique, max 3 techniques)
+  │           │
+  │           └─ All strategies exhausted → debugger escalates to team lead
+  │                 │
+  │                 └─ Team lead escalates to USER with full debug report
+  │
+  └─ All debug artifacts logged in debug-log.md
+```
+
+### Debugger Task Setup
+
+The debugger is NOT pre-planned in Step 2. When you spawn one mid-pipeline:
+- Use `TaskCreate` with description: "Debug: [issue summary]"
+- Depends on: nothing (it runs immediately in the background)
+- Add it as a dependency of the retrospective task via `TaskUpdate` (so the retro captures its findings)
+- Do NOT add it as a dependency of auditors or implementers — the debugger runs in the background and the pipeline continues
+
+The debugger's task is completed when either:
+- The fix is verified by the original reporter, OR
+- The debugger escalates to the team lead (escalation report sent)
+
+If the debugger is still running when the pipeline reaches the retrospective gate, the retrospective waits for it (since it was added as a dependency). If the issue is non-blocking, you can cancel the debugger task instead to avoid holding up the pipeline.
+
+### Escalation Protocol
+
+If the debugger exhausts all strategies (9 attempts across 3 techniques), it sends a comprehensive escalation report to the team lead. The team lead then:
+
+1. **Review the debug report** — the debugger has collected diagnostics, tried multiple approaches, and documented why each failed
+2. **Decide**: fix it yourself, assign to a specific implementer with guidance, or escalate to the user
+3. **If escalating to user**, include the full debug report so the user understands what was tried
+
+Only escalate to the user AFTER the debugger has tried. "I hit an error" → spawn debugger → debugger tries → THEN escalate if needed.
+
+### Other Error Handling Rules
+
 - If `/speckit.implement` stops early, spawn a replacement to continue from where it left off
 - Unfixable gaps go in `specs/{feature}/blockers.md` — pipeline continues
-- Do NOT retry automatically — report to the user and ask how to proceed
 - If TeamDelete fails because teammates are still active, shut them down first
+- The debugger is a **short-lived background agent** — it runs for a specific issue and exits. It is NOT a permanent pipeline member.
+- Multiple debuggers can run in parallel for independent issues (name them `debugger`, `debugger-2`, etc.)
+- The debugger does NOT block the pipeline. Other agents continue working while the debugger investigates in the background.
+- If the debugger fixes something while an implementer is also working, coordinate via the team lead to avoid conflicts on the same files.
+- Not every failure needs a debugger. Most bugs are fixed by the implementer directly. Only spawn a debugger when someone is genuinely stuck.

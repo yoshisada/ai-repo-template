@@ -107,7 +107,9 @@ This repo has PreToolUse hooks that:
 - **Always block** commits that include .env files
 - **Always allow** edits to docs, specs, config, scripts, and tests
 
-If a hook blocks you, complete the full speckit workflow: specify → plan → tasks → implement.
+If a hook blocks you, either:
+- Complete the full speckit workflow: specify → plan → tasks → implement (for new features)
+- Run `/debug` to fix a bug in an already-specced feature (existing specs satisfy the gates)
 
 ## Available Commands
 
@@ -117,6 +119,16 @@ If a hook blocks you, complete the full speckit workflow: specify → plan → t
 3. `/speckit.tasks` — Generate task breakdown
 4. `/speckit.implement` — Execute tasks incrementally + PRD audit
 5. `/speckit.audit` — PRD compliance audit (also runs inside implement)
+
+### Debugging (no spec required)
+- `/debug [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Reads existing specs for context, then runs a diagnose→fix→verify loop.
+- `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/debug`)
+- `/debug-fix` — Apply a fix and verify it (used by `/debug`)
+
+### Visual QA
+- `/qa-setup` — Install Playwright and scaffold QA test infrastructure
+- `/qa-checkpoint` — Quick QA pass on recently completed flows (feedback loop)
+- `/qa-final` — Full QA suite with video recording for PR
 
 ### Other
 - `/speckit.constitution` — View/update project principles
