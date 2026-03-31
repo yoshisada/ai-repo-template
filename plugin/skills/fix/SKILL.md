@@ -1,9 +1,9 @@
 ---
-name: "debug"
+name: "fix"
 description: "Fix a bug without creating a new PRD or spec. Describe the issue (or pass a GitHub issue number) and the debugger will diagnose, fix, and verify it using the existing spec as context."
 ---
 
-# Debug
+# Fix
 
 Fix a bug in an already-implemented feature. No new PRD, no new spec, no speckit ceremony — just find the bug and fix it.
 
@@ -14,12 +14,12 @@ $ARGUMENTS
 ## Usage
 
 ```
-/debug The login button doesn't redirect to the dashboard after successful auth
-/debug #42
-/debug https://github.com/owner/repo/issues/42
-/debug Tests are failing with "Cannot read property 'map' of undefined" in UserList component
-/debug The app is slow when loading the settings page — takes 8+ seconds
-/debug Build fails with TS2322 in src/components/Header.tsx
+/fix The login button doesn't redirect to the dashboard after successful auth
+/fix #42
+/fix https://github.com/owner/repo/issues/42
+/fix Tests are failing with "Cannot read property 'map' of undefined" in UserList component
+/fix The app is slow when loading the settings page — takes 8+ seconds
+/fix Build fails with TS2322 in src/components/Header.tsx
 ```
 
 ## Step 1: Parse the Issue
@@ -105,7 +105,7 @@ If you'd prefer to provide them another way, let me know.
 
 ### While waiting for credentials:
 - Continue with Steps 2 (spec context) — you can read specs without credentials
-- Run `/debug-diagnose` on what you CAN inspect (code analysis, stack traces, config)
+- Run `/fix-diagnose` on what you CAN inspect (code analysis, stack traces, config)
 - Do NOT attempt to reproduce auth-dependent flows without credentials — you'll get false negatives
 - Do NOT hardcode, guess, or fabricate credentials
 
@@ -152,12 +152,12 @@ If the bug does NOT reproduce, tell the user: "I can't reproduce this. Here's wh
 
 ## Step 4: Run the Debug Loop
 
-Run `/debug-diagnose` with:
+Run `/fix-diagnose` with:
 - The issue description
 - The spec context (what SHOULD work)
 - The reproduction result (how it actually fails)
 
-Then run `/debug-fix` with the diagnosis.
+Then run `/fix-fix` with the diagnosis.
 
 The debug loop runs: diagnose → fix → verify → (repeat if needed, max 9 attempts).
 
@@ -246,7 +246,7 @@ An issue is a UI issue if ANY of these are true:
 
 1. **Setup** (if not already done): Run `/qa-setup` to install Playwright and scaffold test infra
 2. **Reproduce**: Write a Playwright test that reproduces the bug (captures the failure on video)
-3. **Diagnose + Fix**: Run the normal debug loop (`/debug-diagnose` → `/debug-fix`)
+3. **Diagnose + Fix**: Run the normal debug loop (`/fix-diagnose` → `/fix-fix`)
 4. **Verify via QA (MANDATORY)**: After the fix, run `/qa-final` to:
    - Re-run the specific failing test (must now pass)
    - Run ALL existing E2E flows to check for regressions

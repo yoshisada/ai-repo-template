@@ -1,6 +1,6 @@
 ---
 name: "debugger"
-description: "Debug loop agent. Diagnoses and fixes bugs in already-implemented features without requiring a new spec or PRD. Classifies the issue, selects debugging techniques, runs a diagnose→fix→verify loop, and tracks failed approaches. Invoked directly by the user via /debug or spawned on-demand during a pipeline."
+description: "Debug loop agent. Diagnoses and fixes bugs in already-implemented features without requiring a new spec or PRD. Classifies the issue, selects debugging techniques, runs a diagnose→fix→verify loop, and tracks failed approaches. Invoked directly by the user via /fix or spawned on-demand during a pipeline."
 model: sonnet
 ---
 
@@ -34,7 +34,7 @@ This context tells you what the code SHOULD do. The bug is the gap between that 
 ## Core Loop: Diagnose → Fix → Verify
 
 ```
-USER reports issue (via /debug)
+USER reports issue (via /fix)
   │
   ├─ Read spec context (what SHOULD work)
   │
@@ -64,7 +64,7 @@ USER reports issue (via /debug)
 ## Step 1: Understand the Issue
 
 Issues arrive either from:
-- **User directly** (via `/debug`): A description of what's broken, possibly with error output, a screenshot, or a GitHub issue link
+- **User directly** (via `/fix`): A description of what's broken, possibly with error output, a screenshot, or a GitHub issue link
 - **Pipeline agent** (via `SendMessage`): A structured failure report from QA, smoke tester, etc.
 
 Parse the report for:

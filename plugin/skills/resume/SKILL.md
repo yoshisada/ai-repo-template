@@ -140,7 +140,7 @@ Based on what you found, classify the project into one of these phases:
 | **Implementing (stalled)** | tasks.md exists, no recent commits | "Implementation appears stalled. Last commit was [date]. Resume with `/speckit.implement`" |
 | **Auditing** | All tasks `[X]`, no PR yet | "Implementation complete. Run audit and create PR" |
 | **QA** | PR exists, QA reports present | "QA in progress. [X/Y flows passing]. Run `/qa-pass` for live review" |
-| **Debugging** | debug-log.md has active entries | "Debugging in progress for [issue]. Run `/debug` to continue" |
+| **Debugging** | debug-log.md has active entries | "Debugging in progress for [issue]. Run `/fix` to continue" |
 | **Complete** | PR merged, all tasks done | "This feature is complete. Start a new feature with a new PRD." |
 | **Multiple features** | Multiple spec dirs | List each with its phase, ask which to resume |
 
@@ -197,7 +197,7 @@ Based on your current state, here's what makes sense:
 
 - `/speckit.implement` — Continue implementing [feature] (12/18 tasks done)
 - `/qa-pass` — Run a live QA walkthrough of what's built so far
-- `/debug [issue]` — Fix a bug without creating a new spec
+- `/fix [issue]` — Fix a bug without creating a new spec
 - `/build-prd` — Start a new feature from a PRD
 ```
 

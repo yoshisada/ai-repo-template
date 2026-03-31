@@ -165,7 +165,7 @@ PreToolUse hooks that run on every Edit/Write:
 
 If a hook blocks you, either:
 - Complete the full speckit workflow: specify → plan → tasks → implement (for new features)
-- Run `/debug` to fix a bug in an already-specced feature (existing specs satisfy the gates)
+- Run `/fix` to fix a bug in an already-specced feature (existing specs satisfy the gates)
 
 ## Available Commands
 
@@ -182,9 +182,9 @@ If a hook blocks you, either:
 5. `/speckit.audit` — PRD compliance audit (also runs inside implement)
 
 ### Debugging (no spec required)
-- `/debug [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number.
-- `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/debug`)
-- `/debug-fix` — Apply a fix and verify it (used by `/debug`)
+- `/fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number.
+- `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/fix`)
+- `/debug-fix` — Apply a fix and verify it (used by `/fix`)
 
 ### Visual QA
 - `/qa-pass` — **Live visible walkthrough** using /chrome. Includes UI/UX evaluation. Requires Chrome + Claude-in-Chrome extension.
