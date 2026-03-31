@@ -28,6 +28,12 @@ Thumbs.db
 # Local Claude settings (personal overrides)
 .claude/settings.local.json
 
+# Version lock (transient concurrency lock)
+.version.lock
+
+# QA credentials (secrets)
+qa-results/.env.test
+
 # Logs
 *.log
 npm-debug.log*

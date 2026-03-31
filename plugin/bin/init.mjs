@@ -94,6 +94,23 @@ function scaffoldProject() {
       log(`+ ${dir}/.gitkeep`);
     }
   }
+
+  // Version tracking
+  const versionFile = join(PROJECT_DIR, "VERSION");
+  if (!existsSync(versionFile) || force) {
+    writeFileSync(versionFile, "000.000.000.000\n");
+    log("+ VERSION (000.000.000.000)");
+  } else {
+    log(`✓ VERSION (exists)`);
+  }
+
+  // Scripts directory
+  ensureDir(join(PROJECT_DIR, "scripts"));
+  copyIfMissing(
+    join(PLUGIN_ROOT, "hooks", "version-increment.sh"),
+    join(PROJECT_DIR, "scripts", "version-increment.sh"),
+    "scripts/version-increment.sh (auto-increment hook)"
+  );
 }
 
 // ── Sync: shared infrastructure (always update to latest) ──
@@ -134,6 +151,7 @@ function verify() {
     [".specify/templates/spec-template.md", "Spec template"],
     ["docs/PRD.md", "PRD placeholder"],
     ["specs/README.md", "Specs directory"],
+    ["VERSION", "Version tracking"],
   ];
 
   let passed = 0;

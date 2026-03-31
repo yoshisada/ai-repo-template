@@ -123,6 +123,12 @@ If a hook blocks you, complete the full speckit workflow: specify → plan → t
 - `/speckit.analyze` — Cross-artifact consistency check
 - `/speckit.coverage` — Check test coverage gate
 
+## Versioning
+
+Format: `release.feature.pr.edit` — `000.000.000.000`
+
+The 4th segment (edit) auto-increments on every file edit via a PreToolUse hook. Stored in `VERSION` file and synced to `package.json`. The `.version.lock` directory is a transient concurrency lock — do not commit it.
+
 ## Security
 
 - NEVER commit .env, credentials, or API keys
