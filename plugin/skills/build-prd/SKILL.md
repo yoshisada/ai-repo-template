@@ -87,10 +87,12 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
 3. **Implementer** — Runs `/speckit.implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
 4. **QA Engineer** — **(Web/frontend projects only)** Runs the `qa-engineer` agent. Unlike other auditors, the QA engineer is **long-lived** — it starts after the specifier finishes (so it knows what to test) and runs in parallel with implementers. It operates in two modes:
    - **Checkpoint mode** (during implementation): Each time an implementer completes a phase and notifies the QA engineer, it spins up the dev server, tests the newly completed flows with Playwright, records video of failures, and sends **actionable feedback directly to the responsible implementer** via `SendMessage`. The implementer fixes the issue and notifies QA for re-test. This creates a tight feedback loop that catches visual bugs while the implementer still has context.
-   - **Final mode** (after all implementation): Spins up a **3-agent QA team** (same architecture as `/qa-pass`):
-     - **qa-agent**: Walks through every flow (headless Playwright for pipeline, /chrome if available), sends results to qa-reporter
-     - **ux-agent**: 3-layer UX evaluation — injects axe-core via `evaluate_script` (programmatic WCAG), reads accessibility tree (heuristics), reviews screenshots (visual design). Sends findings to qa-reporter.
-     - **qa-reporter**: Files each finding as a GitHub issue with `qa-pass` AND `build-prd` labels. Cross-checks completeness (every flow tested? every page evaluated?). Produces `qa-results/latest/QA-PASS-REPORT.md`.
+   - **Final mode** (after all implementation): Runs `/qa-pipeline` which spins up a **4-agent QA team**:
+     - **e2e-agent**: Runs Playwright E2E suite (headless, fast, deterministic)
+     - **chrome-agent**: Uses /chrome with live data (real auth, real state). Skipped if /chrome unavailable.
+     - **ux-agent**: 3-layer UX evaluation (axe-core + accessibility tree + visual)
+     - **qa-reporter** (pipeline mode): Routes findings to implementers via SendMessage → waits for fixes → re-tests → files remaining issues with `qa-pass` + `build-prd` labels
+     After `/qa-pipeline`, runs `/qa-final` as a quick green/red gate to confirm all E2E tests pass.
      The audit-pr agent includes the QA report summary and issue links in the PR body.
 
    The QA engineer tracks its checkpoint history in `qa-results/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
@@ -315,23 +317,25 @@ The QA engineer's prompt MUST include these exact instructions:
 ```
 You are the QA engineer for this pipeline. You run the `qa-engineer` agent definition.
 
-## SKILLS — use these instead of doing everything manually
-- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds qa-results/, generates test matrix and test stubs from the spec.
-- `/qa-checkpoint` — Run each time an implementer completes a phase. Tests new flows, sends feedback, logs progress.
-- `/qa-final` — Run AFTER all implementers finish. Full suite with video on every test, responsive tests, exports artifacts, generates QA report.
+## SKILLS
+- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds qa-results/, generates test matrix and test stubs.
+- `/qa-checkpoint` — During implementation. Tests new flows, sends feedback to implementers.
+- `/qa-pipeline` — After ALL implementers finish. 4-agent team (e2e + chrome + ux + reporter in pipeline mode). Reporter routes findings to implementers for fixing.
+- `/qa-final` — Quick gate after /qa-pipeline. Just runs playwright tests and confirms green.
 
 ## WORKFLOW
 1. On startup: Run `/qa-setup`
-2. If `/qa-setup` reports credential-dependent flows, message the team lead immediately:
-   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in qa-results/.env.test (template at qa-results/.env.test.example)."
-   Do NOT block on this — continue testing non-auth flows while waiting.
+2. If `/qa-setup` reports credential-dependent flows, message the team lead:
+   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in qa-results/.env.test."
+   Do NOT block — continue testing non-auth flows while waiting.
 3. Watch for messages from implementers saying a phase is complete
 4. When notified: Run `/qa-checkpoint`
 5. When an implementer messages "fix ready": Run `/qa-checkpoint [flow-name]` to re-test
-6. If team lead provides credentials (or says "credentials ready"): re-check qa-results/.env.test and unblock auth flows
-7. After ALL implementers are done: Run `/qa-final`
-8. Mark your task as completed via TaskUpdate ONLY after `/qa-final` is done and artifacts are committed
-9. Notify the auditor that QA is complete and videos are ready
+6. If team lead provides credentials: re-check qa-results/.env.test and unblock auth flows
+7. After ALL implementers are done: Run `/qa-pipeline` (4-agent team with fix routing)
+8. After `/qa-pipeline` completes: Run `/qa-final` (quick green/red gate)
+9. Mark your task as completed via TaskUpdate ONLY after `/qa-final` is green
+10. Notify the auditor that QA is complete and report is ready
 
 ## CREDENTIALS
 - NEVER hardcode or guess credentials — always load from qa-results/.env.test

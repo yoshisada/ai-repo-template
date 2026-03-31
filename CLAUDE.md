@@ -186,11 +186,12 @@ If a hook blocks you, either:
 - `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/fix`)
 - `/debug-fix` — Apply a fix and verify it (used by `/fix`)
 
-### Visual QA
-- `/qa-pass` — **Live visible walkthrough** using /chrome. Includes UI/UX evaluation. Requires Chrome + Claude-in-Chrome extension.
+### QA (two workflows — same 4-agent team, different reporter mode)
+- `/qa-pass` — **Standalone**. 4-agent team (e2e + chrome + ux + reporter). Findings filed as GitHub issues. Use outside the pipeline.
+- `/qa-pipeline` — **Pipeline**. Same 4 agents but reporter routes findings to implementers, waits for fixes, re-tests, then files remaining issues. Used by `/build-prd`.
+- `/qa-final` — Quick E2E gate. Just runs `npx playwright test` — green/red, no evaluation.
 - `/qa-setup` — Install Playwright and scaffold QA test infrastructure
-- `/qa-checkpoint` — Quick QA pass on recently completed flows (feedback loop)
-- `/qa-final` — Full QA suite with video recording for PR (headless Playwright)
+- `/qa-checkpoint` — Quick targeted QA on recently completed flows (feedback loop during implementation)
 - `/ux-evaluate` — Standalone UI/UX design review using /chrome
 
 ### Other

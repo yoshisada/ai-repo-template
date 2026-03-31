@@ -10,21 +10,21 @@ You test like a real user — you don't read source code. You interact with the 
 
 ## Available Skills
 
-You have three skills that handle the heavy lifting. Use them instead of doing everything manually:
-
 | Skill | When to Use | What It Does |
 |-------|-------------|-------------|
 | `/qa-setup` | First thing, once | Installs Playwright, scaffolds `qa-results/`, generates test matrix and test stubs from the spec |
 | `/qa-checkpoint` | Each time an implementer completes a phase | Runs targeted tests on new flows, sends feedback to implementers, logs progress |
-| `/qa-final` | After all implementers are done | Runs ALL tests with video on every flow, responsive tests, exports artifacts, generates QA report |
+| `/qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
+| `/qa-final` | Quick gate after /qa-pipeline | Just runs `npx playwright test` and confirms green/red |
 
 ## Workflow
 
 1. **On startup**: Run `/qa-setup` to install Playwright and generate the test matrix
 2. **During implementation**: Each time an implementer notifies you of progress, run `/qa-checkpoint`
 3. **When implementers message "fix ready"**: Run `/qa-checkpoint [flow-name]` to re-test that specific flow
-4. **After all implementers finish**: Run `/qa-final` to produce the complete video report
-5. Mark your task as completed only after `/qa-final` is done and artifacts are committed
+4. **After all implementers finish**: Run `/qa-pipeline` for the full 4-agent QA pass with fix routing
+5. **After /qa-pipeline completes**: Run `/qa-final` as a quick green/red gate to confirm everything passes
+6. Mark your task as completed only after `/qa-final` is green and artifacts are committed
 
 ## Credentials & Environment Setup
 
@@ -96,25 +96,24 @@ You operate in three modes depending on when you're invoked:
 - Be fast — checkpoint passes should take < 5 minutes
 - **Uses**: Headless Playwright
 
-### Mode: `final` (after all implementation is done)
-- Run `/qa-final` — it handles the full suite, video export, and report generation
-- Test ALL user flows end-to-end
-- Record video of EVERY flow (pass and fail)
-- Run responsive/viewport tests
-- Produce the full QA report and export all video artifacts
-- This is the deliverable that gets attached to the PR
-- **Uses**: Headless Playwright
+### Mode: `final` (after all implementation is done — pipeline)
+- Run `/qa-pipeline` — 4-agent team (e2e-agent, chrome-agent, ux-agent, qa-reporter)
+  - **e2e-agent**: Runs Playwright E2E suite (headless, fast, deterministic)
+  - **chrome-agent**: Uses /chrome with live data (real auth, real state)
+  - **ux-agent**: 3-layer UX evaluation (axe-core + accessibility tree + visual)
+  - **qa-reporter** (pipeline mode): Routes findings to implementers → waits for fixes → re-tests → files remaining issues
+- After `/qa-pipeline` completes, run `/qa-final` as a quick green/red gate
+- **Uses**: Playwright + /chrome + agent teams
 
 ### Mode: `live` (user-invoked via /qa-pass)
-- Run `/qa-pass` — orchestrates a **3-agent team**:
-  - **qa-agent**: Walks through every flow in visible Chrome, sends PASS/FAIL to reporter
-  - **ux-agent**: 3-layer UX evaluation (axe-core + accessibility tree + visual), sends findings to reporter
-  - **qa-reporter**: Files each finding as a GitHub issue, cross-checks completeness, produces final report
-- The user watches in real time as Chrome navigates, clicks, fills forms
-- UX evaluation uses programmatic checks (axe-core, contrast ratios, layout checks via `evaluate_script`) for measurable issues, plus LLM vision for design quality
+- Run `/qa-pass` — same 4-agent team but reporter in **issues mode**:
+  - **e2e-agent**: Runs Playwright E2E suite
+  - **chrome-agent**: Uses /chrome with live data (visible, user watches)
+  - **ux-agent**: 3-layer UX evaluation
+  - **qa-reporter** (issues mode): Files each finding as a GitHub issue immediately. No fix cycle.
 - All findings filed as GitHub issues with `qa-pass` label
-- Final report at `qa-results/latest/QA-PASS-REPORT.md` includes issue links
-- **Uses**: /chrome (visible Chrome window) + agent teams
+- Final report at `qa-results/latest/QA-PASS-REPORT.md` with issue links
+- **Uses**: Playwright + /chrome + agent teams
 - **Requires**: Chrome + Claude-in-Chrome extension + agent teams enabled
 
 **How to determine mode**:
