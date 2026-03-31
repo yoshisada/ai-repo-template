@@ -189,6 +189,8 @@ Before spawning any teammates, verify:
 
 ## Step 3: Spawn Teammates
 
+**Spawn all teammates EXCEPT the retrospective agent.** The retrospective is spawned later in Step 5 after all auditors complete. This keeps its context clean — an agent spawned at pipeline start accumulates idle notifications and peer DM summaries for the entire run, burning tokens on irrelevant context.
+
 Spawn teammates using the `Agent` tool with:
 - `team_name` set to the team name from Step 2
 - `name` set to a descriptive name (e.g., `specifier`, `impl-core`, `auditor`)
@@ -307,6 +309,28 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 - Peer DM visibility: when teammates message each other, a brief summary appears in their idle notification. This is informational — you don't need to respond.
 - Use broadcast sparingly — token costs scale with team size.
 
+### Mid-Pipeline Auditor Checkpoint
+
+When approximately 50% of implementer tasks in `tasks.md` are marked `[X]`, spawn a short-lived `audit-midpoint` agent to catch structural issues early — before the full audit at the end. This prevents problems like the missing Dockerfile in the obsidian-mcp-mvp pipeline (issue #14) from being caught only at final audit.
+
+**How to trigger**: While monitoring via `TaskList`, track the ratio of completed implementer tasks. When it crosses ~50%, spawn the midpoint auditor.
+
+**audit-midpoint agent prompt** (spawn with `run_in_background: true`):
+
+```
+You are a lightweight mid-pipeline auditor. Your job is to catch structural gaps EARLY, not to do a full compliance audit. Check these specific things:
+
+1. **Deployment artifacts**: Read plan.md's "Deployment Readiness" section. For every artifact marked "Yes", verify the file exists or has a task assigned in tasks.md. Flag any missing artifacts.
+2. **Contract compliance**: Spot-check 3-5 implemented functions against contracts/interfaces.md. Flag signature mismatches.
+3. **Structural completeness**: Verify the project structure in plan.md matches what's been created so far. Flag missing directories or misnamed paths.
+
+Report findings to the team lead via SendMessage. Do NOT fix anything — just report. Keep it brief: a bulleted list of gaps found (or "No structural gaps found").
+
+After reporting, mark your task as completed. This is a one-shot check, not an ongoing role.
+```
+
+Create a task for this agent in Step 2 (e.g., "Mid-pipeline structural check") with dependencies on the specifier task only (it runs during implementation, not after). The final auditors do NOT depend on this task — it's advisory.
+
 ### Handling Scope Changes Mid-Pipeline
 
 If the user changes scope, updates the PRD, or asks to modify requirements while implementers are already running:
@@ -323,7 +347,7 @@ If the user changes scope, updates the PRD, or asks to modify requirements while
 
 **STOP. Before sending ANY shutdown requests, the retrospective MUST run.**
 
-The retrospective teammate was already spawned in Step 3 with the other teammates. It has been waiting (blocked on all other tasks). Once every task is completed and the retrospective task unblocks, the retrospective teammate should begin automatically. If it doesn't, nudge it via `SendMessage`.
+The retrospective teammate was NOT spawned in Step 3. Spawn it NOW, after all auditor tasks are completed. This gives it a clean context without accumulated idle notifications from the entire pipeline. Use the same Agent tool parameters as Step 3 (team_name, run_in_background, mode) with `name: "retrospective"`. The retrospective task was already created in Step 2 with dependencies on all other tasks — it should unblock immediately since all prerequisites are complete.
 
 ### Safety-Net Gate (retrospective agent prompt MUST include this)
 

@@ -94,6 +94,26 @@ ios/ or android/
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
 
+## Deployment Readiness
+
+<!--
+  ACTION REQUIRED: List every deployment artifact this feature requires.
+  Delete rows that don't apply. Add rows for project-specific artifacts.
+  This section prevents deployment artifacts from being missed during task
+  generation and caught only at audit time.
+-->
+
+| Artifact | Path | Required? | Notes |
+|----------|------|-----------|-------|
+| Dockerfile | [e.g., packages/server/Dockerfile] | [Yes/No/N/A] | [e.g., multi-stage build for production] |
+| docker-compose.yml | [e.g., docker-compose.yml] | [Yes/No/N/A] | [e.g., local dev + CI environments] |
+| CI config | [e.g., .github/workflows/ci.yml] | [Yes/No/N/A] | [e.g., build, test, deploy pipeline] |
+| Env template | [e.g., .env.example] | [Yes/No/N/A] | [e.g., required env vars documented] |
+| Kubernetes manifests | [e.g., k8s/deployment.yml] | [Yes/No/N/A] | [e.g., deployment, service, ingress] |
+| Terraform / IaC | [e.g., infra/main.tf] | [Yes/No/N/A] | [e.g., cloud resources] |
+
+**Deployment notes**: [Any additional deployment considerations — DNS, secrets management, migration scripts, etc.]
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**

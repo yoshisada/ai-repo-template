@@ -60,6 +60,16 @@ The text the user typed after `/speckit.specify` in the triggering message **is*
 
 Given that feature description, do this:
 
+0. **Check for existing spec** before creating anything:
+   - Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` to resolve the current feature directory
+   - If FEATURE_DIR exists AND `spec.md` exists inside it:
+     - Log: "Existing spec found at {FEATURE_DIR}/spec.md — skipping branch and directory creation."
+     - Read the existing spec.md
+     - **Skip steps 1-4** and jump directly to **step 6 (Specification Quality Validation)** to validate the existing spec
+     - If validation passes, report readiness for `/speckit.plan`
+     - If validation fails, fix issues in the existing spec (same iterative flow as step 6)
+   - If no existing spec is found, proceed to step 1 as normal
+
 1. **Generate a concise short name** (2-4 words) for the branch:
    - Analyze the feature description and extract the most meaningful keywords
    - Create a 2-4 word short name that captures the essence of the feature
