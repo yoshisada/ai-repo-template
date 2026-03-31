@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/speckit-harness",
-  "version": "000.000.000.026",
+  "version": "000.000.000.027",
   "description": "Spec-first development harness for Claude Code",
   "author": "yoshisada",
   "license": "MIT",
