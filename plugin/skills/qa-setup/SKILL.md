@@ -104,9 +104,11 @@ Priority levels:
 - **P1**: Important edge cases and error handling
 - **P2**: Responsive/viewport and polish
 
+**Comprehensive coverage is required.** The test matrix must include EVERY user-facing flow in the spec — not just happy paths. Every route, every form, every interactive element, every error state. If the spec mentions it, it goes in the matrix. Flows that can't be tested (credentials, external deps) are still listed as `blocked:reason`.
+
 ### Step 5: Generate Test Stubs
 
-For each P0 flow in the test matrix, generate a Playwright test stub in `qa-results/tests/`:
+For **every flow** in the test matrix (P0, P1, AND P2), generate a Playwright test stub in `qa-results/tests/`:
 
 ```typescript
 // qa-results/tests/flow-01-[slug].spec.ts

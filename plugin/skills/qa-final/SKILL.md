@@ -21,9 +21,22 @@ $ARGUMENTS
 
 If setup is missing, run `/qa-setup` first.
 
-### Step 1: Ensure All Tests Are Written
+### Step 1: Ensure Comprehensive E2E Coverage (NON-NEGOTIABLE)
 
-Read `qa-results/test-matrix.md` and verify every flow (P0, P1, P2) has a test in `qa-results/tests/`.
+Read `qa-results/test-matrix.md` and verify **every flow** (P0, P1, AND P2) has a test in `qa-results/tests/`. This is not a targeted test run — it is a full E2E sweep of the application.
+
+**Coverage requirements:**
+- Every route/page in the app must be visited by at least one test
+- Every form must be tested (valid submission + at least one invalid state)
+- Every navigation path (navbar, sidebar, breadcrumbs, links) must be followed
+- Every interactive element (buttons, dropdowns, modals, tabs, toggles) must be exercised
+- Every CRUD operation must be tested end-to-end (create, read, update, delete)
+- Every user-facing error state must be triggered (404, empty state, validation error)
+- If the spec lists a user flow, it MUST have a test. No exceptions.
+
+**If a flow has no test**, write one now. Do not skip it. Do not mark it "will add later."
+
+**If a flow is blocked** (credentials, external dependency), mark it explicitly in the test matrix and QA report as `SKIPPED (reason)`. Every flow must be accounted for — either tested or explicitly skipped with a reason.
 
 For any missing tests:
 - Write the full test with real steps (not stubs)

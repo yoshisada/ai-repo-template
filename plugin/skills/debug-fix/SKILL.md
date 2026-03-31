@@ -94,12 +94,15 @@ Run verification appropriate to the issue type:
 
 #### Verification by Type
 
-**Visual:**
+**Visual (MANDATORY — full E2E suite, not just the fixed flow):**
 ```bash
-# Re-run the specific Playwright test
+# First: verify the specific fix
 cd qa-results && npx playwright test --config=playwright.config.ts --grep "[test-name]" 2>&1
+
+# Then: run the FULL E2E suite to catch regressions (NON-NEGOTIABLE for UI fixes)
+cd qa-results && npx playwright test --config=playwright.config.ts 2>&1
 ```
-PASS if: test passes on desktop AND mobile viewports.
+PASS if: the specific test passes on desktop AND mobile viewports, AND the full E2E suite has no new failures compared to before the fix. A fix that breaks another flow is NOT a fix — revert and try a different approach.
 
 **Runtime:**
 ```bash
@@ -151,9 +154,16 @@ PASS if: build succeeds with exit code 0.
 After the specific fix passes, run a broader check to make sure nothing else broke:
 
 ```bash
-# Run the full test suite
+# Run the full unit/integration test suite
 npm test 2>&1
 ```
+
+**For UI fixes — E2E regression check is MANDATORY (in addition to unit tests):**
+```bash
+# Run the full Playwright E2E suite
+cd qa-results && npx playwright test --config=playwright.config.ts 2>&1
+```
+This catches visual regressions (layout shifts, broken navigation, CSS cascade issues) that unit tests cannot detect. UI fixes that pass unit tests but break other flows in the browser are NOT acceptable.
 
 If the full suite has new failures that didn't exist before your fix, your fix introduced a regression. Revert and try a different approach.
 

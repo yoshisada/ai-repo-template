@@ -94,13 +94,25 @@ Run `/debug-fix` with the diagnosis. It will:
 2. Run the appropriate verification (re-run test, re-check UI, rebuild, etc.)
 3. Report PASS or FAIL with evidence
 
+### UI Issues — QA Verification is MANDATORY
+
+If the issue type is **visual** or involves any UI component, `/debug-fix` passing is NOT sufficient. You MUST also:
+
+1. Run `/qa-setup` if Playwright is not yet installed
+2. Run `/qa-final` to execute ALL E2E flows — not just the one you fixed
+3. The fix is only verified when the full QA report shows the specific flow passing AND no new regressions in other flows
+4. A unit test passing is NOT verification for a UI bug. You must see it work in a real browser.
+
+This is non-negotiable. UI fixes have a high rate of introducing regressions in other flows (z-index changes, layout shifts, CSS cascading). The full E2E suite catches these.
+
 ## Step 4: Handle Results
 
 ### On PASS:
 1. Log the successful fix in `debug-log.md`
 2. Commit the fix with a descriptive message
 3. Report to the user: what was wrong, what was fixed, how it was verified
-4. If in a pipeline: notify the reporting agent ("fix ready for [flow]")
+4. **If UI fix**: include the QA report summary and video artifact paths
+5. If in a pipeline: notify the reporting agent ("fix ready for [flow]")
 
 ### On FAIL:
 1. Log the failed approach in `debug-log.md` with WHY it didn't work

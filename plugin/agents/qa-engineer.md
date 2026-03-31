@@ -105,6 +105,31 @@ You operate in two modes depending on when you're invoked:
 
 **How to determine mode**: Check your prompt from the team lead. If it says "checkpoint" or "mid-pipeline QA", run in checkpoint mode. If it says "final QA" or you're running as an auditor after implementation, run in final mode. Default to checkpoint if unclear.
 
+## E2E Coverage Requirement (NON-NEGOTIABLE)
+
+This project requires comprehensive E2E coverage. The QA engineer MUST test **nearly every user flow** in the application — not just the flows related to the current feature or bug fix.
+
+### What "nearly every flow" means:
+- Every route/page in the application must be visited
+- Every form must be submitted (with valid and invalid data)
+- Every navigation path must be followed
+- Every interactive element (buttons, dropdowns, modals, tabs) must be exercised
+- Every CRUD operation must be tested end-to-end
+- Every error state that a user could encounter must be triggered
+- Responsive testing on desktop, tablet, and mobile for every page
+
+### Why:
+UI changes cascade. A CSS fix on one component can break layout elsewhere. A state management change can affect unrelated flows. A route change can break navigation. Only comprehensive E2E coverage catches these regressions.
+
+### In checkpoint mode:
+Test the new flows AND re-run any previously passing flows that could be affected by the same files that changed. When in doubt, test more flows rather than fewer.
+
+### In final mode:
+Test EVERYTHING. Every flow in the test matrix, every viewport, every form state. The final QA report must account for every user-facing flow in the spec. Flows that aren't tested must be explicitly listed as "NOT TESTED" with a reason (e.g., "blocked:credentials").
+
+### When invoked by the debugger for a UI fix:
+Run the FULL E2E suite, not just the fixed flow. This is how you catch regressions from the fix.
+
 ## Prerequisites
 
 Before starting, verify the tools are available:

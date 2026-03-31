@@ -161,23 +161,41 @@ If the debug loop exhausts all strategies (9 attempts), present the user with ev
 [What the user should try manually, or whether this needs a spec update]
 ```
 
-## Visual Bug Shortcut
+## UI Issues — QA Engineer is MANDATORY (NON-NEGOTIABLE)
 
-If the issue is clearly visual/UI (mentions layout, styling, "looks wrong", responsive, etc.), and Playwright is set up:
+If the issue involves the UI in ANY way — layout, styling, visual regression, component behavior, responsiveness, "looks wrong", button doesn't work, page doesn't render — the QA engineer MUST run as part of verification. This is not optional.
 
-1. Skip straight to running `/qa-checkpoint` on the affected flow
-2. Use the Playwright trace and screenshots as diagnostic input
-3. Fix the CSS/HTML/component issue
-4. Re-run the QA test to verify
+### Detection
 
-This is faster than the general debug loop for visual issues.
+An issue is a UI issue if ANY of these are true:
+- The user mentions anything visual (layout, CSS, styling, responsive, looks wrong, misaligned, overlapping)
+- The issue references a UI component, page, or route
+- The error occurs in a `.tsx`, `.jsx`, `.vue`, `.svelte`, or template file
+- The issue mentions user interaction (click, hover, scroll, navigate, form submit)
+- Screenshots or videos are attached showing the problem
+- The affected file is in a `components/`, `pages/`, `views/`, `layouts/`, or `app/` directory
+
+### Required Flow for UI Issues
+
+1. **Setup** (if not already done): Run `/qa-setup` to install Playwright and scaffold test infra
+2. **Reproduce**: Write a Playwright test that reproduces the bug (captures the failure on video)
+3. **Diagnose + Fix**: Run the normal debug loop (`/debug-diagnose` → `/debug-fix`)
+4. **Verify via QA (MANDATORY)**: After the fix, run `/qa-final` to:
+   - Re-run the specific failing test (must now pass)
+   - Run ALL existing E2E flows to check for regressions
+   - Record video of every flow (pass and fail)
+   - Produce the QA report at `qa-results/latest/QA-REPORT.md`
+5. **The fix is NOT verified until QA passes.** A unit test passing is insufficient for UI bugs — you must see it working in a real browser.
+
+Do NOT skip QA for UI issues. Do NOT treat a passing unit test as sufficient verification. The QA engineer runs E2E across the full application to catch regressions your fix may have introduced in other flows.
 
 ## Rules
 
 - Do NOT require a new PRD or spec — the whole point is to fix bugs without ceremony
 - DO read existing specs for context — they tell you what the code should do
+- **UI issues ALWAYS require QA verification** — no exceptions, no shortcuts
 - The speckit hooks may block src/ edits — existing specs should satisfy the gates. If not, check that spec artifacts exist for the feature.
 - Log everything in `debug-log.md` — it helps the retrospective and future debugging
 - If the bug reveals a gap in the original spec (the feature was never supposed to handle this case), tell the user. They may want to update the spec before fixing.
-- If the fix is trivial (typo, obvious one-line fix), just fix it directly without the full diagnose→fix loop. Use judgment.
+- If the fix is trivial (typo, obvious one-line fix), just fix it directly without the full diagnose→fix loop. Use judgment. But if it's a UI fix, still run QA.
 - Always run the full test suite after fixing to catch regressions
