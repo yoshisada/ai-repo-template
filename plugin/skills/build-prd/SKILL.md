@@ -56,7 +56,12 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
    ```
 
    **If there are uncommitted changes or staged files:**
-   Carry them into the pipeline branch as-is. They'll be part of the first pipeline commit. Do NOT ask the user — just include them. These are typically the PRD and backlog files the pipeline needs.
+   Commit them to the current branch first, then create the pipeline branch. Do NOT ask the user — just commit and proceed. These are typically the PRD and backlog files the pipeline needs.
+
+   ```bash
+   git add -A
+   git commit -m "chore: commit working changes before pipeline branch"
+   ```
 
    **If the working directory is clean:**
    Proceed directly to creating the branch.
