@@ -408,6 +408,32 @@ Before creating the PR, reconcile blockers.md against the current code state:
 5. Commit the updated blockers.md before creating the PR
 
 The PR must reflect the FINAL state of the code, not a point-in-time snapshot from mid-implementation.
+
+When creating the PR, always add the `build-prd` label:
+
+gh pr create --label "build-prd" --title "[feature-name]: [short description]" --body "$(cat <<'PREOF'
+## Summary
+- [bullet points from audit findings]
+
+## Compliance
+- PRD coverage: X%
+- Test coverage: X%
+- Blockers: N (see specs/{feature}/blockers.md)
+
+## QA Results
+- Smoke test: PASS/FAIL
+- Visual QA: PASS/FAIL/SKIPPED — [video count] recordings
+- QA Report: qa-results/latest/QA-REPORT.md
+
+## Test plan
+- [ ] Tests pass (`npm test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Smoke test passes
+- [ ] Visual QA passes (if applicable)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+PREOF
+)"
 ```
 
 **Why this is needed**: In the 015 pipeline, blockers.md cited B-001 (missing v2 template), B-002 (missing Zero/Drizzle/Auth), and B-003 (only 2 UI components) as critical gaps with 65% compliance. But the implementer fixed all three in later commits. The blockers.md was never updated, so the PR would have shipped with a stale 65% compliance figure when the actual number was higher.
@@ -507,7 +533,11 @@ The retrospective teammate's job:
    - `git log` — commit flow and any fixup commits that indicate rework
    - Test results — any failures, flaky tests, environment issues
    - Task list — tasks that were stuck, reassigned, or took unusually long
-5. Creates a GitHub issue on the **ai-repo-template** repo with `gh issue create -R yoshisada/ai-repo-template` containing:
+5. Creates a GitHub issue on the **ai-repo-template** repo with the `build-prd` label:
+   ```bash
+   gh issue create -R yoshisada/ai-repo-template --label "build-prd" --title "..." --body "..."
+   ```
+   Containing:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
