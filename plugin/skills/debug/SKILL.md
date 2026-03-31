@@ -52,6 +52,73 @@ Read the relevant `spec.md`, `plan.md`, and `contracts/interfaces.md` to underst
 
 **If no spec exists**: That's fine. Work from the user's description and the code itself. Not everything goes through speckit.
 
+## Step 2b: Check for Credentials / Real Account Data
+
+Before attempting to reproduce, check if the issue involves authenticated flows, real user data, or external services that require credentials.
+
+### Detection — ask the user if ANY of these are true:
+- The bug is behind a login wall or requires authentication
+- The issue involves a specific user account, role, or permission level
+- The bug only happens with real/production data (not mock data)
+- An external API, database, or third-party service is involved
+- The issue mentions OAuth, SSO, tokens, API keys, or sessions
+- The bug is in an admin panel, dashboard, or gated feature
+
+### If credentials are needed:
+
+Ask the user directly — do NOT guess or skip this:
+
+```
+This issue appears to involve [authenticated flows / real account data / external service].
+
+To debug this, I'll need credentials. Please provide them in `qa-results/.env.test`:
+
+```env
+# Debug Credentials — DO NOT COMMIT (gitignored)
+#
+# Fill in whatever applies to this issue:
+#
+# Account credentials
+QA_TEST_USER_EMAIL=
+QA_TEST_USER_PASSWORD=
+#
+# If the bug is role-specific:
+QA_ADMIN_EMAIL=
+QA_ADMIN_PASSWORD=
+#
+# If external services are involved:
+QA_API_KEY=
+QA_DATABASE_URL=
+#
+# If the bug needs a specific account/data:
+QA_TARGET_USER_ID=
+QA_TARGET_RESOURCE_ID=
+```
+
+Specifically, I need:
+- [ ] [credential 1 — what and why]
+- [ ] [credential 2 — what and why]
+
+I'll wait for you to fill in `qa-results/.env.test` before proceeding with reproduction.
+If you'd prefer to provide them another way, let me know.
+```
+
+### While waiting for credentials:
+- Continue with Steps 2 (spec context) — you can read specs without credentials
+- Run `/debug-diagnose` on what you CAN inspect (code analysis, stack traces, config)
+- Do NOT attempt to reproduce auth-dependent flows without credentials — you'll get false negatives
+- Do NOT hardcode, guess, or fabricate credentials
+
+### Once credentials are provided:
+1. Verify `qa-results/.env.test` exists and has the needed values
+2. Verify `.gitignore` includes `qa-results/.env.test`
+3. Load credentials in reproduction scripts via `dotenv` or `process.env`
+4. NEVER log, screenshot, or record credentials in video output
+5. Proceed to Step 3 (Reproduce)
+
+### For future debugging sessions:
+If `qa-results/.env.test` already exists from a previous session, check if the credentials are still valid and sufficient for the current issue. If the new issue requires additional credentials (different role, different service), ask the user to add them.
+
 ## Step 3: Reproduce the Issue
 
 Before diagnosing, confirm the bug is real and reproducible:
