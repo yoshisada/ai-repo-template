@@ -42,8 +42,44 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
    Extract the feature scope, functional requirements, deliverables, and any named external dependencies.
    For feature PRDs, also read `docs/PRD.md` for inherited product context (tech stack, users, constraints).
 4. Read `.specify/memory/constitution.md` — note any constraints that affect team structure.
-5. Create a fresh git branch from main.
-6. **PRD freeze**: The PRD is frozen the moment you read it. Do NOT ask the user for confirmation — just proceed. Log a one-line message: "PRD frozen — starting pipeline." If the user needs to change requirements mid-run, they can trigger a scope-change pause (see Step 4 in Monitor and Steer).
+5. **Handle working directory and create branch:**
+
+   The user's local checkout is their working copy. The pipeline branches from **the current HEAD** — not from main.
+
+   ```bash
+   # Step A: Check for uncommitted changes
+   if ! git diff --quiet || ! git diff --cached --quiet; then
+     echo "You have uncommitted changes."
+   fi
+   # Also check untracked files
+   git status --short
+   ```
+
+   **If there are uncommitted changes or staged files:**
+   Ask the user how to handle them before creating the branch:
+   > "You have uncommitted changes. How would you like to handle them before I start the pipeline?
+   >
+   > 1. **Stash them** — I'll `git stash push` before branching and you can `git stash pop` later
+   > 2. **Commit them first** — I'll commit your current work to the current branch, then create the pipeline branch
+   > 3. **Include them** — I'll carry them into the pipeline branch as-is (they'll be part of the first pipeline commit)
+   > 4. **Discard them** — I'll discard uncommitted changes (destructive — cannot be undone)"
+   >
+   > If unsure, option 1 (stash) is safest.
+
+   Do NOT silently discard, stash, or commit without asking. The user's uncommitted work may be important.
+
+   **If the working directory is clean:**
+   Proceed directly to creating the branch.
+
+   ```bash
+   # Step B: Create a fresh branch from current HEAD
+   BRANCH_NAME="build/$(echo "$FEATURE_SLUG" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')-$(date +%Y%m%d)"
+   git checkout -b "$BRANCH_NAME"
+   ```
+
+   The branch is created from wherever the user currently is — their current branch, current commit, current state. This preserves their working context. The pipeline's work happens on this new branch; the user's original branch is untouched.
+
+6. **PRD freeze**: The PRD is frozen the moment you read it. Do NOT ask the user for confirmation — just proceed. Log a one-line message: "PRD frozen — starting pipeline on branch `$BRANCH_NAME` from `$(git rev-parse --abbrev-ref HEAD@{-1})`." If the user needs to change requirements mid-run, they can trigger a scope-change pause (see Step 4 in Monitor and Steer).
 
 ## Step 1: Analyze the PRD and Design the Team
 
