@@ -526,21 +526,37 @@ Include these instructions verbatim in the retrospective teammate's prompt when 
 
 The retrospective teammate's job:
 1. **Run the safety-net gate above** — verify all tasks are done before proceeding
-2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure?"
+2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure? Were any instructions in your prompt unclear, missing, or contradictory?"
 3. Collects their responses
 4. Reviews the pipeline artifacts for additional evidence:
    - `specs/{feature}/blockers.md` — documented blockers
    - `git log` — commit flow and any fixup commits that indicate rework
    - Test results — any failures, flaky tests, environment issues
    - Task list — tasks that were stuck, reassigned, or took unusually long
-5. Creates a GitHub issue on the **ai-repo-template** repo with the `build-prd` label:
+   - `SendMessage` history — look for misunderstandings, repeated clarifications, agents asking the same question twice, or agents doing work that conflicted with another agent
+5. **Analyze agent communication and prompt effectiveness** (NON-NEGOTIABLE section):
+   - **Prompt clarity**: Were any agent prompts ambiguous? Did an agent misinterpret its instructions? Quote the specific prompt text that caused confusion and propose a rewrite.
+   - **Missing instructions**: Did any agent get stuck because its prompt didn't cover a scenario it encountered? What should be added?
+   - **Redundant or contradictory instructions**: Did two agents receive conflicting guidance? Did an agent's prompt tell it to do something that another agent's prompt also claimed ownership of?
+   - **Handoff failures**: Were there moments where Agent A finished but Agent B didn't know, or Agent B started before Agent A was truly done? What signal was missing or misinterpreted?
+   - **Wasted work**: Did any agent do work that was thrown away or redone? Why — was it a prompt issue, a timing issue, or a scope issue?
+   - **Communication overhead**: Were there too many messages between agents? Too few? Did the team lead have to manually relay information that agents should have shared directly?
+   - **Specific prompt rewrites**: For every communication problem found, propose the exact text change to the agent prompt, skill SKILL.md, or build-prd SKILL.md that would prevent it next time. Format as:
+     ```
+     File: [path]
+     Current: "[exact text that caused the issue]"
+     Proposed: "[rewritten text that fixes it]"
+     Why: [one sentence explaining the improvement]
+     ```
+6. Creates a GitHub issue on the **ai-repo-template** repo with the `build-prd` label:
    ```bash
    gh issue create -R yoshisada/ai-repo-template --label "build-prd" --title "..." --body "..."
    ```
    Containing:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
-   - **Proposed changes** — concrete suggestions for the skill, speckit commands, team structure, or codebase
+   - **Prompt & communication improvements** — specific rewrites for agent prompts, skill definitions, or pipeline orchestration (from step 5 above)
+   - **Proposed changes** — other concrete suggestions for the skill, speckit commands, team structure, or codebase
 6. Reports the issue URL back to the lead
 7. Marks its task as completed via `TaskUpdate`
 
