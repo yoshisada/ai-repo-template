@@ -232,7 +232,110 @@ Wait for the `ux-evaluator` agent to complete. Once `qa-results/latest/UX-REPORT
 [List the top 3-5 most impactful findings from the UX report]
 ```
 
-## Step 7: Cleanup and Report
+## Step 7: File Issues for Every Finding
+
+For every failure, bug, or UX finding, run `/report-issue` to create a backlog entry. This ensures nothing gets lost and everything is actionable.
+
+### Functional failures → file as bugs
+
+For each flow that FAILED:
+
+```
+/report-issue QA FAIL: [flow name] (US-NNN) — [what failed]
+
+Screenshot: qa-results/latest/screenshots/[name].png
+Console errors: [list any JS errors on the page]
+Expected: [what should have happened]
+Actual: [what actually happened]
+```
+
+Use these classifications:
+- **Type**: `bug`
+- **Severity**: `blocking` if core flow, `high` if secondary flow, `medium` if edge case
+- **Category**: infer from the affected area (e.g., `skills` if it's a plugin issue, `other` for app code)
+- **Source**: `pipeline-run`
+
+### Console errors → file as bugs
+
+For each unique JS error found across pages:
+
+```
+/report-issue Console error on [page]: [error message]
+
+Affected pages: [list all pages where this error appeared]
+Screenshot: qa-results/latest/screenshots/[name].png
+```
+
+- **Type**: `bug`
+- **Severity**: `high` if TypeError/ReferenceError (crash-level), `medium` if warning
+- **Source**: `pipeline-run`
+
+### UX findings → file by severity
+
+For each finding from the UX evaluator report:
+
+**Critical and Major UX findings** — file individually:
+```
+/report-issue [UX] [Category]: [finding title]
+
+Details: [full description from UX report]
+Screenshot: qa-results/latest/screenshots/[name].png
+Suggested fix: [recommendation from UX evaluator]
+WCAG reference: [if accessibility issue, cite the specific guideline]
+```
+
+- **Type**: `improvement` (or `bug` if it's an accessibility compliance failure)
+- **Severity**: `high` for critical UX, `medium` for major UX
+- **Category**: `other`
+- **Source**: `pipeline-run`
+
+**Minor and Suggestion UX findings** — batch into a single issue:
+```
+/report-issue [UX] Minor findings from QA pass (N items)
+
+[List each minor finding on its own line with page and screenshot reference]
+```
+
+- **Type**: `improvement`
+- **Severity**: `low`
+- **Source**: `pipeline-run`
+
+### Responsive failures → file as bugs
+
+For each page that fails on a specific viewport:
+```
+/report-issue Responsive: [page] broken on [viewport] — [issue]
+
+Screenshot (desktop): qa-results/latest/screenshots/desktop/[name].png
+Screenshot ([viewport]): qa-results/latest/screenshots/[viewport]/[name].png
+Issue: [horizontal scroll / overlapping elements / hidden nav / etc.]
+```
+
+- **Type**: `bug`
+- **Severity**: `high` for mobile (most users), `medium` for tablet
+- **Source**: `pipeline-run`
+
+### Summary of filed issues
+
+After filing all issues, list them:
+
+```markdown
+## Issues Filed
+
+| # | File | Type | Severity | Summary |
+|---|------|------|----------|---------|
+| 1 | docs/backlog/2026-03-31-login-redirect-broken.md | bug | blocking | Login doesn't redirect to dashboard |
+| 2 | docs/backlog/2026-03-31-contrast-submit-btn.md | bug | high | Submit button fails WCAG contrast |
+| 3 | docs/backlog/2026-03-31-no-loading-indicator.md | improvement | medium | No loading state on data fetch |
+| 4 | docs/backlog/2026-03-31-ux-minor-findings.md | improvement | low | 8 minor UX polish items |
+
+Total: N issues filed to docs/backlog/
+Run `/issue-to-prd` to bundle these into a PRD for fixing.
+```
+
+Append this table to the QA-PASS-REPORT.md as well.
+
+## Step 8: Cleanup and Report
 
 1. Kill the dev server if we started it:
    ```bash
@@ -246,12 +349,18 @@ Wait for the `ux-evaluator` agent to complete. Once `qa-results/latest/UX-REPORT
    **Functional**: X/Y flows passing
    **Console Errors**: N
    **UX Score**: N/10 overall
-   **Critical UX Issues**: N
+   **Issues Filed**: N to docs/backlog/
 
    Reports:
    - Functional: qa-results/latest/QA-PASS-REPORT.md
    - UX Evaluation: qa-results/latest/UX-REPORT.md
    - Screenshots: qa-results/latest/screenshots/
+   - Backlog: docs/backlog/ (N new entries)
+
+   Next steps:
+   - Run `/fix [issue]` to fix a specific bug
+   - Run `/issue-to-prd` to bundle backlog items into a PRD
+   - Run `/qa-pass` again after fixes to verify
    ```
 
 ## Rules
