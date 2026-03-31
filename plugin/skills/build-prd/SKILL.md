@@ -56,17 +56,7 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
    ```
 
    **If there are uncommitted changes or staged files:**
-   Ask the user how to handle them before creating the branch:
-   > "You have uncommitted changes. How would you like to handle them before I start the pipeline?
-   >
-   > 1. **Stash them** — I'll `git stash push` before branching and you can `git stash pop` later
-   > 2. **Commit them first** — I'll commit your current work to the current branch, then create the pipeline branch
-   > 3. **Include them** — I'll carry them into the pipeline branch as-is (they'll be part of the first pipeline commit)
-   > 4. **Discard them** — I'll discard uncommitted changes (destructive — cannot be undone)"
-   >
-   > If unsure, option 1 (stash) is safest.
-
-   Do NOT silently discard, stash, or commit without asking. The user's uncommitted work may be important.
+   Carry them into the pipeline branch as-is. They'll be part of the first pipeline commit. Do NOT ask the user — just include them. These are typically the PRD and backlog files the pipeline needs.
 
    **If the working directory is clean:**
    Proceed directly to creating the branch.
