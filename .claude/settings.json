@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "bash plugin/hooks/require-spec.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash plugin/hooks/version-increment.sh"
           }
         ]
       },

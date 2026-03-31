@@ -135,6 +135,22 @@ If a hook blocks you, either:
 - `/speckit.analyze` — Cross-artifact consistency check
 - `/speckit.coverage` — Check test coverage gate
 
+## Versioning
+
+Format: `release.feature.pr.edit` — `000.000.000.000`
+
+| Segment | Trigger | Reset |
+|---------|---------|-------|
+| **release** (1st) | `./scripts/version-bump.sh release` | Resets feature, pr, edit to 0 |
+| **feature** (2nd) | `./scripts/version-bump.sh feature` | Resets pr, edit to 0 |
+| **pr** (3rd) | `./scripts/version-bump.sh pr` | Resets edit to 0 |
+| **edit** (4th) | Auto — increments on every file edit (Edit/Write hook) | — |
+
+- Stored in `VERSION` file (project root) and synced to `plugin/package.json`
+- Edit counter only increments for code files (src/, tests/, plugin/) — not docs, specs, config
+- The `.version.lock` directory is transient (concurrency lock) — do not commit it
+- Add `.version.lock` to `.gitignore`
+
 ## Security
 
 - NEVER commit .env, credentials, or API keys
