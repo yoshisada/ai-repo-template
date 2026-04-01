@@ -103,10 +103,10 @@ git log --oneline --since="24 hours ago" 2>/dev/null
 
 ```bash
 # Any QA results from a previous pass?
-ls qa-results/latest/QA-REPORT.md 2>/dev/null && echo "QA report exists"
-ls qa-results/latest/QA-PASS-REPORT.md 2>/dev/null && echo "QA pass report exists"
-ls qa-results/latest/UX-REPORT.md 2>/dev/null && echo "UX report exists"
-cat qa-results/checkpoints.md 2>/dev/null | tail -20
+ls .kiln/qa/latest/QA-REPORT.md 2>/dev/null && echo "QA report exists"
+ls .kiln/qa/latest/QA-PASS-REPORT.md 2>/dev/null && echo "QA pass report exists"
+ls .kiln/qa/latest/UX-REPORT.md 2>/dev/null && echo "UX report exists"
+cat .kiln/qa/checkpoints.md 2>/dev/null | tail -20
 ```
 
 ### Check debug state
@@ -134,10 +134,10 @@ Based on what you found, classify the project into one of these phases:
 |-------|---------|------------|
 | **Fresh** | No specs, no PRD, no code | "Start by writing your PRD: `docs/PRD.md`" |
 | **PRD exists, no specs** | PRD exists, specs/ is empty | "Run `/build-prd` to start the pipeline" |
-| **Specifying** | spec.md exists, no plan | "Run `/speckit.plan` to create the implementation plan" |
-| **Planning** | plan.md exists, no tasks | "Run `/speckit.tasks` to break down the work" |
+| **Specifying** | spec.md exists, no plan | "Run `/plan` to create the implementation plan" |
+| **Planning** | plan.md exists, no tasks | "Run `/tasks` to break down the work" |
 | **Implementing** | tasks.md exists, some `[X]` some `[ ]` | "Continue implementation — N/M tasks done. Next: [task name]" |
-| **Implementing (stalled)** | tasks.md exists, no recent commits | "Implementation appears stalled. Last commit was [date]. Resume with `/speckit.implement`" |
+| **Implementing (stalled)** | tasks.md exists, no recent commits | "Implementation appears stalled. Last commit was [date]. Resume with `/implement`" |
 | **Auditing** | All tasks `[X]`, no PR yet | "Implementation complete. Run audit and create PR" |
 | **QA** | PR exists, QA reports present | "QA in progress. [X/Y flows passing]. Run `/qa-pass` for live review" |
 | **Debugging** | debug-log.md has active entries | "Debugging in progress for [issue]. Run `/fix` to continue" |
@@ -164,7 +164,7 @@ Present a concise status report:
 | Feature | Phase | Progress | Next Step |
 |---------|-------|----------|-----------|
 | [name] | Implementing | 12/18 tasks | Task 13: "Add validation to signup form" |
-| [name] | Planning | spec done | Run `/speckit.plan` |
+| [name] | Planning | spec done | Run `/plan` |
 
 ### Uncommitted Work
 [list or "Working directory clean"]
@@ -195,7 +195,7 @@ Based on the detected state, suggest the most relevant commands:
 
 Based on your current state, here's what makes sense:
 
-- `/speckit.implement` — Continue implementing [feature] (12/18 tasks done)
+- `/implement` — Continue implementing [feature] (12/18 tasks done)
 - `/qa-pass` — Run a live QA walkthrough of what's built so far
 - `/fix [issue]` — Fix a bug without creating a new spec
 - `/build-prd` — Start a new feature from a PRD
@@ -205,7 +205,7 @@ Based on your current state, here's what makes sense:
 
 - This skill is READ-ONLY — it surveys the project state, it does not change anything
 - Be concise — the user wants to know where they are, not read a novel
-- Be specific about next steps — "continue implementing" is bad; "run `/speckit.implement` — next task is 'Add validation to signup form' (task 13 of 18)" is good
+- Be specific about next steps — "continue implementing" is bad; "run `/implement` — next task is 'Add validation to signup form' (task 13 of 18)" is good
 - If there's uncommitted or stashed work, ALWAYS mention it prominently — it's easy to forget
 - If multiple features are in progress, list ALL of them and ask which to resume
 - If the project looks fresh (no specs, no code), suggest starting with a PRD

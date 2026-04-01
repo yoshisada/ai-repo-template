@@ -1,11 +1,11 @@
 ---
 name: report-issue
-description: Log a bug, friction point, or improvement idea to the project backlog. Creates a timestamped entry in docs/backlog/. Use as "/report-issue <description>" or "/report-issue #42" to import from GitHub.
+description: Log a bug, friction point, or improvement idea to the project backlog. Creates a timestamped entry in .kiln/issues/. Use as "/report-issue <description>" or "/report-issue #42" to import from GitHub.
 ---
 
 # Report Issue — Log to Backlog
 
-Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. Each entry lands in `docs/backlog/` as a standalone file that can be reviewed, prioritized, and eventually bundled into a PRD via `/issue-to-prd`.
+Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. Each entry lands in `.kiln/issues/` as a standalone file that can be reviewed, prioritized, and eventually bundled into a PRD via `/issue-to-prd`.
 
 ## User Input
 
@@ -33,7 +33,7 @@ Determine these fields — infer from context, ask only if ambiguous:
    - `hooks` — enforcement rules
    - `templates` — spec/plan/task templates
    - `scaffold` — init script, project structure
-   - `workflow` — speckit pipeline, build-prd orchestration
+   - `workflow` — kiln pipeline, build-prd orchestration
    - `other`
 4. **Source**: `retro` | `manual` | `github-issue` | `pipeline-run`
    - `retro` — came from a pipeline retrospective
@@ -45,7 +45,7 @@ If importing from a GitHub issue, map labels to type/severity where possible. De
 
 ## Step 3: Create Backlog Entry
 
-Create `docs/backlog/` directory if it doesn't exist.
+Create `.kiln/issues/` directory if it doesn't exist.
 
 Generate a filename: `YYYY-MM-DD-<short-slug>.md` (e.g., `2026-03-30-missing-dockerfile.md`).
 
@@ -81,7 +81,7 @@ date: YYYY-MM-DD
 Report back:
 
 ```
-Logged to docs/backlog/<filename>
+Logged to .kiln/issues/<filename>
 
   Type: <type> | Severity: <severity> | Category: <category>
 
@@ -91,7 +91,7 @@ Run /issue-to-prd to bundle open backlog items into a PRD.
 ## Rules
 
 - One issue per file — don't append to existing files
-- Don't duplicate: before creating, check if `docs/backlog/` already has an entry with the same GitHub issue number or a very similar title. If so, tell the user and offer to update the existing entry instead.
+- Don't duplicate: before creating, check if `.kiln/issues/` already has an entry with the same GitHub issue number or a very similar title. If so, tell the user and offer to update the existing entry instead.
 - Don't auto-commit — the user may want to review or edit the entry first
 - Keep descriptions concise but specific — quote error messages, file paths, or command output when relevant
 - If the user reports multiple issues at once (e.g., a retro with 5 findings), create separate files for each one

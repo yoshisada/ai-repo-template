@@ -18,7 +18,7 @@ $ARGUMENTS
 npx playwright --version 2>/dev/null || { npm install -D @playwright/test && npx playwright install chromium; }
 
 # Run the full suite
-cd qa-results 2>/dev/null && npx playwright test --config=playwright.config.ts 2>&1
+cd .kiln/qa 2>/dev/null && npx playwright test --config=playwright.config.ts 2>&1
 EXIT_CODE=$?
 ```
 

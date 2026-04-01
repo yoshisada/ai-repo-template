@@ -1,5 +1,5 @@
 ---
-name: speckit-plan
+name: plan
 description: Generate technical implementation plans from feature specifications.
   Use after creating a spec to define architecture, tech stack, and implementation
   phases. Creates plan.md with detailed technical design.
@@ -9,7 +9,7 @@ metadata:
   source: templates/commands/plan.md
 ---
 
-# Speckit Plan Skill
+# Kiln Plan Skill
 
 ## User Input
 

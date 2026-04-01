@@ -1,11 +1,11 @@
 ---
 name: create-repo
-description: Create a new GitHub repository and scaffold it with the speckit-harness plugin. Clones the template, runs the init script, and installs the Claude Code plugin. Use after /create-prd to turn a PRD into a live project, or standalone to scaffold a new module/subproject.
+description: Create a new GitHub repository and scaffold it with kiln. Clones the template, runs the init script, and installs the Claude Code plugin. Use after /create-prd to turn a PRD into a live project, or standalone to scaffold a new module/subproject.
 ---
 
-# Create Repo — Scaffold a New Project with speckit-harness
+# Create Repo — Scaffold a New Project with kiln
 
-Create a new GitHub repository and scaffold it with the full spec-first development infrastructure from the speckit-harness plugin.
+Create a new GitHub repository and scaffold it with the full spec-first development infrastructure from the kiln plugin.
 
 ## User Input
 
@@ -45,13 +45,13 @@ Clone the template infrastructure and run the init script:
 
 ```bash
 # Clone the plugin source to a temp location
-git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/speckit-harness-src
+git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/kiln-src
 
 # Run the init script from the cloned plugin
-node /tmp/speckit-harness-src/plugin/bin/init.mjs init
+node /tmp/kiln-src/plugin/bin/init.mjs init
 
 # Clean up
-rm -rf /tmp/speckit-harness-src
+rm -rf /tmp/kiln-src
 ```
 
 This creates:
@@ -65,14 +65,14 @@ This creates:
 
 ## Step 4: Install the Claude Code Plugin
 
-Ensure the user has the speckit-harness plugin installed so skills, agents, and hooks are available:
+Ensure the user has the kiln plugin installed so skills, agents, and hooks are available:
 
 ```bash
 # Check if marketplace is already added (non-destructive)
 claude plugin marketplace add yoshisada/ai-repo-template 2>/dev/null || true
 
 # Install the plugin if not already installed
-claude plugin install speckit-harness@speckit-harness 2>/dev/null || true
+claude plugin install kiln@kiln 2>/dev/null || true
 ```
 
 If the user already has the plugin installed (e.g., from a previous project), skip this step. The plugin is user-scoped — it works across all projects once installed.
@@ -100,9 +100,9 @@ Ask the user which approach they prefer.
 
 ```bash
 git add -A
-git commit -m "Initial scaffold via speckit-harness
+git commit -m "Initial scaffold via kiln
 
-Includes: speckit workflow, templates, constitution, and project structure.
+Includes: kiln workflow, templates, constitution, and project structure.
 Plugin provides skills, agents, and hooks.
 
 Source: yoshisada/ai-repo-template"
@@ -138,7 +138,7 @@ If the user says "create a submodule", "add a module", or the target path is ins
 1. Do NOT create a new GitHub repo
 2. Instead, scaffold into a subdirectory of the current repo
 3. Run the init script targeting that subdirectory
-4. The subdirectory gets its own `CLAUDE.md` and speckit config
+4. The subdirectory gets its own `CLAUDE.md` and kiln config
 
 Ask the user: "Should this module be a git submodule (independent repo linked here) or a subdirectory (part of this repo)?"
 
@@ -154,9 +154,9 @@ git commit -m "Add <repo-name> as submodule at <path>"
 ```bash
 mkdir -p <path>
 cd <path>
-git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/speckit-harness-src
-node /tmp/speckit-harness-src/plugin/bin/init.mjs init
-rm -rf /tmp/speckit-harness-src
+git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/kiln-src
+node /tmp/kiln-src/plugin/bin/init.mjs init
+rm -rf /tmp/kiln-src
 # Commit as part of parent repo
 ```
 
@@ -165,13 +165,13 @@ rm -rf /tmp/speckit-harness-src
 To update templates and scripts to the latest version:
 
 ```bash
-git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/speckit-harness-src
-node /tmp/speckit-harness-src/plugin/bin/init.mjs update
-rm -rf /tmp/speckit-harness-src
+git clone --depth 1 https://github.com/yoshisada/ai-repo-template.git /tmp/kiln-src
+node /tmp/kiln-src/plugin/bin/init.mjs update
+rm -rf /tmp/kiln-src
 ```
 
 To update the plugin (skills, agents, hooks):
 ```bash
-/plugin marketplace update speckit-harness
-/plugin update speckit-harness@speckit-harness
+/plugin marketplace update kiln
+/plugin update kiln@kiln
 ```

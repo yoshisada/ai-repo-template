@@ -1,5 +1,5 @@
 ---
-name: speckit-taskstoissues
+name: taskstoissues
 description: Convert tasks from tasks.md into GitHub issues. Use after task breakdown
   to track work items in GitHub project management.
 compatibility: Requires spec-kit project structure with .specify/ directory
@@ -8,7 +8,7 @@ metadata:
   source: templates/commands/taskstoissues.md
 ---
 
-# Speckit Taskstoissues Skill
+# Kiln Taskstoissues Skill
 
 ## User Input
 

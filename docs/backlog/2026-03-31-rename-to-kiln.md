@@ -5,7 +5,7 @@ severity: medium
 category: other
 source: manual
 github_issue: null
-status: open
+status: prd-created
 date: 2026-03-31
 ---
 
@@ -24,3 +24,5 @@ Affects the entire plugin identity: npm package name (`@yoshisada/speckit-harnes
 - Rename skill prefixes from `speckit-harness:` to `kiln:` (or drop the prefix)
 - Update all references in CLAUDE.md, README, scaffold templates
 - Decide whether internal skill names like `speckit-specify`, `speckit-plan`, etc. also change (e.g., `kiln-specify` or just `specify`)
+
+prd: docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md

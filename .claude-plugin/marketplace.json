@@ -1,5 +1,5 @@
 {
-  "name": "yoshisada-speckit",
+  "name": "yoshisada-kiln",
   "owner": {
     "name": "yoshisada"
   },
@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "speckit-harness",
+      "name": "kiln",
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/yoshisada/ai-repo-template.git",
@@ -22,7 +22,7 @@
       },
       "repository": "https://github.com/yoshisada/ai-repo-template",
       "license": "MIT",
-      "keywords": ["speckit", "spec-first", "prd", "tdd", "agents"],
+      "keywords": ["kiln", "spec-first", "prd", "tdd", "agents"],
       "category": "development"
     }
   ]

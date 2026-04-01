@@ -1,6 +1,6 @@
 {
-  "name": "@yoshisada/speckit-harness",
-  "version": "000.000.000.061",
+  "name": "@yoshisada/kiln",
+  "version": "000.000.000.079",
   "description": "Spec-first development harness for Claude Code",
   "author": "yoshisada",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "directory": "plugin"
   },
   "bin": {
-    "speckit-harness": "./bin/init.mjs"
+    "kiln": "./bin/init.mjs"
   },
   "files": [
     ".claude-plugin/",
@@ -24,7 +24,7 @@
   "keywords": [
     "claude-code",
     "plugin",
-    "speckit",
+    "kiln",
     "spec-first",
     "prd"
   ]

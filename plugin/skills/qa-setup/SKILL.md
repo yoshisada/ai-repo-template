@@ -31,12 +31,12 @@ If installation fails, report the error and STOP.
 Create the QA test infrastructure in the project:
 
 ```bash
-mkdir -p qa-results/tests qa-results/videos qa-results/screenshots qa-results/traces
+mkdir -p .kiln/qa/tests .kiln/qa/videos .kiln/qa/screenshots .kiln/qa/traces
 ```
 
 ### Step 3: Generate Playwright Config
 
-Write `qa-results/playwright.config.ts`:
+Write `.kiln/qa/playwright.config.ts`:
 
 ```typescript
 import { defineConfig } from '@playwright/test';
@@ -86,7 +86,7 @@ Read these files (do NOT read source code):
 2. `specs/*/plan.md` — Identify routes/pages and UI components
 3. `docs/PRD.md` or `docs/features/*/PRD.md` — Product requirements
 
-Write a test matrix to `qa-results/test-matrix.md`:
+Write a test matrix to `.kiln/qa/test-matrix.md`:
 
 ```markdown
 # QA Test Matrix
@@ -108,10 +108,10 @@ Priority levels:
 
 ### Step 5: Generate Test Stubs
 
-For **every flow** in the test matrix (P0, P1, AND P2), generate a Playwright test stub in `qa-results/tests/`:
+For **every flow** in the test matrix (P0, P1, AND P2), generate a Playwright test stub in `.kiln/qa/tests/`:
 
 ```typescript
-// qa-results/tests/flow-01-[slug].spec.ts
+// .kiln/qa/tests/flow-01-[slug].spec.ts
 import { test, expect } from '@playwright/test';
 
 test.use({
@@ -140,11 +140,11 @@ Scan the test matrix for flows that require authentication, API keys, or test ac
 
 If ANY flow requires credentials:
 
-1. Generate a template at `qa-results/.env.test.example`:
+1. Generate a template at `.kiln/qa/.env.test.example`:
 
 ```env
 # QA Test Credentials
-# Copy this file to qa-results/.env.test and fill in values.
+# Copy this file to .kiln/qa/.env.test and fill in values.
 # .env.test is gitignored — NEVER commit real credentials.
 
 # Example entries (customize based on what flows need):
@@ -155,11 +155,11 @@ If ANY flow requires credentials:
 # QA_ADMIN_PASSWORD=
 ```
 
-2. Add `qa-results/.env.test` to `.gitignore` if not already present.
+2. Add `.kiln/qa/.env.test` to `.gitignore` if not already present.
 
-3. Check if `qa-results/.env.test` already exists (user may have pre-filled it).
+3. Check if `.kiln/qa/.env.test` already exists (user may have pre-filled it).
 
-4. If credentials are needed but `qa-results/.env.test` doesn't exist or is incomplete, send a message to the team lead via `SendMessage`:
+4. If credentials are needed but `.kiln/qa/.env.test` doesn't exist or is incomplete, send a message to the team lead via `SendMessage`:
 
 ```
 QA CREDENTIALS NEEDED
@@ -170,7 +170,7 @@ The following flows require credentials I don't have:
 |------|--------------|-----|
 | [flow] | [credential] | [reason] |
 
-Please ask the user to fill in `qa-results/.env.test` (template at `qa-results/.env.test.example`).
+Please ask the user to fill in `.kiln/qa/.env.test` (template at `.kiln/qa/.env.test.example`).
 
 I'll mark these flows as BLOCKED until credentials are provided. Non-auth flows will proceed normally.
 ```
@@ -187,11 +187,11 @@ Report:
 - Playwright version installed
 - Number of user flows in test matrix (by priority)
 - Number of test stubs generated
-- Credential-dependent flows: N (blocked until `qa-results/.env.test` is provided)
-- Path to test matrix: `qa-results/test-matrix.md`
-- Path to Playwright config: `qa-results/playwright.config.ts`
-- Path to test stubs: `qa-results/tests/`
-- Path to credential template: `qa-results/.env.test.example` (if needed)
+- Credential-dependent flows: N (blocked until `.kiln/qa/.env.test` is provided)
+- Path to test matrix: `.kiln/qa/test-matrix.md`
+- Path to Playwright config: `.kiln/qa/playwright.config.ts`
+- Path to test stubs: `.kiln/qa/tests/`
+- Path to credential template: `.kiln/qa/.env.test.example` (if needed)
 
 ### Rules
 
@@ -201,4 +201,4 @@ Report:
 - Test stubs should use accessible selectors (getByRole, getByLabel, getByText, getByTestId)
 - Every test name MUST reference its user story or FR
 - NEVER hardcode or guess credentials — always request from user via team lead
-- NEVER commit `qa-results/.env.test` — only the `.env.test.example` template
+- NEVER commit `.kiln/qa/.env.test` — only the `.env.test.example` template

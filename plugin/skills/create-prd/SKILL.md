@@ -220,10 +220,10 @@ After generating the PRD artifacts:
 3. Suggest the next step based on mode:
 
 **Mode A**:
-> PRD is ready. To build this product, run `/build-prd` which will execute the full speckit pipeline (specify → plan → tasks → implement → audit → PR).
+> PRD is ready. To build this product, run `/build-prd` which will execute the full kiln pipeline (specify → plan → tasks → implement → audit → PR).
 
 **Mode B**:
-> Feature PRD is ready. To build this feature, run `/build-prd <feature-slug>` which will execute the full speckit pipeline against this feature PRD.
+> Feature PRD is ready. To build this feature, run `/build-prd <feature-slug>` which will execute the full kiln pipeline against this feature PRD.
 
 **Mode C** (new product):
 > PRD is ready at `products/<product-slug>/`. To build this product, run `/create-repo <product-slug>` to scaffold a new repo, then `/build-prd` inside that repo.

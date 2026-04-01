@@ -35,9 +35,16 @@ $ARGUMENTS
 
 ## Pre-Flight
 
-1. **Verify /chrome**: Check availability. If unavailable, warn that chrome-agent will be skipped.
+1. **Version Verification**: Before dispatching any QA agents, verify the build is current:
+   - Read the `VERSION` file from the project root
+   - If a dev server is running, check the app for a version indicator (page footer, meta tags, CLI output)
+   - If versions mismatch: run the project's build command, wait, and re-check
+   - If still mismatched after rebuild: warn the user and add a disclaimer to the QA report
+   - If no VERSION file exists: skip this check with a warning
 
-2. **Read spec context**: `specs/*/spec.md`, `specs/*/plan.md`, `docs/PRD.md`. Build or read `qa-results/test-matrix.md`.
+2. **Verify /chrome**: Check availability. If unavailable, warn that chrome-agent will be skipped.
+
+2. **Read spec context**: `specs/*/spec.md`, `specs/*/plan.md`, `docs/PRD.md`. Build or read `.kiln/qa/test-matrix.md`.
 
 3. **Start dev server** (if not running):
    ```bash
@@ -46,16 +53,16 @@ $ARGUMENTS
    DEV_PID=$!
    ```
 
-4. **Check credentials**: `qa-results/.env.test`. If missing and needed, ask the user.
+4. **Check credentials**: `.kiln/qa/.env.test`. If missing and needed, ask the user.
 
 5. **Ensure Playwright**: `npx playwright --version || npm install -D @playwright/test && npx playwright install chromium`
 
 6. **Prepare artifacts**:
    ```bash
    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-   mkdir -p "qa-results/$TIMESTAMP/screenshots/desktop" "qa-results/$TIMESTAMP/screenshots/tablet" "qa-results/$TIMESTAMP/screenshots/mobile" "qa-results/$TIMESTAMP/screenshots/reference" "qa-results/$TIMESTAMP/snapshots"
-   mkdir -p qa-results/baselines
-   ln -sfn "$TIMESTAMP" qa-results/latest
+   mkdir -p ".kiln/qa/$TIMESTAMP/screenshots/desktop" ".kiln/qa/$TIMESTAMP/screenshots/tablet" ".kiln/qa/$TIMESTAMP/screenshots/mobile" ".kiln/qa/$TIMESTAMP/screenshots/reference" ".kiln/qa/$TIMESTAMP/snapshots"
+   mkdir -p .kiln/qa/baselines
+   ln -sfn "$TIMESTAMP" .kiln/qa/latest
    ```
 
 ## Step 1: Create Team
@@ -88,15 +95,15 @@ You are the E2E test agent. Run the Playwright test suite against the live app.
 
 Working directory: [path]
 Dev server: [URL]
-Playwright config: qa-results/playwright.config.ts
+Playwright config: .kiln/qa/playwright.config.ts
 
 Step 1: Ensure all E2E tests are written
-- Read qa-results/test-matrix.md
-- For every flow, verify a test exists in qa-results/tests/
+- Read .kiln/qa/test-matrix.md
+- For every flow, verify a test exists in .kiln/qa/tests/
 - Write tests for any missing flows (use accessible selectors only)
 
 Step 2: Run the full suite
-  cd qa-results && npx playwright test --config=playwright.config.ts 2>&1
+  cd .kiln/qa && npx playwright test --config=playwright.config.ts 2>&1
 
 Step 3: Send results to qa-reporter
 For each test result:
@@ -124,8 +131,8 @@ You are the live browser testing agent. Use /chrome to test with real data and r
 
 Working directory: [path]
 Dev server: [URL]
-Test matrix: qa-results/test-matrix.md
-Screenshot directory: qa-results/latest/screenshots/
+Test matrix: .kiln/qa/test-matrix.md
+Screenshot directory: .kiln/qa/latest/screenshots/
 
 You test things the headless E2E suite CANNOT:
 - Flows requiring real authentication (shared Chrome login sessions)
@@ -168,7 +175,7 @@ You are the UX evaluator. Run a 3-layer evaluation on every page.
 
 Working directory: [path]
 Dev server: [URL]
-Screenshot directory: qa-results/latest/screenshots/
+Screenshot directory: .kiln/qa/latest/screenshots/
 Audit scripts: plugin/skills/ux-audit-scripts/
 
 For EVERY page/route:
@@ -188,8 +195,8 @@ LAYER 2 (Semantic):
 
 LAYER 3 (Visual — Rubric-Based Scoring):
 10. Read the rubric from plugin/templates/ux-rubric.md
-11. Step 3a: Check constitution/spec for a design reference URL. If found, capture reference screenshots to qa-results/latest/screenshots/reference/
-12. Step 3b: Load baseline from qa-results/baselines/ux-rubric-latest.json if it exists
+11. Step 3a: Check constitution/spec for a design reference URL. If found, capture reference screenshots to .kiln/qa/latest/screenshots/reference/
+12. Step 3b: Load baseline from .kiln/qa/baselines/ux-rubric-latest.json if it exists
 13. Step 3c: Score each page against all 10 dimensions (D1-D10) using the rubric. Use pairwise comparison if reference available.
 14. Step 3d: Send VISUAL RUBRIC scorecards, detailed findings for scores <= 4, and VISUAL REGRESSION alerts for baseline drops >= 2 points
 15. Also check for visual bugs (overlaps, truncation, invisible text, broken images)
@@ -211,7 +218,7 @@ Rules:
 You are the QA reporter. MODE: issues (standalone /qa-pass).
 
 Working directory: [path]
-Test matrix: qa-results/test-matrix.md
+Test matrix: .kiln/qa/test-matrix.md
 
 RECEIVE findings from e2e-agent, chrome-agent, and ux-agent.
 
@@ -226,8 +233,8 @@ CROSS-CHECK completeness:
 - If missing, message the responsible agent
 
 After all agents complete:
-1. Produce qa-results/latest/QA-PASS-REPORT.md
-2. git add qa-results/ && git commit -m "qa: QA pass report — N issues filed"
+1. Produce .kiln/qa/latest/QA-PASS-REPORT.md
+2. git add .kiln/qa/ && git commit -m "qa: QA pass report — N issues filed"
 3. Mark task completed
 
 Follow full instructions in plugin/agents/qa-reporter.md.
@@ -249,7 +256,7 @@ Wait for qa-reporter task to complete, then present:
 **UX Score**: N/10
 **Issues Filed**: N (N critical, M major, P minor)
 
-Report: qa-results/latest/QA-PASS-REPORT.md
+Report: .kiln/qa/latest/QA-PASS-REPORT.md
 Issues: gh issue list --label "qa-pass"
 ```
 

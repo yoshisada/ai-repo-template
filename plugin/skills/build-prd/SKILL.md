@@ -1,13 +1,13 @@
 ---
 name: build-prd
-description: Run the complete speckit pipeline using an agent team. Reads the PRD to determine team structure, then orchestrates specify → plan → tasks → implement → audit → PR.
+description: Run the complete kiln pipeline using an agent team. Reads the PRD to determine team structure, then orchestrates specify → plan → tasks → implement → audit → PR.
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: github-spec-kit
   source: custom
 ---
 
-# Speckit Run — Full Pipeline via Agent Team
+# Kiln Run — Full Pipeline via Agent Team
 
 ## User Input
 
@@ -82,9 +82,9 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
 
 The pipeline always flows through these roles. This is the minimum — you MUST have at least one teammate per role:
 
-1. **Specifier** — Runs `/speckit.specify`, then `/speckit.plan`, then `/speckit.tasks` **in a single uninterrupted pass**. All three commands MUST execute back-to-back without stopping. The specifier MUST NOT go idle between commands. Produces all spec artifacts and commits them. Always runs first.
+1. **Specifier** — Runs `/specify`, then `/plan`, then `/tasks` **in a single uninterrupted pass**. All three commands MUST execute back-to-back without stopping. The specifier MUST NOT go idle between commands. Produces all spec artifacts and commits them. Always runs first.
 2. **Researcher** — Resolves external dependencies referenced in the PRD. Clones starters to `vendor/`, documents findings in `research.md`. Runs after specifier if the PRD names external projects; skip this role if there are no external deps. **PRD naming authority**: The researcher MUST NOT rename, substitute, or "improve" directory names, file names, or identifiers that the PRD explicitly specifies. If the PRD says `apps/electron`, the researcher documents `apps/electron` — not `apps/desktop`, not `apps/electron-app`, not any "technology-agnostic" alternative. The PRD is the naming authority. If the researcher believes a PRD name is wrong, they must flag it to the team lead for resolution rather than silently substituting a different name.
-3. **Implementer** — Runs `/speckit.implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
+3. **Implementer** — Runs `/implement`. Executes the task plan phase-by-phase, writes code matching contracts, marks tasks `[X]`, commits per phase. Runs after specifier (and researcher if present).
 4. **QA Engineer** — **(Web/frontend projects only)** Runs the `qa-engineer` agent. Unlike other auditors, the QA engineer is **long-lived** — it starts after the specifier finishes (so it knows what to test) and runs in parallel with implementers. It operates in two modes:
    - **Checkpoint mode** (during implementation): Each time an implementer completes a phase and notifies the QA engineer, it spins up the dev server, tests the newly completed flows with Playwright, records video of failures, and sends **actionable feedback directly to the responsible implementer** via `SendMessage`. The implementer fixes the issue and notifies QA for re-test. This creates a tight feedback loop that catches visual bugs while the implementer still has context.
    - **Final mode** (after all implementation): Runs `/qa-pipeline` which spins up a **4-agent QA team**:
@@ -95,15 +95,15 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
      After `/qa-pipeline`, runs `/qa-final` as a quick green/red gate to confirm all E2E tests pass.
      The audit-pr agent includes the QA report summary and issue links in the PR body.
 
-   The QA engineer tracks its checkpoint history in `qa-results/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
+   The QA engineer tracks its checkpoint history in `.kiln/qa/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
 
    **Skip this role** for CLI-only, API-only, or non-visual projects.
 
 5. **Auditor** — Runs after all implementers AND the QA engineer's final pass finish. Each auditor gets a **fresh context** (no implementation history polluting their judgment). Split auditors by concern so they can run in parallel:
-   - **audit-compliance**: Runs `/speckit.audit` — PRD→Spec→Code→Test verification
+   - **audit-compliance**: Runs `/audit` — PRD→Spec→Code→Test verification
    - **audit-tests**: Verifies test quality — no stubs, real assertions, coverage gate
    - **audit-smoke**: Builds and runs the project in a temp dir, verifies runtime behavior
-   - **audit-pr**: Creates the PR with stats from all other auditors. If a QA engineer ran, includes QA video links and the `qa-results/latest/QA-REPORT.md` summary in the PR body.
+   - **audit-pr**: Creates the PR with stats from all other auditors. If a QA engineer ran, includes QA video links and the `.kiln/qa/latest/QA-REPORT.md` summary in the PR body.
 
    For simple features, one auditor can do all of these. For complex features, split them so each auditor starts with a clean context and a focused lens.
 6. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
@@ -167,11 +167,11 @@ specifier → researcher ─┐
 ```
 7 teammates, 3 implementers in parallel, 3 auditors in parallel.
 
-Each teammate should run the speckit commands (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.audit`) — not reimplement their logic. Implementers running in parallel should each get a filtered view of tasks.md (only their component's tasks).
+Each teammate should run the kiln commands (`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`) — not reimplement their logic. Implementers running in parallel should each get a filtered view of tasks.md (only their component's tasks).
 
 ## Step 2: Create the Team and Tasks
 
-1. Use `TeamCreate` with a descriptive name (e.g., `speckit-{feature}`)
+1. Use `TeamCreate` with a descriptive name (e.g., `kiln-{feature}`)
 2. Use `TaskCreate` to create ALL tasks. You MUST create every task listed in the **Mandatory Tasks** section below, plus any additional tasks from your PRD analysis.
 3. Set task dependencies using `TaskCreate` or `TaskUpdate` (see dependency rules below)
 4. Assign tasks to teammates by setting `owner` via `TaskUpdate`
@@ -273,7 +273,7 @@ Spawn teammates using the `Agent` tool with:
 Each teammate's prompt should include:
 - The working directory and branch name
 - Which tasks they own (by task ID or description)
-- Instructions to run the appropriate speckit commands for their tasks
+- Instructions to run the appropriate kiln commands for their tasks
 - The feature description from user input
 - Instructions to use `TaskUpdate` to mark tasks in-progress when starting and completed when done
 - Instructions to use `SendMessage` to notify dependent teammates when unblocked
@@ -285,16 +285,16 @@ Each teammate's prompt should include:
 The specifier's prompt MUST include these exact instructions to prevent stalling between commands:
 
 ```
-You MUST run all three speckit commands in a single uninterrupted pass:
-1. Run `/speckit.specify` with the feature description
-2. IMMEDIATELY after specify completes, run `/speckit.plan` — do NOT stop, do NOT wait, do NOT go idle
-3. IMMEDIATELY after plan completes, run `/speckit.tasks` — do NOT stop, do NOT wait, do NOT go idle
+You MUST run all three kiln commands in a single uninterrupted pass:
+1. Run `/specify` with the feature description
+2. IMMEDIATELY after specify completes, run `/plan` — do NOT stop, do NOT wait, do NOT go idle
+3. IMMEDIATELY after plan completes, run `/tasks` — do NOT stop, do NOT wait, do NOT go idle
 4. ONLY after all three are done: commit all artifacts, mark your task completed, and notify downstream teammates
 
 Each slash command will report "completion" and suggest next steps — IGNORE those suggestions and proceed to the next command in this list. Your task is NOT complete until spec.md, plan.md, contracts/interfaces.md, and tasks.md all exist and are committed.
 ```
 
-**Why this is needed**: Each `/speckit.*` skill ends by reporting completion and suggesting the next command. Without explicit chaining instructions, the specifier agent treats each skill completion as a stopping point and goes idle, requiring a manual nudge from the team lead to continue. This caused a ~10 minute stall in the 015 pipeline run.
+**Why this is needed**: Each `/*` skill ends by reporting completion and suggesting the next command. Without explicit chaining instructions, the specifier agent treats each skill completion as a stopping point and goes idle, requiring a manual nudge from the team lead to continue. This caused a ~10 minute stall in the 015 pipeline run.
 
 ### Researcher Prompt — PRD Naming Authority (NON-NEGOTIABLE)
 
@@ -318,7 +318,7 @@ The QA engineer's prompt MUST include these exact instructions:
 You are the QA engineer for this pipeline. You run the `qa-engineer` agent definition.
 
 ## SKILLS
-- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds qa-results/, generates test matrix and test stubs.
+- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds .kiln/qa/, generates test matrix and test stubs.
 - `/qa-checkpoint` — During implementation. Tests new flows, sends feedback to implementers.
 - `/qa-pipeline` — After ALL implementers finish. 4-agent team (e2e + chrome + ux + reporter in pipeline mode). Reporter routes findings to implementers for fixing.
 - `/qa-final` — Quick gate after /qa-pipeline. Just runs playwright tests and confirms green.
@@ -326,19 +326,19 @@ You are the QA engineer for this pipeline. You run the `qa-engineer` agent defin
 ## WORKFLOW
 1. On startup: Run `/qa-setup`
 2. If `/qa-setup` reports credential-dependent flows, message the team lead:
-   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in qa-results/.env.test."
+   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in .kiln/qa/.env.test."
    Do NOT block — continue testing non-auth flows while waiting.
 3. Watch for messages from implementers saying a phase is complete
 4. When notified: Run `/qa-checkpoint`
 5. When an implementer messages "fix ready": Run `/qa-checkpoint [flow-name]` to re-test
-6. If team lead provides credentials: re-check qa-results/.env.test and unblock auth flows
+6. If team lead provides credentials: re-check .kiln/qa/.env.test and unblock auth flows
 7. After ALL implementers are done: Run `/qa-pipeline` (4-agent team with fix routing)
 8. After `/qa-pipeline` completes: Run `/qa-final` (quick green/red gate)
 9. Mark your task as completed via TaskUpdate ONLY after `/qa-final` is green
 10. Notify the auditor that QA is complete and report is ready
 
 ## CREDENTIALS
-- NEVER hardcode or guess credentials — always load from qa-results/.env.test
+- NEVER hardcode or guess credentials — always load from .kiln/qa/.env.test
 - NEVER log, screenshot, or expose credentials in video recordings
 - If credentials aren't provided, mark affected flows as SKIPPED in the QA report — do NOT block the pipeline
 
@@ -388,9 +388,9 @@ Before starting your audit, verify that ALL implementation AND QA are truly comp
 
 Do NOT audit a partially-complete implementation. Your audit findings are only valid against the final state of the code.
 
-If a QA engineer ran, read `qa-results/latest/QA-REPORT.md` and include its findings in your audit:
+If a QA engineer ran, read `.kiln/qa/latest/QA-REPORT.md` and include its findings in your audit:
 - Reference the QA pass/fail verdict
-- Link video artifacts in the PR body (qa-results/latest/videos/*.webm)
+- Link video artifacts in the PR body (.kiln/qa/latest/videos/*.webm)
 - Flag any remaining QA failures as blockers
 ```
 
@@ -426,7 +426,7 @@ gh pr create --label "build-prd" --title "[feature-name]: [short description]" -
 ## QA Results
 - Smoke test: PASS/FAIL
 - Visual QA: PASS/FAIL/SKIPPED — [video count] recordings
-- QA Report: qa-results/latest/QA-REPORT.md
+- QA Report: .kiln/qa/latest/QA-REPORT.md
 
 ## Test plan
 - [ ] Tests pass (`npm test`)
@@ -445,7 +445,7 @@ PREOF
 
 Include these in every teammate prompt:
 - Read `.specify/memory/constitution.md` before any code changes
-- Run the speckit slash commands — don't reimplement their logic
+- Run the kiln slash commands — don't reimplement their logic
 - Mark tasks via `TaskUpdate` (in_progress → completed)
 - After completing a task, check `TaskList` for the next unblocked, unassigned task
 - Message the next teammate by **name** when their work is unblocked
@@ -530,7 +530,7 @@ Include these instructions verbatim in the retrospective teammate's prompt when 
 
 The retrospective teammate's job:
 1. **Run the safety-net gate above** — verify all tasks are done before proceeding
-2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the speckit commands, or the team structure? Were any instructions in your prompt unclear, missing, or contradictory?"
+2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the kiln commands, or the team structure? Were any instructions in your prompt unclear, missing, or contradictory?"
 3. Collects their responses
 4. Reviews the pipeline artifacts for additional evidence:
    - `specs/{feature}/blockers.md` — documented blockers
@@ -560,7 +560,7 @@ The retrospective teammate's job:
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Prompt & communication improvements** — specific rewrites for agent prompts, skill definitions, or pipeline orchestration (from step 5 above)
-   - **Proposed changes** — other concrete suggestions for the skill, speckit commands, team structure, or codebase
+   - **Proposed changes** — other concrete suggestions for the skill, kiln commands, team structure, or codebase
 6. Reports the issue URL back to the lead
 7. Marks its task as completed via `TaskUpdate`
 
@@ -617,7 +617,8 @@ cannot self-improve. This has happened before — do not let it happen again.
 
 5. **Wait for all teammates to shut down** before cleaning up.
 6. **Clean up**: Use `TeamDelete` to remove the team and task directories.
-5. **Summarize** the pipeline results:
+5. **Write pipeline log**: Save the pipeline report to `.kiln/logs/{feature-branch}-{timestamp}.md` for audit trail.
+6. **Summarize** the pipeline results:
 
 ```
 ## Pipeline Report: {feature branch name}
@@ -641,7 +642,7 @@ cannot self-improve. This has happened before — do not let it happen again.
 **Compliance**: {percentage}
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
-**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see qa-results/latest/QA-PASS-REPORT.md
+**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see .kiln/qa/latest/QA-PASS-REPORT.md
 **Retrospective**: {issue URL}
 ```
 
@@ -740,7 +741,7 @@ Only escalate to the user AFTER the debugger has tried. "I hit an error" → spa
 
 ### Other Error Handling Rules
 
-- If `/speckit.implement` stops early, spawn a replacement to continue from where it left off
+- If `/implement` stops early, spawn a replacement to continue from where it left off
 - Unfixable gaps go in `specs/{feature}/blockers.md` — pipeline continues
 - If TeamDelete fails because teammates are still active, shut them down first
 - The debugger is a **short-lived background agent** — it runs for a specific issue and exits. It is NOT a permanent pipeline member.

@@ -66,7 +66,7 @@ You are the QA reporter. MODE: pipeline.
 
 Working directory: [path]
 Branch: [branch name]
-Test matrix: qa-results/test-matrix.md
+Test matrix: .kiln/qa/test-matrix.md
 Team config: ~/.claude/teams/[team-name]/config.json
 
 IMPLEMENTER NAMES: [list — read from parent build-prd team config or arguments]
@@ -130,13 +130,13 @@ After the fix cycle, any findings that are still UNFIXED:
 
 ## Phase 5: Produce Report
 
-Write qa-results/latest/QA-PASS-REPORT.md with:
+Write .kiln/qa/latest/QA-PASS-REPORT.md with:
 - All findings (fixed and unfixed)
 - Fix cycle summary (what was routed, what was fixed, what remains)
 - Issue links for unfixed items
 - Coverage audit (same completeness checks as /qa-pass mode)
 
-git add qa-results/ && git commit -m "qa: pipeline QA report — N issues filed, M fixed during pipeline"
+git add .kiln/qa/ && git commit -m "qa: pipeline QA report — N issues filed, M fixed during pipeline"
 
 Mark task completed.
 
@@ -168,7 +168,7 @@ Wait for qa-reporter task to complete:
 **Fixed During Pipeline**: N findings
 **Issues Filed (unfixed)**: N (N critical, M major, P minor)
 
-Report: qa-results/latest/QA-PASS-REPORT.md
+Report: .kiln/qa/latest/QA-PASS-REPORT.md
 ```
 
 ## Step 5: Cleanup

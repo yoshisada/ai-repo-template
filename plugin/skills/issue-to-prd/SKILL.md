@@ -1,11 +1,11 @@
 ---
 name: issue-to-prd
-description: Bundle open backlog items from docs/backlog/ into a feature PRD. Groups related issues by theme, prioritizes them, and generates a PRD ready for /build-prd. Use as "/issue-to-prd" (all open) or "/issue-to-prd <category>" to filter.
+description: Bundle open backlog items from .kiln/issues/ into a feature PRD. Groups related issues by theme, prioritizes them, and generates a PRD ready for /build-prd. Use as "/issue-to-prd" (all open) or "/issue-to-prd <category>" to filter.
 ---
 
 # Issue to PRD — Bundle Backlog into a Feature PRD
 
-Read all open backlog entries from `docs/backlog/`, group related issues into coherent themes, and generate a feature PRD that can be built with `/build-prd`.
+Read all open backlog entries from `.kiln/issues/`, group related issues into coherent themes, and generate a feature PRD that can be built with `/build-prd`.
 
 ## User Input
 
@@ -15,7 +15,7 @@ $ARGUMENTS
 
 ## Step 1: Read the Backlog
 
-1. Read all `.md` files in `docs/backlog/`
+1. Read all `.md` files in `.kiln/issues/`
 2. Parse the frontmatter of each file — extract title, type, severity, category, status, date, github_issue
 3. **Filter**: Only include entries where `status: open`
 4. **If user provided a filter** (e.g., `/issue-to-prd templates`): further filter by category match
@@ -35,15 +35,15 @@ Present the grouping to the user:
 
 ### Theme 1: <theme name>
 **Items**: N | **Highest severity**: <severity>
-- [<title>](docs/backlog/<file>) — <type>, <severity>
-- [<title>](docs/backlog/<file>) — <type>, <severity>
+- [<title>](.kiln/issues/<file>) — <type>, <severity>
+- [<title>](.kiln/issues/<file>) — <type>, <severity>
 
 ### Theme 2: <theme name>
 **Items**: N | **Highest severity**: <severity>
-- [<title>](docs/backlog/<file>) — <type>, <severity>
+- [<title>](.kiln/issues/<file>) — <type>, <severity>
 
 ### Ungrouped
-- [<title>](docs/backlog/<file>) — <type>, <severity>
+- [<title>](.kiln/issues/<file>) — <type>, <severity>
 ```
 
 ## Step 3: Select Scope
@@ -69,7 +69,7 @@ Create: `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md`
 
 The PRD must:
 
-1. **Reference every backlog item** it addresses — link to the `docs/backlog/` file and GitHub issue number (if any)
+1. **Reference every backlog item** it addresses — link to the `.kiln/issues/` file and GitHub issue number (if any)
 2. **Synthesize, don't copy-paste** — combine related issues into coherent requirements, don't just list them
 3. **Include these sections**:
 
@@ -88,7 +88,7 @@ The PRD must:
 
 | # | Backlog Entry | GitHub Issue | Type | Severity |
 |---|---------------|--------------|------|----------|
-| 1 | [title](docs/backlog/file.md) | #N or — | type | severity |
+| 1 | [title](.kiln/issues/file.md) | #N or — | type | severity |
 
 ## Problem Statement
 

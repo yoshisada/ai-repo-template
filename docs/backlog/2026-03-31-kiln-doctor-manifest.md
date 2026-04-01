@@ -5,7 +5,7 @@ severity: medium
 category: skills
 source: manual
 github_issue: null
-status: open
+status: prd-created
 date: 2026-03-31
 ---
 
@@ -30,3 +30,5 @@ Enables clean migration for existing consumer projects upgrading to `.kiln/`. Al
 - Map known legacy paths to their `.kiln/` equivalents for migration
 - Interactive fix mode: show each issue, suggest fix, apply on confirmation
 - Post-run hook option: run a lightweight check after agent runs to catch misplaced outputs immediately
+
+prd: docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md

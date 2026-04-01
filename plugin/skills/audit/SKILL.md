@@ -1,11 +1,11 @@
 ---
-name: "speckit-audit"
-description: "Run a PRD compliance audit against the current implementation. Called automatically at the end of /speckit.implement. Checks both directions: PRD→Spec and Spec→Code→Test. Attempts to fix gaps, or requires documented blockers."
+name: "audit"
+description: "Run a PRD compliance audit against the current implementation. Called automatically at the end of /implement. Checks both directions: PRD→Spec and Spec→Code→Test. Attempts to fix gaps, or requires documented blockers."
 ---
 
 ## PRD Compliance Audit
 
-This audit runs as the final step of `/speckit.implement`. It checks compliance in **both directions** and either fixes gaps or documents blockers.
+This audit runs as the final step of `/implement`. It checks compliance in **both directions** and either fixes gaps or documents blockers.
 
 ### Phase 1: Gather Context
 

@@ -1,5 +1,5 @@
 ---
-name: speckit-implement
+name: implement
 description: Execute all tasks from the task breakdown to build the feature. Use after
   task generation to systematically implement the planned solution following TDD approach
   where applicable.
@@ -9,7 +9,7 @@ metadata:
   source: templates/commands/implement.md
 ---
 
-# Speckit Implement Skill
+# Kiln Implement Skill
 
 ## User Input
 
@@ -175,7 +175,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
-Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
+Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/tasks` first to regenerate the task list.
 
 10. **Check for extension hooks**: After completion validation, check if `.specify/extensions.yml` exists in the project root.
     - If it exists, read it and look for entries under the `hooks.after_implement` key

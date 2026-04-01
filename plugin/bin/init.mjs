@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * speckit-harness init
+ * kiln init
  *
  * Scaffolds the spec-first development infrastructure into the current directory.
  * Safe to run multiple times (idempotent) — existing files are not overwritten
@@ -12,8 +12,8 @@
  * (CLAUDE.md, constitution, PRD, directory structure, templates).
  *
  * Usage:
- *   npx @yoshisada/speckit-harness init [--force]
- *   npx @yoshisada/speckit-harness update     # re-sync templates to latest
+ *   npx @yoshisada/kiln init [--force]
+ *   npx @yoshisada/kiln update     # re-sync templates to latest
  */
 
 import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync } from "node:fs";
@@ -59,7 +59,7 @@ function syncDir(src, dest, description) {
 
 function scaffoldProject() {
   console.log("\n╭─────────────────────────────────────╮");
-  console.log("│  speckit-harness — init              │");
+  console.log("│  kiln — init              │");
   console.log("╰─────────────────────────────────────╯\n");
 
   const scaffold = join(PLUGIN_ROOT, "scaffold");
@@ -77,7 +77,7 @@ function scaffoldProject() {
   ensureDir(join(PROJECT_DIR, "specs"));
   copyIfMissing(join(scaffold, "specs", "README.md"), join(PROJECT_DIR, "specs", "README.md"), "specs/README.md");
 
-  // Speckit memory
+  // Kiln memory
   ensureDir(join(PROJECT_DIR, ".specify", "memory"));
   copyIfMissing(
     join(scaffold, "constitution.md"),
@@ -111,6 +111,19 @@ function scaffoldProject() {
     join(PROJECT_DIR, "scripts", "version-increment.sh"),
     "scripts/version-increment.sh (auto-increment hook)"
   );
+
+  // .kiln/ directory structure (FR-008, FR-009)
+  const kilnDirs = [
+    ".kiln/workflows",
+    ".kiln/agents",
+    ".kiln/issues",
+    ".kiln/qa",
+    ".kiln/logs"
+  ];
+  for (const dir of kilnDirs) {
+    ensureDir(join(PROJECT_DIR, dir));
+    log(`+ ${dir}/`);
+  }
 }
 
 // ── Sync: shared infrastructure (always update to latest) ──
@@ -120,14 +133,14 @@ function syncShared() {
     console.log("\nSyncing shared infrastructure...\n");
   } else {
     console.log("\n╭─────────────────────────────────────╮");
-    console.log("│  speckit-harness — update            │");
+    console.log("│  kiln — update            │");
     console.log("╰─────────────────────────────────────╯\n");
   }
 
   // Templates — always sync to latest
   syncDir(join(PLUGIN_ROOT, "templates"), join(PROJECT_DIR, ".specify", "templates"), ".specify/templates/");
 
-  // Speckit scripts
+  // Kiln scripts
   if (existsSync(join(PLUGIN_ROOT, "scaffold", "specify-scripts"))) {
     syncDir(
       join(PLUGIN_ROOT, "scaffold", "specify-scripts"),
@@ -152,6 +165,7 @@ function verify() {
     ["docs/PRD.md", "PRD placeholder"],
     ["specs/README.md", "Specs directory"],
     ["VERSION", "Version tracking"],
+    [".kiln/workflows", ".kiln/ directory"],
   ];
 
   let passed = 0;
@@ -167,10 +181,10 @@ function verify() {
   // Check plugin is reachable
   const pluginJson = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
   if (existsSync(pluginJson)) {
-    log("✓ speckit-harness plugin (installed)");
+    log("✓ kiln plugin (installed)");
     passed++;
   } else {
-    log("✗ speckit-harness plugin — not found");
+    log("✗ kiln plugin — not found");
   }
   const total = checks.length + 1;
 
@@ -182,8 +196,8 @@ function verify() {
   }
 
   console.log("Next steps:");
-  console.log("  1. Edit docs/PRD.md with your product requirements (or run /speckit-harness:create-prd)");
-  console.log("  2. Run /speckit-harness:build-prd to start building");
+  console.log("  1. Edit docs/PRD.md with your product requirements (or run /kiln:create-prd)");
+  console.log("  2. Run /kiln:build-prd to start building");
   console.log("");
 }
 
@@ -200,7 +214,7 @@ switch (command) {
     console.log("\n✓ Shared infrastructure updated to latest.\n");
     break;
   default:
-    console.log("Usage: speckit-harness <init|update> [--force]");
+    console.log("Usage: kiln <init|update> [--force]");
     console.log("");
     console.log("  init     Scaffold a new project with spec-first infrastructure");
     console.log("  update   Re-sync templates to latest plugin version");

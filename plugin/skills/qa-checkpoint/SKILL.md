@@ -17,17 +17,17 @@ If arguments specify which flows or implementer to test, scope to those. Otherwi
 
 ```bash
 # Read tasks.md to find recently completed tasks
-# Compare against qa-results/checkpoints.md to find what's new since last checkpoint
+# Compare against .kiln/qa/checkpoints.md to find what's new since last checkpoint
 ```
 
 1. Read `specs/*/tasks.md` — find all tasks marked `[X]`
-2. Read `qa-results/checkpoints.md` (if it exists) — find what was already tested
-3. Read `qa-results/test-matrix.md` — map completed tasks to user flows
+2. Read `.kiln/qa/checkpoints.md` (if it exists) — find what was already tested
+3. Read `.kiln/qa/test-matrix.md` — map completed tasks to user flows
 4. The delta = flows that have backing tasks marked `[X]` but haven't been tested yet
 
 If there's nothing new to test, report "No new flows to test since last checkpoint" and exit.
 
-**Credential check**: If any new flows are marked `blocked:credentials` in the test matrix, check if `qa-results/.env.test` now exists and has the needed values. If yes, unblock those flows and include them. If no, skip them and note "still blocked — awaiting credentials" in the checkpoint log.
+**Credential check**: If any new flows are marked `blocked:credentials` in the test matrix, check if `.kiln/qa/.env.test` now exists and has the needed values. If yes, unblock those flows and include them. If no, skip them and note "still blocked — awaiting credentials" in the checkpoint log.
 
 ### Step 2: Start Dev Server
 
@@ -57,12 +57,12 @@ if [ "$HTTP_STATUS" != "200" ]; then
 fi
 ```
 
-Use the port from `qa-results/playwright.config.ts` if it exists (from `/qa-setup`).
+Use the port from `.kiln/qa/playwright.config.ts` if it exists (from `/qa-setup`).
 
 ### Step 3: Write/Update Tests for New Flows
 
 For each untested flow:
-1. If a test stub exists in `qa-results/tests/` (from `/qa-setup`), flesh it out with real steps
+1. If a test stub exists in `.kiln/qa/tests/` (from `/qa-setup`), flesh it out with real steps
 2. If no stub exists, write a new test file
 
 Test rules:
@@ -70,12 +70,12 @@ Test rules:
 - Use accessible selectors ONLY (getByRole, getByLabel, getByText, getByTestId)
 - NO `page.waitForTimeout()` — use auto-waiting assertions
 - Every test name references its US/FR
-- For flows requiring credentials: load from `qa-results/.env.test` via `dotenv` or `process.env`. NEVER hardcode credentials in test scripts. NEVER log or screenshot credential values.
+- For flows requiring credentials: load from `.kiln/qa/.env.test` via `dotenv` or `process.env`. NEVER hardcode credentials in test scripts. NEVER log or screenshot credential values.
 
 ### Step 4: Run Tests (Targeted)
 
 ```bash
-cd qa-results
+cd .kiln/qa
 # Run only the new/updated tests
 npx playwright test --config=playwright.config.ts --grep "US-003|US-004" 2>&1 | tee checkpoint-output.log
 TEST_EXIT=$?
@@ -93,8 +93,8 @@ QA Checkpoint Feedback — FAIL: US-003 (Add to cart)
 What I tested: [user flow steps]
 What happened: [actual behavior]
 Expected: [expected behavior]
-Screenshot: qa-results/screenshots/[name].png
-Video: qa-results/videos/[name].webm (if captured)
+Screenshot: .kiln/qa/screenshots/[name].png
+Video: .kiln/qa/videos/[name].webm (if captured)
 
 Severity: Critical / Major / Minor
 Please fix and message me "fix ready for US-003" when done.
@@ -108,7 +108,7 @@ QA Checkpoint: US-004 (View cart) PASSING on desktop. Looks good.
 
 ### Step 6: Log Checkpoint
 
-Append to `qa-results/checkpoints.md`:
+Append to `.kiln/qa/checkpoints.md`:
 
 ```markdown
 ## Checkpoint N — [timestamp]

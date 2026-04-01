@@ -1,5 +1,5 @@
 ---
-name: "speckit-coverage"
+name: "coverage"
 description: "Check test coverage against the 80% constitutional gate"
 ---
 
