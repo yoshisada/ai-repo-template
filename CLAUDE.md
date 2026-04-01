@@ -203,6 +203,7 @@ If a hook blocks you, either:
 - `/analyze` — Cross-artifact consistency check
 - `/coverage` — Check test coverage gate
 - `/build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
+- `/analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
 - `/report-issue` — Quick capture bugs/friction to `.kiln/issues/`
 
