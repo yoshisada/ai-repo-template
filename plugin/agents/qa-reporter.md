@@ -54,6 +54,9 @@ As findings arrive via `SendMessage`:
 1. Extract: source agent, type (functional/ux/a11y), severity, description, evidence
 2. Mark the flow/page as covered in your tracker
 3. Record the finding in your internal list
+4. For `VISUAL RUBRIC` messages: extract the per-dimension scores and store them for the report's rubric table
+5. For `VISUAL REGRESSION` messages: treat as severity major and include in baseline comparison table
+6. For `VISUAL BUG` messages: treat as standard visual findings
 
 ### Issues mode — file immediately:
 
@@ -192,6 +195,24 @@ Write `qa-results/latest/QA-PASS-REPORT.md`:
 | Heuristics | N/10 | N | N | N |
 | Visual Design | N/10 | N | N | N |
 | Interaction | N/10 | N | N | N |
+
+### Visual Design Rubric
+
+| Page | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9 | D10 | Overall | Grade |
+|------|----|----|----|----|----|----|----|----|----|----|---------|-------|
+| [page] | [score] | ... | ... | ... | ... | ... | ... | ... | ... | ... | [weighted] | [grade] |
+
+### Baseline Comparison (if baseline existed)
+
+| Page | Dimension | Previous | Current | Delta | Status |
+|------|-----------|----------|---------|-------|--------|
+| [page] | [dim] | [old] | [new] | [+/-N] | IMPROVED/REGRESSED/STABLE |
+
+### Reference Comparison (if reference used)
+
+- **Reference URL**: [URL]
+- **Pages compared**: [N]
+- **Average gap from reference**: [N] points
 
 ## Fix Cycle (pipeline mode only)
 

@@ -46,5 +46,24 @@
 [GOVERNANCE_RULES]
 <!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
+## Design Reference (Optional)
+
+### Reference URL
+<!-- The URL of a design system, component library, or comparable reference site.
+     The UX evaluator navigates here first and captures reference screenshots
+     for pairwise comparison against your app's pages. -->
+[DESIGN_REFERENCE_URL]
+<!-- Example: https://ui.shadcn.com, https://material.io/components, https://your-company.design -->
+
+### Reference Page Mappings
+<!-- Map reference site pages to your app's pages for comparison.
+     Format: reference-page → app-page (comparison purpose) -->
+[REFERENCE_PAGE_MAPPINGS]
+<!-- Example:
+  - /docs/components/button  →  /settings (button-heavy page)
+  - /docs/components/form    →  /signup (form page)
+  - /docs/components/table   →  /dashboard (data display page)
+-->
+
 **Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
 <!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

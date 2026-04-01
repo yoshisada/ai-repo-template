@@ -53,7 +53,8 @@ $ARGUMENTS
 6. **Prepare artifacts**:
    ```bash
    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-   mkdir -p "qa-results/$TIMESTAMP/screenshots/desktop" "qa-results/$TIMESTAMP/screenshots/tablet" "qa-results/$TIMESTAMP/screenshots/mobile" "qa-results/$TIMESTAMP/snapshots"
+   mkdir -p "qa-results/$TIMESTAMP/screenshots/desktop" "qa-results/$TIMESTAMP/screenshots/tablet" "qa-results/$TIMESTAMP/screenshots/mobile" "qa-results/$TIMESTAMP/screenshots/reference" "qa-results/$TIMESTAMP/snapshots"
+   mkdir -p qa-results/baselines
    ln -sfn "$TIMESTAMP" qa-results/latest
    ```
 
@@ -185,10 +186,13 @@ LAYER 2 (Semantic):
 8. Evaluate against Nielsen's 10 heuristics
 9. Send findings to qa-reporter
 
-LAYER 3 (Visual):
-10. Read screenshots from qa-results/latest/screenshots/
-11. Evaluate: spacing, typography, color, alignment, hierarchy, polish
-12. Send findings to qa-reporter
+LAYER 3 (Visual — Rubric-Based Scoring):
+10. Read the rubric from plugin/templates/ux-rubric.md
+11. Step 3a: Check constitution/spec for a design reference URL. If found, capture reference screenshots to qa-results/latest/screenshots/reference/
+12. Step 3b: Load baseline from qa-results/baselines/ux-rubric-latest.json if it exists
+13. Step 3c: Score each page against all 10 dimensions (D1-D10) using the rubric. Use pairwise comparison if reference available.
+14. Step 3d: Send VISUAL RUBRIC scorecards, detailed findings for scores <= 4, and VISUAL REGRESSION alerts for baseline drops >= 2 points
+15. Also check for visual bugs (overlaps, truncation, invisible text, broken images)
 
 When done:
   SendMessage("qa-reporter", "UX EVALUATION COMPLETE — [N] findings sent")

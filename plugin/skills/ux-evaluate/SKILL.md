@@ -36,7 +36,8 @@ If arguments provide a URL, use that. Otherwise detect the dev server.
    ```bash
    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
    UX_DIR="qa-results/$TIMESTAMP"
-   mkdir -p "$UX_DIR/screenshots/desktop" "$UX_DIR/screenshots/tablet" "$UX_DIR/screenshots/mobile" "$UX_DIR/snapshots"
+   mkdir -p "$UX_DIR/screenshots/desktop" "$UX_DIR/screenshots/tablet" "$UX_DIR/screenshots/mobile" "$UX_DIR/screenshots/reference" "$UX_DIR/snapshots"
+   mkdir -p qa-results/baselines
    ln -sfn "$TIMESTAMP" qa-results/latest
    ```
 
@@ -88,15 +89,14 @@ For each page, evaluate against all 10 heuristics:
 - H9: Help users recognize/diagnose/recover from errors
 - H10: Help and documentation
 
-### Lens 2: Visual Design Quality
+### Lens 2: Visual Design Quality (10-Dimension Rubric)
 
-Review desktop screenshots for:
-- Spacing consistency (padding, margins, rhythm)
-- Typography hierarchy (heading levels, body text size, font consistency)
-- Color palette consistency and meaningful use
-- Alignment to grid
-- Visual hierarchy (eye flow)
-- Polish (border radii, shadows, icon consistency)
+Use the rubric defined in `plugin/templates/ux-rubric.md`. Follow the full Layer 3 procedure from the `ux-evaluator` agent:
+
+1. **Step 3a**: Check constitution/spec for a design reference URL. If found, navigate to reference pages and capture screenshots to `qa-results/latest/screenshots/reference/`.
+2. **Step 3b**: Load previous baseline from `qa-results/baselines/ux-rubric-latest.json` if it exists.
+3. **Step 3c**: Score each desktop screenshot against all 10 dimensions (D1-D10) using the rubric anchors. Use pairwise comparison against reference if available.
+4. **Step 3d**: Record findings — rubric scorecards for every page, detailed findings for scores <= 4, regression alerts for baseline drops >= 2 points.
 
 ### Lens 3: Accessibility (WCAG 2.1 AA)
 
@@ -127,12 +127,52 @@ Review screenshots and snapshots for:
 - Toast/notification presence
 - Responsive layout adaptation
 
+## Step 3.5: Save Rubric Baseline
+
+After all pages are scored, save the rubric results as a baseline for future runs:
+
+```bash
+# Save current rubric scores as JSON
+cat > qa-results/baselines/ux-rubric-latest.json << 'SCORES_EOF'
+{
+  "timestamp": "[ISO timestamp]",
+  "reference_url": "[URL or null]",
+  "pages": {
+    "[page-name]": {
+      "screenshot": "[path]",
+      "overall": [weighted-score],
+      "grade": "[letter-grade]",
+      "dimensions": {
+        "D1_spacing": { "score": [N], "justification": "[text]" },
+        "D2_typography": { "score": [N], "justification": "[text]" },
+        "D3_color": { "score": [N], "justification": "[text]" },
+        "D4_alignment": { "score": [N], "justification": "[text]" },
+        "D5_responsive": { "score": [N], "justification": "[text]" },
+        "D6_hierarchy": { "score": [N], "justification": "[text]" },
+        "D7_consistency": { "score": [N], "justification": "[text]" },
+        "D8_density": { "score": [N], "justification": "[text]" },
+        "D9_polish": { "score": [N], "justification": "[text]" },
+        "D10_feedback": { "score": [N], "justification": "[text]" }
+      }
+    }
+  }
+}
+SCORES_EOF
+
+# Archive with timestamp (keep history)
+cp qa-results/baselines/ux-rubric-latest.json \
+   "qa-results/baselines/ux-rubric-$(date +%Y%m%d-%H%M%S).json"
+```
+
 ## Step 4: Generate Report
 
 Write `qa-results/latest/UX-REPORT.md` following the format defined in the `ux-evaluator` agent definition.
 
 Include:
 - Summary scores (1-10) for each category
+- **Visual Design Rubric table** — all 10 dimensions per page with overall weighted score and grade
+- **Baseline Comparison table** (if baseline existed) — dimension, previous score, current score, delta, status (IMPROVED/REGRESSED/STABLE)
+- **Reference Comparison summary** (if reference used) — URL, pages compared, average gap from reference
 - All findings sorted by severity (Critical → Major → Minor → Suggestion)
 - Page-by-page breakdown
 - Accessibility compliance summary table
@@ -146,8 +186,11 @@ Present a concise summary:
 ## UX Evaluation Complete
 
 **Overall Score**: N/10
+**Visual Design Grade**: [A+/A/B/C/D/F]
 **Pages Evaluated**: N
 **Viewports**: Desktop, Tablet, Mobile
+**Reference**: [URL or "none"]
+**Baseline**: [improved/regressed/stable/first run]
 
 | Category | Score | Issues |
 |----------|-------|--------|
@@ -156,6 +199,12 @@ Present a concise summary:
 | Accessibility | N/10 | N critical, M major |
 | Interaction | N/10 | N critical, M major |
 
+### Visual Design Rubric (per page)
+
+| Page | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9 | D10 | Overall | Grade |
+|------|----|----|----|----|----|----|----|----|----|----|---------|-------|
+| [page] | [score] | ... | ... | ... | ... | ... | ... | ... | ... | ... | [weighted] | [grade] |
+
 **Top Issues**:
 1. [most impactful finding]
 2. [second most impactful]
@@ -163,6 +212,7 @@ Present a concise summary:
 
 Full report: qa-results/latest/UX-REPORT.md
 Screenshots: qa-results/latest/screenshots/
+Baseline: qa-results/baselines/ux-rubric-latest.json
 ```
 
 ## Rules

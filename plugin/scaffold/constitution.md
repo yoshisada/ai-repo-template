@@ -42,4 +42,17 @@ Each task in tasks.md MUST be marked `[X]` immediately after completion — not 
 
 This constitution supersedes all other practices. Amendments require a version bump.
 
+## Design Reference (Optional)
+
+### Reference URL
+<!-- URL of your design system or a comparable reference site for UX evaluation.
+     The UX evaluator captures reference screenshots for pairwise comparison. -->
+<!-- Example: https://ui.shadcn.com -->
+
+### Reference Page Mappings
+<!-- Map reference pages to your app's pages for design comparison.
+  - reference: /docs/components/button  →  app: /settings
+  - reference: /docs/components/form    →  app: /signup
+-->
+
 **Version**: 2.0.0 | **Ratified**: 2026-03-26
