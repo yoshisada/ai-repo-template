@@ -159,11 +159,11 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 - [X] T025 [P] [US8] Create `plugin/templates/issue.md` — extract the issue markdown structure (frontmatter + Description + Impact + Suggested Fix sections) from the hardcoded template in `plugin/skills/report-issue/SKILL.md` — FR-018
 - [X] T026 [P] [US8] Update `plugin/skills/report-issue/SKILL.md` Step 3 — change from hardcoded template to reading from `plugin/templates/issue.md` (or consumer's `.kiln/templates/issue.md` if it exists) — FR-018
-- [ ] T027 [US8] Update `plugin/bin/init.mjs` `scaffoldProject()` — add `ensureDir` for `.kiln/templates/`, add `copyIfMissing` for `plugin/templates/issue.md` → `.kiln/templates/issue.md` — FR-019
-- [ ] T028 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in User Scenarios section: "If feature involves a rename/rebrand: include an FR for grep-based verification of ALL references" — FR-020
-- [ ] T029 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in Requirements section: "Document credentials and auth flow required for QA testing" — FR-022
-- [ ] T030 [P] [US8] Update `plugin/templates/plan-template.md` — add comment in Technical Context section: "When depending on container CLI, add Phase 1 task to run `--help` and document results" — FR-021
-- [ ] T031 [P] [US8] Update `plugin/templates/plan-template.md` — add comment in Technical Context section: "For a11y features, run axe-core locally and fix all violations before committing" — FR-023
+- [X] T027 [US8] Update `plugin/bin/init.mjs` `scaffoldProject()` — add `ensureDir` for `.kiln/templates/`, add `copyIfMissing` for `plugin/templates/issue.md` → `.kiln/templates/issue.md` — FR-019
+- [X] T028 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in User Scenarios section: "If feature involves a rename/rebrand: include an FR for grep-based verification of ALL references" — FR-020
+- [X] T029 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in Requirements section: "Document credentials and auth flow required for QA testing" — FR-022
+- [X] T030 [P] [US8] Update `plugin/templates/plan-template.md` — add comment in Technical Context section: "When depending on container CLI, add Phase 1 task to run `--help` and document results" — FR-021
+- [X] T031 [P] [US8] Update `plugin/templates/plan-template.md` — add comment in Technical Context section: "For a11y features, run axe-core locally and fix all violations before committing" — FR-023
 
 **Checkpoint**: Issue template externalized, spec/plan templates updated with common checklists.
 

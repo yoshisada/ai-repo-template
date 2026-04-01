@@ -15,6 +15,9 @@
   ACTION REQUIRED: Replace the content in this section with the technical details
   for the project. The structure here is presented in advisory capacity to guide
   the iteration process.
+
+  FR-021: When depending on container CLI, add Phase 1 task to run `--help` and document results
+  FR-023: For a11y features, run axe-core locally and fix all violations before committing
 -->
 
 **Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
