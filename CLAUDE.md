@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
 
+> **Migration Notice**: This plugin was renamed from `speckit-harness` to `kiln`.
+> Old skill names (`/speckit-harness:speckit-*`) are no longer available.
+> Use the new names: `/specify`, `/plan`, `/tasks`, `/implement`, `/audit`, etc.
+
 **This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin/bin/init.mjs`.
 
 ## Quick Start

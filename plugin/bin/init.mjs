@@ -165,6 +165,7 @@ function verify() {
     ["docs/PRD.md", "PRD placeholder"],
     ["specs/README.md", "Specs directory"],
     ["VERSION", "Version tracking"],
+    [".kiln/workflows", ".kiln/ directory"],
   ];
 
   let passed = 0;

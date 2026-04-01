@@ -137,9 +137,9 @@ This story's work is covered by T030 (workflow format spec) in Phase 4 and T023 
 
 **Purpose**: Final validation and documentation
 
-- [ ] T037 Add deprecation notice to CLAUDE.md and README noting migration from speckit-harness to kiln per FR-007
-- [ ] T038 Final verification: grep entire repository for "speckit-harness" — only intentional deprecation notices should remain
-- [ ] T039 Update `plugin/bin/init.mjs` verify() function to check for `.kiln/` directory and report "kiln plugin" instead of "speckit-harness plugin"
+- [X] T037 Add deprecation notice to CLAUDE.md and README noting migration from speckit-harness to kiln per FR-007
+- [X] T038 Final verification: grep entire repository for "speckit-harness" — only intentional deprecation notices should remain
+- [X] T039 Update `plugin/bin/init.mjs` verify() function to check for `.kiln/` directory and report "kiln plugin" instead of "speckit-harness plugin"
 
 ---
 
