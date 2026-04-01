@@ -147,8 +147,8 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Purpose**: Documentation and final validation
 
-- [ ] T018 Update CLAUDE.md "Active Technologies" section to reflect changes made in this feature (Bash hook modifications, Markdown skill/agent updates)
-- [ ] T019 Run quickstart.md validation — trace through each verification scenario described in `specs/pipeline-reliability/quickstart.md` against the implemented changes to confirm correctness
+- [X] T018 Update CLAUDE.md "Active Technologies" section to reflect changes made in this feature (Bash hook modifications, Markdown skill/agent updates)
+- [X] T019 Run quickstart.md validation — trace through each verification scenario described in `specs/pipeline-reliability/quickstart.md` against the implemented changes to confirm correctness
 
 ---
 
