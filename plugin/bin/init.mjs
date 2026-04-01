@@ -118,6 +118,8 @@ function scaffoldProject() {
     ".kiln/workflows",
     ".kiln/agents",
     ".kiln/issues",
+    ".kiln/issues/completed",  // FR-024: archival directory for closed/done issues
+    ".kiln/templates",         // FR-019: consumer-customizable templates
     ".kiln/qa",
     ".kiln/qa/tests",
     ".kiln/qa/results",
@@ -136,6 +138,13 @@ function scaffoldProject() {
     join(scaffold, "qa-readme.md"),
     join(PROJECT_DIR, ".kiln", "qa", "README.md"),
     ".kiln/qa/README.md"
+  );
+
+  // FR-019: Scaffold issue template into consumer project for customization
+  copyIfMissing(
+    join(PLUGIN_ROOT, "templates", "issue.md"),
+    join(PROJECT_DIR, ".kiln", "templates", "issue.md"),
+    ".kiln/templates/issue.md (issue template)"
   );
 }
 

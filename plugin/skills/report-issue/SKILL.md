@@ -49,32 +49,11 @@ Create `.kiln/issues/` directory if it doesn't exist.
 
 Generate a filename: `YYYY-MM-DD-<short-slug>.md` (e.g., `2026-03-30-missing-dockerfile.md`).
 
-Write the file with this structure:
+**Read the issue template** — FR-018: check for a consumer-customized template first, then fall back to the plugin default:
+1. If `.kiln/templates/issue.md` exists in the project, read it as the template
+2. Otherwise, read `plugin/templates/issue.md` (the plugin default)
 
-```markdown
----
-title: "<title>"
-type: <bug|friction|improvement|feature-request>
-severity: <blocking|high|medium|low>
-category: <skills|agents|hooks|templates|scaffold|workflow|other>
-source: <retro|manual|github-issue|pipeline-run>
-github_issue: <number or null>
-status: open
-date: YYYY-MM-DD
----
-
-## Description
-
-<Full description of the issue>
-
-## Impact
-
-<Who/what is affected and how>
-
-## Suggested Fix
-
-<Brief idea of what the fix looks like, if known. "TBD" is fine.>
-```
+Write the file using the template structure, filling in the frontmatter fields and section content based on the classification from Step 2.
 
 ## Step 4: Confirm
 
@@ -88,10 +67,20 @@ Logged to .kiln/issues/<filename>
 Run /issue-to-prd to bundle open backlog items into a PRD.
 ```
 
+## Step 5: Archive on Close (FR-024)
+
+When updating an existing issue's status to `closed` or `done`:
+
+1. Create `.kiln/issues/completed/` directory if it doesn't exist
+2. Move the issue file from `.kiln/issues/<filename>` to `.kiln/issues/completed/<filename>`
+3. Report: `Archived to .kiln/issues/completed/<filename>`
+
+This keeps the active backlog clean — only open items remain in the top-level `.kiln/issues/` directory.
+
 ## Rules
 
 - One issue per file — don't append to existing files
-- Don't duplicate: before creating, check if `.kiln/issues/` already has an entry with the same GitHub issue number or a very similar title. If so, tell the user and offer to update the existing entry instead.
+- Don't duplicate: before creating, check top-level `.kiln/issues/` (not `completed/` subdirectory) for an entry with the same GitHub issue number or a very similar title (FR-025). If so, tell the user and offer to update the existing entry instead.
 - Don't auto-commit — the user may want to review or edit the entry first
 - Keep descriptions concise but specific — quote error messages, file paths, or command output when relevant
 - If the user reports multiple issues at once (e.g., a retro with 5 findings), create separate files for each one

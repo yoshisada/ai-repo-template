@@ -44,6 +44,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
+  fullyParallel: true,            // FR-002: Run all viewports concurrently
   timeout: 30000,
   retries: 1,
   reporter: [
@@ -53,8 +54,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.DEV_URL || 'http://localhost:5173',
-    video: 'on',
-    trace: 'on',
+    video: 'retain-on-failure',   // FR-001: Only retain video for failing tests
+    trace: 'retain-on-failure',   // FR-001: Only retain trace for failing tests
     screenshot: 'on',
     headless: true,
     viewport: { width: 1280, height: 720 },
@@ -63,6 +64,13 @@ export default defineConfig({
     {
       name: 'desktop-chrome',
       use: { browserName: 'chromium' },
+    },
+    {
+      name: 'tablet',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 768, height: 1024 },
+      },
     },
     {
       name: 'mobile-chrome',
@@ -115,8 +123,8 @@ For **every flow** in the test matrix (P0, P1, AND P2), generate a Playwright te
 import { test, expect } from '@playwright/test';
 
 test.use({
-  video: 'on',
-  trace: 'on',
+  video: 'retain-on-failure',    // FR-001: Only retain video for failing tests
+  trace: 'retain-on-failure',    // FR-001: Only retain trace for failing tests
   screenshot: 'on',
 });
 

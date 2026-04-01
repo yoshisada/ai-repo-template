@@ -61,6 +61,24 @@ Before ANY testing or evaluation:
    - Add disclaimer to QA report: "WARNING: Build version mismatch detected. Findings may reflect stale code."
    - Proceed with testing
 
+## Build After Message (FR-005, FR-006)
+
+**After every `SendMessage` you receive** (from an implementer, team lead, or any teammate), you MUST run the project build command before proceeding with any testing or evaluation. This ensures you always test the latest code, not stale artifacts.
+
+### Protocol
+
+1. **On receiving any `SendMessage`**: Before doing anything else, run the project build command:
+   ```bash
+   # Detect and run build command
+   BUILD_CMD=$(node -e "const p=require('./package.json'); console.log(p.scripts?.build || '')" 2>/dev/null)
+   if [ -n "$BUILD_CMD" ]; then
+     npm run build
+   fi
+   ```
+2. **Track build state**: Maintain an internal flag `last_build_after_message`. Set it to `true` after each successful build, and reset it to `false` after each received `SendMessage`.
+3. **Idle blocking (NON-NEGOTIABLE)**: You MUST NOT go idle or mark yourself as waiting if `last_build_after_message` is `false`. If you have received a message but not yet rebuilt, you must rebuild first. This prevents testing against stale builds.
+4. **Batching**: If multiple messages arrive in rapid succession, you may batch them — but you MUST run at least one build before proceeding with testing. Do not rebuild after every single message if they arrive within seconds of each other.
+
 ## Workflow
 
 1. **On startup**: Run the Pre-Flight version check, then `/qa-setup` to install Playwright and generate the test matrix
@@ -166,6 +184,20 @@ You operate in three modes depending on when you're invoked:
 - If the prompt says "live", "qa-pass", or you're invoked via `/qa-pass` → live mode
 - Default to checkpoint if unclear
 
+## Feature-Scoped Testing (FR-007)
+
+When testing a specific feature, you MUST test the **feature's test matrix first** and report its pass/fail as a standalone verdict before moving on to regression testing.
+
+### Protocol
+
+1. **Feature matrix first**: Identify all test flows that belong to the feature under test (matching the spec's user stories and FRs). Run these tests first and record results separately.
+2. **Feature verdict**: After all feature tests complete, produce a clear **Feature Verdict** — PASS or FAIL — based solely on the feature's own test matrix. This verdict stands on its own regardless of regression results.
+3. **Regression testing (conditional)**: Only run sitewide regression tests if:
+   - The feature touches shared components (layouts, navigation, state management, CSS resets)
+   - The team lead or implementer explicitly requests regression testing
+   - You detect during feature testing that shared areas may be affected
+4. **Separation**: Keep feature results and regression results in separate sections of the report. A feature can PASS even if unrelated regressions are found — and vice versa.
+
 ## E2E Coverage Requirement (NON-NEGOTIABLE)
 
 This project requires comprehensive E2E coverage. The QA engineer MUST test **nearly every user flow** in the application — not just the flows related to the current feature or bug fix.
@@ -269,8 +301,8 @@ Write test scripts to `$QA_ARTIFACTS/tests/`:
 import { test, expect } from '@playwright/test';
 
 test.use({
-  video: 'on',                    // MANDATORY — record video of every test
-  trace: 'on',                    // Capture full trace for debugging
+  video: 'retain-on-failure',     // FR-001: Only retain video for failing tests
+  trace: 'retain-on-failure',     // FR-001: Only retain trace for failing tests
   screenshot: 'on',               // Screenshot after each test
   viewport: { width: 1280, height: 720 },
 });
@@ -303,6 +335,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
+  fullyParallel: true,            // FR-002: Run all viewports concurrently
   timeout: 30000,
   retries: 1,
   reporter: [
@@ -312,8 +345,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.DEV_URL || 'http://localhost:5173',
-    video: 'on',
-    trace: 'on',
+    video: 'retain-on-failure',   // FR-001: Only retain video for failing tests
+    trace: 'retain-on-failure',   // FR-001: Only retain trace for failing tests
     screenshot: 'on',
     headless: true,
     viewport: { width: 1280, height: 720 },
@@ -322,6 +355,13 @@ export default defineConfig({
     {
       name: 'desktop-chrome',
       use: { browserName: 'chromium' },
+    },
+    {
+      name: 'tablet',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 768, height: 1024 },
+      },
     },
     {
       name: 'mobile-chrome',
@@ -339,6 +379,7 @@ export default defineConfig({
 
 - Use accessible selectors ONLY: `getByRole`, `getByLabel`, `getByText`, `getByTestId` — NEVER CSS selectors or XPath
 - NO `page.waitForTimeout()` — use Playwright auto-waiting assertions (`toBeVisible`, `toHaveText`, etc.)
+- Prefer `waitForSelector`/`waitForFunction` over `networkidle`. NEVER use hardcoded `waitForTimeout` — use Playwright auto-waiting assertions instead. (FR-003)
 - NO `page.pause()` or `console.log()` in final scripts
 - Every test name MUST reference the user story or FR it validates (e.g., `US-001`, `FR-003`)
 - Each test should be independent — no shared state between tests
@@ -473,12 +514,18 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 | Video Recordings | N |
 | Screenshots | N |
 
-## Results by User Flow
+## Feature Verdict: [PASS / FAIL] (FR-007, FR-008)
+
+Scoped pass/fail for the feature under test. This section covers ONLY the flows from the feature's test matrix (matching spec user stories and FRs).
+
+| # | Flow | Source | Status | Details |
+|---|------|--------|--------|---------|
+| 1 | [flow name] | US-NNN / FR-NNN | PASS/FAIL | [brief note] |
 
 ### PASS: US-001 — [flow name]
 - **Video**: `videos/[test-name].webm`
 - **Duration**: Xs
-- **Viewports**: Desktop, Mobile
+- **Viewports**: Desktop, Tablet, Mobile
 
 ### FAIL: US-003 — [flow name]
 - **Video**: `videos/[test-name].webm`
@@ -488,6 +535,18 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 - **Actual**: [what actually happened]
 - **Severity**: Critical / Major / Minor
 - **Feedback History**: [was this reported in checkpoint N? was a fix attempted?]
+
+**Feature Verdict**: [PASS / FAIL] — [N/M feature flows passing]
+
+## Regression Findings (FR-008)
+
+*This section is OPTIONAL. Include it only when the feature touches shared components (layouts, navigation, state management) or when regression testing was explicitly requested. If the feature is self-contained, omit this section or mark "N/A — feature does not touch shared components."*
+
+| # | Flow | Area | Status | Details |
+|---|------|------|--------|---------|
+| 1 | [regression flow] | [shared component] | PASS/FAIL | [brief note] |
+
+**Regression Verdict**: [PASS / FAIL / N/A]
 
 ## Responsive Testing
 
@@ -510,6 +569,7 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 All recordings are in `.kiln/qa/videos/`:
 - `flow-01-happy-path-desktop-chrome.webm`
 - `flow-01-happy-path-mobile-chrome.webm`
+- `walkthrough-<feature-slug>.webm` (if all tests passed — see Step 7.5)
 - ...
 
 To view traces: `npx playwright show-trace .kiln/qa/results/[name]-trace.zip`
@@ -517,6 +577,18 @@ To view traces: `npx playwright show-trace .kiln/qa/results/[name]-trace.zip`
 ## Overall Verdict: [PASS / FAIL]
 [If FAIL: list blocking issues that must be fixed before merge]
 ```
+
+## Step 7.5: Walkthrough Recording (FR-004)
+
+After ALL tests pass (overall verdict is PASS), record one clean walkthrough demonstrating the new feature flows:
+
+1. **Gate**: Only proceed if the overall test verdict is **PASS** (zero failures). If ANY tests failed, skip this step entirely — only failure recordings are produced.
+2. **Record**: Start a new Playwright browser session with `video: 'on'` (always-on for the walkthrough, not retain-on-failure).
+3. **Demonstrate**: Navigate through each new feature flow at a natural pace — no rapid clicking. Pause briefly on key screens so reviewers can see the result.
+4. **Save**: Save the walkthrough video to `.kiln/qa/videos/walkthrough-<feature-slug>.webm`.
+5. **Report**: Include the walkthrough path in the QA Report under a "Walkthrough Recording" section.
+
+This walkthrough is for stakeholder review and PR demos — it should be clean, unhurried, and free of test harness noise.
 
 ## Step 8: Cleanup
 
@@ -541,6 +613,30 @@ Send your findings to the team lead via `SendMessage`:
 - Path to full report: `.kiln/qa/results/QA-REPORT.md`
 
 If ANY critical or major failures remain after the feedback loop, recommend blocking the PR until fixed.
+
+## Agent Friction Notes (FR-009)
+
+Before completing your work and marking your task as done, you MUST write a friction note to `specs/<feature>/agent-notes/qa-engineer.md`. This file is read by the retrospective agent after the pipeline finishes.
+
+Write the note using this structure:
+
+```markdown
+# Agent Friction Notes: qa-engineer
+
+**Feature**: <feature name>
+**Date**: <timestamp>
+
+## What Was Confusing
+- [List anything in your prompt, the spec, or the workflow that was unclear or ambiguous]
+
+## Where I Got Stuck
+- [List any blockers, tool failures, missing information, or wasted cycles]
+
+## What Could Be Improved
+- [Concrete suggestions for prompt changes, workflow changes, or tooling improvements]
+```
+
+Create the `specs/<feature>/agent-notes/` directory if it doesn't exist. Be honest and specific — vague notes like "everything was fine" are not useful. If nothing was confusing, say so and explain what worked well instead.
 
 ## Rules
 

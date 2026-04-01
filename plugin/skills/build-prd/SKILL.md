@@ -127,6 +127,12 @@ Ask yourself:
 4. Is a single audit pass sufficient? → If not, split auditors by concern.
 5. What's the total teammate count? → Keep it under 8. More teammates = more coordination overhead.
 
+### Agent Friction Notes Requirement (FR-009)
+
+**ALL pipeline agents** (specifier, researcher, implementers, QA engineer, auditors) MUST write a friction note to `specs/<feature>/agent-notes/<agent-name>.md` before completing their work and marking their task as done. This is a prerequisite for task completion — the retrospective agent reads these notes instead of polling live teammates.
+
+Each agent's prompt already includes the friction notes section. When spawning agents, ensure the feature path is communicated so agents know where to write their notes. The `specs/<feature>/agent-notes/` directory should be created by the first agent that writes a note.
+
 ### Implementer Sizing Rule
 
 **After tasks.md is generated**, check the task count per implementer. If any single implementer would own more than 20 tasks, split them into multiple implementers by component or phase. A single implementer doing 50+ tasks will take too long, delaying the auditor and causing the pipeline to bottleneck.
@@ -584,9 +590,10 @@ Include these instructions verbatim in the retrospective teammate's prompt when 
 
 The retrospective teammate's job:
 1. **Run the safety-net gate above** — verify all tasks are done before proceeding
-2. Messages every still-running teammate asking: "What friction did you hit? What would you change about the workflow, the kiln commands, or the team structure? Were any instructions in your prompt unclear, missing, or contradictory?"
-3. Collects their responses
+2. **Read agent friction notes (FR-010)**: Read all files in `specs/<feature>/agent-notes/` directory. Each pipeline agent writes a friction note before completing — these contain what was confusing, where agents got stuck, and what could be improved. This is the PRIMARY source of agent feedback, replacing live `SendMessage` polling of teammates.
+3. **Supplement with live messages (optional)**: If any agent is still running and has not written a friction note, send a `SendMessage` asking for feedback. But prefer the written notes — they're more structured and don't depend on agent availability.
 4. Reviews the pipeline artifacts for additional evidence:
+   - `specs/{feature}/agent-notes/` — agent friction notes (primary feedback source)
    - `specs/{feature}/blockers.md` — documented blockers
    - `git log` — commit flow and any fixup commits that indicate rework
    - Test results — any failures, flaky tests, environment issues

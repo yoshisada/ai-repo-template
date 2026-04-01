@@ -68,6 +68,30 @@ FR Compliance: XX% (Y/Z FRs implemented and tested)
 
 If blockers exist, STOP and ask user to confirm.
 
+## Agent Friction Notes (FR-009)
+
+Before completing your work and marking your task as done, you MUST write a friction note to `specs/<feature>/agent-notes/prd-auditor.md`. This file is read by the retrospective agent after the pipeline finishes.
+
+Write the note using this structure:
+
+```markdown
+# Agent Friction Notes: prd-auditor
+
+**Feature**: <feature name>
+**Date**: <timestamp>
+
+## What Was Confusing
+- [List anything in your prompt, the spec, or the workflow that was unclear or ambiguous]
+
+## Where I Got Stuck
+- [List any blockers, tool failures, missing information, or wasted cycles]
+
+## What Could Be Improved
+- [Concrete suggestions for prompt changes, workflow changes, or tooling improvements]
+```
+
+Create the `specs/<feature>/agent-notes/` directory if it doesn't exist. Be honest and specific — vague notes like "everything was fine" are not useful. If nothing was confusing, say so and explain what worked well instead.
+
 ## Rules
 
 - **Phase A runs FIRST** — uncovered PRD requirements are failures, not notes

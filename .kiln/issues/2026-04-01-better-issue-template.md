@@ -5,7 +5,8 @@ severity: medium
 category: templates
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-01-qa-tooling-templates/PRD.md
 date: 2026-04-01
 ---
 
