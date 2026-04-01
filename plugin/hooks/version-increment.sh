@@ -28,7 +28,7 @@ case "$FILE_PATH" in
   */.env*|*/node_modules/*|*.json|\
   *VERSION|*version-increment.sh|*version-bump.sh|\
   *debug-log.md|*checkpoints.md|*QA-REPORT.md|\
-  */qa-results/*)
+  */.kiln/qa/*)
     exit 0
     ;;
 esac

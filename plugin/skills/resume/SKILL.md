@@ -103,10 +103,10 @@ git log --oneline --since="24 hours ago" 2>/dev/null
 
 ```bash
 # Any QA results from a previous pass?
-ls qa-results/latest/QA-REPORT.md 2>/dev/null && echo "QA report exists"
-ls qa-results/latest/QA-PASS-REPORT.md 2>/dev/null && echo "QA pass report exists"
-ls qa-results/latest/UX-REPORT.md 2>/dev/null && echo "UX report exists"
-cat qa-results/checkpoints.md 2>/dev/null | tail -20
+ls .kiln/qa/latest/QA-REPORT.md 2>/dev/null && echo "QA report exists"
+ls .kiln/qa/latest/QA-PASS-REPORT.md 2>/dev/null && echo "QA pass report exists"
+ls .kiln/qa/latest/UX-REPORT.md 2>/dev/null && echo "UX report exists"
+cat .kiln/qa/checkpoints.md 2>/dev/null | tail -20
 ```
 
 ### Check debug state

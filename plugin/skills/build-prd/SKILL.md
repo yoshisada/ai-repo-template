@@ -95,7 +95,7 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
      After `/qa-pipeline`, runs `/qa-final` as a quick green/red gate to confirm all E2E tests pass.
      The audit-pr agent includes the QA report summary and issue links in the PR body.
 
-   The QA engineer tracks its checkpoint history in `qa-results/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
+   The QA engineer tracks its checkpoint history in `.kiln/qa/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
 
    **Skip this role** for CLI-only, API-only, or non-visual projects.
 
@@ -103,7 +103,7 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
    - **audit-compliance**: Runs `/audit` — PRD→Spec→Code→Test verification
    - **audit-tests**: Verifies test quality — no stubs, real assertions, coverage gate
    - **audit-smoke**: Builds and runs the project in a temp dir, verifies runtime behavior
-   - **audit-pr**: Creates the PR with stats from all other auditors. If a QA engineer ran, includes QA video links and the `qa-results/latest/QA-REPORT.md` summary in the PR body.
+   - **audit-pr**: Creates the PR with stats from all other auditors. If a QA engineer ran, includes QA video links and the `.kiln/qa/latest/QA-REPORT.md` summary in the PR body.
 
    For simple features, one auditor can do all of these. For complex features, split them so each auditor starts with a clean context and a focused lens.
 6. **Retrospective** — Messages all teammates for feedback, creates a GitHub issue with findings. Runs last, before shutdown.
@@ -318,7 +318,7 @@ The QA engineer's prompt MUST include these exact instructions:
 You are the QA engineer for this pipeline. You run the `qa-engineer` agent definition.
 
 ## SKILLS
-- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds qa-results/, generates test matrix and test stubs.
+- `/qa-setup` — Run FIRST. Installs Playwright, scaffolds .kiln/qa/, generates test matrix and test stubs.
 - `/qa-checkpoint` — During implementation. Tests new flows, sends feedback to implementers.
 - `/qa-pipeline` — After ALL implementers finish. 4-agent team (e2e + chrome + ux + reporter in pipeline mode). Reporter routes findings to implementers for fixing.
 - `/qa-final` — Quick gate after /qa-pipeline. Just runs playwright tests and confirms green.
@@ -326,19 +326,19 @@ You are the QA engineer for this pipeline. You run the `qa-engineer` agent defin
 ## WORKFLOW
 1. On startup: Run `/qa-setup`
 2. If `/qa-setup` reports credential-dependent flows, message the team lead:
-   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in qa-results/.env.test."
+   "QA CREDENTIALS NEEDED — [list flows]. Please ask the user to fill in .kiln/qa/.env.test."
    Do NOT block — continue testing non-auth flows while waiting.
 3. Watch for messages from implementers saying a phase is complete
 4. When notified: Run `/qa-checkpoint`
 5. When an implementer messages "fix ready": Run `/qa-checkpoint [flow-name]` to re-test
-6. If team lead provides credentials: re-check qa-results/.env.test and unblock auth flows
+6. If team lead provides credentials: re-check .kiln/qa/.env.test and unblock auth flows
 7. After ALL implementers are done: Run `/qa-pipeline` (4-agent team with fix routing)
 8. After `/qa-pipeline` completes: Run `/qa-final` (quick green/red gate)
 9. Mark your task as completed via TaskUpdate ONLY after `/qa-final` is green
 10. Notify the auditor that QA is complete and report is ready
 
 ## CREDENTIALS
-- NEVER hardcode or guess credentials — always load from qa-results/.env.test
+- NEVER hardcode or guess credentials — always load from .kiln/qa/.env.test
 - NEVER log, screenshot, or expose credentials in video recordings
 - If credentials aren't provided, mark affected flows as SKIPPED in the QA report — do NOT block the pipeline
 
@@ -388,9 +388,9 @@ Before starting your audit, verify that ALL implementation AND QA are truly comp
 
 Do NOT audit a partially-complete implementation. Your audit findings are only valid against the final state of the code.
 
-If a QA engineer ran, read `qa-results/latest/QA-REPORT.md` and include its findings in your audit:
+If a QA engineer ran, read `.kiln/qa/latest/QA-REPORT.md` and include its findings in your audit:
 - Reference the QA pass/fail verdict
-- Link video artifacts in the PR body (qa-results/latest/videos/*.webm)
+- Link video artifacts in the PR body (.kiln/qa/latest/videos/*.webm)
 - Flag any remaining QA failures as blockers
 ```
 
@@ -426,7 +426,7 @@ gh pr create --label "build-prd" --title "[feature-name]: [short description]" -
 ## QA Results
 - Smoke test: PASS/FAIL
 - Visual QA: PASS/FAIL/SKIPPED — [video count] recordings
-- QA Report: qa-results/latest/QA-REPORT.md
+- QA Report: .kiln/qa/latest/QA-REPORT.md
 
 ## Test plan
 - [ ] Tests pass (`npm test`)
@@ -617,7 +617,8 @@ cannot self-improve. This has happened before — do not let it happen again.
 
 5. **Wait for all teammates to shut down** before cleaning up.
 6. **Clean up**: Use `TeamDelete` to remove the team and task directories.
-5. **Summarize** the pipeline results:
+5. **Write pipeline log**: Save the pipeline report to `.kiln/logs/{feature-branch}-{timestamp}.md` for audit trail.
+6. **Summarize** the pipeline results:
 
 ```
 ## Pipeline Report: {feature branch name}
@@ -641,7 +642,7 @@ cannot self-improve. This has happened before — do not let it happen again.
 **Compliance**: {percentage}
 **Blockers**: {count} — see specs/{feature}/blockers.md
 **Smoke Test**: {PASS/FAIL}
-**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see qa-results/latest/QA-PASS-REPORT.md
+**Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see .kiln/qa/latest/QA-PASS-REPORT.md
 **Retrospective**: {issue URL}
 ```
 

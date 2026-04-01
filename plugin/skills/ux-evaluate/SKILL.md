@@ -35,10 +35,10 @@ If arguments provide a URL, use that. Otherwise detect the dev server.
 4. **Prepare artifacts**:
    ```bash
    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-   UX_DIR="qa-results/$TIMESTAMP"
+   UX_DIR=".kiln/qa/$TIMESTAMP"
    mkdir -p "$UX_DIR/screenshots/desktop" "$UX_DIR/screenshots/tablet" "$UX_DIR/screenshots/mobile" "$UX_DIR/screenshots/reference" "$UX_DIR/snapshots"
-   mkdir -p qa-results/baselines
-   ln -sfn "$TIMESTAMP" qa-results/latest
+   mkdir -p .kiln/qa/baselines
+   ln -sfn "$TIMESTAMP" .kiln/qa/latest
    ```
 
 ## Step 2: Navigate and Capture
@@ -49,8 +49,8 @@ For every route/page in the app:
 
 1. `navigate_page` → the route
 2. `wait_for` → page fully loaded
-3. `take_screenshot` → `qa-results/latest/screenshots/desktop/[page-name].png`
-4. `take_snapshot` → save text output to `qa-results/latest/snapshots/[page-name].txt`
+3. `take_screenshot` → `.kiln/qa/latest/screenshots/desktop/[page-name].png`
+4. `take_snapshot` → save text output to `.kiln/qa/latest/snapshots/[page-name].txt`
 5. `list_console_messages` → note any errors
 
 For pages with interactive states, also capture:
@@ -63,12 +63,12 @@ For pages with interactive states, also capture:
 ### Tablet Pass (768x1024)
 
 Resize the browser viewport, then re-navigate to each main page:
-1. `take_screenshot` → `qa-results/latest/screenshots/tablet/[page-name].png`
+1. `take_screenshot` → `.kiln/qa/latest/screenshots/tablet/[page-name].png`
 
 ### Mobile Pass (375x667)
 
 Same as tablet:
-1. `take_screenshot` → `qa-results/latest/screenshots/mobile/[page-name].png`
+1. `take_screenshot` → `.kiln/qa/latest/screenshots/mobile/[page-name].png`
 2. Additionally check: hamburger menu opens, no horizontal scroll, text readable
 
 ## Step 3: Evaluate
@@ -93,8 +93,8 @@ For each page, evaluate against all 10 heuristics:
 
 Use the rubric defined in `plugin/templates/ux-rubric.md`. Follow the full Layer 3 procedure from the `ux-evaluator` agent:
 
-1. **Step 3a**: Check constitution/spec for a design reference URL. If found, navigate to reference pages and capture screenshots to `qa-results/latest/screenshots/reference/`.
-2. **Step 3b**: Load previous baseline from `qa-results/baselines/ux-rubric-latest.json` if it exists.
+1. **Step 3a**: Check constitution/spec for a design reference URL. If found, navigate to reference pages and capture screenshots to `.kiln/qa/latest/screenshots/reference/`.
+2. **Step 3b**: Load previous baseline from `.kiln/qa/baselines/ux-rubric-latest.json` if it exists.
 3. **Step 3c**: Score each desktop screenshot against all 10 dimensions (D1-D10) using the rubric anchors. Use pairwise comparison against reference if available.
 4. **Step 3d**: Record findings — rubric scorecards for every page, detailed findings for scores <= 4, regression alerts for baseline drops >= 2 points.
 
@@ -133,7 +133,7 @@ After all pages are scored, save the rubric results as a baseline for future run
 
 ```bash
 # Save current rubric scores as JSON
-cat > qa-results/baselines/ux-rubric-latest.json << 'SCORES_EOF'
+cat > .kiln/qa/baselines/ux-rubric-latest.json << 'SCORES_EOF'
 {
   "timestamp": "[ISO timestamp]",
   "reference_url": "[URL or null]",
@@ -160,13 +160,13 @@ cat > qa-results/baselines/ux-rubric-latest.json << 'SCORES_EOF'
 SCORES_EOF
 
 # Archive with timestamp (keep history)
-cp qa-results/baselines/ux-rubric-latest.json \
-   "qa-results/baselines/ux-rubric-$(date +%Y%m%d-%H%M%S).json"
+cp .kiln/qa/baselines/ux-rubric-latest.json \
+   ".kiln/qa/baselines/ux-rubric-$(date +%Y%m%d-%H%M%S).json"
 ```
 
 ## Step 4: Generate Report
 
-Write `qa-results/latest/UX-REPORT.md` following the format defined in the `ux-evaluator` agent definition.
+Write `.kiln/qa/latest/UX-REPORT.md` following the format defined in the `ux-evaluator` agent definition.
 
 Include:
 - Summary scores (1-10) for each category
@@ -210,9 +210,9 @@ Present a concise summary:
 2. [second most impactful]
 3. [third most impactful]
 
-Full report: qa-results/latest/UX-REPORT.md
-Screenshots: qa-results/latest/screenshots/
-Baseline: qa-results/baselines/ux-rubric-latest.json
+Full report: .kiln/qa/latest/UX-REPORT.md
+Screenshots: .kiln/qa/latest/screenshots/
+Baseline: .kiln/qa/baselines/ux-rubric-latest.json
 ```
 
 ## Rules

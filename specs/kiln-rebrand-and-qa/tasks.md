@@ -73,15 +73,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Add `.kiln/` directory scaffolding to `plugin/bin/init.mjs` — create `workflows/`, `agents/`, `issues/`, `qa/`, `logs/` subdirectories using `ensureDir()` (idempotent)
-- [ ] T023 [P] [US2] Update `plugin/scaffold/gitignore` — add entries to exclude `.kiln/agents/`, `.kiln/qa/`, `.kiln/logs/` while allowing `.kiln/workflows/` and `.kiln/issues/`
-- [ ] T024 [US2] Update `plugin/skills/report-issue/SKILL.md` — change output path from `docs/backlog/` to `.kiln/issues/`
-- [ ] T025 [P] [US2] Update `plugin/skills/qa-pass/SKILL.md` — route QA artifacts to `.kiln/qa/` instead of `qa-results/`
-- [ ] T026 [P] [US2] Update `plugin/skills/qa-checkpoint/SKILL.md` — route QA artifacts to `.kiln/qa/`
-- [ ] T027 [P] [US2] Update `plugin/skills/qa-final/SKILL.md` — route QA artifacts to `.kiln/qa/`
-- [ ] T028 [US2] Update `plugin/skills/build-prd/SKILL.md` — route pipeline logs to `.kiln/logs/`
-- [ ] T029 [P] [US2] Update agent files that reference output locations to use `.kiln/agents/` for agent run outputs
-- [ ] T030 [US2] Create workflow format specification at `plugin/templates/workflow-format.md` defining the structure for `.kiln/workflows/` files
+- [X] T022 [US2] Add `.kiln/` directory scaffolding to `plugin/bin/init.mjs` — create `workflows/`, `agents/`, `issues/`, `qa/`, `logs/` subdirectories using `ensureDir()` (idempotent)
+- [X] T023 [P] [US2] Update `plugin/scaffold/gitignore` — add entries to exclude `.kiln/agents/`, `.kiln/qa/`, `.kiln/logs/` while allowing `.kiln/workflows/` and `.kiln/issues/`
+- [X] T024 [US2] Update `plugin/skills/report-issue/SKILL.md` — change output path from `docs/backlog/` to `.kiln/issues/`
+- [X] T025 [P] [US2] Update `plugin/skills/qa-pass/SKILL.md` — route QA artifacts to `.kiln/qa/` instead of `qa-results/`
+- [X] T026 [P] [US2] Update `plugin/skills/qa-checkpoint/SKILL.md` — route QA artifacts to `.kiln/qa/`
+- [X] T027 [P] [US2] Update `plugin/skills/qa-final/SKILL.md` — route QA artifacts to `.kiln/qa/`
+- [X] T028 [US2] Update `plugin/skills/build-prd/SKILL.md` — route pipeline logs to `.kiln/logs/`
+- [X] T029 [P] [US2] Update agent files that reference output locations to use `.kiln/agents/` for agent run outputs
+- [X] T030 [US2] Create workflow format specification at `plugin/templates/workflow-format.md` defining the structure for `.kiln/workflows/` files
 
 **Checkpoint**: init.mjs scaffolds `.kiln/` with all subdirectories. All skill output paths point to `.kiln/` locations. Gitignore correctly excludes transient outputs.
 

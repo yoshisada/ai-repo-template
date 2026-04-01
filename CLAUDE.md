@@ -220,4 +220,4 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 - NEVER commit .env, credentials, or API keys
 - Validate input at system boundaries
 - Hooks will block .env commits automatically
-- QA credentials go in `qa-results/.env.test` (gitignored)
+- QA credentials go in `.kiln/qa/.env.test` (gitignored)

@@ -42,13 +42,13 @@ Based on the issue type, select the primary technique. If this is a retry after 
 **Technique 1: QA Replay + Playwright Trace**
 ```bash
 # Check if traces exist from QA checkpoints
-ls qa-results/traces/*.zip 2>/dev/null
+ls .kiln/qa/traces/*.zip 2>/dev/null
 
 # If traces exist, extract failure details
-npx playwright show-trace --json qa-results/traces/[relevant-trace].zip 2>/dev/null
+npx playwright show-trace --json .kiln/qa/traces/[relevant-trace].zip 2>/dev/null
 
 # If no trace, run the specific failing test with trace enabled
-cd qa-results && npx playwright test --config=playwright.config.ts --grep "[failing-test]" --trace on
+cd .kiln/qa && npx playwright test --config=playwright.config.ts --grep "[failing-test]" --trace on
 ```
 Collect: trace.zip, failure screenshot, console errors, network requests at time of failure.
 
@@ -58,7 +58,7 @@ Collect: trace.zip, failure screenshot, console errors, network requests at time
 # Capture current DOM structure
 # Compare against expected structure from spec
 # Check computed CSS for layout-critical properties
-cd qa-results && npx playwright test --config=playwright.config.ts --grep "[test]" --update-snapshots
+cd .kiln/qa && npx playwright test --config=playwright.config.ts --grep "[test]" --update-snapshots
 ```
 Collect: DOM snapshot, computed styles for broken element, viewport dimensions.
 
@@ -179,7 +179,7 @@ Collect: heap snapshot comparison, objects growing between snapshots.
 curl -v [failing-endpoint] 2>&1
 
 # For browser-based API calls, check network tab in Playwright trace
-npx playwright show-trace qa-results/traces/[trace].zip
+npx playwright show-trace .kiln/qa/traces/[trace].zip
 ```
 Collect: full request (method, URL, headers, body), full response (status, headers, body), timing.
 

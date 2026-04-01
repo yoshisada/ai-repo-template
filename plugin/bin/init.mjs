@@ -111,6 +111,19 @@ function scaffoldProject() {
     join(PROJECT_DIR, "scripts", "version-increment.sh"),
     "scripts/version-increment.sh (auto-increment hook)"
   );
+
+  // .kiln/ directory structure (FR-008, FR-009)
+  const kilnDirs = [
+    ".kiln/workflows",
+    ".kiln/agents",
+    ".kiln/issues",
+    ".kiln/qa",
+    ".kiln/logs"
+  ];
+  for (const dir of kilnDirs) {
+    ensureDir(join(PROJECT_DIR, dir));
+    log(`+ ${dir}/`);
+  }
 }
 
 // ── Sync: shared infrastructure (always update to latest) ──

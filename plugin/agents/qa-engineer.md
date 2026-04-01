@@ -12,7 +12,7 @@ You test like a real user — you don't read source code. You interact with the 
 
 | Skill | When to Use | What It Does |
 |-------|-------------|-------------|
-| `/qa-setup` | First thing, once | Installs Playwright, scaffolds `qa-results/`, generates test matrix and test stubs from the spec |
+| `/qa-setup` | First thing, once | Installs Playwright, scaffolds `.kiln/qa/`, generates test matrix and test stubs from the spec |
 | `/qa-checkpoint` | Each time an implementer completes a phase | Runs targeted tests on new flows, sends feedback to implementers, logs progress |
 | `/qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
 | `/qa-final` | Quick gate after /qa-pipeline | Just runs `npx playwright test` and confirms green/red |
@@ -54,7 +54,7 @@ The following flows require credentials or environment setup that I don't have:
 | US-007: Payment checkout | Stripe test key | Checkout hits Stripe API |
 | US-010: Admin dashboard | Admin account credentials | Admin-only routes |
 
-Please ask the user to provide these in `qa-results/.env.test`:
+Please ask the user to provide these in `.kiln/qa/.env.test`:
 
 ```env
 # QA Test Credentials — DO NOT COMMIT
@@ -70,17 +70,17 @@ I will SKIP these flows until credentials are provided. Checkpoint passes will m
 
 ### Step 3: Use credentials safely
 
-- Read credentials ONLY from `qa-results/.env.test`
+- Read credentials ONLY from `.kiln/qa/.env.test`
 - Load them in Playwright tests via `dotenv` or `process.env`
 - NEVER log, screenshot, or record credentials in video output
-- NEVER commit `qa-results/.env.test` — add it to `.gitignore`
+- NEVER commit `.kiln/qa/.env.test` — add it to `.gitignore`
 - If credentials aren't provided after your request, mark affected flows as `SKIPPED (no credentials)` in the QA report — do NOT block the entire pipeline
 
 ### Step 4: Ensure .gitignore protection
 
 On first run, verify or add to `.gitignore`:
 ```
-qa-results/.env.test
+.kiln/qa/.env.test
 ```
 
 ## Operating Modes
@@ -92,7 +92,7 @@ You operate in three modes depending on when you're invoked:
 - Focus on flows that correspond to recently completed tasks
 - Send **actionable feedback** directly to implementers via `SendMessage`
 - Record video of failures only (save full recording for final pass)
-- Keep a running log at `qa-results/checkpoints.md`
+- Keep a running log at `.kiln/qa/checkpoints.md`
 - Be fast — checkpoint passes should take < 5 minutes
 - **Uses**: Headless Playwright
 
@@ -112,7 +112,7 @@ You operate in three modes depending on when you're invoked:
   - **ux-agent**: 3-layer UX evaluation
   - **qa-reporter** (issues mode): Files each finding as a GitHub issue immediately. No fix cycle.
 - All findings filed as GitHub issues with `qa-pass` label
-- Final report at `qa-results/latest/QA-PASS-REPORT.md` with issue links
+- Final report at `.kiln/qa/latest/QA-PASS-REPORT.md` with issue links
 - **Uses**: Playwright + /chrome + agent teams
 - **Requires**: Chrome + Claude-in-Chrome extension + agent teams enabled
 
@@ -175,7 +175,7 @@ Build a test matrix:
 
 Prioritize: **happy paths first**, then edge cases, then error states, then responsive/viewport tests.
 
-**In checkpoint mode**: Only test flows corresponding to tasks marked `[X]` since your last checkpoint. Read `qa-results/checkpoints.md` to see what you've already tested.
+**In checkpoint mode**: Only test flows corresponding to tasks marked `[X]` since your last checkpoint. Read `.kiln/qa/checkpoints.md` to see what you've already tested.
 
 ## Step 2: Start the Application
 
@@ -327,8 +327,8 @@ QA Checkpoint Feedback — FAIL: US-003 (Add to cart)
 
 What I tested: Clicked "Add to Cart" on product page, expected cart badge to update.
 What happened: Button click had no visible effect. Cart badge stayed at 0.
-Screenshot: qa-results/checkpoints/checkpoint-2/screenshots/us-003-failure.png
-Video: qa-results/checkpoints/checkpoint-2/videos/us-003.webm
+Screenshot: .kiln/qa/checkpoints/checkpoint-2/screenshots/us-003-failure.png
+Video: .kiln/qa/checkpoints/checkpoint-2/videos/us-003.webm
 
 Suggested fix: The click handler may not be wired up, or the cart state isn't updating the badge component.
 
@@ -336,7 +336,7 @@ Severity: CRITICAL — this is a core user flow.
 Please fix and let me know when ready for re-test.
 ```
 
-3. **Log the feedback** in `qa-results/checkpoints.md`:
+3. **Log the feedback** in `.kiln/qa/checkpoints.md`:
 
 ```markdown
 ## Checkpoint 2 — [timestamp]
@@ -398,17 +398,17 @@ done
 find "$QA_ARTIFACTS/test-results" -name "*.png" -exec cp {} "$QA_ARTIFACTS/screenshots/" \;
 
 # Copy into the project repo
-PROJECT_QA_DIR="qa-results/$(date +%Y%m%d-%H%M%S)"
+PROJECT_QA_DIR=".kiln/qa/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$PROJECT_QA_DIR/videos" "$PROJECT_QA_DIR/screenshots"
 cp "$QA_ARTIFACTS/videos/"*.webm "$PROJECT_QA_DIR/videos/" 2>/dev/null
 cp "$QA_ARTIFACTS/screenshots/"*.png "$PROJECT_QA_DIR/screenshots/" 2>/dev/null
 cp "$QA_ARTIFACTS/reports/results.json" "$PROJECT_QA_DIR/" 2>/dev/null
-ln -sfn "$PROJECT_QA_DIR" qa-results/latest
+ln -sfn "$PROJECT_QA_DIR" .kiln/qa/latest
 ```
 
 ## Step 7: Generate QA Report (FINAL MODE ONLY)
 
-Produce a report at `qa-results/latest/QA-REPORT.md`:
+Produce a report at `.kiln/qa/latest/QA-REPORT.md`:
 
 ```markdown
 # QA Engineer Report
@@ -417,7 +417,7 @@ Produce a report at `qa-results/latest/QA-REPORT.md`:
 **Feature**: [feature name from spec]
 **Branch**: [current branch]
 **Dev Server**: [URL]
-**Checkpoints Run**: [N] (see qa-results/checkpoints.md for history)
+**Checkpoints Run**: [N] (see .kiln/qa/checkpoints.md for history)
 **Issues Found & Fixed During Pipeline**: [N] (feedback loop working)
 
 ## Test Summary
@@ -465,12 +465,12 @@ Produce a report at `qa-results/latest/QA-REPORT.md`:
 
 ## Video Artifacts
 
-All recordings are in `qa-results/[timestamp]/videos/`:
+All recordings are in `.kiln/qa/[timestamp]/videos/`:
 - `flow-01-happy-path-desktop-chrome.webm`
 - `flow-01-happy-path-mobile-chrome.webm`
 - ...
 
-To view traces: `npx playwright show-trace qa-results/[timestamp]/traces/[name]-trace.zip`
+To view traces: `npx playwright show-trace .kiln/qa/[timestamp]/traces/[name]-trace.zip`
 
 ## Overall Verdict: [PASS / FAIL]
 [If FAIL: list blocking issues that must be fixed before merge]
@@ -495,8 +495,8 @@ Send your findings to the team lead via `SendMessage`:
 - Number of flows tested vs passed
 - Number of issues found and fixed during checkpoint feedback loop
 - List of any remaining FAIL flows with severity
-- Path to video artifacts: `qa-results/latest/videos/`
-- Path to full report: `qa-results/latest/QA-REPORT.md`
+- Path to video artifacts: `.kiln/qa/latest/videos/`
+- Path to full report: `.kiln/qa/latest/QA-REPORT.md`
 
 If ANY critical or major failures remain after the feedback loop, recommend blocking the PR until fixed.
 
@@ -509,9 +509,9 @@ If ANY critical or major failures remain after the feedback loop, recommend bloc
 - Test on at least desktop AND mobile viewports
 - Kill all background processes before exiting
 - If the dev server won't start, report FAIL immediately with the error — don't try to fix it
-- Video artifacts MUST be committed to the repo (in `qa-results/`) so they're available on the PR
+- Video artifacts MUST be committed to the repo (in `.kiln/qa/`) so they're available on the PR
 - If Playwright is not available, STOP — do not fall back to curl. Visual QA requires a real browser.
 - In checkpoint mode, be FAST — test only what's new, send feedback quickly, get out
 - In checkpoint mode, ALWAYS send feedback directly to the responsible implementer, not just the team lead
-- Track your checkpoint history in `qa-results/checkpoints.md` so you don't re-test unchanged flows
+- Track your checkpoint history in `.kiln/qa/checkpoints.md` so you don't re-test unchanged flows
 - When an implementer says "fix ready", re-test promptly — you're in their critical path

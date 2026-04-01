@@ -71,7 +71,7 @@ Ask the user directly — do NOT guess or skip this:
 ```
 This issue appears to involve [authenticated flows / real account data / external service].
 
-To debug this, I'll need credentials. Please provide them in `qa-results/.env.test`:
+To debug this, I'll need credentials. Please provide them in `.kiln/qa/.env.test`:
 
 ```env
 # Debug Credentials — DO NOT COMMIT (gitignored)
@@ -99,7 +99,7 @@ Specifically, I need:
 - [ ] [credential 1 — what and why]
 - [ ] [credential 2 — what and why]
 
-I'll wait for you to fill in `qa-results/.env.test` before proceeding with reproduction.
+I'll wait for you to fill in `.kiln/qa/.env.test` before proceeding with reproduction.
 If you'd prefer to provide them another way, let me know.
 ```
 
@@ -110,14 +110,14 @@ If you'd prefer to provide them another way, let me know.
 - Do NOT hardcode, guess, or fabricate credentials
 
 ### Once credentials are provided:
-1. Verify `qa-results/.env.test` exists and has the needed values
-2. Verify `.gitignore` includes `qa-results/.env.test`
+1. Verify `.kiln/qa/.env.test` exists and has the needed values
+2. Verify `.gitignore` includes `.kiln/qa/.env.test`
 3. Load credentials in reproduction scripts via `dotenv` or `process.env`
 4. NEVER log, screenshot, or record credentials in video output
 5. Proceed to Step 3 (Reproduce)
 
 ### For future debugging sessions:
-If `qa-results/.env.test` already exists from a previous session, check if the credentials are still valid and sufficient for the current issue. If the new issue requires additional credentials (different role, different service), ask the user to add them.
+If `.kiln/qa/.env.test` already exists from a previous session, check if the credentials are still valid and sufficient for the current issue. If the new issue requires additional credentials (different role, different service), ask the user to add them.
 
 ## Step 3: Reproduce the Issue
 
@@ -138,7 +138,7 @@ npm run dev &
 ### For visual/UI bugs:
 ```bash
 # Check if QA infrastructure exists
-ls qa-results/playwright.config.ts 2>/dev/null
+ls .kiln/qa/playwright.config.ts 2>/dev/null
 # If not, set it up
 # Then run a targeted Playwright test to reproduce
 ```
@@ -174,7 +174,7 @@ npm test 2>&1
 
 2. **For visual bugs**: Run the relevant QA test to confirm:
 ```bash
-cd qa-results && npx playwright test --config=playwright.config.ts --grep "[test]" 2>&1
+cd .kiln/qa && npx playwright test --config=playwright.config.ts --grep "[test]" 2>&1
 ```
 
 3. **Commit the fix**:
@@ -251,7 +251,7 @@ An issue is a UI issue if ANY of these are true:
    - Re-run the specific failing test (must now pass)
    - Run ALL existing E2E flows to check for regressions
    - Record video of every flow (pass and fail)
-   - Produce the QA report at `qa-results/latest/QA-REPORT.md`
+   - Produce the QA report at `.kiln/qa/latest/QA-REPORT.md`
 5. **The fix is NOT verified until QA passes.** A unit test passing is insufficient for UI bugs — you must see it working in a real browser.
 
 Do NOT skip QA for UI issues. Do NOT treat a passing unit test as sufficient verification. The QA engineer runs E2E across the full application to catch regressions your fix may have introduced in other flows.
