@@ -59,8 +59,8 @@
 
 ### Implementation
 
-- [ ] T007 [US3] Update plugin/skills/build-prd/SKILL.md to add issue lifecycle completion step after PR creation and before retrospective — FR-007. New step must: (a) read the PRD path used for this build, (b) scan `.kiln/issues/*.md` for `status: prd-created`, (c) check each issue's `prd:` frontmatter against the built PRD path, (d) update matching issues to `status: completed` with `completed_date` and `pr` fields.
-- [ ] T008 [US3] In the same build-prd step, add issue archival — FR-008. After updating status, if `.kiln/issues/completed/` exists or can be created, move completed issues there via `mv`.
+- [X] T007 [US3] Update plugin/skills/build-prd/SKILL.md to add issue lifecycle completion step after PR creation and before retrospective — FR-007. New step must: (a) read the PRD path used for this build, (b) scan `.kiln/issues/*.md` for `status: prd-created`, (c) check each issue's `prd:` frontmatter against the built PRD path, (d) update matching issues to `status: completed` with `completed_date` and `pr` fields.
+- [X] T008 [US3] In the same build-prd step, add issue archival — FR-008. After updating status, if `.kiln/issues/completed/` exists or can be created, move completed issues there via `mv`.
 
 **Checkpoint**: Pipeline runs auto-complete and archive matching issues.
 

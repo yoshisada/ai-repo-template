@@ -585,6 +585,49 @@ If the user changes scope, updates the PRD, or asks to modify requirements while
 
 **Why this matters**: Without an explicit pause, implementers work against stale spec artifacts and the QA engineer tests against outdated flows. The pause-update-resume cycle ensures all agents work from the same source of truth.
 
+## Step 4b: Issue Lifecycle Completion (FR-007, FR-008)
+
+After the audit-pr agent creates the PR, and before spawning the retrospective, the team lead completes the issue lifecycle for this build:
+
+1. **Identify the PRD path** used for this build (from Pre-Flight step 3).
+
+2. **Scan for matching issues**:
+   ```bash
+   PRD_PATH="<the PRD path used for this build>"
+   for issue_file in .kiln/issues/*.md; do
+     [ -f "$issue_file" ] || continue
+     # Check if status is prd-created
+     status=$(grep -m1 '^status:' "$issue_file" | sed 's/^status:[[:space:]]*//')
+     [ "$status" = "prd-created" ] || continue
+     # Check if prd field matches
+     prd_field=$(grep -m1 '^prd:' "$issue_file" | sed 's/^prd:[[:space:]]*//')
+     if [ "$prd_field" = "$PRD_PATH" ]; then
+       echo "MATCH: $issue_file"
+     fi
+   done
+   ```
+
+3. **Update matching issues** to `status: completed`:
+   - Set `status: completed` (replace the existing status line)
+   - Add `completed_date: YYYY-MM-DD` (today's date)
+   - Add `pr: #<PR-number>` (the PR number from audit-pr)
+   - Report how many issues were updated
+
+4. **Archive completed issues (FR-008)**:
+   ```bash
+   mkdir -p .kiln/issues/completed
+   # Move each updated issue file to completed/
+   mv "$issue_file" .kiln/issues/completed/
+   ```
+   If the move fails for any file, log a warning and continue — do not block the pipeline.
+
+5. Commit the issue updates if any files were changed:
+   ```bash
+   git add .kiln/issues/ && git commit -m "chore: mark prd-created issues as completed after PR creation"
+   ```
+
+If no matching issues are found, skip this step silently.
+
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
 **⛔ STOP. DO NOT send ANY shutdown requests or run TeamDelete until the retrospective is COMPLETE. ⛔**
