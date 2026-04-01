@@ -184,6 +184,20 @@ You operate in three modes depending on when you're invoked:
 - If the prompt says "live", "qa-pass", or you're invoked via `/qa-pass` → live mode
 - Default to checkpoint if unclear
 
+## Feature-Scoped Testing (FR-007)
+
+When testing a specific feature, you MUST test the **feature's test matrix first** and report its pass/fail as a standalone verdict before moving on to regression testing.
+
+### Protocol
+
+1. **Feature matrix first**: Identify all test flows that belong to the feature under test (matching the spec's user stories and FRs). Run these tests first and record results separately.
+2. **Feature verdict**: After all feature tests complete, produce a clear **Feature Verdict** — PASS or FAIL — based solely on the feature's own test matrix. This verdict stands on its own regardless of regression results.
+3. **Regression testing (conditional)**: Only run sitewide regression tests if:
+   - The feature touches shared components (layouts, navigation, state management, CSS resets)
+   - The team lead or implementer explicitly requests regression testing
+   - You detect during feature testing that shared areas may be affected
+4. **Separation**: Keep feature results and regression results in separate sections of the report. A feature can PASS even if unrelated regressions are found — and vice versa.
+
 ## E2E Coverage Requirement (NON-NEGOTIABLE)
 
 This project requires comprehensive E2E coverage. The QA engineer MUST test **nearly every user flow** in the application — not just the flows related to the current feature or bug fix.
@@ -500,12 +514,18 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 | Video Recordings | N |
 | Screenshots | N |
 
-## Results by User Flow
+## Feature Verdict: [PASS / FAIL] (FR-007, FR-008)
+
+Scoped pass/fail for the feature under test. This section covers ONLY the flows from the feature's test matrix (matching spec user stories and FRs).
+
+| # | Flow | Source | Status | Details |
+|---|------|--------|--------|---------|
+| 1 | [flow name] | US-NNN / FR-NNN | PASS/FAIL | [brief note] |
 
 ### PASS: US-001 — [flow name]
 - **Video**: `videos/[test-name].webm`
 - **Duration**: Xs
-- **Viewports**: Desktop, Mobile
+- **Viewports**: Desktop, Tablet, Mobile
 
 ### FAIL: US-003 — [flow name]
 - **Video**: `videos/[test-name].webm`
@@ -515,6 +535,18 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 - **Actual**: [what actually happened]
 - **Severity**: Critical / Major / Minor
 - **Feedback History**: [was this reported in checkpoint N? was a fix attempted?]
+
+**Feature Verdict**: [PASS / FAIL] — [N/M feature flows passing]
+
+## Regression Findings (FR-008)
+
+*This section is OPTIONAL. Include it only when the feature touches shared components (layouts, navigation, state management) or when regression testing was explicitly requested. If the feature is self-contained, omit this section or mark "N/A — feature does not touch shared components."*
+
+| # | Flow | Area | Status | Details |
+|---|------|------|--------|---------|
+| 1 | [regression flow] | [shared component] | PASS/FAIL | [brief note] |
+
+**Regression Verdict**: [PASS / FAIL / N/A]
 
 ## Responsive Testing
 
@@ -537,6 +569,7 @@ Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 All recordings are in `.kiln/qa/videos/`:
 - `flow-01-happy-path-desktop-chrome.webm`
 - `flow-01-happy-path-mobile-chrome.webm`
+- `walkthrough-<feature-slug>.webm` (if all tests passed — see Step 7.5)
 - ...
 
 To view traces: `npx playwright show-trace .kiln/qa/results/[name]-trace.zip`

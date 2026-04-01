@@ -77,8 +77,8 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Add new "Feature-Scoped Testing" section to `plugin/agents/qa-engineer.md` — instruct the agent to test the feature's test matrix first, report feature pass/fail as a standalone section before any regression findings — FR-007
-- [ ] T008 [US3] Restructure the QA Report template in `plugin/agents/qa-engineer.md` Step 7 — split into (1) Feature Verdict (scoped pass/fail with feature test results) and (2) Regression Findings (optional, only when feature touches shared components or explicitly requested) — FR-008
+- [X] T007 [US3] Add new "Feature-Scoped Testing" section to `plugin/agents/qa-engineer.md` — instruct the agent to test the feature's test matrix first, report feature pass/fail as a standalone section before any regression findings — FR-007
+- [X] T008 [US3] Restructure the QA Report template in `plugin/agents/qa-engineer.md` Step 7 — split into (1) Feature Verdict (scoped pass/fail with feature test results) and (2) Regression Findings (optional, only when feature touches shared components or explicitly requested) — FR-008
 
 **Checkpoint**: QA reports now clearly separate feature verdict from regression findings.
 
