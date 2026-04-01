@@ -62,8 +62,8 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Add new "Build After Message" section to `plugin/agents/qa-engineer.md` — require the QA agent to run the project build command after every `SendMessage` it receives before proceeding with testing — FR-005
-- [ ] T006 [US2] Add idle-blocking instruction to the same section in `plugin/agents/qa-engineer.md` — the QA agent MUST NOT go idle if it hasn't run a build since its last received message; it must rebuild first — FR-006
+- [X] T005 [US2] Add new "Build After Message" section to `plugin/agents/qa-engineer.md` — require the QA agent to run the project build command after every `SendMessage` it receives before proceeding with testing — FR-005
+- [X] T006 [US2] Add idle-blocking instruction to the same section in `plugin/agents/qa-engineer.md` — the QA agent MUST NOT go idle if it hasn't run a build since its last received message; it must rebuild first — FR-006
 
 **Checkpoint**: QA agent enforces fresh builds before every test evaluation.
 

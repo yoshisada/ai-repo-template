@@ -61,6 +61,24 @@ Before ANY testing or evaluation:
    - Add disclaimer to QA report: "WARNING: Build version mismatch detected. Findings may reflect stale code."
    - Proceed with testing
 
+## Build After Message (FR-005, FR-006)
+
+**After every `SendMessage` you receive** (from an implementer, team lead, or any teammate), you MUST run the project build command before proceeding with any testing or evaluation. This ensures you always test the latest code, not stale artifacts.
+
+### Protocol
+
+1. **On receiving any `SendMessage`**: Before doing anything else, run the project build command:
+   ```bash
+   # Detect and run build command
+   BUILD_CMD=$(node -e "const p=require('./package.json'); console.log(p.scripts?.build || '')" 2>/dev/null)
+   if [ -n "$BUILD_CMD" ]; then
+     npm run build
+   fi
+   ```
+2. **Track build state**: Maintain an internal flag `last_build_after_message`. Set it to `true` after each successful build, and reset it to `false` after each received `SendMessage`.
+3. **Idle blocking (NON-NEGOTIABLE)**: You MUST NOT go idle or mark yourself as waiting if `last_build_after_message` is `false`. If you have received a message but not yet rebuilt, you must rebuild first. This prevents testing against stale builds.
+4. **Batching**: If multiple messages arrive in rapid succession, you may batch them — but you MUST run at least one build before proceeding with testing. Do not rebuild after every single message if they arrive within seconds of each other.
+
 ## Workflow
 
 1. **On startup**: Run the Pre-Flight version check, then `/qa-setup` to install Playwright and generate the test matrix
