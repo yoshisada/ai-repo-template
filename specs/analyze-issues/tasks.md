@@ -27,9 +27,9 @@
 
 **Purpose**: Implement prerequisite validation and issue fetching — blocks all user story functionality
 
-- [ ] T002 [US1] Write Step 1 (Validate Prerequisites) — check `gh` CLI availability and authentication, exit with clear error if unavailable, in plugin/skills/analyze-issues/SKILL.md
-- [ ] T003 [US1] Write Step 2 (Fetch Open Issues) — `gh issue list --state open --json number,title,body,labels,createdAt,updatedAt --limit 50`, handle 0 issues case, in plugin/skills/analyze-issues/SKILL.md
-- [ ] T004 [US2] Write Step 3 (Filter Issues) — skip issues with `analyzed` label unless `--reanalyze` flag is in `$ARGUMENTS`, handle "no new issues" case, in plugin/skills/analyze-issues/SKILL.md
+- [X] T002 [US1] Write Step 1 (Validate Prerequisites) — check `gh` CLI availability and authentication, exit with clear error if unavailable, in plugin/skills/analyze-issues/SKILL.md
+- [X] T003 [US1] Write Step 2 (Fetch Open Issues) — `gh issue list --state open --json number,title,body,labels,createdAt,updatedAt --limit 50`, handle 0 issues case, in plugin/skills/analyze-issues/SKILL.md
+- [X] T004 [US2] Write Step 3 (Filter Issues) — skip issues with `analyzed` label unless `--reanalyze` flag is in `$ARGUMENTS`, handle "no new issues" case, in plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Skill can fetch and filter issues. Prerequisites validated.
 
