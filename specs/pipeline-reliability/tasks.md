@@ -25,13 +25,13 @@
 
 **CRITICAL**: The hook overhaul (US1, US2, US3, US4) all modify `plugin/hooks/require-spec.sh`. These must be done sequentially in a single phase to avoid conflicts.
 
-- [ ] T001 Add `get_current_feature()` function to `plugin/hooks/require-spec.sh` — extracts feature name from git branch using patterns `build/<name>-<date>` and `<number>-<name>`, falls back to `.kiln/current-feature` file, prints empty string if all fail (FR-001)
-- [ ] T002 Replace all `specs/*/` glob checks in `plugin/hooks/require-spec.sh` with `specs/$CURRENT_FEATURE/` scoped checks for Gates 1-3, using output of `get_current_feature()`. If feature is empty, fall back to existing glob behavior for backwards compatibility (FR-001)
-- [ ] T003 Add `is_implementation_path()` function to `plugin/hooks/require-spec.sh` — returns 0 for paths in `src/`, `cli/`, `lib/`, `modules/`, `app/`, `components/` directories; returns 1 for always-allowed paths (`docs/`, `specs/`, `scripts/`, `tests/`, `plugin/`, `.claude/`, `.specify/`, `.json`, `.yml`, `.yaml`, `.toml`, `.md`, `.gitignore`, `.env*`) (FR-003)
-- [ ] T004 Replace the `case` statement allowlist in `plugin/hooks/require-spec.sh` with a call to `is_implementation_path()` — if not an implementation path, exit 0; otherwise proceed to gate checks (FR-003)
-- [ ] T005 Add Gate 3.5 to `plugin/hooks/require-spec.sh` — after Gate 3, check that `specs/$CURRENT_FEATURE/contracts/interfaces.md` exists. Add missing contracts to the BLOCKED message (FR-004)
-- [ ] T006 Add `check_implementing_lock()` function to `plugin/hooks/require-spec.sh` — reads `.kiln/implementing.lock`, parses JSON for timestamp field, returns 0 if lock exists and is less than 30 minutes old, returns 1 otherwise (FR-002)
-- [ ] T007 Update Gate 4 in `plugin/hooks/require-spec.sh` — pass if `check_implementing_lock()` returns 0 OR if tasks.md has `[X]` marks. Update the BLOCKED message to explain both conditions (FR-002)
+- [X] T001 Add `get_current_feature()` function to `plugin/hooks/require-spec.sh` — extracts feature name from git branch using patterns `build/<name>-<date>` and `<number>-<name>`, falls back to `.kiln/current-feature` file, prints empty string if all fail (FR-001)
+- [X] T002 Replace all `specs/*/` glob checks in `plugin/hooks/require-spec.sh` with `specs/$CURRENT_FEATURE/` scoped checks for Gates 1-3, using output of `get_current_feature()`. If feature is empty, fall back to existing glob behavior for backwards compatibility (FR-001)
+- [X] T003 Add `is_implementation_path()` function to `plugin/hooks/require-spec.sh` — returns 0 for paths in `src/`, `cli/`, `lib/`, `modules/`, `app/`, `components/` directories; returns 1 for always-allowed paths (`docs/`, `specs/`, `scripts/`, `tests/`, `plugin/`, `.claude/`, `.specify/`, `.json`, `.yml`, `.yaml`, `.toml`, `.md`, `.gitignore`, `.env*`) (FR-003)
+- [X] T004 Replace the `case` statement allowlist in `plugin/hooks/require-spec.sh` with a call to `is_implementation_path()` — if not an implementation path, exit 0; otherwise proceed to gate checks (FR-003)
+- [X] T005 Add Gate 3.5 to `plugin/hooks/require-spec.sh` — after Gate 3, check that `specs/$CURRENT_FEATURE/contracts/interfaces.md` exists. Add missing contracts to the BLOCKED message (FR-004)
+- [X] T006 Add `check_implementing_lock()` function to `plugin/hooks/require-spec.sh` — reads `.kiln/implementing.lock`, parses JSON for timestamp field, returns 0 if lock exists and is less than 30 minutes old, returns 1 otherwise (FR-002)
+- [X] T007 Update Gate 4 in `plugin/hooks/require-spec.sh` — pass if `check_implementing_lock()` returns 0 OR if tasks.md has `[X]` marks. Update the BLOCKED message to explain both conditions (FR-002)
 
 **Checkpoint**: Hook script fully restructured. All 4 gates + contracts gate + implementing lock working. Verify by inspecting script logic.
 
@@ -45,7 +45,7 @@
 
 All implementation for this story is completed in Phase 2 (T001, T002). This phase validates the integration.
 
-- [ ] T008 [US1] Verify `get_current_feature()` correctly extracts "pipeline-reliability" from branch `build/pipeline-reliability-20260401` by tracing the function logic in `plugin/hooks/require-spec.sh`
+- [X] T008 [US1] Verify `get_current_feature()` correctly extracts "pipeline-reliability" from branch `build/pipeline-reliability-20260401` by tracing the function logic in `plugin/hooks/require-spec.sh`
 
 ---
 
@@ -57,8 +57,8 @@ All implementation for this story is completed in Phase 2 (T001, T002). This pha
 
 All implementation for this story is completed in Phase 2 (T006, T007). This phase adds the lock file management to the implement skill.
 
-- [ ] T009 [US2] Add implementing lock creation to `plugin/skills/implement/SKILL.md` — in the Outline section, after step 1 (check-prerequisites), add instruction to create `.kiln/implementing.lock` with JSON payload `{"timestamp": "<ISO8601>", "feature": "<name>", "pid": "$$"}` (FR-002)
-- [ ] T010 [US2] Add implementing lock cleanup to `plugin/skills/implement/SKILL.md` — add instruction at end of Outline (after step 9 completion validation) and in error/failure paths to remove `.kiln/implementing.lock` (FR-002)
+- [X] T009 [US2] Add implementing lock creation to `plugin/skills/implement/SKILL.md` — in the Outline section, after step 1 (check-prerequisites), add instruction to create `.kiln/implementing.lock` with JSON payload `{"timestamp": "<ISO8601>", "feature": "<name>", "pid": "$$"}` (FR-002)
+- [X] T010 [US2] Add implementing lock cleanup to `plugin/skills/implement/SKILL.md` — add instruction at end of Outline (after step 9 completion validation) and in error/failure paths to remove `.kiln/implementing.lock` (FR-002)
 
 ---
 

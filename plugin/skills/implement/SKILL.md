@@ -57,6 +57,14 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
+   **Create implementing lock** (FR-002): Immediately after parsing FEATURE_DIR, create the lock file so Gate 4 allows writes during implementation:
+   ```bash
+   mkdir -p .kiln
+   FEATURE_NAME=$(basename "$FEATURE_DIR")
+   echo "{\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\", \"feature\": \"$FEATURE_NAME\", \"pid\": \"$$\"}" > .kiln/implementing.lock
+   ```
+   This lock file tells the `require-spec.sh` hook that `/implement` is active, allowing source file writes even before the first task is marked `[X]`. The lock is cleaned up in step 9 (or on failure).
+
 2. **Check checklists status** (if FEATURE_DIR/checklists/ exists):
    - Scan all checklist files in the checklists/ directory
    - For each checklist, count:
@@ -174,6 +182,11 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Validate that tests pass and coverage meets requirements
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
+   - **Remove implementing lock** (FR-002): Clean up the lock file on completion:
+     ```bash
+     rm -f .kiln/implementing.lock
+     ```
+     Also remove the lock on any failure or early exit. If the skill encounters an unrecoverable error, ensure the lock is removed before stopping so it does not persist as a stale lock.
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/tasks` first to regenerate the task list.
 
