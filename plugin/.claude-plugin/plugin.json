@@ -1,7 +1,9 @@
 {
   "name": "speckit-harness",
-  "version": "000.000.000.041",
+  "version": "000.000.000.048",
   "description": "Spec-first development harness for Claude Code. Provides skills, agents, hooks, and templates for PRD-driven development with 4-gate enforcement.",
-  "author": { "name": "yoshisada" },
+  "author": {
+    "name": "yoshisada"
+  },
   "homepage": "https://github.com/yoshisada/ai-repo-template"
 }

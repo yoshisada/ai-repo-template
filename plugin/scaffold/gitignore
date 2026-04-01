@@ -34,6 +34,10 @@ Thumbs.db
 # QA credentials (secrets)
 qa-results/.env.test
 
+# QA baselines (screenshots are large; JSON scores are ok to commit)
+qa-results/baselines/*.png
+qa-results/latest/screenshots/reference/
+
 # Logs
 *.log
 npm-debug.log*

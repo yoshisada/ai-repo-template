@@ -110,32 +110,141 @@ SendMessage("qa-reporter", "HEURISTIC [H#]: [heuristic name]
   Recommendation: [specific fix]")
 ```
 
-## Step 3: Layer 3 — Visual Analysis (Screenshots)
+## Step 3: Layer 3 — Visual Analysis (Rubric-Based Scoring)
 
-Read screenshots from `qa-results/latest/screenshots/` (captured by qa-agent). For each screenshot, evaluate:
+Layer 3 uses a 10-dimension rubric with pairwise comparison against reference designs and baseline tracking. Read the full rubric definition from `plugin/templates/ux-rubric.md`.
 
-| Aspect | What to Look For |
-|--------|-----------------|
-| **Spacing** | Consistent padding/margins, breathing room, rhythm between elements |
-| **Typography** | Clear heading hierarchy, readable body text, consistent font usage |
-| **Color** | Palette consistency, meaningful use of color, visual harmony |
-| **Alignment** | Grid adherence, elements aligned to consistent baseline |
-| **Visual hierarchy** | Most important element draws eye first, clear scanning path |
-| **Polish** | Consistent border radii, shadow usage, icon style consistency |
-| **Responsive** | Compare desktop/tablet/mobile screenshots — layout adapts gracefully? |
+### Step 3a: Capture Reference Screenshots (if reference configured)
 
-Also check for issues that only vision catches:
+Check for a design reference URL:
+1. Read `.specify/memory/constitution.md` — look for `## Design Reference` section
+2. Read `specs/*/spec.md` — look for `## Design Reference` section
+3. If no reference URL found, skip to Step 3b (score without reference)
+
+If reference URL found:
+1. Navigate to the reference URL via `navigate_page`
+2. For each mapped reference page:
+   - `navigate_page` → reference page URL
+   - `wait_for` → page loaded
+   - `take_screenshot` → save to `qa-results/latest/screenshots/reference/[page-name].png`
+3. If reference site is unreachable or auth-gated, log the reason and proceed with absolute scoring only
+
+### Step 3b: Load Previous Baseline (if exists)
+
+Check for a previous scored baseline at `qa-results/baselines/ux-rubric-latest.json`.
+
+If baseline exists:
+1. Read the JSON file — it contains previous dimension scores per page
+2. Hold these scores for comparison after scoring the current run
+3. Any dimension that drops by >= 2 points from baseline = REGRESSION finding
+4. Any dimension that improves by >= 2 points = noted in completion summary (not a finding)
+
+If no baseline exists, this is the first run. Proceed to scoring.
+
+### Step 3c: Score Each Page Against the 10-Dimension Rubric
+
+For EACH screenshot in `qa-results/latest/screenshots/desktop/`:
+
+**Scoring procedure (per screenshot, per dimension D1-D10):**
+
+1. **Observe**: Describe what you see relevant to this dimension in 1-2 sentences
+2. **Compare** (if reference available): Describe how the reference handles this dimension
+3. **Anchor**: Identify which rubric anchor (1, 3, 5, 7, or 10) the screenshot is closest to
+4. **Score**: Assign 1-10 with a one-sentence justification
+
+**Internal scoring format** (build this before sending findings):
+
+```
+PAGE: [page-name]
+D1 Spacing Consistency: [score]/10 — [justification]
+D2 Typography Hierarchy: [score]/10 — [justification]
+D3 Color Consistency: [score]/10 — [justification]
+D4 Alignment & Grid: [score]/10 — [justification]
+D5 Responsive Adaptation: [score]/10 — [justification]
+D6 Visual Hierarchy: [score]/10 — [justification]
+D7 Component Consistency: [score]/10 — [justification]
+D8 Information Density: [score]/10 — [justification]
+D9 Visual Polish: [score]/10 — [justification] [CONFIDENCE: LOW]
+D10 Visual Feedback States: [score]/10 — [justification] [CONFIDENCE: LOW]
+
+WEIGHTED SCORE:
+  Tier A (D1-D5) avg × 1.5 = [X]
+  Tier B (D6-D8) avg × 1.0 = [X]
+  Tier C (D9-D10) avg × 0.75 = [X]
+  Overall = [X]/10 ([grade])
+```
+
+**Scoring rules:**
+- Score relative to the project stage (read from spec/constitution). A prototype at 6/10 is acceptable; a production app at 6/10 is a problem.
+- Tier C dimensions (D9, D10): always append `[CONFIDENCE: LOW — verify manually]`
+- With a reference: you cannot score the app higher than the reference on a dimension where the reference is objectively better
+- Without a reference: use the rubric anchors as absolute guides
+- Process one page at a time (app screenshot + reference screenshot) to manage token cost
+
+**Also check for visual bugs** that only vision catches (these are separate from rubric scoring):
 - Elements visually overlapping (DOM says they're separate but they render on top of each other)
 - Content cut off or truncated
-- Invisible text (same color as background — DOM doesn't know it's invisible)
+- Invisible text (same color as background)
 - Broken images that loaded as empty boxes
 
-**For each visual finding, send to qa-reporter:**
+### Step 3d: Send Findings to qa-reporter
+
+**For each page, send the rubric scorecard:**
+
 ```
-SendMessage("qa-reporter", "VISUAL [aspect]: [finding]
+SendMessage("qa-reporter", "VISUAL RUBRIC: [page-name]
   Page: [URL]
   Screenshot: [path]
-  Severity: [major/minor/suggestion]
+  Overall: [weighted-score]/10 ([grade])
+
+  D1 Spacing: [score]/10 — [justification]
+  D2 Typography: [score]/10 — [justification]
+  D3 Color: [score]/10 — [justification]
+  D4 Alignment: [score]/10 — [justification]
+  D5 Responsive: [score]/10 — [justification]
+  D6 Hierarchy: [score]/10 — [justification]
+  D7 Consistency: [score]/10 — [justification]
+  D8 Density: [score]/10 — [justification]
+  D9 Polish: [score]/10 — [justification] [CONFIDENCE: LOW]
+  D10 Feedback: [score]/10 — [justification] [CONFIDENCE: LOW]
+
+  Reference: [used — URL / not available]
+  Baseline: [improved +N / regressed -N / stable / no baseline]")
+```
+
+**For any dimension scoring <= 4, also send a detailed finding:**
+
+```
+SendMessage("qa-reporter", "VISUAL [dimension]: [finding]
+  Page: [URL]
+  Screenshot: [path]
+  Score: [N]/10
+  Rubric anchor: [which anchor it falls near and why]
+  Observation: [specific visual evidence]
+  Reference: [how reference handles this, if available]
+  Severity: [critical if score 1-2, major if score 3-4]
+  Recommendation: [specific CSS/HTML fix]")
+```
+
+**For any regression from baseline (dropped >= 2 points):**
+
+```
+SendMessage("qa-reporter", "VISUAL REGRESSION: [dimension] on [page]
+  Previous: [old-score]/10
+  Current: [new-score]/10
+  Delta: -[N] points
+  Page: [URL]
+  Severity: major
+  Recommendation: [what likely changed and how to fix]")
+```
+
+**For visual bugs (overlap, truncation, invisible text, broken images):**
+
+```
+SendMessage("qa-reporter", "VISUAL BUG: [finding]
+  Page: [URL]
+  Screenshot: [path]
+  Severity: [major/minor]
   Recommendation: [specific CSS/HTML fix]")
 ```
 
