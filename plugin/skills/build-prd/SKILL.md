@@ -564,7 +564,25 @@ The retrospective teammate's job:
 6. Reports the issue URL back to the lead
 7. Marks its task as completed via `TaskUpdate`
 
-**Only proceed to Step 6 after the retrospective task is marked completed.**
+**Only proceed to Step 5.5 after the retrospective task is marked completed.**
+
+## Step 5.5: Continuance Analysis (advisory, non-blocking)
+
+<!-- FR-011: Continuance agent runs automatically as final step of /build-prd -->
+
+After the retrospective completes and before cleanup/PR creation, run `/next` to produce a continuance analysis. This gives the developer a prioritized list of what to work on after the pipeline finishes.
+
+**How to run**: The team lead invokes `/next` directly (not `--brief`) to get the full analysis. Do NOT spawn a new teammate for this — the team lead runs the skill itself.
+
+**What it does**:
+1. Analyzes all project state (specs, tasks, blockers, QA results, audit findings, backlog)
+2. Produces a prioritized list of next steps mapped to kiln commands
+3. Saves a detailed report to `.kiln/logs/next-<timestamp>.md`
+4. Creates backlog issues in `.kiln/issues/` for any untracked gaps
+
+**Include the continuance output** in the final pipeline summary (Step 6). The "What's Next" section from `/next` should appear in the terminal output so the developer sees their next steps immediately.
+
+**If `/next` fails**: Log a warning ("Continuance analysis failed — skipping") and proceed with cleanup and PR creation. The continuance step is advisory only — it MUST NOT block the pipeline.
 
 ## Step 6: Report and Cleanup
 
@@ -635,6 +653,7 @@ cannot self-improve. This has happened before — do not let it happen again.
 | Audit | [Pass/Fail] | {compliance %, test quality, smoke result} |
 | PR | [Created/Failed] | {PR URL} |
 | Retrospective | [Done/Failed] | {issue URL} |
+| Continuance | [Done/Skipped] | {report path or "skipped"} |
 
 **Branch**: {branch name}
 **PR**: {URL}
@@ -644,6 +663,7 @@ cannot self-improve. This has happened before — do not let it happen again.
 **Smoke Test**: {PASS/FAIL}
 **Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see .kiln/qa/latest/QA-PASS-REPORT.md
 **Retrospective**: {issue URL}
+**What's Next**: {continuance report path or "skipped"}
 ```
 
 ## Error Handling — Debug Loop (On-Demand)

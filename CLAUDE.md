@@ -225,3 +225,10 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 - Validate input at system boundaries
 - Hooks will block .env commits automatically
 - QA credentials go in `.kiln/qa/.env.test` (gitignored)
+
+## Active Technologies
+- Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`) (build/continuance-agent-20260331)
+- Filesystem — `.kiln/logs/` for reports, `.kiln/issues/` for backlog items (build/continuance-agent-20260331)
+
+## Recent Changes
+- build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
