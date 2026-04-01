@@ -231,6 +231,8 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 - Filesystem — `.kiln/logs/` for reports, `.kiln/issues/` for backlog items (build/continuance-agent-20260331)
 - Markdown (skill/agent definitions), Bash (shell commands within skills), Node.js (init.mjs scaffold) + None — uses existing kiln plugin infrastructure (001-kiln-polish)
 - Filesystem — `.kiln/qa/` for QA artifacts (001-kiln-polish)
+- Markdown (skill definition) + Bash (shell commands within skill via `gh` CLI) + `gh` CLI (GitHub CLI), existing `/report-issue` skill (build/analyze-issues-20260401)
+- N/A (labels applied to GitHub issues, backlog items written to `.kiln/issues/`) (build/analyze-issues-20260401)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
