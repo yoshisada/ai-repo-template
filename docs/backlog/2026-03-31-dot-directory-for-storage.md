@@ -5,7 +5,7 @@ severity: medium
 category: scaffold
 source: manual
 github_issue: null
-status: open
+status: prd-created
 date: 2026-03-31
 ---
 
@@ -38,3 +38,5 @@ Adds a new directory to the scaffold. Skills that generate QA artifacts, workflo
 - Route build/pipeline logs into `.kiln/logs/`
 - Update `/report-issue` skill to write to `.kiln/issues/` instead of `docs/backlog/`
 - `.gitignore` agent runs, QA test runs, and logs (transient outputs). Track workflow definitions and issues.
+
+prd: docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md
