@@ -5,7 +5,8 @@ severity: medium
 category: templates
 source: analyze-issues
 github_issue: "#22, #23, #17, #18"
-status: open
+status: prd-created
+prd: docs/features/2026-04-01-qa-tooling-templates/PRD.md
 date: 2026-04-01
 ---
 
