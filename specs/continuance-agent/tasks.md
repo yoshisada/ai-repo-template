@@ -94,7 +94,7 @@
 
 ### Implementation
 
-- [ ] T011 [US2] Modify `plugin/skills/resume/SKILL.md` to replace the existing content with a deprecated alias: frontmatter updated per `contracts/interfaces.md` (name: "resume", description: "Deprecated — use /next instead"), deprecation notice printed first ("Note: `/resume` has been replaced by `/next`. Please use `/next` going forward."), then the full `/next` skill logic executed inline
+- [X] T011 [US2] Modify `plugin/skills/resume/SKILL.md` to replace the existing content with a deprecated alias: frontmatter updated per `contracts/interfaces.md` (name: "resume", description: "Deprecated — use /next instead"), deprecation notice printed first ("Note: `/resume` has been replaced by `/next`. Please use `/next` going forward."), then the full `/next` skill logic executed inline
 
 **Checkpoint**: `/resume` prints deprecation notice and produces identical output to `/next`.
 
