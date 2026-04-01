@@ -74,8 +74,8 @@
 
 ### Implementation
 
-- [ ] T009 [P] [US4] Update plugin/skills/kiln-cleanup/SKILL.md to add issue archival — FR-009. Add a new step between Step 2 and Step 3 that: (a) scans `.kiln/issues/*.md` for `status: prd-created` or `status: completed`, (b) in dry-run mode reports what would be archived, (c) in delete mode creates `.kiln/issues/completed/` if needed and moves matching issues there, (d) displays results in table format matching existing QA scan output.
-- [ ] T010 [P] [US4] Update plugin/skills/kiln-doctor/SKILL.md to detect stale `prd-created` issues — FR-010. Add a new Step 3f that: (a) greps `.kiln/issues/*.md` for `status: prd-created`, (b) reports each as "STALE: <filename> — status is prd-created (bundled into PRD but never built)", (c) includes findings in the diagnosis table as a new row type.
+- [X] T009 [P] [US4] Update plugin/skills/kiln-cleanup/SKILL.md to add issue archival — FR-009. Add a new step between Step 2 and Step 3 that: (a) scans `.kiln/issues/*.md` for `status: prd-created` or `status: completed`, (b) in dry-run mode reports what would be archived, (c) in delete mode creates `.kiln/issues/completed/` if needed and moves matching issues there, (d) displays results in table format matching existing QA scan output.
+- [X] T010 [P] [US4] Update plugin/skills/kiln-doctor/SKILL.md to detect stale `prd-created` issues — FR-010. Add a new Step 3f that: (a) greps `.kiln/issues/*.md` for `status: prd-created`, (b) reports each as "STALE: <filename> — status is prd-created (bundled into PRD but never built)", (c) includes findings in the diagnosis table as a new row type.
 
 **Checkpoint**: `/kiln-cleanup` archives issues. `/kiln-doctor` reports stale issues.
 

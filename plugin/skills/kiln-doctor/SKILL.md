@@ -157,6 +157,28 @@ Compare each extracted version against `canonical_version`. Report mismatches:
 | plugin/package.json | OK | Matches VERSION |
 ```
 
+### 3f: Stale prd-created Issue Detection — FR-010
+
+Scan `.kiln/issues/` for issues that were bundled into a PRD but never built:
+
+```bash
+echo "=== STALE PRD-CREATED ISSUES ==="
+STALE_COUNT=0
+if [ -d ".kiln/issues" ]; then
+  for file in .kiln/issues/*.md; do
+    [ -f "$file" ] || continue
+    STATUS=$(grep -m1 '^status:' "$file" 2>/dev/null | sed 's/status:\s*//' | tr -d ' ')
+    if [ "$STATUS" = "prd-created" ]; then
+      STALE_COUNT=$((STALE_COUNT + 1))
+      echo "STALE: $(basename "$file") — status is prd-created (bundled into PRD but never built)"
+    fi
+  done
+fi
+echo "Total stale issues: $STALE_COUNT"
+```
+
+Include each stale issue as a row in the diagnosis table (Step 3e) with status `STALE` and details showing the filename and explanation.
+
 ### 3e: Report
 
 Display results as a table:
@@ -178,6 +200,7 @@ Display results as a table:
 | .kiln/qa/ artifacts | STALE | 52 files (54M) in artifact dirs |
 | package.json version | MISMATCH | Has 0.5.0, expected 001.002.000.042 |
 | plugin/package.json version | OK | Matches VERSION |
+| .kiln/issues/ stale prd-created | STALE | 2 issues bundled into PRD but never built |
 
 Summary: N issues found
 ```
