@@ -43,9 +43,9 @@
 
 ### Implementation
 
-- [ ] T004 [US2] Update plugin/skills/build-prd/SKILL.md Step 5 (branch creation) to enforce `build/<feature-slug>-<YYYYMMDD>` naming — FR-004. Replace the existing branch creation bash block with stricter logic: derive feature slug from PRD directory name (lowercase, hyphenated, 2-4 words), format branch as `build/$SLUG-$(date +%Y%m%d)`, always create fresh from current HEAD via `git checkout -b`.
-- [ ] T005 [US2] Update plugin/skills/build-prd/SKILL.md specifier agent prompt to enforce spec directory naming `specs/<feature-slug>/` — FR-005. The feature slug MUST match the branch name's feature portion (between `build/` and `-YYYYMMDD`). No numeric prefixes.
-- [ ] T006 [US2] Update plugin/skills/build-prd/SKILL.md Step 2 (agent spawn) to broadcast canonical branch name and spec directory path to all teammates at spawn time — FR-006. Each agent's prompt must include: "Branch: <branch-name>, Spec directory: specs/<feature-slug>/".
+- [X] T004 [US2] Update plugin/skills/build-prd/SKILL.md Step 5 (branch creation) to enforce `build/<feature-slug>-<YYYYMMDD>` naming — FR-004. Replace the existing branch creation bash block with stricter logic: derive feature slug from PRD directory name (lowercase, hyphenated, 2-4 words), format branch as `build/$SLUG-$(date +%Y%m%d)`, always create fresh from current HEAD via `git checkout -b`.
+- [X] T005 [US2] Update plugin/skills/build-prd/SKILL.md specifier agent prompt to enforce spec directory naming `specs/<feature-slug>/` — FR-005. The feature slug MUST match the branch name's feature portion (between `build/` and `-YYYYMMDD`). No numeric prefixes.
+- [X] T006 [US2] Update plugin/skills/build-prd/SKILL.md Step 2 (agent spawn) to broadcast canonical branch name and spec directory path to all teammates at spawn time — FR-006. Each agent's prompt must include: "Branch: <branch-name>, Spec directory: specs/<feature-slug>/".
 
 **Checkpoint**: `/build-prd` creates correctly named branches and spec dirs. All agents receive canonical paths.
 
