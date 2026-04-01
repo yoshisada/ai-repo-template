@@ -25,7 +25,7 @@
 
 **Purpose**: Create the directory structure for the new skill
 
-- [ ] T001 Create `plugin/skills/next/` directory for the /next skill
+- [X] T001 Create `plugin/skills/next/` directory for the /next skill
 
 ---
 
@@ -35,7 +35,7 @@
 
 **Checkpoint**: Agent definition exists and is discoverable by the plugin system
 
-- [ ] T002 Create continuance agent definition at `plugin/agents/continuance.md` with frontmatter (name: "continuance", description, model: sonnet), role description, analysis methodology (6-step: gather sources, classify findings, assign priorities, map to commands, deduplicate, produce output), priority ordering rules (blockers > incomplete > QA/audit > backlog > improvements), command mapping table, and output format specifications per `contracts/interfaces.md`
+- [X] T002 Create continuance agent definition at `plugin/agents/continuance.md` with frontmatter (name: "continuance", description, model: sonnet), role description, analysis methodology (6-step: gather sources, classify findings, assign priorities, map to commands, deduplicate, produce output), priority ordering rules (blockers > incomplete > QA/audit > backlog > improvements), command mapping table, and output format specifications per `contracts/interfaces.md`
 
 ---
 
