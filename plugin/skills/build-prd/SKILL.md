@@ -513,7 +513,8 @@ If the user changes scope, updates the PRD, or asks to modify requirements while
 
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
-**STOP. Before sending ANY shutdown requests, the retrospective MUST run.**
+**⛔ STOP. DO NOT send ANY shutdown requests or run TeamDelete until the retrospective is COMPLETE. ⛔**
+**This has been violated in past runs — the team lead shut down agents before the retrospective could collect feedback, losing all self-improvement data.**
 
 The retrospective teammate was NOT spawned in Step 3. Spawn it NOW, after all auditor tasks are completed. This gives it a clean context without accumulated idle notifications from the entire pipeline. Use the same Agent tool parameters as Step 3 (team_name, run_in_background, mode) with `name: "retrospective"`. The retrospective task was already created in Step 2 with dependencies on all other tasks — it should unblock immediately since all prerequisites are complete.
 
@@ -567,7 +568,22 @@ The retrospective teammate's job:
 
 ## Step 6: Report and Cleanup
 
-1. **Verify retrospective ran**: Check `TaskList` — the retrospective task MUST be completed. If not, go back to Step 5.
+### ⛔ MANDATORY GATE — READ THIS BEFORE DOING ANYTHING IN STEP 6 ⛔
+
+```
+BEFORE proceeding with ANY cleanup or shutdown:
+
+1. Run TaskList RIGHT NOW
+2. Find the retrospective task
+3. Is its status "completed"?
+   - NO → STOP. Do NOT proceed. Go back to Step 5. Wait for retrospective to finish.
+   - YES → Continue to the shutdown protocol below.
+
+If you skip this check, the retrospective data is LOST and the pipeline
+cannot self-improve. This has happened before — do not let it happen again.
+```
+
+1. **Verify retrospective ran**: The retrospective task MUST show status `completed` in `TaskList`. If it does not, **STOP HERE** — go back to Step 5 and wait. Do NOT send any shutdown requests. Do NOT run TeamDelete. Do NOT proceed to the report.
 
 2. **Confirm each agent is finished before shutdown (NON-NEGOTIABLE)**:
 
