@@ -229,6 +229,8 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 ## Active Technologies
 - Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`) (build/continuance-agent-20260331)
 - Filesystem — `.kiln/logs/` for reports, `.kiln/issues/` for backlog items (build/continuance-agent-20260331)
+- Markdown (skill/agent definitions), Bash (shell commands within skills), Node.js (init.mjs scaffold) + None — uses existing kiln plugin infrastructure (001-kiln-polish)
+- Filesystem — `.kiln/qa/` for QA artifacts (001-kiln-polish)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
