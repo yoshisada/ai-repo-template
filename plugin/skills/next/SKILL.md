@@ -95,14 +95,14 @@ fi
 
 ```bash
 echo "=== QA REPORTS ==="
-for report in .kiln/qa/QA-REPORT.md .kiln/qa/QA-PASS-REPORT.md .kiln/qa/UX-REPORT.md .kiln/qa/latest/QA-REPORT.md .kiln/qa/latest/QA-PASS-REPORT.md .kiln/qa/latest/UX-REPORT.md; do
+for report in .kiln/qa/results/QA-REPORT.md .kiln/qa/results/QA-PASS-REPORT.md .kiln/qa/results/UX-REPORT.md; do
   if [ -f "$report" ]; then
     echo "--- $report ---"
     head -50 "$report"
     echo "..."
   fi
 done
-if ! ls .kiln/qa/*.md .kiln/qa/latest/*.md 1>/dev/null 2>&1; then
+if ! ls .kiln/qa/results/*.md 1>/dev/null 2>&1; then
   echo "No QA reports found."
 fi
 ```

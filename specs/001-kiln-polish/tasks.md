@@ -57,10 +57,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [P] [US2] Update mkdir command and output paths in plugin/skills/qa-setup/SKILL.md to use canonical subdirectories (FR-005)
-- [ ] T008 [P] [US2] Update report output paths in plugin/agents/qa-reporter.md to write to .kiln/qa/results/ (FR-006)
-- [ ] T009 [P] [US2] Update screenshot paths in plugin/agents/ux-evaluator.md to write to .kiln/qa/screenshots/ (FR-006)
-- [ ] T010 [US2] Update QA report read paths in Step 2 of plugin/skills/next/SKILL.md to read from .kiln/qa/results/ (FR-006)
+- [X] T007 [P] [US2] Update mkdir command and output paths in plugin/skills/qa-setup/SKILL.md to use canonical subdirectories (FR-005)
+- [X] T008 [P] [US2] Update report output paths in plugin/agents/qa-reporter.md to write to .kiln/qa/results/ (FR-006)
+- [X] T009 [P] [US2] Update screenshot paths in plugin/agents/ux-evaluator.md to write to .kiln/qa/screenshots/ (FR-006)
+- [X] T010 [US2] Update QA report read paths in Step 2 of plugin/skills/next/SKILL.md to read from .kiln/qa/results/ (FR-006)
 
 **Checkpoint**: QA skills and agents use canonical paths. US2 is independently testable.
 
