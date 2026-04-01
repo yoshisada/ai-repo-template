@@ -124,12 +124,12 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 ### Implementation for User Story 6
 
 - [X] T017 [US6] Extend `plugin/templates/kiln-manifest.json` — add `retention` property to directory entries: `logs: { keep_last: 10 }`, `issues: { archive_completed: true }`, `qa: { purge_artifacts: true }`. Add `.kiln/issues/completed` directory entry. — FR-011, FR-024
-- [ ] T018 [US6] Update `plugin/skills/kiln-doctor/SKILL.md` Step 1 — add `--cleanup` mode (applies retention rules) with `--dry-run` support alongside existing `--fix` and `--diagnose` modes — FR-012
-- [ ] T019 [US6] Add new "Retention Cleanup" step to `plugin/skills/kiln-doctor/SKILL.md` — read retention rules from manifest, apply `keep_last` (delete oldest files beyond limit), `archive_completed` (move closed issues), `purge_artifacts` (remove QA artifacts). Respect `--dry-run` flag. — FR-012
-- [ ] T020 [US6] Add new "Version Sync Check" step to `plugin/skills/kiln-doctor/SKILL.md` diagnose mode — scan `package.json` and `plugin/package.json` (defaults), compare `version` field against `VERSION` file content, report mismatches — FR-015
-- [ ] T021 [US6] Add version-sync fix to `plugin/skills/kiln-doctor/SKILL.md` fix mode — when version mismatches are found, update the mismatched files to match `VERSION` — FR-016
-- [ ] T022 [US6] Add `.kiln/version-sync.json` config support to `plugin/skills/kiln-doctor/SKILL.md` — if the file exists, read `include`/`exclude` arrays to control which files are scanned for version sync — FR-017
-- [ ] T023 [US6] Integrate QA cleanup into kiln-doctor fix mode in `plugin/skills/kiln-doctor/SKILL.md` — when running `--fix`, also purge stale QA artifacts from `.kiln/qa/` (same behavior as `/kiln-cleanup`) — FR-014
+- [X] T018 [US6] Update `plugin/skills/kiln-doctor/SKILL.md` Step 1 — add `--cleanup` mode (applies retention rules) with `--dry-run` support alongside existing `--fix` and `--diagnose` modes — FR-012
+- [X] T019 [US6] Add new "Retention Cleanup" step to `plugin/skills/kiln-doctor/SKILL.md` — read retention rules from manifest, apply `keep_last` (delete oldest files beyond limit), `archive_completed` (move closed issues), `purge_artifacts` (remove QA artifacts). Respect `--dry-run` flag. — FR-012
+- [X] T020 [US6] Add new "Version Sync Check" step to `plugin/skills/kiln-doctor/SKILL.md` diagnose mode — scan `package.json` and `plugin/package.json` (defaults), compare `version` field against `VERSION` file content, report mismatches — FR-015
+- [X] T021 [US6] Add version-sync fix to `plugin/skills/kiln-doctor/SKILL.md` fix mode — when version mismatches are found, update the mismatched files to match `VERSION` — FR-016
+- [X] T022 [US6] Add `.kiln/version-sync.json` config support to `plugin/skills/kiln-doctor/SKILL.md` — if the file exists, read `include`/`exclude` arrays to control which files are scanned for version sync — FR-017
+- [X] T023 [US6] Integrate QA cleanup into kiln-doctor fix mode in `plugin/skills/kiln-doctor/SKILL.md` — when running `--fix`, also purge stale QA artifacts from `.kiln/qa/` (same behavior as `/kiln-cleanup`) — FR-014
 
 **Checkpoint**: kiln-doctor can diagnose and fix retention, version-sync, and QA artifact issues.
 
