@@ -177,11 +177,11 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 9
 
-- [ ] T032 [US9] Update `plugin/skills/report-issue/SKILL.md` — add archival logic: when setting status to `closed` or `done`, move the file to `.kiln/issues/completed/` (create directory if needed) — FR-024
-- [ ] T033 [P] [US9] Update `plugin/skills/report-issue/SKILL.md` Step 1 — change duplicate detection to only scan top-level `.kiln/issues/` (not `completed/` subdirectory) — FR-025
-- [ ] T034 [P] [US9] Update `plugin/skills/issue-to-prd/SKILL.md` Step 1 — change from "Read all `.md` files in `.kiln/issues/`" to "Read all `.md` files in top-level `.kiln/issues/` (not `completed/` subdirectory)" — FR-025
-- [ ] T035 [US9] Update `plugin/bin/init.mjs` `scaffoldProject()` — add `ensureDir` for `.kiln/issues/completed/` — FR-024
-- [ ] T036 [US9] Update `plugin/skills/analyze-issues/SKILL.md` — when closing an issue (suggesting closure), add instruction to move the file to `.kiln/issues/completed/` — FR-024
+- [X] T032 [US9] Update `plugin/skills/report-issue/SKILL.md` — add archival logic: when setting status to `closed` or `done`, move the file to `.kiln/issues/completed/` (create directory if needed) — FR-024
+- [X] T033 [P] [US9] Update `plugin/skills/report-issue/SKILL.md` Step 1 — change duplicate detection to only scan top-level `.kiln/issues/` (not `completed/` subdirectory) — FR-025
+- [X] T034 [P] [US9] Update `plugin/skills/issue-to-prd/SKILL.md` Step 1 — change from "Read all `.md` files in `.kiln/issues/`" to "Read all `.md` files in top-level `.kiln/issues/` (not `completed/` subdirectory)" — FR-025
+- [X] T035 [US9] Update `plugin/bin/init.mjs` `scaffoldProject()` — add `ensureDir` for `.kiln/issues/completed/` — FR-024
+- [X] T036 [US9] Update `plugin/skills/analyze-issues/SKILL.md` — when closing an issue (suggesting closure), add instruction to move the file to `.kiln/issues/completed/` — FR-024
 
 **Checkpoint**: Completed issues archived, active scanning scoped to top-level only.
 

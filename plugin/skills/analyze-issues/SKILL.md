@@ -164,6 +164,8 @@ For each issue the user confirms for closure, run:
 gh issue close <number> --comment "Closed by /analyze-issues: <reason>"
 ```
 
+**FR-024: Archive closed issues** — After closing a GitHub issue, check if a corresponding `.kiln/issues/` backlog entry exists for that issue number. If so, move it to `.kiln/issues/completed/` (create the directory if needed).
+
 Track how many issues were closed for the summary report.
 
 ## Step 7: Create and Apply Labels

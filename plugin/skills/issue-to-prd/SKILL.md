@@ -15,7 +15,7 @@ $ARGUMENTS
 
 ## Step 1: Read the Backlog
 
-1. Read all `.md` files in `.kiln/issues/`
+1. Read all `.md` files in top-level `.kiln/issues/` (not the `completed/` subdirectory — FR-025)
 2. Parse the frontmatter of each file — extract title, type, severity, category, status, date, github_issue
 3. **Filter**: Only include entries where `status: open`
 4. **If user provided a filter** (e.g., `/issue-to-prd templates`): further filter by category match

@@ -67,10 +67,20 @@ Logged to .kiln/issues/<filename>
 Run /issue-to-prd to bundle open backlog items into a PRD.
 ```
 
+## Step 5: Archive on Close (FR-024)
+
+When updating an existing issue's status to `closed` or `done`:
+
+1. Create `.kiln/issues/completed/` directory if it doesn't exist
+2. Move the issue file from `.kiln/issues/<filename>` to `.kiln/issues/completed/<filename>`
+3. Report: `Archived to .kiln/issues/completed/<filename>`
+
+This keeps the active backlog clean — only open items remain in the top-level `.kiln/issues/` directory.
+
 ## Rules
 
 - One issue per file — don't append to existing files
-- Don't duplicate: before creating, check if `.kiln/issues/` already has an entry with the same GitHub issue number or a very similar title. If so, tell the user and offer to update the existing entry instead.
+- Don't duplicate: before creating, check top-level `.kiln/issues/` (not `completed/` subdirectory) for an entry with the same GitHub issue number or a very similar title (FR-025). If so, tell the user and offer to update the existing entry instead.
 - Don't auto-commit — the user may want to review or edit the entry first
 - Keep descriptions concise but specific — quote error messages, file paths, or command output when relevant
 - If the user reports multiple issues at once (e.g., a retro with 5 findings), create separate files for each one
