@@ -108,7 +108,7 @@
 
 ### Implementation
 
-- [ ] T012 [US1] Modify `plugin/skills/build-prd/skill.md` to add continuance as the final pipeline step: after the retrospective section completes and before PR creation, add instructions for the team lead to invoke `/next` (not `--brief`) to produce full analysis. Include the continuance output in the terminal summary. If `/next` fails, log a warning and proceed with PR creation (advisory, non-blocking).
+- [X] T012 [US1] Modify `plugin/skills/build-prd/skill.md` to add continuance as the final pipeline step: after the retrospective section completes and before PR creation, add instructions for the team lead to invoke `/next` (not `--brief`) to produce full analysis. Include the continuance output in the terminal summary. If `/next` fails, log a warning and proceed with PR creation (advisory, non-blocking).
 
 **Checkpoint**: `/build-prd` includes continuance as final step. Pipeline still completes if continuance fails.
 
