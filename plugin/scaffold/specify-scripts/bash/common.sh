@@ -124,9 +124,9 @@ check_feature_branch() {
         return 0
     fi
 
-    if [[ ! "$branch" =~ ^[0-9]{3}- ]] && [[ ! "$branch" =~ ^[0-9]{8}-[0-9]{6}- ]]; then
+    if [[ ! "$branch" =~ ^[0-9]{3}- ]] && [[ ! "$branch" =~ ^[0-9]{8}-[0-9]{6}- ]] && [[ ! "$branch" =~ ^build/[a-zA-Z].*-[0-9]{8}$ ]]; then
         echo "ERROR: Not on a feature branch. Current branch: $branch" >&2
-        echo "Feature branches should be named like: 001-feature-name or 20260319-143022-feature-name" >&2
+        echo "Feature branches should be named like: 001-feature-name, 20260319-143022-feature-name, or build/feature-name-YYYYMMDD" >&2
         return 1
     fi
 
@@ -143,8 +143,27 @@ find_feature_dir_by_prefix() {
     local specs_dir="$repo_root/specs"
 
     # Extract prefix from branch (e.g., "004" from "004-whatever" or "20260319-143022" from timestamp branches)
+    # For build/ branches (e.g., "build/kiln-rebrand-and-qa-20260331"), extract the feature slug
     local prefix=""
-    if [[ "$branch_name" =~ ^([0-9]{8}-[0-9]{6})- ]]; then
+    if [[ "$branch_name" =~ ^build/(.+)-[0-9]{8}$ ]]; then
+        # build/<slug>-YYYYMMDD → search for specs/<slug> or specs/*-<slug>
+        local slug="${BASH_REMATCH[1]}"
+        # Try exact match first
+        if [[ -d "$specs_dir/$slug" ]]; then
+            echo "$specs_dir/$slug"
+            return
+        fi
+        # Try suffix match (e.g., specs/001-kiln-rebrand-and-qa)
+        for dir in "$specs_dir"/*-"$slug"; do
+            if [[ -d "$dir" ]]; then
+                echo "$dir"
+                return
+            fi
+        done
+        # No match — return slug path (will fail later with clear error)
+        echo "$specs_dir/$slug"
+        return
+    elif [[ "$branch_name" =~ ^([0-9]{8}-[0-9]{6})- ]]; then
         prefix="${BASH_REMATCH[1]}"
     elif [[ "$branch_name" =~ ^([0-9]{3})- ]]; then
         prefix="${BASH_REMATCH[1]}"
