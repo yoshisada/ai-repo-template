@@ -79,7 +79,7 @@ Note: Actionability assessment is integrated into T005 (Step 4). This phase ensu
 
 **Independent Test**: Flag issues, select some for backlog creation, verify `.kiln/issues/` entries are created
 
-- [ ] T009 [US5] Write Step 8 (Offer Backlog Creation) — present flagged actionable issues, let user select which to convert, invoke `/report-issue #<number>` for each selected issue. In plugin/skills/analyze-issues/SKILL.md
+- [X] T009 [US5] Write Step 8 (Offer Backlog Creation) — present flagged actionable issues, let user select which to convert, invoke `/report-issue #<number>` for each selected issue. In plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Users can convert flagged issues to backlog items via `/report-issue`
 

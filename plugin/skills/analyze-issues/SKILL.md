@@ -197,6 +197,38 @@ If labeling fails for a specific issue, report the error and continue with the r
 
 ## Step 8: Offer Backlog Creation
 
+If no issues were flagged as actionable in Step 4, skip this step entirely.
+
+Otherwise, present the actionable issues and offer to create backlog items:
+
+```
+## Backlog Creation
+
+The following issues were flagged as actionable:
+
+1. #12 "Add retry to webhook skill" — Prevents delivery failures seen in recent builds
+2. #15 "Skill prompt too verbose" — Reduces token usage by ~30%
+3. #8 "Hook timeout on large repos" — Causes false blocks on repos with >100 files
+
+Create backlog items for these? (all / none / pick: 1,3)
+```
+
+Wait for the user's response:
+
+- **"all"**: Create backlog items for all flagged issues.
+- **"none"** or **"no"**: Skip backlog creation.
+- **"pick"** or a list of numbers (e.g., "1, 3"): Create backlog items only for selected issues.
+
+For each selected issue, invoke:
+
+```
+/report-issue #<number>
+```
+
+This uses the existing `/report-issue` skill which handles GitHub issue import, classification, and file creation in `.kiln/issues/`.
+
+Track how many backlog items were created for the summary report.
+
 ## Step 9: Summary Report
 
 ## Rules
