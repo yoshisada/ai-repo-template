@@ -41,9 +41,9 @@
 
 **Independent Test**: Run `/analyze-issues` on a repo with open issues; verify each gets a `category:*` and `analyzed` label
 
-- [ ] T005 [US1] Write Step 4 (Analyze Each Issue) — categorize each issue into one of: skills, agents, hooks, templates, scaffold, workflow, other. Provide categorization guidelines based on issue title and body content. Assess actionability (concrete improvements, bug reports, process changes = actionable; informational summaries, resolved items, stale = not actionable). In plugin/skills/analyze-issues/SKILL.md
-- [ ] T006 [US1] [US6] Write Step 7 (Create Labels) — create labels with `gh label create "<name>" --color "<hex>" --force` for all category labels and `analyzed` label. Apply `category:<name>` and `analyzed` labels to each issue via `gh issue edit <number> --add-label`. Include label colors from contracts/interfaces.md. In plugin/skills/analyze-issues/SKILL.md
-- [ ] T007 [US1] Write Step 5 (Present Results) — display issues grouped by category, show which are flagged as actionable with explanations, show which are suggested for closure with reasons. In plugin/skills/analyze-issues/SKILL.md
+- [X] T005 [US1] Write Step 4 (Analyze Each Issue) — categorize each issue into one of: skills, agents, hooks, templates, scaffold, workflow, other. Provide categorization guidelines based on issue title and body content. Assess actionability (concrete improvements, bug reports, process changes = actionable; informational summaries, resolved items, stale = not actionable). In plugin/skills/analyze-issues/SKILL.md
+- [X] T006 [US1] [US6] Write Step 7 (Create Labels) — create labels with `gh label create "<name>" --color "<hex>" --force` for all category labels and `analyzed` label. Apply `category:<name>` and `analyzed` labels to each issue via `gh issue edit <number> --add-label`. Include label colors from contracts/interfaces.md. In plugin/skills/analyze-issues/SKILL.md
+- [X] T007 [US1] Write Step 5 (Present Results) — display issues grouped by category, show which are flagged as actionable with explanations, show which are suggested for closure with reasons. In plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Running `/analyze-issues` categorizes and labels all issues. Core triage flow works.
 
