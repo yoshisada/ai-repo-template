@@ -175,6 +175,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
    - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **Commit noise reduction (FR-012)**: For features with a single implementation phase, include the task-marking updates to tasks.md in the phase commit rather than creating separate task-marking commits. Multi-phase features continue to commit per-phase as before — but tasks.md changes should be staged alongside the phase's code changes whenever possible.
 
 9. Completion validation:
    - Verify all required tasks are completed

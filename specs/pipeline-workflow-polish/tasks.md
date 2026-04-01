@@ -89,9 +89,9 @@
 
 ### Implementation
 
-- [ ] T011 [US5] Update plugin/hooks/version-increment.sh to stage changes instead of just writing — FR-011. At the end of the script (after writing VERSION and syncing to package.json/plugin.json), add `git add` calls to stage the modified files so they are included in the next commit the agent creates.
-- [ ] T012 [US5] Update plugin/skills/implement/SKILL.md step 8 to combine task-marking into phase commits — FR-012. Add instruction that for single-phase features, task-marking updates to tasks.md SHOULD be included in the phase commit rather than committed separately.
-- [ ] T013 [US5] Update plugin/skills/build-prd/SKILL.md QA engineer role description to add QA snapshot guidance — FR-013. Add instruction: "QA result snapshots and incremental test-result files MUST NOT be committed to the feature branch. They belong in `.kiln/qa/` which is gitignored."
+- [X] T011 [US5] Update plugin/hooks/version-increment.sh to stage changes instead of just writing — FR-011. At the end of the script (after writing VERSION and syncing to package.json/plugin.json), add `git add` calls to stage the modified files so they are included in the next commit the agent creates.
+- [X] T012 [US5] Update plugin/skills/implement/SKILL.md step 8 to combine task-marking into phase commits — FR-012. Add instruction that for single-phase features, task-marking updates to tasks.md SHOULD be included in the phase commit rather than committed separately.
+- [X] T013 [US5] Update plugin/skills/build-prd/SKILL.md QA engineer role description to add QA snapshot guidance — FR-013. Add instruction: "QA result snapshots and incremental test-result files MUST NOT be committed to the feature branch. They belong in `.kiln/qa/` which is gitignored."
 
 **Checkpoint**: Version hook stages changes. Single-phase features produce fewer commits. QA snapshots stay out of git.
 

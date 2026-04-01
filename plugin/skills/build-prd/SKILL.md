@@ -106,6 +106,8 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
 
    The QA engineer tracks its checkpoint history in `.kiln/qa/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
 
+   **QA snapshot guidance (FR-013)**: QA result snapshots and incremental test-result files MUST NOT be committed to the feature branch. They belong in `.kiln/qa/` which is gitignored. The QA engineer should write all artifacts (screenshots, videos, reports) to `.kiln/qa/` and never `git add` them.
+
    **Skip this role** for CLI-only, API-only, or non-visual projects.
 
 5. **Auditor** — Runs after all implementers AND the QA engineer's final pass finish. Each auditor gets a **fresh context** (no implementation history polluting their judgment). Split auditors by concern so they can run in parallel:
