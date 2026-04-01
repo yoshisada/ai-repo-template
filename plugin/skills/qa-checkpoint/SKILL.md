@@ -29,6 +29,34 @@ If there's nothing new to test, report "No new flows to test since last checkpoi
 
 **Credential check**: If any new flows are marked `blocked:credentials` in the test matrix, check if `.kiln/qa/.env.test` now exists and has the needed values. If yes, unblock those flows and include them. If no, skip them and note "still blocked — awaiting credentials" in the checkpoint log.
 
+### Step 1.5: Container Freshness Check (FR-010)
+
+For containerized projects, verify the container reflects the latest code before testing:
+
+```bash
+# Check if project uses Docker
+if [ -f "Dockerfile" ] || [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+  CURRENT_SHA=$(git rev-parse HEAD)
+  LAST_BUILD_SHA=""
+  if [ -f ".kiln/qa/last-build-sha" ]; then
+    LAST_BUILD_SHA=$(cat .kiln/qa/last-build-sha)
+  fi
+
+  if [ "$CURRENT_SHA" != "$LAST_BUILD_SHA" ]; then
+    echo "Container is stale — rebuilding before checkpoint tests"
+    if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+      docker compose build 2>&1 || echo "WARNING: Docker rebuild failed"
+    else
+      docker build -t "$(basename $(pwd))" . 2>&1 || echo "WARNING: Docker rebuild failed"
+    fi
+    mkdir -p .kiln/qa
+    echo "$CURRENT_SHA" > .kiln/qa/last-build-sha
+  fi
+fi
+```
+
+If no `Dockerfile` or `docker-compose.yml` exists, skip this step entirely.
+
 ### Step 2: Start Dev Server
 
 ```bash

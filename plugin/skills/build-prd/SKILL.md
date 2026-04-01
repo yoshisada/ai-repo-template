@@ -477,6 +477,38 @@ After spawning, you are the **team lead**. Your job is coordination, not impleme
 - Peer DM visibility: when teammates message each other, a brief summary appears in their idle notification. This is informational — you don't need to respond.
 - Use broadcast sparingly — token costs scale with team size.
 
+### Stall Detection (FR-005)
+
+Monitor agent activity and detect stalled agents. A stalled agent wastes pipeline time and blocks downstream work.
+
+**Default timeout**: 10 minutes (configurable per-project by adjusting this value).
+
+**How to detect stalls**:
+- Track the last activity time for each agent (last commit, task update, or message sent)
+- Each time you process a task update or receive a message, check all `in_progress` tasks
+- If any agent's task has been `in_progress` for longer than the stall timeout with no commits, task updates, or messages from that agent, it is considered stalled
+
+**When a stall is detected**:
+1. Send a check-in message to the stalled agent: "Your task has been in_progress for [N] minutes with no activity. Are you stuck? Please report your status."
+2. If the agent responds and activity resumes, reset the stall timer
+3. If the agent does not respond after a second check-in (another timeout period), escalate:
+   - Spawn a replacement agent to continue from where the stalled agent left off
+   - Or investigate the agent's last output for errors and provide guidance
+
+### Phase Dependency Enforcement (FR-006)
+
+When dispatching implementer agents that work on multi-phase task lists, enforce phase ordering:
+
+**Rule**: Do NOT dispatch or unblock Phase N+1 agents until ALL tasks in Phase N are marked `[X]` in tasks.md.
+
+**How to enforce**:
+1. Before dispatching each implementer or sending a "proceed to next phase" message, read `tasks.md`
+2. Check that every task in the current phase is marked `[X]`
+3. If any task in the current phase is still `[ ]`, do NOT dispatch the next phase's agents
+4. When all tasks in Phase N are complete, message the Phase N+1 agents: "Phase N is complete. You are unblocked to begin Phase N+1."
+
+**Why**: Without enforcement, agents can race ahead and build on incomplete foundations, causing cascading failures. A Phase 2 agent that starts before Phase 1 is done may reference code that doesn't exist yet.
+
 ### Mid-Pipeline Auditor Checkpoint
 
 When approximately 50% of implementer tasks in `tasks.md` are marked `[X]`, spawn a short-lived `audit-midpoint` agent to catch structural issues early — before the full audit at the end. This prevents problems like the missing Dockerfile in the obsidian-mcp-mvp pipeline (issue #14) from being caught only at final audit.
@@ -498,6 +530,28 @@ After reporting, mark your task as completed. This is a one-shot check, not an o
 ```
 
 Create a task for this agent in Step 2 (e.g., "Mid-pipeline structural check") with dependencies on the specifier task only (it runs during implementation, not after). The final auditors do NOT depend on this task — it's advisory.
+
+### Docker Rebuild Between Implementation and QA (FR-008)
+
+When all implementers have completed their tasks and before dispatching QA agents for the final pass, check if the project uses Docker:
+
+```bash
+# Check for Docker configuration in the project root
+if [ -f "Dockerfile" ] || [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+  echo "Docker project detected — rebuilding containers before QA"
+  if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+    docker compose build 2>&1 || echo "WARNING: Docker rebuild failed — QA may test stale containers"
+  else
+    docker build -t "$(basename $(pwd))" . 2>&1 || echo "WARNING: Docker rebuild failed — QA may test stale containers"
+  fi
+fi
+```
+
+**Rules**:
+- Only run this step if `Dockerfile` or `docker-compose.yml` (or compose.yml variants) exists in the project root
+- If no Docker configuration exists, skip this step entirely
+- If the rebuild fails, log a warning and proceed to QA — do NOT block the pipeline. QA agents will detect stale containers via their own pre-flight checks.
+- Run this AFTER all implementers mark their tasks as completed but BEFORE dispatching QA final pass or audit agents
 
 ### Handling Scope Changes Mid-Pipeline
 

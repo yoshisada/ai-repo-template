@@ -17,6 +17,30 @@ You test like a real user — you don't read source code. You interact with the 
 | `/qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
 | `/qa-final` | Quick gate after /qa-pipeline | Just runs `npx playwright test` and confirms green/red |
 
+## Pre-Flight: Container Freshness Check (FR-009)
+
+Before ANY testing or evaluation, verify container freshness for containerized projects:
+
+1. Check if `Dockerfile` or `docker-compose.yml` (or `compose.yml` variants) exists in the project root
+2. If no Docker configuration exists, **skip this check entirely** and proceed to Build Version Verification
+3. If Docker configuration exists:
+   a. Read `.kiln/qa/last-build-sha` (if it exists) to get the last known good build SHA
+   b. Compare against the current HEAD: `git rev-parse HEAD`
+   c. If the file is missing or the SHA doesn't match (container is stale):
+      ```bash
+      # Rebuild containers with latest code
+      if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+        docker compose build
+      else
+        docker build -t "$(basename $(pwd))" .
+      fi
+      # Record the current HEAD as the last build SHA
+      mkdir -p .kiln/qa
+      git rev-parse HEAD > .kiln/qa/last-build-sha
+      ```
+   d. If the SHA matches (container is fresh), proceed directly — no rebuild needed
+4. If the rebuild fails, send a warning to the team lead: "WARNING: Docker rebuild failed during QA pre-flight. Proceeding with potentially stale containers." Continue testing with the disclaimer.
+
 ## Pre-Flight: Build Version Verification
 
 Before ANY testing or evaluation:
