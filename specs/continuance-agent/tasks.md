@@ -66,7 +66,7 @@
 
 ### Implementation
 
-- [ ] T009 [US4] Add Step 6 to `plugin/skills/next/SKILL.md`: Persistent report generation — create `.kiln/logs/` directory if it doesn't exist, generate timestamp (`date +%Y-%m-%d-%H%M%S`), write detailed report to `.kiln/logs/next-<YYYY-MM-DD-HHmmss>.md` per the report format in `contracts/interfaces.md` (header with timestamp/branch/version, project state summary, sources analyzed checklist, full recommendations table, backlog updates section). Skip if `--brief` flag is set.
+- [X] T009 [US4] Add Step 6 to `plugin/skills/next/SKILL.md`: Persistent report generation — create `.kiln/logs/` directory if it doesn't exist, generate timestamp (`date +%Y-%m-%d-%H%M%S`), write detailed report to `.kiln/logs/next-<YYYY-MM-DD-HHmmss>.md` per the report format in `contracts/interfaces.md` (header with timestamp/branch/version, project state summary, sources analyzed checklist, full recommendations table, backlog updates section). Skip if `--brief` flag is set.
 
 **Checkpoint**: Report file is created with correct name and content. `--brief` skips report creation.
 
@@ -80,7 +80,7 @@
 
 ### Implementation
 
-- [ ] T010 [US5] Add Step 7 to `plugin/skills/next/SKILL.md`: Backlog issue creation — for each discovered gap, read existing `.kiln/issues/` filenames and first-line titles, compare against the gap description for title similarity. If no match found, create `.kiln/issues/<YYYY-MM-DD>-<slug>.md` with title, description, source reference, and `[auto:continuance]` tag. Ensure `.kiln/issues/` directory exists before writing. Log created and skipped (already tracked) issues in the terminal output and persistent report. Skip if `--brief` flag is set.
+- [X] T010 [US5] Add Step 7 to `plugin/skills/next/SKILL.md`: Backlog issue creation — for each discovered gap, read existing `.kiln/issues/` filenames and first-line titles, compare against the gap description for title similarity. If no match found, create `.kiln/issues/<YYYY-MM-DD>-<slug>.md` with title, description, source reference, and `[auto:continuance]` tag. Ensure `.kiln/issues/` directory exists before writing. Log created and skipped (already tracked) issues in the terminal output and persistent report. Skip if `--brief` flag is set.
 
 **Checkpoint**: New issues are created for untracked gaps. Existing issues are not duplicated. `--brief` skips issue creation.
 

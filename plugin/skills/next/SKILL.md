@@ -306,6 +306,122 @@ If **BRIEF_MODE=true**, append:
 _Showing top 5 only. Run `/next` (without --brief) for the full analysis._
 ```
 
+## Step 6: Persistent Report
+
+<!-- FR-005: Save detailed report to .kiln/logs/next-<YYYY-MM-DD-HHmmss>.md -->
+
+**Skip this step if BRIEF_MODE=true.**
+
+Generate a timestamp and save a detailed markdown report:
+
+```bash
+# Create logs directory if it doesn't exist
+mkdir -p .kiln/logs
+
+# Generate timestamp for filename
+TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)
+REPORT_PATH=".kiln/logs/next-${TIMESTAMP}.md"
+echo "Report will be saved to: $REPORT_PATH"
+```
+
+Write the report to `$REPORT_PATH` in this exact format:
+
+```markdown
+# Continuance Report
+
+**Generated**: <YYYY-MM-DD HH:mm:ss>
+**Branch**: [branch]
+**Version**: [version]
+
+## Project State Summary
+
+[Paragraph summarizing overall project health — how many features are in progress, how many tasks remain, any blockers, QA status, etc.]
+
+## Sources Analyzed
+
+- [x] specs/*/tasks.md — [N] incomplete tasks found
+- [x] specs/*/blockers.md — [N] blockers found
+- [x] specs/*/retrospective.md — [N] action items found
+- [x] .kiln/qa/ — [N] QA findings
+- [x] .kiln/issues/ — [N] open items
+- [x] specs/*/spec.md — [N] unimplemented FRs
+- [x] GitHub issues — [N] open issues
+- [ ] GitHub PR comments — skipped (gh not available)
+```
+
+(Mark sources as `[x]` if analyzed, `[ ]` if skipped. Include the reason for skipping.)
+
+```markdown
+## Recommendations
+
+| # | Priority | Description | Command | Source |
+|---|----------|-------------|---------|--------|
+| 1 | critical | [desc] | `/fix ...` | specs/auth/blockers.md |
+| 2 | high | [desc] | `/implement` | specs/auth/tasks.md:L42 |
+| ... | ... | ... | ... | ... |
+```
+
+(Include ALL recommendations, not just the top 15 from the terminal summary.)
+
+```markdown
+## Backlog Updates
+
+- Created: `.kiln/issues/YYYY-MM-DD-slug.md` [auto:continuance]
+- Skipped (already tracked): "Title" matches `.kiln/issues/existing-file.md`
+```
+
+(List all created and skipped backlog items. If no backlog updates were made, write "No new backlog items created.")
+
+Save the report file using the Write tool.
+
+## Step 7: Backlog Issue Creation
+
+<!-- FR-007: Create new issue files for discovered gaps -->
+<!-- FR-008: Do not create duplicate issues -->
+
+**Skip this step if BRIEF_MODE=true.**
+
+For each discovered gap that is NOT already tracked in `.kiln/issues/`:
+
+1. Read existing `.kiln/issues/` filenames and first-line titles:
+
+```bash
+# List existing issues for deduplication
+mkdir -p .kiln/issues
+echo "=== EXISTING ISSUES ==="
+for f in .kiln/issues/*.md; do
+  [ -f "$f" ] || continue
+  TITLE=$(head -1 "$f" | sed 's/^#\s*//')
+  echo "$(basename "$f"): $TITLE"
+done
+```
+
+2. For each discovered gap, compare its description against existing issue titles. If no match is found (by title/description similarity), create a new issue file:
+
+File naming: `.kiln/issues/<YYYY-MM-DD>-<slug>.md`
+
+File format:
+```markdown
+# [Title describing the gap]
+
+**Source**: [path to artifact that surfaced this gap]
+**Priority**: [critical/high/medium/low]
+**Suggested command**: `/command`
+**Tags**: [auto:continuance]
+
+## Description
+
+[Brief description of the gap and why it matters]
+```
+
+3. If a match IS found, skip it and note: "Skipped (already tracked): [title] matches [existing file]"
+
+4. Log all created and skipped items in the terminal output:
+```
+[N] new backlog items created in `.kiln/issues/`
+[M] gaps already tracked (skipped)
+```
+
 ## Rules
 
 <!-- FR-009: /next replaces /resume as primary session-start command -->
