@@ -5,7 +5,8 @@ severity: medium
 category: workflow
 source: analyze-issues
 github_issue: "#30, #28, #25"
-status: open
+status: prd-created
+prd: docs/features/2026-04-01-pipeline-workflow-polish/PRD.md
 date: 2026-04-01
 ---
 

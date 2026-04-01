@@ -6,13 +6,15 @@ category: skills
 source: manual
 github_issue: null
 status: prd-created
-prd: docs/features/2026-04-01-qa-tooling-templates/PRD.md
+prd: docs/features/2026-04-01-pipeline-workflow-polish/PRD.md
 date: 2026-04-01
 ---
 
 ## Description
 
 Add a `/kiln-cleanup` skill that cleans up the `.kiln/qa/` folder — removing old Playwright reports, video recordings, traces, and screenshots that accumulate across QA runs. This command should also run automatically as part of `/kiln-doctor` (e.g., in fix mode).
+
+Additionally, cleanup should scan `.kiln/issues/` for issues that have been implemented (e.g., `status: prd-created` or `status: completed`) and archive/move them out of the active issues folder so they don't clutter the backlog.
 
 ## Impact
 
@@ -27,4 +29,5 @@ Add a `/kiln-cleanup` skill that cleans up the `.kiln/qa/` folder — removing o
    - Supports a `--dry-run` flag to preview what would be deleted
    - Optionally accepts a retention policy (e.g., keep last N runs)
 2. Hook it into `/kiln-doctor` fix mode so running `kiln-doctor --fix` also cleans stale QA artifacts
-3. See also: `2026-04-01-kiln-doctor-cleanup.md` for the broader cleanup manifest approach
+3. Scan `.kiln/issues/` for completed/implemented issues and move them to `.kiln/issues/archive/`
+4. See also: `2026-04-01-kiln-doctor-cleanup.md` for the broader cleanup manifest approach

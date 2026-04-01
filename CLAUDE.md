@@ -236,6 +236,8 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 - N/A (labels applied to GitHub issues, backlog items written to `.kiln/issues/`) (build/analyze-issues-20260401)
 - Bash 5.x (hook scripts), Markdown (skill/agent definitions) + git CLI, jq (JSON parsing in hooks), Docker CLI (for container-aware projects) (build/pipeline-reliability-20260401)
 - N/A — file-based lock and marker files only (build/pipeline-reliability-20260401)
+- Markdown (skill/agent definitions), Bash 5.x (hook scripts), Node.js 18+ (init.mjs), JSON (configs) + Claude Code plugin system, GitHub CLI (`gh`), Playwright (QA config changes) (build/qa-tooling-templates-20260401)
+- Filesystem — `.kiln/` directory tree, `specs/` artifacts (build/qa-tooling-templates-20260401)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
