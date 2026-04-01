@@ -119,7 +119,7 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Review build-prd skill prompt for Docker rebuild step conditioned on Dockerfile presence.
 
-- [ ] T015 [US8] Add Docker rebuild step to `plugin/skills/build-prd/SKILL.md` — after all implementers complete and before dispatching QA agents, add instruction: if `Dockerfile` or `docker-compose.yml` exists in the project root, run `docker compose build` (or `docker build -t <project> .`). Log the rebuild. If rebuild fails, log warning and proceed (FR-008)
+- [X] T015 [US8] Add Docker rebuild step to `plugin/skills/build-prd/SKILL.md` — after all implementers complete and before dispatching QA agents, add instruction: if `Dockerfile` or `docker-compose.yml` exists in the project root, run `docker compose build` (or `docker build -t <project> .`). Log the rebuild. If rebuild fails, log warning and proceed (FR-008)
 
 ---
 
@@ -129,7 +129,7 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Review qa-engineer agent prompt for container freshness check in Pre-Flight section.
 
-- [ ] T016 [US9] Add container freshness pre-flight to `plugin/agents/qa-engineer.md` — in the "Pre-Flight: Build Version Verification" section, add a step before version checking: if `Dockerfile` or `docker-compose.yml` exists in project root, read `.kiln/qa/last-build-sha` (if exists), compare against `git rev-parse HEAD`, if mismatch or file missing run `docker compose build` and update `.kiln/qa/last-build-sha` with current HEAD. If no Dockerfile, skip (FR-009)
+- [X] T016 [US9] Add container freshness pre-flight to `plugin/agents/qa-engineer.md` — in the "Pre-Flight: Build Version Verification" section, add a step before version checking: if `Dockerfile` or `docker-compose.yml` exists in project root, read `.kiln/qa/last-build-sha` (if exists), compare against `git rev-parse HEAD`, if mismatch or file missing run `docker compose build` and update `.kiln/qa/last-build-sha` with current HEAD. If no Dockerfile, skip (FR-009)
 
 ---
 
@@ -139,7 +139,7 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Review qa-checkpoint skill prompt for container freshness step between "Determine What to Test" and "Start Dev Server."
 
-- [ ] T017 [US10] Add container freshness step to `plugin/skills/qa-checkpoint/SKILL.md` — add a new "Step 1.5: Container Freshness Check" between Step 1 (Determine What to Test) and Step 2 (Start Dev Server): if `Dockerfile` or `docker-compose.yml` exists in project root, read `.kiln/qa/last-build-sha`, compare against `git rev-parse HEAD`, rebuild if stale, update the SHA file. If no Dockerfile, skip (FR-010)
+- [X] T017 [US10] Add container freshness step to `plugin/skills/qa-checkpoint/SKILL.md` — add a new "Step 1.5: Container Freshness Check" between Step 1 (Determine What to Test) and Step 2 (Start Dev Server): if `Dockerfile` or `docker-compose.yml` exists in project root, read `.kiln/qa/last-build-sha`, compare against `git rev-parse HEAD`, rebuild if stale, update the SHA file. If no Dockerfile, skip (FR-010)
 
 ---
 

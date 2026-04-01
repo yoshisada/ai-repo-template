@@ -531,6 +531,28 @@ After reporting, mark your task as completed. This is a one-shot check, not an o
 
 Create a task for this agent in Step 2 (e.g., "Mid-pipeline structural check") with dependencies on the specifier task only (it runs during implementation, not after). The final auditors do NOT depend on this task — it's advisory.
 
+### Docker Rebuild Between Implementation and QA (FR-008)
+
+When all implementers have completed their tasks and before dispatching QA agents for the final pass, check if the project uses Docker:
+
+```bash
+# Check for Docker configuration in the project root
+if [ -f "Dockerfile" ] || [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+  echo "Docker project detected — rebuilding containers before QA"
+  if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yml" ] || [ -f "compose.yaml" ]; then
+    docker compose build 2>&1 || echo "WARNING: Docker rebuild failed — QA may test stale containers"
+  else
+    docker build -t "$(basename $(pwd))" . 2>&1 || echo "WARNING: Docker rebuild failed — QA may test stale containers"
+  fi
+fi
+```
+
+**Rules**:
+- Only run this step if `Dockerfile` or `docker-compose.yml` (or compose.yml variants) exists in the project root
+- If no Docker configuration exists, skip this step entirely
+- If the rebuild fails, log a warning and proceed to QA — do NOT block the pipeline. QA agents will detect stale containers via their own pre-flight checks.
+- Run this AFTER all implementers mark their tasks as completed but BEFORE dispatching QA final pass or audit agents
+
 ### Handling Scope Changes Mid-Pipeline
 
 If the user changes scope, updates the PRD, or asks to modify requirements while implementers are already running:
