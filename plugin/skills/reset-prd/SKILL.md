@@ -7,7 +7,7 @@ metadata:
   source: custom
 ---
 
-# Speckit Reset — Return to Base Branch
+# Kiln Reset — Return to Base Branch
 
 ## User Input
 
@@ -47,7 +47,7 @@ Check out the branch this feature branch was started from (its merge-base branch
 
 3. Show the user what will happen:
    ```
-   ## Speckit Reset: {current-branch}
+   ## Kiln Reset: {current-branch}
 
    This will check out `{base-branch}` — the branch `{current-branch}` was started from.
 

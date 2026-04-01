@@ -15,9 +15,9 @@ Every feature requires three artifacts before implementation can begin.
 ## Enforcement
 
 Claude Code hooks block `src/` edits until **all three artifacts** exist:
-- `spec.md` — run `/speckit.specify`
-- `plan.md` — run `/speckit.plan`
-- `tasks.md` — run `/speckit.tasks`
+- `spec.md` — run `/specify`
+- `plan.md` — run `/plan`
+- `tasks.md` — run `/tasks`
 
 This is intentional. Complete the workflow before writing code.
 

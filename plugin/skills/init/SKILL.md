@@ -1,11 +1,11 @@
 ---
 name: "init"
-description: "Initialize an existing repo with the speckit harness. Installs the plugin, scaffolds project structure, and configures hooks — without creating a new GitHub repo. For repos that already exist."
+description: "Initialize an existing repo with kiln. Installs the plugin, scaffolds project structure, and configures hooks — without creating a new GitHub repo. For repos that already exist."
 ---
 
-# Init — Add Speckit to an Existing Repo
+# Init — Add Kiln to an Existing Repo
 
-Install the speckit harness into an existing project. Unlike `/create-repo` (which creates a brand new GitHub repo), this is for projects that already exist and want to adopt spec-first development.
+Install kiln into an existing project. Unlike `/create-repo` (which creates a brand new GitHub repo), this is for projects that already exist and want to adopt spec-first development.
 
 ```text
 $ARGUMENTS
@@ -13,17 +13,17 @@ $ARGUMENTS
 
 ## When to Use
 
-- You cloned a repo and want to add speckit to it
+- You cloned a repo and want to add kiln to it
 - You have an existing project and want to adopt spec-first development
-- Someone shared a repo with you that should have speckit but doesn't
-- You're setting up a local project that was created outside the speckit workflow
+- Someone shared a repo with you that should have kiln but doesn't
+- You're setting up a local project that was created outside the kiln workflow
 
 ## Step 1: Check Current State
 
 Survey what already exists:
 
 ```bash
-# Check if speckit is already installed
+# Check if kiln is already installed
 ls CLAUDE.md .specify/memory/constitution.md specs/ 2>/dev/null
 
 # Check for existing code
@@ -41,14 +41,14 @@ git log --oneline -5 2>/dev/null
 Report what you find:
 - Is this a fresh repo or does it have existing code?
 - Is there already a package.json?
-- Is there any speckit infrastructure already?
+- Is there any kiln infrastructure already?
 - Is there a git history?
 
 ## Step 2: Install the Plugin
 
 ```bash
-# Install the speckit-harness plugin (if not already installed)
-claude plugin add @yoshisada/speckit-harness 2>/dev/null || echo "Plugin may already be installed"
+# Install the kiln-harness plugin (if not already installed)
+claude plugin add @yoshisada/kiln-harness 2>/dev/null || echo "Plugin may already be installed"
 ```
 
 If the plugin is already installed, skip to Step 3.
@@ -58,7 +58,7 @@ If the plugin is already installed, skip to Step 3.
 ```bash
 # Run init.mjs to scaffold project structure
 # This is idempotent — won't overwrite existing files
-npx @yoshisada/speckit-harness init
+npx @yoshisada/kiln-harness init
 ```
 
 This creates (if missing):
@@ -77,7 +77,7 @@ If the repo already has code in `src/` (or equivalent):
 
 ### Option A: Code has no specs (most common)
 
-The existing code was written without speckit. The hooks will block future edits to `src/` until specs exist. You need to retroactively create specs:
+The existing code was written without kiln. The hooks will block future edits to `src/` until specs exist. You need to retroactively create specs:
 
 1. Ask the user: "This repo has existing code but no specs. Would you like me to:"
    - **Generate specs from existing code** — I'll read the code and create spec.md, plan.md, and tasks.md (all marked `[X]`) to describe what's already built. This satisfies the hooks.
@@ -88,7 +88,7 @@ The existing code was written without speckit. The hooks will block future edits
 
 ### Option B: Code already has specs
 
-The repo already went through speckit. Verify the specs are current:
+The repo already went through kiln. Verify the specs are current:
 ```bash
 ls specs/*/spec.md specs/*/plan.md specs/*/tasks.md 2>/dev/null
 grep -c '\[X\]\|\[x\]' specs/*/tasks.md 2>/dev/null
@@ -137,7 +137,7 @@ If there are changes to commit:
 
 ```bash
 git add CLAUDE.md .specify/ docs/ specs/ VERSION .gitignore
-git commit -m "chore: initialize speckit harness
+git commit -m "chore: initialize kiln harness
 
 Adds spec-first development infrastructure:
 - CLAUDE.md with workflow rules and hook enforcement
@@ -150,7 +150,7 @@ Adds spec-first development infrastructure:
 ## Step 8: Report
 
 ```
-## Speckit Initialized
+## Kiln Initialized
 
 **Project**: [repo name]
 **Existing code**: [yes/no — X files in src/]

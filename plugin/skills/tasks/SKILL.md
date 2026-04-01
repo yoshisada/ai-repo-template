@@ -1,5 +1,5 @@
 ---
-name: speckit-tasks
+name: tasks
 description: Break down implementation plans into actionable task lists. Use after
   planning to create a structured task breakdown. Generates tasks.md with ordered,
   dependency-aware tasks.
@@ -9,7 +9,7 @@ metadata:
   source: templates/commands/tasks.md
 ---
 
-# Speckit Tasks Skill
+# Kiln Tasks Skill
 
 ## User Input
 

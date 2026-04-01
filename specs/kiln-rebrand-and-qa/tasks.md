@@ -39,27 +39,27 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update npm package name from `@yoshisada/speckit-harness` to `@yoshisada/kiln` and bin entry from `speckit-harness` to `kiln` in `plugin/package.json`
-- [ ] T002 [P] [US1] Update plugin manifest name from `speckit-harness` to `kiln` in `plugin/.claude-plugin/plugin.json`
-- [ ] T003 [US1] Rename skill directory `plugin/skills/speckit-specify` to `plugin/skills/specify`
-- [ ] T004 [P] [US1] Rename skill directory `plugin/skills/speckit-plan` to `plugin/skills/plan`
-- [ ] T005 [P] [US1] Rename skill directory `plugin/skills/speckit-tasks` to `plugin/skills/tasks`
-- [ ] T006 [P] [US1] Rename skill directory `plugin/skills/speckit-implement` to `plugin/skills/implement`
-- [ ] T007 [P] [US1] Rename skill directory `plugin/skills/speckit-audit` to `plugin/skills/audit`
-- [ ] T008 [P] [US1] Rename skill directory `plugin/skills/speckit-constitution` to `plugin/skills/constitution`
-- [ ] T009 [P] [US1] Rename skill directory `plugin/skills/speckit-analyze` to `plugin/skills/analyze`
-- [ ] T010 [P] [US1] Rename skill directory `plugin/skills/speckit-coverage` to `plugin/skills/coverage`
-- [ ] T011 [P] [US1] Rename skill directory `plugin/skills/speckit-checklist` to `plugin/skills/checklist`
-- [ ] T012 [P] [US1] Rename skill directory `plugin/skills/speckit-clarify` to `plugin/skills/clarify`
-- [ ] T013 [P] [US1] Rename skill directory `plugin/skills/speckit-taskstoissues` to `plugin/skills/taskstoissues`
-- [ ] T014 [US1] Update all cross-references in every SKILL.md file under `plugin/skills/` — replace `speckit-harness:speckit-*` with `kiln:*` and `speckit-harness:` with `kiln:` for non-speckit-prefixed skills
-- [ ] T015 [P] [US1] Update all references in agent files under `plugin/agents/` — replace `speckit-harness:` prefix with `kiln:` and any `speckit` branding with `kiln`
-- [ ] T016 [P] [US1] Update `plugin/hooks/hooks.json` — replace any `speckit-harness:` skill prefix references with `kiln:`
-- [ ] T017 [US1] Update all branding in `plugin/bin/init.mjs` — replace "speckit-harness" with "kiln" in banner, log messages, verify output, and next-steps text
-- [ ] T018 [US1] Update all branding in root `CLAUDE.md` — replace all "speckit-harness" references with "kiln", update all `/speckit-harness:*` command references to `/kiln:*`, update `speckit-*` skill names to drop prefix
-- [ ] T019 [P] [US1] Update all branding in `plugin/scaffold/CLAUDE.md` — same changes as root CLAUDE.md
-- [ ] T020 [P] [US1] Update keywords in `plugin/package.json` — replace "speckit" with "kiln"
-- [ ] T021 [US1] Verify rename completeness: grep entire `plugin/` directory for "speckit-harness" and "speckit" — document any intentional remaining references (e.g., migration notices)
+- [X] T001 [US1] Update npm package name from `@yoshisada/speckit-harness` to `@yoshisada/kiln` and bin entry from `speckit-harness` to `kiln` in `plugin/package.json`
+- [X] T002 [P] [US1] Update plugin manifest name from `speckit-harness` to `kiln` in `plugin/.claude-plugin/plugin.json`
+- [X] T003 [US1] Rename skill directory `plugin/skills/speckit-specify` to `plugin/skills/specify`
+- [X] T004 [P] [US1] Rename skill directory `plugin/skills/speckit-plan` to `plugin/skills/plan`
+- [X] T005 [P] [US1] Rename skill directory `plugin/skills/speckit-tasks` to `plugin/skills/tasks`
+- [X] T006 [P] [US1] Rename skill directory `plugin/skills/speckit-implement` to `plugin/skills/implement`
+- [X] T007 [P] [US1] Rename skill directory `plugin/skills/speckit-audit` to `plugin/skills/audit`
+- [X] T008 [P] [US1] Rename skill directory `plugin/skills/speckit-constitution` to `plugin/skills/constitution`
+- [X] T009 [P] [US1] Rename skill directory `plugin/skills/speckit-analyze` to `plugin/skills/analyze`
+- [X] T010 [P] [US1] Rename skill directory `plugin/skills/speckit-coverage` to `plugin/skills/coverage`
+- [X] T011 [P] [US1] Rename skill directory `plugin/skills/speckit-checklist` to `plugin/skills/checklist`
+- [X] T012 [P] [US1] Rename skill directory `plugin/skills/speckit-clarify` to `plugin/skills/clarify`
+- [X] T013 [P] [US1] Rename skill directory `plugin/skills/speckit-taskstoissues` to `plugin/skills/taskstoissues`
+- [X] T014 [US1] Update all cross-references in every SKILL.md file under `plugin/skills/` — replace `speckit-harness:speckit-*` with `kiln:*` and `speckit-harness:` with `kiln:` for non-speckit-prefixed skills
+- [X] T015 [P] [US1] Update all references in agent files under `plugin/agents/` — replace `speckit-harness:` prefix with `kiln:` and any `speckit` branding with `kiln`
+- [X] T016 [P] [US1] Update `plugin/hooks/hooks.json` — replace any `speckit-harness:` skill prefix references with `kiln:`
+- [X] T017 [US1] Update all branding in `plugin/bin/init.mjs` — replace "speckit-harness" with "kiln" in banner, log messages, verify output, and next-steps text
+- [X] T018 [US1] Update all branding in root `CLAUDE.md` — replace all "speckit-harness" references with "kiln", update all `/speckit-harness:*` command references to `/kiln:*`, update `speckit-*` skill names to drop prefix
+- [X] T019 [P] [US1] Update all branding in `plugin/scaffold/CLAUDE.md` — same changes as root CLAUDE.md
+- [X] T020 [P] [US1] Update keywords in `plugin/package.json` — replace "speckit" with "kiln"
+- [X] T021 [US1] Verify rename completeness: grep entire `plugin/` directory for "speckit-harness" and "speckit" — document any intentional remaining references (e.g., migration notices)
 
 **Checkpoint**: All user-facing surfaces say "kiln". Grep for "speckit-harness" returns zero matches (excluding intentional deprecation notices).
 

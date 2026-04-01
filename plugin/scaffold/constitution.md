@@ -31,11 +31,11 @@ Each task in tasks.md MUST be marked `[X]` immediately after completion — not 
 1. Read this constitution
 2. Read `docs/session-prompt.md` for full onboarding
 3. Check PRD at `docs/PRD.md`
-4. /speckit.specify → spec.md
-5. /speckit.plan → plan.md + contracts/interfaces.md
-6. /speckit.tasks → tasks.md
+4. /specify → spec.md
+5. /plan → plan.md + contracts/interfaces.md
+6. /tasks → tasks.md
 7. Commit all artifacts before code
-8. /speckit.implement → execute tasks incrementally, PRD audit
+8. /implement → execute tasks incrementally, PRD audit
 9. Verify: tests pass, >=80% coverage, build succeeds
 
 ## Governance

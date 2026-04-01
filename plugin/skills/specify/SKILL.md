@@ -1,5 +1,5 @@
 ---
-name: speckit-specify
+name: specify
 description: Create or update feature specifications from natural language descriptions.
   Use when starting new features or refining requirements. Generates spec.md with
   user stories, functional requirements, and acceptance criteria following spec-driven
@@ -10,7 +10,7 @@ metadata:
   source: templates/commands/specify.md
 ---
 
-# Speckit Specify Skill
+# Kiln Specify Skill
 
 ## User Input
 
@@ -56,7 +56,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The text the user typed after `/specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
 
 Given that feature description, do this:
 
@@ -66,7 +66,7 @@ Given that feature description, do this:
      - Log: "Existing spec found at {FEATURE_DIR}/spec.md — skipping branch and directory creation."
      - Read the existing spec.md
      - **Skip steps 1-4** and jump directly to **step 6 (Specification Quality Validation)** to validate the existing spec
-     - If validation passes, report readiness for `/speckit.plan`
+     - If validation passes, report readiness for `/plan`
      - If validation fails, fix issues in the existing spec (same iterative flow as step 6)
    - If no existing spec is found, proceed to step 1 as normal
 
@@ -169,7 +169,7 @@ Given that feature description, do this:
       
       ## Notes
       
-      - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
+      - Items marked incomplete require spec updates before `/clarify` or `/plan`
       ```
 
    b. **Run Validation Check**: Review the spec against each checklist item:
@@ -223,7 +223,7 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/clarify` or `/plan`).
 
 8. **Check for extension hooks**: After reporting completion, check if `.specify/extensions.yml` exists in the project root.
    - If it exists, read it and look for entries under the `hooks.after_specify` key

@@ -5,7 +5,7 @@ description: "Fix a bug without creating a new PRD or spec. Describe the issue (
 
 # Fix
 
-Fix a bug in an already-implemented feature. No new PRD, no new spec, no speckit ceremony — just find the bug and fix it.
+Fix a bug in an already-implemented feature. No new PRD, no new spec, no kiln ceremony — just find the bug and fix it.
 
 ```text
 $ARGUMENTS
@@ -50,7 +50,7 @@ ls specs/*/spec.md
 
 Read the relevant `spec.md`, `plan.md`, and `contracts/interfaces.md` to understand what the code SHOULD do. This is your oracle — the gap between spec and reality is the bug.
 
-**If no spec exists**: That's fine. Work from the user's description and the code itself. Not everything goes through speckit.
+**If no spec exists**: That's fine. Work from the user's description and the code itself. Not everything goes through kiln.
 
 ## Step 2b: Check for Credentials / Real Account Data
 
@@ -261,7 +261,7 @@ Do NOT skip QA for UI issues. Do NOT treat a passing unit test as sufficient ver
 - Do NOT require a new PRD or spec — the whole point is to fix bugs without ceremony
 - DO read existing specs for context — they tell you what the code should do
 - **UI issues ALWAYS require QA verification** — no exceptions, no shortcuts
-- The speckit hooks may block src/ edits — existing specs should satisfy the gates. If not, check that spec artifacts exist for the feature.
+- The kiln hooks may block src/ edits — existing specs should satisfy the gates. If not, check that spec artifacts exist for the feature.
 - Log everything in `debug-log.md` — it helps the retrospective and future debugging
 - If the bug reveals a gap in the original spec (the feature was never supposed to handle this case), tell the user. They may want to update the spec before fixing.
 - If the fix is trivial (typo, obvious one-line fix), just fix it directly without the full diagnose→fix loop. Use judgment. But if it's a UI fix, still run QA.

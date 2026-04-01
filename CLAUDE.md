@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-This is the **speckit-harness** Claude Code plugin (`@yoshisada/speckit-harness`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
+This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
 
 **This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin/bin/init.mjs`.
 
@@ -12,7 +12,7 @@ This is the **speckit-harness** Claude Code plugin (`@yoshisada/speckit-harness`
 
 New session? Run `/resume` to auto-detect where you left off and get your next steps.
 
-First time? Run `/init` to set up the speckit harness in an existing repo, or `/create-repo` for a brand new repo.
+First time? Run `/init` to set up kiln in an existing repo, or `/create-repo` for a brand new repo.
 
 ## Build & Development
 
@@ -43,13 +43,13 @@ plugin/
 │   └── marketplace.json     # Distribution config for Claude Code marketplace
 ├── skills/                  # 28 skills — auto-discovered as /skill-name commands
 │   ├── build-prd/           # Master pipeline orchestrator (agent teams)
-│   ├── speckit-*/           # Specify → Plan → Tasks → Implement → Audit workflow
+│   ├── specify/,plan/,...   # Specify → Plan → Tasks → Implement → Audit workflow
 │   ├── debug*/              # Bug fix loop (diagnose → fix → verify)
 │   ├── qa-*/                # QA testing (setup, checkpoint, final, live pass)
 │   ├── ux-evaluate/         # UI/UX design review
-│   ├── init/                # Add speckit to existing repo
+│   ├── init/                # Add kiln to existing repo
 │   ├── resume/              # Session pickup — detect in-progress work
-│   └── create-repo/         # New GitHub repo with speckit pre-configured
+│   └── create-repo/         # New GitHub repo with kiln pre-configured
 ├── agents/                  # 7 agents — spawned as team members
 │   ├── qa-engineer.md       # Visual QA with Playwright + /chrome (3 modes)
 │   ├── ux-evaluator.md      # Design review (heuristics, a11y, visual, interaction)
@@ -66,7 +66,7 @@ plugin/
 ├── templates/               # Spec, plan, tasks, interfaces, constitution templates
 ├── scaffold/                # Files copied into consumer projects by init.mjs
 ├── bin/init.mjs             # npm entrypoint — scaffolds consumer project structure
-└── package.json             # npm package: @yoshisada/speckit-harness
+└── package.json             # npm package: @yoshisada/kiln
 ```
 
 ### How the pieces connect
@@ -77,7 +77,7 @@ plugin/
 
 **Hooks** are shell scripts that run before every Edit/Write/Bash tool use. They enforce the workflow — you can't skip steps because the hooks block you.
 
-**Templates** are copied into consumer projects and used by speckit skills to generate standardized spec/plan/tasks artifacts.
+**Templates** are copied into consumer projects and used by kiln skills to generate standardized spec/plan/tasks artifacts.
 
 ### Key pipeline flow (build-prd)
 
@@ -98,22 +98,22 @@ Every code change in a consumer project MUST follow this order. No exceptions.
 ### 1. Read Constitution
 Before ANY code change, read `.specify/memory/constitution.md`.
 
-### 2. Specify (/speckit.specify)
+### 2. Specify (/specify)
 Create `specs/<feature>/spec.md` with user stories, FRs, and success criteria.
 
-### 3. Plan (/speckit.plan)
+### 3. Plan (/plan)
 Create `specs/<feature>/plan.md` with technical approach, phases, and file list.
 
 **Interface contracts are mandatory.** The plan MUST produce `specs/<feature>/contracts/interfaces.md` defining exact function signatures (name, params, return type, sync vs async) for every exported function. These signatures are the single source of truth — all implementation tasks and parallel agents MUST match them exactly.
 
-### 4. Tasks (/speckit.tasks)
+### 4. Tasks (/tasks)
 Create `specs/<feature>/tasks.md` with ordered, dependency-aware task breakdown.
 
 ### 5. Commit All Artifacts Before Code
 spec.md, plan.md, tasks.md, and contracts/ MUST exist before any `src/` edits. Hooks enforce this.
 
-### 6. Implement via /speckit.implement ONLY
-**Do NOT write implementation code directly.** Run `/speckit.implement` which:
+### 6. Implement via /implement ONLY
+**Do NOT write implementation code directly.** Run `/implement` which:
 - Reads tasks.md and executes tasks phase-by-phase
 - **Marks each task `[X]` IMMEDIATELY after completing it** — not in a batch at the end
 - **Commits after each phase** (not one giant commit at the end)
@@ -123,13 +123,13 @@ spec.md, plan.md, tasks.md, and contracts/ MUST exist before any `src/` edits. H
 - Every test MUST reference the acceptance scenario it validates
 - **After all tasks complete, runs PRD audit automatically** (see step 7)
 
-### 7. PRD Audit (runs inside /speckit.implement)
+### 7. PRD Audit (runs inside /implement)
 Checks every PRD requirement has a spec FR, implementation, and test. Attempts to fix gaps. Documents unfixable gaps in `specs/<feature>/blockers.md`. Reports compliance percentage.
 
 ### 8. Test with Coverage Gate
 New/changed code MUST achieve >=80% test coverage. Run `npm test` or `vitest run`.
 
-### 9. Smoke Test (runs inside /speckit.implement)
+### 9. Smoke Test (runs inside /implement)
 The `smoke-tester` agent scaffolds a fresh project, starts it, and verifies it actually works at runtime.
 
 ### 10. Verify Before Done
@@ -164,22 +164,22 @@ PreToolUse hooks that run on every Edit/Write:
 - **Always allow** edits to docs, specs, config, scripts, and tests
 
 If a hook blocks you, either:
-- Complete the full speckit workflow: specify → plan → tasks → implement (for new features)
+- Complete the full kiln workflow: specify → plan → tasks → implement (for new features)
 - Run `/fix` to fix a bug in an already-specced feature (existing specs satisfy the gates)
 
 ## Available Commands
 
 ### Project Setup
-- `/init` — Add speckit to an existing repo
+- `/init` — Add kiln to an existing repo
 - `/resume` — Pick up where you left off (run at start of every session)
-- `/create-repo` — Create a brand new GitHub repo with speckit
+- `/create-repo` — Create a brand new GitHub repo with kiln
 
-### Speckit Workflow (run in this order)
-1. `/speckit.specify` — Create a feature spec
-2. `/speckit.plan` — Create implementation plan + interface contracts
-3. `/speckit.tasks` — Generate task breakdown
-4. `/speckit.implement` — Execute tasks incrementally + PRD audit
-5. `/speckit.audit` — PRD compliance audit (also runs inside implement)
+### Kiln Workflow (run in this order)
+1. `/specify` — Create a feature spec
+2. `/plan` — Create implementation plan + interface contracts
+3. `/tasks` — Generate task breakdown
+4. `/implement` — Execute tasks incrementally + PRD audit
+5. `/audit` — PRD compliance audit (also runs inside implement)
 
 ### Debugging (no spec required)
 - `/fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number.
@@ -195,12 +195,12 @@ If a hook blocks you, either:
 - `/ux-evaluate` — Standalone UI/UX design review using /chrome
 
 ### Other
-- `/speckit.constitution` — View/update project principles
-- `/speckit.analyze` — Cross-artifact consistency check
-- `/speckit.coverage` — Check test coverage gate
+- `/constitution` — View/update project principles
+- `/analyze` — Cross-artifact consistency check
+- `/coverage` — Check test coverage gate
 - `/build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
-- `/report-issue` — Quick capture bugs/friction to docs/backlog/
+- `/report-issue` — Quick capture bugs/friction to `.kiln/issues/`
 
 ## Versioning
 

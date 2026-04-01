@@ -33,7 +33,7 @@ Determine these fields — infer from context, ask only if ambiguous:
    - `hooks` — enforcement rules
    - `templates` — spec/plan/task templates
    - `scaffold` — init script, project structure
-   - `workflow` — speckit pipeline, build-prd orchestration
+   - `workflow` — kiln pipeline, build-prd orchestration
    - `other`
 4. **Source**: `retro` | `manual` | `github-issue` | `pipeline-run`
    - `retro` — came from a pipeline retrospective

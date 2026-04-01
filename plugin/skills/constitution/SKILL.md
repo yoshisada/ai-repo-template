@@ -1,5 +1,5 @@
 ---
-name: speckit-constitution
+name: constitution
 description: Create or update project governing principles and development guidelines.
   Use at project start to establish code quality, testing standards, and architectural
   constraints that guide all development.
@@ -9,7 +9,7 @@ metadata:
   source: templates/commands/constitution.md
 ---
 
-# Speckit Constitution Skill
+# Kiln Constitution Skill
 
 ## User Input
 
