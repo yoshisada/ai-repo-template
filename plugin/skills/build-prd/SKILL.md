@@ -568,9 +568,39 @@ The retrospective teammate's job:
 ## Step 6: Report and Cleanup
 
 1. **Verify retrospective ran**: Check `TaskList` — the retrospective task MUST be completed. If not, go back to Step 5.
-2. **Shut down teammates gracefully**: Send each teammate `SendMessage` with `message: {type: "shutdown_request"}`. They can approve or reject — if rejected, check why before retrying.
-3. **Wait for all teammates to shut down** before cleaning up.
-4. **Clean up**: Use `TeamDelete` to remove the team and task directories.
+
+2. **Confirm each agent is finished before shutdown (NON-NEGOTIABLE)**:
+
+   For EACH teammate (including the retrospective agent), send a confirmation request BEFORE sending a shutdown request:
+
+   ```
+   SendMessage("[agent-name]", "The pipeline is complete. Are you finished with all your work? Please confirm:
+   1. All your tasks are marked completed in TaskList
+   2. All your artifacts are committed
+   3. You have no pending messages to send
+   Reply 'READY TO SHUTDOWN' when confirmed.")
+   ```
+
+   **Wait for each agent to reply 'READY TO SHUTDOWN' before proceeding.** If an agent says it's NOT finished:
+   - Ask what remains
+   - Wait for it to complete
+   - Re-confirm
+
+   **NEVER shut down an agent that hasn't confirmed it's finished.** An agent may have uncommitted work, pending messages, or in-progress analysis that would be lost.
+
+   **NEVER shut down ANY agent before the retrospective is complete.** The retrospective agent messages other teammates for feedback — if they're shut down, it can't collect their responses. All agents must remain alive until the retrospective agent confirms 'READY TO SHUTDOWN'.
+
+3. **Shut down teammates gracefully**: Only AFTER every agent has confirmed 'READY TO SHUTDOWN', send each teammate `SendMessage` with `message: {type: "shutdown_request"}`.
+
+4. **Shutdown order**:
+   - First: shut down testing/QA agents (e2e-agent, chrome-agent, ux-agent, qa-reporter)
+   - Then: shut down implementers and researcher
+   - Then: shut down specifier
+   - **Last**: shut down retrospective (it needs all others alive for feedback collection)
+   - If any agent rejects the shutdown, check why before retrying
+
+5. **Wait for all teammates to shut down** before cleaning up.
+6. **Clean up**: Use `TeamDelete` to remove the team and task directories.
 5. **Summarize** the pipeline results:
 
 ```

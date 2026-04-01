@@ -258,4 +258,9 @@ Issues: gh issue list --label "qa-pass"
 ```bash
 kill $DEV_PID 2>/dev/null
 ```
-Shut down agents and `TeamDelete: "qa-pass"`.
+
+**Confirm before shutdown**: Ask each agent "Are you finished? Reply 'READY TO SHUTDOWN'." Wait for confirmation. Never shut down an agent with uncommitted work or pending messages.
+
+Shutdown order: e2e-agent → chrome-agent → ux-agent → qa-reporter (last, since it depends on the others).
+
+Then `TeamDelete: "qa-pass"`.
