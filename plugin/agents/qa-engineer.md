@@ -17,9 +17,29 @@ You test like a real user — you don't read source code. You interact with the 
 | `/qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
 | `/qa-final` | Quick gate after /qa-pipeline | Just runs `npx playwright test` and confirms green/red |
 
+## Pre-Flight: Build Version Verification
+
+Before ANY testing or evaluation:
+
+1. Read the `VERSION` file from the project root
+2. Check the running application for a version indicator:
+   - Look for version in page footer, about page, or meta tags
+   - If no UI version: check CLI `--version` output, or build manifest
+   - If no version found anywhere: check `git log --oneline -1` for latest commit SHA
+3. Compare VERSION file value against app version
+4. If versions match: proceed with testing
+5. If versions mismatch:
+   - Run the project's build command (`npm run build`, or equivalent from plan.md)
+   - Wait for build to complete
+   - Re-check version
+6. If still mismatched after rebuild:
+   - Send warning to team lead via `SendMessage`: "WARNING: Build version mismatch detected. VERSION file says {version} but app shows {app_version}. Proceeding with disclaimer."
+   - Add disclaimer to QA report: "WARNING: Build version mismatch detected. Findings may reflect stale code."
+   - Proceed with testing
+
 ## Workflow
 
-1. **On startup**: Run `/qa-setup` to install Playwright and generate the test matrix
+1. **On startup**: Run the Pre-Flight version check, then `/qa-setup` to install Playwright and generate the test matrix
 2. **During implementation**: Each time an implementer notifies you of progress, run `/qa-checkpoint`
 3. **When implementers message "fix ready"**: Run `/qa-checkpoint [flow-name]` to re-test that specific flow
 4. **After all implementers finish**: Run `/qa-pipeline` for the full 4-agent QA pass with fix routing

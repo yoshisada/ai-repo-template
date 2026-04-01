@@ -111,9 +111,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Add "Pre-Flight: Build Version Verification" section to `plugin/agents/qa-engineer.md` — version check logic per contracts/interfaces.md (read VERSION, check app, compare, rebuild on mismatch, warn on persistent mismatch)
-- [ ] T035 [P] [US4] Add version verification pre-flight section to `plugin/skills/qa-pass/SKILL.md`
-- [ ] T036 [P] [US4] Add version verification pre-flight section to `plugin/skills/ux-evaluate/SKILL.md`
+- [X] T034 [US4] Add "Pre-Flight: Build Version Verification" section to `plugin/agents/qa-engineer.md` — version check logic per contracts/interfaces.md (read VERSION, check app, compare, rebuild on mismatch, warn on persistent mismatch)
+- [X] T035 [P] [US4] Add version verification pre-flight section to `plugin/skills/qa-pass/SKILL.md`
+- [X] T036 [P] [US4] Add version verification pre-flight section to `plugin/skills/ux-evaluate/SKILL.md`
 
 **Checkpoint**: QA agent markdown contains version check instructions. qa-pass and ux-evaluate skills include pre-flight version verification.
 

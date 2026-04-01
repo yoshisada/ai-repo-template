@@ -35,7 +35,14 @@ $ARGUMENTS
 
 ## Pre-Flight
 
-1. **Verify /chrome**: Check availability. If unavailable, warn that chrome-agent will be skipped.
+1. **Version Verification**: Before dispatching any QA agents, verify the build is current:
+   - Read the `VERSION` file from the project root
+   - If a dev server is running, check the app for a version indicator (page footer, meta tags, CLI output)
+   - If versions mismatch: run the project's build command, wait, and re-check
+   - If still mismatched after rebuild: warn the user and add a disclaimer to the QA report
+   - If no VERSION file exists: skip this check with a warning
+
+2. **Verify /chrome**: Check availability. If unavailable, warn that chrome-agent will be skipped.
 
 2. **Read spec context**: `specs/*/spec.md`, `specs/*/plan.md`, `docs/PRD.md`. Build or read `.kiln/qa/test-matrix.md`.
 

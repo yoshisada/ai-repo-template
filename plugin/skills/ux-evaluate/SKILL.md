@@ -17,6 +17,16 @@ If arguments provide a URL, use that. Otherwise detect the dev server.
 
 **Requires**: Chrome browser + Claude-in-Chrome extension.
 
+## Step 0: Pre-Flight — Version Verification
+
+Before starting evaluation:
+
+1. Read the `VERSION` file from the project root
+2. If a dev server is running, check the app for a version indicator (page footer, meta tags, CLI output)
+3. If versions mismatch: run the project's build command, wait, and re-check
+4. If still mismatched after rebuild: warn the user and add a disclaimer to the UX report
+5. If no VERSION file exists: skip this check with a warning
+
 ## Step 1: Setup
 
 1. **Verify /chrome is available**. If not, guide the user to enable it.
