@@ -27,9 +27,9 @@
 
 ### Implementation
 
-- [ ] T001 [US1] Create non-compiled validation script at scripts/validate-non-compiled.sh — FR-001. Must: (a) accept `--files` and `--all` flags, (b) detect modified files via `git diff` when no flags given, (c) check frontmatter structure in SKILL.md files, (d) extract bash code blocks and run `bash -n`, (e) scan file path references and verify they exist, (f) run `node plugin/bin/init.mjs init` in a temp dir for scaffold verification, (g) output structured markdown report, (h) exit 0 on pass / 1 on fail
-- [ ] T002 [US1] Update plugin/skills/implement/SKILL.md to add non-compiled validation gate — FR-002. After step 9 (completion validation), add logic: if no `src/` directory changes exist in the feature branch, skip the 80% coverage gate and run `bash scripts/validate-non-compiled.sh` instead. Report validation results as coverage substitute. Halt on non-zero exit.
-- [ ] T003 [US1] Update plugin/skills/audit/SKILL.md to include non-compiled validation evidence in the auditor checklist — FR-003. Add checklist item: "Non-compiled validation: [PASS/FAIL/N/A]" with file counts per check category.
+- [X] T001 [US1] Create non-compiled validation script at scripts/validate-non-compiled.sh — FR-001. Must: (a) accept `--files` and `--all` flags, (b) detect modified files via `git diff` when no flags given, (c) check frontmatter structure in SKILL.md files, (d) extract bash code blocks and run `bash -n`, (e) scan file path references and verify they exist, (f) run `node plugin/bin/init.mjs init` in a temp dir for scaffold verification, (g) output structured markdown report, (h) exit 0 on pass / 1 on fail
+- [X] T002 [US1] Update plugin/skills/implement/SKILL.md to add non-compiled validation gate — FR-002. After step 9 (completion validation), add logic: if no `src/` directory changes exist in the feature branch, skip the 80% coverage gate and run `bash scripts/validate-non-compiled.sh` instead. Report validation results as coverage substitute. Halt on non-zero exit.
+- [X] T003 [US1] Update plugin/skills/audit/SKILL.md to include non-compiled validation evidence in the auditor checklist — FR-003. Add checklist item: "Non-compiled validation: [PASS/FAIL/N/A]" with file counts per check category.
 
 **Checkpoint**: Validation script runs standalone. `/implement` routes non-compiled features through it. Auditor reports include validation evidence.
 

@@ -113,6 +113,22 @@ Produce a summary table:
    - If user says no → halt, leave blockers.md for review
    - If user says yes → proceed, implementation is accepted with documented gaps
 
+### Phase 4b: Non-Compiled Validation Evidence (FR-003)
+
+If the feature branch has no `src/` changes (non-compiled feature), include validation results in the audit checklist:
+
+```
+| Check | Status | Details |
+|-------|--------|---------|
+| Non-compiled validation | [PASS/FAIL/N/A] | Frontmatter: N files, Bash syntax: N files, File refs: N files, Scaffold: [pass/fail] |
+```
+
+- **PASS**: `scripts/validate-non-compiled.sh` ran and exited 0 during `/implement`
+- **FAIL**: The script ran and exited non-zero — list the failing checks
+- **N/A**: The project has `src/` changes (compiled project) — standard coverage gate applies instead
+
+Populate the counts from the validation report generated during `/implement` step 9b. If no validation was run (compiled project), mark as N/A and do not flag it as a gap.
+
 ### Phase 5: Report
 
 Final output:
