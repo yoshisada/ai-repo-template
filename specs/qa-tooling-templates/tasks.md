@@ -102,14 +102,14 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 5
 
-- [ ] T009 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/qa-engineer.md` — before completing, write to `specs/<feature>/agent-notes/qa-engineer.md` with what was confusing, where stuck, and what to improve — FR-009
-- [ ] T010 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/debugger.md` — same pattern as T009 — FR-009
-- [ ] T011 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/prd-auditor.md` — same pattern as T009 — FR-009
-- [ ] T012 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/smoke-tester.md` — same pattern as T009 — FR-009
-- [ ] T013 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/spec-enforcer.md` — same pattern as T009 — FR-009
-- [ ] T014 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/test-runner.md` — same pattern as T009 — FR-009
-- [ ] T015 [US5] Update `plugin/skills/build-prd/SKILL.md` — add instruction in the team design section that ALL pipeline agents must write friction notes to `specs/<feature>/agent-notes/<agent-name>.md` before completing their work — FR-009
-- [ ] T016 [US5] Update `plugin/skills/build-prd/SKILL.md` retrospective section — change retrospective agent to read from `specs/<feature>/agent-notes/` directory instead of relying on live `SendMessage` feedback from teammates — FR-010
+- [X] T009 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/qa-engineer.md` — before completing, write to `specs/<feature>/agent-notes/qa-engineer.md` with what was confusing, where stuck, and what to improve — FR-009
+- [X] T010 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/debugger.md` — same pattern as T009 — FR-009
+- [X] T011 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/prd-auditor.md` — same pattern as T009 — FR-009
+- [X] T012 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/smoke-tester.md` — same pattern as T009 — FR-009
+- [X] T013 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/spec-enforcer.md` — same pattern as T009 — FR-009
+- [X] T014 [P] [US5] Add "Agent Friction Notes" section to `plugin/agents/test-runner.md` — same pattern as T009 — FR-009
+- [X] T015 [US5] Update `plugin/skills/build-prd/SKILL.md` — add instruction in the team design section that ALL pipeline agents must write friction notes to `specs/<feature>/agent-notes/<agent-name>.md` before completing their work — FR-009
+- [X] T016 [US5] Update `plugin/skills/build-prd/SKILL.md` retrospective section — change retrospective agent to read from `specs/<feature>/agent-notes/` directory instead of relying on live `SendMessage` feedback from teammates — FR-010
 
 **Checkpoint**: All pipeline agents write friction notes and the retrospective agent reads them.
 
