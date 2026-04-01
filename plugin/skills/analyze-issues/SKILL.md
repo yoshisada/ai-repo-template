@@ -136,6 +136,36 @@ For each issue, show:
 
 ## Step 6: Handle Closures
 
+If no issues were suggested for closure in Step 4, skip this step entirely.
+
+Otherwise, present the closure suggestions to the user:
+
+```
+## Suggested Closures
+
+The following issues appear to be informational, resolved, stale, or duplicative:
+
+1. #19 "Build summary for run #45" — informational only, no action items
+2. #22 "General feedback on DX" — no specific action items
+3. #31 "Stale hook investigation" — stale, no activity since 2025-10-15
+
+Close all 3? (yes / no / pick individually)
+```
+
+Wait for the user's response:
+
+- **"yes"** or **"all"**: Close all suggested issues.
+- **"no"** or **"none"**: Skip all closures. No issues are closed.
+- **"pick"** or **"individually"** or a list of numbers (e.g., "1, 3"): Let the user select which to close.
+
+For each issue the user confirms for closure, run:
+
+```bash
+gh issue close <number> --comment "Closed by /analyze-issues: <reason>"
+```
+
+Track how many issues were closed for the summary report.
+
 ## Step 7: Create and Apply Labels
 
 ### 7a. Create Labels

@@ -67,7 +67,7 @@ Note: Actionability assessment is integrated into T005 (Step 4). This phase ensu
 
 **Independent Test**: Run skill on a mix of issues; verify closure suggestions appear with reasons and issues close only after confirmation
 
-- [ ] T008 [US4] Write Step 6 (Handle Closures) — present closure suggestions with reasons, prompt user for individual or batch confirmation, close confirmed issues via `gh issue close <number> --comment "Closed by /analyze-issues: <reason>"`. In plugin/skills/analyze-issues/SKILL.md
+- [X] T008 [US4] Write Step 6 (Handle Closures) — present closure suggestions with reasons, prompt user for individual or batch confirmation, close confirmed issues via `gh issue close <number> --comment "Closed by /analyze-issues: <reason>"`. In plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Users can review and confirm issue closures individually or in batch
 
