@@ -105,10 +105,10 @@
 
 ### Implementation
 
-- [ ] T014 [P] [US6] Create roadmap template at plugin/templates/roadmap-template.md — FR-014. Simple markdown with heading and theme groups: "DX Improvements", "New Capabilities", "Tech Debt", "General". No frontmatter, no status tracking.
-- [ ] T015 [P] [US6] Create roadmap skill at plugin/skills/roadmap/SKILL.md — FR-015. Must: (a) check if `.kiln/roadmap.md` exists, create from template if not, (b) parse user input as item description, (c) identify best matching theme group, (d) append item as bullet under that group, (e) report what was added.
-- [ ] T016 [US6] Update plugin/bin/init.mjs to scaffold `.kiln/roadmap.md` from template — FR-014. Use existing `copyIfMissing` pattern to copy `plugin/templates/roadmap-template.md` to `.kiln/roadmap.md`.
-- [ ] T017 [US6] Update plugin/skills/next/SKILL.md to surface roadmap items when no urgent work exists — FR-016. Add conditional section: if no incomplete tasks, no open blockers, no critical issues, read `.kiln/roadmap.md`, extract up to 5 items, display "Nothing pressing. Here are some ideas from your roadmap:" followed by the items.
+- [X] T014 [P] [US6] Create roadmap template at plugin/templates/roadmap-template.md — FR-014. Simple markdown with heading and theme groups: "DX Improvements", "New Capabilities", "Tech Debt", "General". No frontmatter, no status tracking.
+- [X] T015 [P] [US6] Create roadmap skill at plugin/skills/roadmap/SKILL.md — FR-015. Must: (a) check if `.kiln/roadmap.md` exists, create from template if not, (b) parse user input as item description, (c) identify best matching theme group, (d) append item as bullet under that group, (e) report what was added.
+- [X] T016 [US6] Update plugin/bin/init.mjs to scaffold `.kiln/roadmap.md` from template — FR-014. Use existing `copyIfMissing` pattern to copy `plugin/templates/roadmap-template.md` to `.kiln/roadmap.md`.
+- [X] T017 [US6] Update plugin/skills/next/SKILL.md to surface roadmap items when no urgent work exists — FR-016. Add conditional section: if no incomplete tasks, no open blockers, no critical issues, read `.kiln/roadmap.md`, extract up to 5 items, display "Nothing pressing. Here are some ideas from your roadmap:" followed by the items.
 
 **Checkpoint**: Roadmap file scaffolded. `/roadmap` appends items. `/next` surfaces roadmap when idle.
 
