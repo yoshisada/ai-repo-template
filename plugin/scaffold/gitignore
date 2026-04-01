@@ -32,15 +32,18 @@ Thumbs.db
 .version.lock
 
 # QA credentials (secrets)
-.kiln/qa/.env.test
+.kiln/qa/config/.env.test
+
+# QA transient outputs
+.kiln/qa/results/
+.kiln/qa/screenshots/
+.kiln/qa/videos/
 
 # QA baselines (screenshots are large; JSON scores are ok to commit)
 .kiln/qa/baselines/*.png
-.kiln/qa/latest/screenshots/reference/
 
 # .kiln/ transient outputs (FR-014)
 .kiln/agents/
-.kiln/qa/
 .kiln/logs/
 
 # Logs

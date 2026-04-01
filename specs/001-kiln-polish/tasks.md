@@ -88,8 +88,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T011 [US4] Add QA subdirectories to kilnDirs array and add README copy in plugin/bin/init.mjs (FR-007)
-- [ ] T012 [US4] Update gitignore paths in plugin/scaffold/gitignore for new canonical QA locations
+- [X] T011 [US4] Add QA subdirectories to kilnDirs array and add README copy in plugin/bin/init.mjs (FR-007)
+- [X] T012 [US4] Update gitignore paths in plugin/scaffold/gitignore for new canonical QA locations
 
 **Checkpoint**: init.mjs creates the full QA directory structure with README. US4 is independently testable.
 
