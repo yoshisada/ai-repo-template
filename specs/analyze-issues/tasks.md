@@ -105,8 +105,8 @@ Note: Already implemented in T006 (Step 7 — Create Labels). Category labels wi
 
 **Purpose**: Summary report and edge case handling
 
-- [ ] T010 Write Step 9 (Summary Report) — display table with total issues analyzed, categories assigned, issues flagged as actionable, issues suggested for closure, issues closed, and backlog items created. In plugin/skills/analyze-issues/SKILL.md
-- [ ] T011 Write Rules section — document constraints: 50 issue limit, no issue body/title modification, idempotent behavior, error handling for label creation failures, title-only issues. In plugin/skills/analyze-issues/SKILL.md
+- [X] T010 Write Step 9 (Summary Report) — display table with total issues analyzed, categories assigned, issues flagged as actionable, issues suggested for closure, issues closed, and backlog items created. In plugin/skills/analyze-issues/SKILL.md
+- [X] T011 Write Rules section — document constraints: 50 issue limit, no issue body/title modification, idempotent behavior, error handling for label creation failures, title-only issues. In plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Skill is complete with summary report and documented rules
 

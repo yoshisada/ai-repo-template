@@ -231,4 +231,35 @@ Track how many backlog items were created for the summary report.
 
 ## Step 9: Summary Report
 
+Display a final summary of all actions taken during this run:
+
+```
+## Analysis Summary
+
+| Metric                  | Count |
+|-------------------------|-------|
+| Total issues analyzed   | N     |
+| Categories assigned     | N     |
+| Flagged as actionable   | N     |
+| Suggested for closure   | N     |
+| Issues closed           | N     |
+| Backlog items created   | N     |
+```
+
+- **Total issues analyzed**: Number of issues in ISSUES_TO_PROCESS
+- **Categories assigned**: Same as total analyzed (every issue gets a category)
+- **Flagged as actionable**: Number of issues marked actionable in Step 4
+- **Suggested for closure**: Number of issues suggested for closure in Step 4
+- **Issues closed**: Number actually closed by the user in Step 6 (0 if skipped)
+- **Backlog items created**: Number of `/report-issue` invocations in Step 8 (0 if skipped)
+
 ## Rules
+
+- **50 issue limit**: Process at most 50 open issues per run. If the repo has more than 50, report how many were skipped.
+- **No body/title modification**: Never edit the title or body of any issue. Only add labels and close (with comment) when confirmed.
+- **Idempotent labeling**: The `analyzed` label and `--reanalyze` flag ensure repeated runs do not re-process issues unnecessarily. Label creation uses `--force` to avoid errors on existing labels.
+- **Label creation failures**: If a label cannot be created (e.g., insufficient permissions), report the error and continue processing. Do not halt the entire run.
+- **Title-only issues**: If an issue has no body (empty or null), categorize based on the title alone. Note in the results that the categorization was based on title only.
+- **Error resilience**: If labeling or closing fails for a specific issue, report the error for that issue and continue with the remaining issues. Never abort the full run due to a single issue failure.
+- **No auto-close**: Never close an issue without explicit user confirmation. Always present suggestions and wait for the user's decision.
+- **No auto-commit**: Do not commit any changes. Backlog items created via `/report-issue` are left uncommitted for the user to review.
