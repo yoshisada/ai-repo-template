@@ -40,10 +40,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Add "Suggested next" output section to Step 5 (terminal summary) in plugin/skills/next/SKILL.md (FR-001, FR-002)
-- [ ] T004 [US1] Add "Nothing urgent" fallback to the "Suggested next" section for clean projects in plugin/skills/next/SKILL.md (FR-003)
-- [ ] T005 [US1] Ensure "Suggested next" line appears in --brief mode output in plugin/skills/next/SKILL.md (FR-001)
-- [ ] T006 [US1] Add "Suggested next" to the persistent report format in Step 6 of plugin/skills/next/SKILL.md (FR-001)
+- [X] T003 [US1] Add "Suggested next" output section to Step 5 (terminal summary) in plugin/skills/next/SKILL.md (FR-001, FR-002)
+- [X] T004 [US1] Add "Nothing urgent" fallback to the "Suggested next" section for clean projects in plugin/skills/next/SKILL.md (FR-003)
+- [X] T005 [US1] Ensure "Suggested next" line appears in --brief mode output in plugin/skills/next/SKILL.md (FR-001)
+- [X] T006 [US1] Add "Suggested next" to the persistent report format in Step 6 of plugin/skills/next/SKILL.md (FR-001)
 
 **Checkpoint**: `/next` shows a "Suggested next" line in all modes (normal, brief, clean project). US1 is independently testable.
 
