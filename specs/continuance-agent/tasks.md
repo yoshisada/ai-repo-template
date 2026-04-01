@@ -118,9 +118,9 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T013 Verify all four files exist and have correct frontmatter: `plugin/agents/continuance.md`, `plugin/skills/next/SKILL.md`, `plugin/skills/resume/SKILL.md`, `plugin/skills/build-prd/skill.md`
-- [ ] T014 Verify `/next` skill output format matches `contracts/interfaces.md` terminal summary format exactly
-- [ ] T015 Verify `/next` skill persistent report format matches `contracts/interfaces.md` report format exactly
+- [X] T013 Verify all four files exist and have correct frontmatter: `plugin/agents/continuance.md`, `plugin/skills/next/SKILL.md`, `plugin/skills/resume/SKILL.md`, `plugin/skills/build-prd/skill.md`
+- [X] T014 Verify `/next` skill output format matches `contracts/interfaces.md` terminal summary format exactly
+- [X] T015 Verify `/next` skill persistent report format matches `contracts/interfaces.md` report format exactly
 
 ---
 
