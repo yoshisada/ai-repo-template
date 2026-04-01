@@ -17,7 +17,7 @@
 
 **Purpose**: Create the skill directory and SKILL.md with frontmatter and skeleton structure
 
-- [ ] T001 Create skill directory and SKILL.md with YAML frontmatter (name, description) and all section headings per contracts/interfaces.md in plugin/skills/analyze-issues/SKILL.md
+- [X] T001 Create skill directory and SKILL.md with YAML frontmatter (name, description) and all section headings per contracts/interfaces.md in plugin/skills/analyze-issues/SKILL.md
 
 **Checkpoint**: Skill file exists with correct structure, discoverable by plugin system
 
