@@ -97,5 +97,16 @@ if [[ -f "$PKG_FILE" ]] && command -v jq &>/dev/null; then
   fi
 fi
 
+# Sync to plugin/.claude-plugin/plugin.json if it exists
+PLUGIN_JSON="$PROJECT_DIR/plugin/.claude-plugin/plugin.json"
+if [[ -f "$PLUGIN_JSON" ]] && command -v jq &>/dev/null; then
+  TMP_PLUGIN=$(mktemp)
+  if jq --arg v "$NEW_VERSION" '.version = $v' "$PLUGIN_JSON" > "$TMP_PLUGIN" 2>/dev/null; then
+    mv "$TMP_PLUGIN" "$PLUGIN_JSON"
+  else
+    rm -f "$TMP_PLUGIN"
+  fi
+fi
+
 # Always allow the edit
 exit 0
