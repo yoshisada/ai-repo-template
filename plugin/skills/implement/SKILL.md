@@ -159,7 +159,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
    - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
    - **File-based coordination**: Tasks affecting the same files must run sequentially
-   - **Validation checkpoints**: Verify each phase completion before proceeding
+   - **SELF-VALIDATE at each checkpoint**: After completing each phase, run tests locally and verify the phase works. Do NOT wait for external QA feedback — proceed to the next phase if tests pass. Self-validation means running `npm test`, `vitest run`, or the project's test command and confirming the output is green. Only stop and wait at checkpoints explicitly marked as "QA-GATED" (which means a QA agent must provide feedback before you continue).
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration

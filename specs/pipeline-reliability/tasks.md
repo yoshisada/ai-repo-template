@@ -88,7 +88,7 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Review the build-prd skill prompt for clear stall detection instructions with configurable timeout.
 
-- [ ] T011 [US5] Add stall detection section to `plugin/skills/build-prd/SKILL.md` — in the "Monitor and Steer" section (or after Task Dependencies), add instructions for the team lead to: track last activity time per agent, check every agent's status when processing task updates, send a check-in message if an agent's task has been `in_progress` for 10+ minutes with no commits/task-updates/messages, escalate or reassign if agent is unresponsive after check-in (FR-005)
+- [X] T011 [US5] Add stall detection section to `plugin/skills/build-prd/SKILL.md` — in the "Monitor and Steer" section (or after Task Dependencies), add instructions for the team lead to: track last activity time per agent, check every agent's status when processing task updates, send a check-in message if an agent's task has been `in_progress` for 10+ minutes with no commits/task-updates/messages, escalate or reassign if agent is unresponsive after check-in (FR-005)
 
 ---
 
@@ -98,7 +98,7 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Review the build-prd skill prompt for explicit phase-gating instructions.
 
-- [ ] T012 [US6] Add phase dependency enforcement to `plugin/skills/build-prd/SKILL.md` — in the agent dispatch logic (Step 3 or Monitor and Steer section), add instructions that the team lead MUST verify all tasks in Phase N are marked `[X]` in tasks.md before dispatching Phase N+1 agents. Include instruction to read tasks.md and check completion status before each dispatch (FR-006)
+- [X] T012 [US6] Add phase dependency enforcement to `plugin/skills/build-prd/SKILL.md` — in the agent dispatch logic (Step 3 or Monitor and Steer section), add instructions that the team lead MUST verify all tasks in Phase N are marked `[X]` in tasks.md before dispatching Phase N+1 agents. Include instruction to read tasks.md and check completion status before each dispatch (FR-006)
 
 ---
 
@@ -108,8 +108,8 @@ All implementation for this story is completed in Phase 2 (T005). No additional 
 
 **Independent Test**: Search all skill/template files for "STOP and VALIDATE" — should be zero occurrences. Search for "SELF-VALIDATE" — should be present with clear instructions.
 
-- [ ] T013 [P] [US7] Replace "STOP and VALIDATE" in `plugin/templates/tasks-template.md` line 219 — change to "SELF-VALIDATE: Run tests locally and verify User Story 1 independently. Do NOT wait for external QA feedback." (FR-007)
-- [ ] T014 [P] [US7] Review `plugin/skills/implement/SKILL.md` for any "STOP and VALIDATE" or ambiguous validation language — replace with "SELF-VALIDATE: Run tests locally and verify the phase works. Proceed to the next phase if tests pass. Do NOT wait for external QA feedback." Add a note distinguishing self-validation from QA-gated checkpoints (FR-007)
+- [X] T013 [P] [US7] Replace "STOP and VALIDATE" in `plugin/templates/tasks-template.md` line 219 — change to "SELF-VALIDATE: Run tests locally and verify User Story 1 independently. Do NOT wait for external QA feedback." (FR-007)
+- [X] T014 [P] [US7] Review `plugin/skills/implement/SKILL.md` for any "STOP and VALIDATE" or ambiguous validation language — replace with "SELF-VALIDATE: Run tests locally and verify the phase works. Proceed to the next phase if tests pass. Do NOT wait for external QA feedback." Add a note distinguishing self-validation from QA-gated checkpoints (FR-007)
 
 ---
 

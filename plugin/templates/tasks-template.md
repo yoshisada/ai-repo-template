@@ -216,7 +216,7 @@ Task: "Create [Entity2] model in src/models/[entity2].py"
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: Test User Story 1 independently
+4. **SELF-VALIDATE**: Run tests locally and verify User Story 1 independently. Do NOT wait for external QA feedback. If tests pass, proceed to the next story.
 5. Deploy/demo if ready
 
 ### Incremental Delivery
