@@ -25,8 +25,8 @@
 
 **Purpose**: Define the canonical QA directory structure in the manifest. This must be done before any skill/agent updates reference the new paths.
 
-- [ ] T001 Update QA directory manifest with subdirectory entries in plugin/templates/kiln-manifest.json (FR-004)
-- [ ] T002 Create QA README scaffold template at plugin/scaffold/qa-readme.md (FR-008)
+- [X] T001 Update QA directory manifest with subdirectory entries in plugin/templates/kiln-manifest.json (FR-004)
+- [X] T002 Create QA README scaffold template at plugin/scaffold/qa-readme.md (FR-008)
 
 **Checkpoint**: Manifest and README template exist — skill/agent updates can now reference the canonical structure.
 
