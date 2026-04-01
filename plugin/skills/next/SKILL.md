@@ -95,14 +95,14 @@ fi
 
 ```bash
 echo "=== QA REPORTS ==="
-for report in .kiln/qa/QA-REPORT.md .kiln/qa/QA-PASS-REPORT.md .kiln/qa/UX-REPORT.md .kiln/qa/latest/QA-REPORT.md .kiln/qa/latest/QA-PASS-REPORT.md .kiln/qa/latest/UX-REPORT.md; do
+for report in .kiln/qa/results/QA-REPORT.md .kiln/qa/results/QA-PASS-REPORT.md .kiln/qa/results/UX-REPORT.md; do
   if [ -f "$report" ]; then
     echo "--- $report ---"
     head -50 "$report"
     echo "..."
   fi
 done
-if ! ls .kiln/qa/*.md .kiln/qa/latest/*.md 1>/dev/null 2>&1; then
+if ! ls .kiln/qa/results/*.md 1>/dev/null 2>&1; then
   echo "No QA reports found."
 fi
 ```
@@ -293,16 +293,41 @@ Present the recommendations in this exact format:
 
 If a priority level has no items, omit that section entirely.
 
-If **BRIEF_MODE=false**, append:
+### Suggested Next Command
+
+<!-- FR-001: Single prominent "Suggested next" line -->
+<!-- FR-002: Include brief reason for the suggestion -->
+<!-- FR-003: "Nothing urgent" fallback for clean projects -->
+
+After the recommendations list (or after the project state summary if no recommendations exist), append:
+
 ```markdown
 ---
+
+> **Suggested next**: `/command` — reason
+```
+
+**Rules for the suggested command:**
+- Pick the **first item** from the priority-sorted recommendation list (Step 4) — this is the single highest-priority command.
+- The `reason` is the description from that same recommendation item (keep it to one sentence).
+- If **no actionable recommendations** exist (project is clean, all tasks done, no issues), output:
+
+```markdown
+---
+
+> **Suggested next**: Nothing urgent — check the backlog with `/issue-to-prd`
+```
+
+- The "Suggested next" line MUST appear in **both** normal and `--brief` modes — it is never suppressed.
+
+If **BRIEF_MODE=false**, append after the "Suggested next" line:
+```markdown
 Full report: `.kiln/logs/next-<timestamp>.md`
 [N] new backlog items created in `.kiln/issues/`
 ```
 
-If **BRIEF_MODE=true**, append:
+If **BRIEF_MODE=true**, append after the "Suggested next" line:
 ```markdown
----
 _Showing top 5 only. Run `/next` (without --brief) for the full analysis._
 ```
 
@@ -362,6 +387,14 @@ Write the report to `$REPORT_PATH` in this exact format:
 ```
 
 (Include ALL recommendations, not just the top 15 from the terminal summary.)
+
+```markdown
+## Suggested Next
+
+> **Suggested next**: `/command` — reason
+```
+
+(Same logic as the terminal summary: first item from the priority-sorted list, or "Nothing urgent" if clean.)
 
 ```markdown
 ## Backlog Updates

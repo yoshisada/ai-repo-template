@@ -31,12 +31,12 @@ If installation fails, report the error and STOP.
 Create the QA test infrastructure in the project:
 
 ```bash
-mkdir -p .kiln/qa/tests .kiln/qa/videos .kiln/qa/screenshots .kiln/qa/traces
+mkdir -p .kiln/qa/tests .kiln/qa/results .kiln/qa/screenshots .kiln/qa/videos .kiln/qa/config
 ```
 
 ### Step 3: Generate Playwright Config
 
-Write `.kiln/qa/playwright.config.ts`:
+Write `.kiln/qa/config/playwright.config.ts`:
 
 ```typescript
 import { defineConfig } from '@playwright/test';
@@ -86,7 +86,7 @@ Read these files (do NOT read source code):
 2. `specs/*/plan.md` — Identify routes/pages and UI components
 3. `docs/PRD.md` or `docs/features/*/PRD.md` — Product requirements
 
-Write a test matrix to `.kiln/qa/test-matrix.md`:
+Write a test matrix to `.kiln/qa/config/test-matrix.md`:
 
 ```markdown
 # QA Test Matrix
@@ -140,7 +140,7 @@ Scan the test matrix for flows that require authentication, API keys, or test ac
 
 If ANY flow requires credentials:
 
-1. Generate a template at `.kiln/qa/.env.test.example`:
+1. Generate a template at `.kiln/qa/config/.env.test.example`:
 
 ```env
 # QA Test Credentials
@@ -155,11 +155,11 @@ If ANY flow requires credentials:
 # QA_ADMIN_PASSWORD=
 ```
 
-2. Add `.kiln/qa/.env.test` to `.gitignore` if not already present.
+2. Add `.kiln/qa/config/.env.test` to `.gitignore` if not already present.
 
-3. Check if `.kiln/qa/.env.test` already exists (user may have pre-filled it).
+3. Check if `.kiln/qa/config/.env.test` already exists (user may have pre-filled it).
 
-4. If credentials are needed but `.kiln/qa/.env.test` doesn't exist or is incomplete, send a message to the team lead via `SendMessage`:
+4. If credentials are needed but `.kiln/qa/config/.env.test` doesn't exist or is incomplete, send a message to the team lead via `SendMessage`:
 
 ```
 QA CREDENTIALS NEEDED
@@ -170,7 +170,7 @@ The following flows require credentials I don't have:
 |------|--------------|-----|
 | [flow] | [credential] | [reason] |
 
-Please ask the user to fill in `.kiln/qa/.env.test` (template at `.kiln/qa/.env.test.example`).
+Please ask the user to fill in `.kiln/qa/config/.env.test` (template at `.kiln/qa/config/.env.test.example`).
 
 I'll mark these flows as BLOCKED until credentials are provided. Non-auth flows will proceed normally.
 ```
@@ -188,10 +188,10 @@ Report:
 - Number of user flows in test matrix (by priority)
 - Number of test stubs generated
 - Credential-dependent flows: N (blocked until `.kiln/qa/.env.test` is provided)
-- Path to test matrix: `.kiln/qa/test-matrix.md`
-- Path to Playwright config: `.kiln/qa/playwright.config.ts`
+- Path to test matrix: `.kiln/qa/config/test-matrix.md`
+- Path to Playwright config: `.kiln/qa/config/playwright.config.ts`
 - Path to test stubs: `.kiln/qa/tests/`
-- Path to credential template: `.kiln/qa/.env.test.example` (if needed)
+- Path to credential template: `.kiln/qa/config/.env.test.example` (if needed)
 
 ### Rules
 
@@ -201,4 +201,4 @@ Report:
 - Test stubs should use accessible selectors (getByRole, getByLabel, getByText, getByTestId)
 - Every test name MUST reference its user story or FR
 - NEVER hardcode or guess credentials — always request from user via team lead
-- NEVER commit `.kiln/qa/.env.test` — only the `.env.test.example` template
+- NEVER commit `.kiln/qa/config/.env.test` — only the `.env.test.example` template

@@ -113,17 +113,30 @@ function scaffoldProject() {
   );
 
   // .kiln/ directory structure (FR-008, FR-009)
+  // FR-007: QA subdirectories created during scaffold
   const kilnDirs = [
     ".kiln/workflows",
     ".kiln/agents",
     ".kiln/issues",
     ".kiln/qa",
+    ".kiln/qa/tests",
+    ".kiln/qa/results",
+    ".kiln/qa/screenshots",
+    ".kiln/qa/videos",
+    ".kiln/qa/config",
     ".kiln/logs"
   ];
   for (const dir of kilnDirs) {
     ensureDir(join(PROJECT_DIR, dir));
     log(`+ ${dir}/`);
   }
+
+  // FR-008: Copy QA README template
+  copyIfMissing(
+    join(scaffold, "qa-readme.md"),
+    join(PROJECT_DIR, ".kiln", "qa", "README.md"),
+    ".kiln/qa/README.md"
+  );
 }
 
 // ── Sync: shared infrastructure (always update to latest) ──

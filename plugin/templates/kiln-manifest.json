@@ -7,6 +7,11 @@
     ".kiln/agents": { "required": true, "tracked": false },
     ".kiln/issues": { "required": true, "tracked": true },
     ".kiln/qa": { "required": true, "tracked": false },
+    ".kiln/qa/tests": { "required": true, "tracked": false },
+    ".kiln/qa/results": { "required": true, "tracked": false },
+    ".kiln/qa/screenshots": { "required": true, "tracked": false },
+    ".kiln/qa/videos": { "required": true, "tracked": false },
+    ".kiln/qa/config": { "required": true, "tracked": false },
     ".kiln/logs": { "required": true, "tracked": false }
   },
   "migrations": {

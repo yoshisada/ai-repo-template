@@ -74,7 +74,7 @@ The following flows require credentials or environment setup that I don't have:
 | US-007: Payment checkout | Stripe test key | Checkout hits Stripe API |
 | US-010: Admin dashboard | Admin account credentials | Admin-only routes |
 
-Please ask the user to provide these in `.kiln/qa/.env.test`:
+Please ask the user to provide these in `.kiln/qa/config/.env.test`:
 
 ```env
 # QA Test Credentials — DO NOT COMMIT
@@ -90,17 +90,17 @@ I will SKIP these flows until credentials are provided. Checkpoint passes will m
 
 ### Step 3: Use credentials safely
 
-- Read credentials ONLY from `.kiln/qa/.env.test`
+- Read credentials ONLY from `.kiln/qa/config/.env.test`
 - Load them in Playwright tests via `dotenv` or `process.env`
 - NEVER log, screenshot, or record credentials in video output
-- NEVER commit `.kiln/qa/.env.test` — add it to `.gitignore`
+- NEVER commit `.kiln/qa/config/.env.test` — add it to `.gitignore`
 - If credentials aren't provided after your request, mark affected flows as `SKIPPED (no credentials)` in the QA report — do NOT block the entire pipeline
 
 ### Step 4: Ensure .gitignore protection
 
 On first run, verify or add to `.gitignore`:
 ```
-.kiln/qa/.env.test
+.kiln/qa/config/.env.test
 ```
 
 ## Operating Modes
@@ -132,7 +132,7 @@ You operate in three modes depending on when you're invoked:
   - **ux-agent**: 3-layer UX evaluation
   - **qa-reporter** (issues mode): Files each finding as a GitHub issue immediately. No fix cycle.
 - All findings filed as GitHub issues with `qa-pass` label
-- Final report at `.kiln/qa/latest/QA-PASS-REPORT.md` with issue links
+- Final report at `.kiln/qa/results/QA-PASS-REPORT.md` with issue links
 - **Uses**: Playwright + /chrome + agent teams
 - **Requires**: Chrome + Claude-in-Chrome extension + agent teams enabled
 
@@ -417,18 +417,16 @@ done
 # Copy screenshots
 find "$QA_ARTIFACTS/test-results" -name "*.png" -exec cp {} "$QA_ARTIFACTS/screenshots/" \;
 
-# Copy into the project repo
-PROJECT_QA_DIR=".kiln/qa/$(date +%Y%m%d-%H%M%S)"
-mkdir -p "$PROJECT_QA_DIR/videos" "$PROJECT_QA_DIR/screenshots"
-cp "$QA_ARTIFACTS/videos/"*.webm "$PROJECT_QA_DIR/videos/" 2>/dev/null
-cp "$QA_ARTIFACTS/screenshots/"*.png "$PROJECT_QA_DIR/screenshots/" 2>/dev/null
-cp "$QA_ARTIFACTS/reports/results.json" "$PROJECT_QA_DIR/" 2>/dev/null
-ln -sfn "$PROJECT_QA_DIR" .kiln/qa/latest
+# Copy into the project repo (canonical paths)
+mkdir -p .kiln/qa/videos .kiln/qa/screenshots .kiln/qa/results
+cp "$QA_ARTIFACTS/videos/"*.webm .kiln/qa/videos/ 2>/dev/null
+cp "$QA_ARTIFACTS/screenshots/"*.png .kiln/qa/screenshots/ 2>/dev/null
+cp "$QA_ARTIFACTS/reports/results.json" .kiln/qa/results/ 2>/dev/null
 ```
 
 ## Step 7: Generate QA Report (FINAL MODE ONLY)
 
-Produce a report at `.kiln/qa/latest/QA-REPORT.md`:
+Produce a report at `.kiln/qa/results/QA-REPORT.md`:
 
 ```markdown
 # QA Engineer Report
@@ -485,12 +483,12 @@ Produce a report at `.kiln/qa/latest/QA-REPORT.md`:
 
 ## Video Artifacts
 
-All recordings are in `.kiln/qa/[timestamp]/videos/`:
+All recordings are in `.kiln/qa/videos/`:
 - `flow-01-happy-path-desktop-chrome.webm`
 - `flow-01-happy-path-mobile-chrome.webm`
 - ...
 
-To view traces: `npx playwright show-trace .kiln/qa/[timestamp]/traces/[name]-trace.zip`
+To view traces: `npx playwright show-trace .kiln/qa/results/[name]-trace.zip`
 
 ## Overall Verdict: [PASS / FAIL]
 [If FAIL: list blocking issues that must be fixed before merge]
@@ -515,8 +513,8 @@ Send your findings to the team lead via `SendMessage`:
 - Number of flows tested vs passed
 - Number of issues found and fixed during checkpoint feedback loop
 - List of any remaining FAIL flows with severity
-- Path to video artifacts: `.kiln/qa/latest/videos/`
-- Path to full report: `.kiln/qa/latest/QA-REPORT.md`
+- Path to video artifacts: `.kiln/qa/videos/`
+- Path to full report: `.kiln/qa/results/QA-REPORT.md`
 
 If ANY critical or major failures remain after the feedback loop, recommend blocking the PR until fixed.
 

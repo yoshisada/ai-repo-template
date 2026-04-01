@@ -27,7 +27,7 @@ Findings go to implementers first. Only unfixed issues get filed as GitHub issue
 Read the test matrix and spec to know what SHOULD be covered:
 
 ```bash
-cat .kiln/qa/test-matrix.md 2>/dev/null
+cat .kiln/qa/config/test-matrix.md 2>/dev/null
 cat specs/*/plan.md 2>/dev/null | grep -i "route\|page\|endpoint"
 ```
 
@@ -151,7 +151,7 @@ Skip this step in issues mode.
 
 ## Step 5: Produce Final Report
 
-Write `.kiln/qa/latest/QA-PASS-REPORT.md`:
+Write `.kiln/qa/results/QA-PASS-REPORT.md`:
 
 ```markdown
 # QA Pass Report
