@@ -95,9 +95,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Create doctor manifest template at `plugin/templates/kiln-manifest.json` — define expected directories, tracked status, and legacy path migrations per contracts/interfaces.md
-- [ ] T032 [US3] Create `/kiln-doctor` skill at `plugin/skills/kiln-doctor/SKILL.md` — implement diagnose mode (read manifest, compare project state, report findings) and fix mode (present fixes, apply on confirmation, idempotent)
-- [ ] T033 [US3] Add legacy path mapping for `docs/backlog/` -> `.kiln/issues/` and `qa-results/` -> `.kiln/qa/` in the doctor skill
+- [X] T031 [US3] Create doctor manifest template at `plugin/templates/kiln-manifest.json` — define expected directories, tracked status, and legacy path migrations per contracts/interfaces.md
+- [X] T032 [US3] Create `/kiln-doctor` skill at `plugin/skills/kiln-doctor/SKILL.md` — implement diagnose mode (read manifest, compare project state, report findings) and fix mode (present fixes, apply on confirmation, idempotent)
+- [X] T033 [US3] Add legacy path mapping for `docs/backlog/` -> `.kiln/issues/` and `qa-results/` -> `.kiln/qa/` in the doctor skill
 
 **Checkpoint**: Doctor correctly identifies missing directories and legacy paths. Fix mode migrates files without data loss. Running doctor twice produces no changes (idempotent).
 
