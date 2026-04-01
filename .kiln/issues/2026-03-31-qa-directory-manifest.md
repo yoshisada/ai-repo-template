@@ -5,7 +5,7 @@ severity: medium
 category: scaffold
 source: manual
 github_issue: null
-status: open
+status: prd-created
 date: 2026-03-31
 ---
 
@@ -20,3 +20,5 @@ Without a defined structure, QA-related files (Playwright config, test matrices,
 ## Suggested Fix
 
 Define a manifest (e.g., `.kiln/qa/manifest.json` or section in the plugin manifest) that specifies the expected folder structure, and update `/qa-setup` and the scaffold to create it. Expected subdirectories might include `tests/`, `results/`, `screenshots/`, `videos/`, and config files.
+
+prd: docs/features/2026-04-01-kiln-polish/PRD.md
