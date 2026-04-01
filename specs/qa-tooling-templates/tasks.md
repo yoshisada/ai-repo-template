@@ -45,10 +45,10 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 1
 
-- [ ] T001 [P] [US1] Update Playwright config in `plugin/agents/qa-engineer.md` — change `video: 'on'` to `video: 'retain-on-failure'` and `trace: 'on'` to `trace: 'retain-on-failure'` in all config snippets (Step 3 config, test use blocks) — FR-001
-- [ ] T002 [P] [US1] Update Playwright config in `plugin/skills/qa-setup/SKILL.md` — change `video: 'on'` to `video: 'retain-on-failure'`, `trace: 'on'` to `trace: 'retain-on-failure'`, add `fullyParallel: true` to `defineConfig()`, and add tablet viewport project `{ name: 'tablet', use: { viewport: { width: 768, height: 1024 } } }` in Step 3 and Step 5 — FR-001, FR-002
-- [ ] T003 [US1] Update `plugin/agents/qa-engineer.md` Test Writing Rules section — add rule: "Prefer `waitForSelector`/`waitForFunction` over `networkidle`. NEVER use `waitForTimeout` — use Playwright auto-waiting assertions instead." — FR-003
-- [ ] T004 [US1] Add new "Walkthrough Recording" section to `plugin/agents/qa-engineer.md` after Step 7 (QA Report) — when all tests pass, record one clean walkthrough of new feature flows; skip if any tests failed — FR-004
+- [X] T001 [P] [US1] Update Playwright config in `plugin/agents/qa-engineer.md` — change `video: 'on'` to `video: 'retain-on-failure'` and `trace: 'on'` to `trace: 'retain-on-failure'` in all config snippets (Step 3 config, test use blocks) — FR-001
+- [X] T002 [P] [US1] Update Playwright config in `plugin/skills/qa-setup/SKILL.md` — change `video: 'on'` to `video: 'retain-on-failure'`, `trace: 'on'` to `trace: 'retain-on-failure'`, add `fullyParallel: true` to `defineConfig()`, and add tablet viewport project `{ name: 'tablet', use: { viewport: { width: 768, height: 1024 } } }` in Step 3 and Step 5 — FR-001, FR-002
+- [X] T003 [US1] Update `plugin/agents/qa-engineer.md` Test Writing Rules section — add rule: "Prefer `waitForSelector`/`waitForFunction` over `networkidle`. NEVER use `waitForTimeout` — use Playwright auto-waiting assertions instead." — FR-003
+- [X] T004 [US1] Add new "Walkthrough Recording" section to `plugin/agents/qa-engineer.md` after Step 7 (QA Report) — when all tests pass, record one clean walkthrough of new feature flows; skip if any tests failed — FR-004
 
 **Checkpoint**: QA agent and setup skill now generate faster Playwright configs with parallel viewports and targeted waits.
 
@@ -123,7 +123,7 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 6
 
-- [ ] T017 [US6] Extend `plugin/templates/kiln-manifest.json` — add `retention` property to directory entries: `logs: { keep_last: 10 }`, `issues: { archive_completed: true }`, `qa: { purge_artifacts: true }`. Add `.kiln/issues/completed` directory entry. — FR-011, FR-024
+- [X] T017 [US6] Extend `plugin/templates/kiln-manifest.json` — add `retention` property to directory entries: `logs: { keep_last: 10 }`, `issues: { archive_completed: true }`, `qa: { purge_artifacts: true }`. Add `.kiln/issues/completed` directory entry. — FR-011, FR-024
 - [ ] T018 [US6] Update `plugin/skills/kiln-doctor/SKILL.md` Step 1 — add `--cleanup` mode (applies retention rules) with `--dry-run` support alongside existing `--fix` and `--diagnose` modes — FR-012
 - [ ] T019 [US6] Add new "Retention Cleanup" step to `plugin/skills/kiln-doctor/SKILL.md` — read retention rules from manifest, apply `keep_last` (delete oldest files beyond limit), `archive_completed` (move closed issues), `purge_artifacts` (remove QA artifacts). Respect `--dry-run` flag. — FR-012
 - [ ] T020 [US6] Add new "Version Sync Check" step to `plugin/skills/kiln-doctor/SKILL.md` diagnose mode — scan `package.json` and `plugin/package.json` (defaults), compare `version` field against `VERSION` file content, report mismatches — FR-015
@@ -143,7 +143,7 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 7
 
-- [ ] T024 [US7] Create `plugin/skills/kiln-cleanup/SKILL.md` — new skill with frontmatter (`name: kiln-cleanup`, `description: Remove stale QA artifacts...`), Step 1: parse `--dry-run` flag, Step 2: scan `.kiln/qa/test-results/`, `playwright-report/`, `videos/`, `traces/` for files, Step 3: in dry-run list files with sizes; otherwise delete and report count/size freed — FR-013
+- [X] T024 [US7] Create `plugin/skills/kiln-cleanup/SKILL.md` — new skill with frontmatter (`name: kiln-cleanup`, `description: Remove stale QA artifacts...`), Step 1: parse `--dry-run` flag, Step 2: scan `.kiln/qa/test-results/`, `playwright-report/`, `videos/`, `traces/` for files, Step 3: in dry-run list files with sizes; otherwise delete and report count/size freed — FR-013
 
 **Checkpoint**: `/kiln-cleanup` skill exists and can purge QA artifacts with dry-run preview.
 
@@ -157,8 +157,8 @@ All paths are relative to the repository root: `/Users/ryansuematsu/Documents/gi
 
 ### Implementation for User Story 8
 
-- [ ] T025 [P] [US8] Create `plugin/templates/issue.md` — extract the issue markdown structure (frontmatter + Description + Impact + Suggested Fix sections) from the hardcoded template in `plugin/skills/report-issue/SKILL.md` — FR-018
-- [ ] T026 [P] [US8] Update `plugin/skills/report-issue/SKILL.md` Step 3 — change from hardcoded template to reading from `plugin/templates/issue.md` (or consumer's `.kiln/templates/issue.md` if it exists) — FR-018
+- [X] T025 [P] [US8] Create `plugin/templates/issue.md` — extract the issue markdown structure (frontmatter + Description + Impact + Suggested Fix sections) from the hardcoded template in `plugin/skills/report-issue/SKILL.md` — FR-018
+- [X] T026 [P] [US8] Update `plugin/skills/report-issue/SKILL.md` Step 3 — change from hardcoded template to reading from `plugin/templates/issue.md` (or consumer's `.kiln/templates/issue.md` if it exists) — FR-018
 - [ ] T027 [US8] Update `plugin/bin/init.mjs` `scaffoldProject()` — add `ensureDir` for `.kiln/templates/`, add `copyIfMissing` for `plugin/templates/issue.md` → `.kiln/templates/issue.md` — FR-019
 - [ ] T028 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in User Scenarios section: "If feature involves a rename/rebrand: include an FR for grep-based verification of ALL references" — FR-020
 - [ ] T029 [P] [US8] Update `plugin/templates/spec-template.md` — add comment in Requirements section: "Document credentials and auth flow required for QA testing" — FR-022

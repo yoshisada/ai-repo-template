@@ -269,8 +269,8 @@ Write test scripts to `$QA_ARTIFACTS/tests/`:
 import { test, expect } from '@playwright/test';
 
 test.use({
-  video: 'on',                    // MANDATORY — record video of every test
-  trace: 'on',                    // Capture full trace for debugging
+  video: 'retain-on-failure',     // FR-001: Only retain video for failing tests
+  trace: 'retain-on-failure',     // FR-001: Only retain trace for failing tests
   screenshot: 'on',               // Screenshot after each test
   viewport: { width: 1280, height: 720 },
 });
@@ -303,6 +303,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
+  fullyParallel: true,            // FR-002: Run all viewports concurrently
   timeout: 30000,
   retries: 1,
   reporter: [
@@ -312,8 +313,8 @@ export default defineConfig({
   ],
   use: {
     baseURL: process.env.DEV_URL || 'http://localhost:5173',
-    video: 'on',
-    trace: 'on',
+    video: 'retain-on-failure',   // FR-001: Only retain video for failing tests
+    trace: 'retain-on-failure',   // FR-001: Only retain trace for failing tests
     screenshot: 'on',
     headless: true,
     viewport: { width: 1280, height: 720 },
@@ -322,6 +323,13 @@ export default defineConfig({
     {
       name: 'desktop-chrome',
       use: { browserName: 'chromium' },
+    },
+    {
+      name: 'tablet',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 768, height: 1024 },
+      },
     },
     {
       name: 'mobile-chrome',
@@ -339,6 +347,7 @@ export default defineConfig({
 
 - Use accessible selectors ONLY: `getByRole`, `getByLabel`, `getByText`, `getByTestId` — NEVER CSS selectors or XPath
 - NO `page.waitForTimeout()` — use Playwright auto-waiting assertions (`toBeVisible`, `toHaveText`, etc.)
+- Prefer `waitForSelector`/`waitForFunction` over `networkidle`. NEVER use hardcoded `waitForTimeout` — use Playwright auto-waiting assertions instead. (FR-003)
 - NO `page.pause()` or `console.log()` in final scripts
 - Every test name MUST reference the user story or FR it validates (e.g., `US-001`, `FR-003`)
 - Each test should be independent — no shared state between tests
@@ -517,6 +526,18 @@ To view traces: `npx playwright show-trace .kiln/qa/results/[name]-trace.zip`
 ## Overall Verdict: [PASS / FAIL]
 [If FAIL: list blocking issues that must be fixed before merge]
 ```
+
+## Step 7.5: Walkthrough Recording (FR-004)
+
+After ALL tests pass (overall verdict is PASS), record one clean walkthrough demonstrating the new feature flows:
+
+1. **Gate**: Only proceed if the overall test verdict is **PASS** (zero failures). If ANY tests failed, skip this step entirely — only failure recordings are produced.
+2. **Record**: Start a new Playwright browser session with `video: 'on'` (always-on for the walkthrough, not retain-on-failure).
+3. **Demonstrate**: Navigate through each new feature flow at a natural pace — no rapid clicking. Pause briefly on key screens so reviewers can see the result.
+4. **Save**: Save the walkthrough video to `.kiln/qa/videos/walkthrough-<feature-slug>.webm`.
+5. **Report**: Include the walkthrough path in the QA Report under a "Walkthrough Recording" section.
+
+This walkthrough is for stakeholder review and PR demos — it should be clean, unhurried, and free of test harness noise.
 
 ## Step 8: Cleanup
 
