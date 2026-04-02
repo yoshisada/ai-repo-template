@@ -55,6 +55,78 @@ Display a summary table:
 | **Total** | **52** | **54M** |
 ```
 
+## Step 2.5: Scan Backlog Issues for Archival — FR-009
+
+Scan `.kiln/issues/` for issue files with `status: prd-created` or `status: completed` in their frontmatter:
+
+```bash
+echo "=== ISSUE ARCHIVAL SCAN ==="
+ARCHIVE_COUNT=0
+if [ -d ".kiln/issues" ]; then
+  for file in .kiln/issues/*.md; do
+    [ -f "$file" ] || continue
+    STATUS=$(grep -m1 '^status:' "$file" 2>/dev/null | sed 's/status:\s*//' | tr -d ' ')
+    if [ "$STATUS" = "prd-created" ] || [ "$STATUS" = "completed" ]; then
+      ARCHIVE_COUNT=$((ARCHIVE_COUNT + 1))
+      echo "ARCHIVE: $(basename "$file") — status: $STATUS"
+    fi
+  done
+fi
+echo "Total issues to archive: $ARCHIVE_COUNT"
+```
+
+If no archivable issues are found, report "No completed or prd-created issues to archive." and continue to Step 3.
+
+Display a summary table:
+
+```
+## Issue Archival Scan
+
+| File | Status | Action |
+|------|--------|--------|
+| 2026-03-30-missing-feature.md | prd-created | Archive |
+| 2026-03-31-bug-fix.md | completed | Archive |
+| **Total** | | **N issues** |
+```
+
+### Dry-Run Mode (Issue Archival)
+
+If `--dry-run` was specified, display the scan results and note:
+
+```
+Would archive N issues from .kiln/issues/ to .kiln/issues/completed/:
+- 2026-03-30-missing-feature.md (prd-created)
+- 2026-03-31-bug-fix.md (completed)
+
+No files were moved. Run without --dry-run to archive.
+```
+
+### Delete Mode (Issue Archival)
+
+Create `.kiln/issues/completed/` if it does not exist, then move matching issues:
+
+```bash
+mkdir -p .kiln/issues/completed
+for file in .kiln/issues/*.md; do
+  [ -f "$file" ] || continue
+  STATUS=$(grep -m1 '^status:' "$file" 2>/dev/null | sed 's/status:\s*//' | tr -d ' ')
+  if [ "$STATUS" = "prd-created" ] || [ "$STATUS" = "completed" ]; then
+    mv "$file" .kiln/issues/completed/
+    echo "Archived: $(basename "$file")"
+  fi
+done
+```
+
+Display results:
+
+```
+## Issue Archival — Complete
+
+Archived N issues to .kiln/issues/completed/:
+- 2026-03-30-missing-feature.md (prd-created)
+- 2026-03-31-bug-fix.md (completed)
+```
+
 ## Step 3: Purge or Preview — FR-013
 
 ### Dry-Run Mode

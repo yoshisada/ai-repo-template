@@ -108,5 +108,12 @@ if [[ -f "$PLUGIN_JSON" ]] && command -v jq &>/dev/null; then
   fi
 fi
 
+# Stage version changes for inclusion in the next commit (FR-011)
+# This avoids a separate "chore: bump version" commit — the version bump
+# gets folded into whatever commit the agent creates next.
+git add "$VERSION_FILE" 2>/dev/null || true
+[ -f "$PKG_FILE" ] && git add "$PKG_FILE" 2>/dev/null || true
+[ -f "$PLUGIN_JSON" ] && git add "$PLUGIN_JSON" 2>/dev/null || true
+
 # Always allow the edit
 exit 0

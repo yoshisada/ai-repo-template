@@ -67,12 +67,21 @@ You **MUST** consider the user input before proceeding (if not empty). The user 
    Proceed directly to creating the branch.
 
    ```bash
-   # Step B: Create a fresh branch from current HEAD
-   BRANCH_NAME="build/$(echo "$FEATURE_SLUG" | tr ' ' '-' | tr '[:upper:]' '[:lower:]')-$(date +%Y%m%d)"
+   # Step B: Derive feature slug and create a fresh branch from current HEAD (FR-004)
+   # The feature slug MUST be derived from the PRD directory name (2-4 words, lowercase, hyphenated).
+   # Example: docs/features/2026-04-01-pipeline-workflow-polish/PRD.md → "pipeline-workflow-polish"
+   # Strip the date prefix (YYYY-MM-DD-) from the PRD directory name to get the slug.
+   PRD_DIR_NAME=$(basename "$(dirname "$PRD_PATH")")
+   FEATURE_SLUG=$(echo "$PRD_DIR_NAME" | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//' | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+   BRANCH_NAME="build/${FEATURE_SLUG}-$(date +%Y%m%d)"
    git checkout -b "$BRANCH_NAME"
    ```
 
    The branch is created from wherever the user currently is — their current branch, current commit, current state. This preserves their working context. The pipeline's work happens on this new branch; the user's original branch is untouched.
+
+   **Branch naming rule (FR-004)**: The branch MUST follow `build/<feature-slug>-<YYYYMMDD>` exactly. The feature slug is derived from the PRD directory name with date prefix stripped. Do NOT use arbitrary slugs — derive from the PRD path.
+
+   **Spec directory naming rule (FR-005)**: The spec directory MUST be `specs/<feature-slug>/` where `<feature-slug>` matches the branch name's feature portion (the part between `build/` and the trailing `-YYYYMMDD`). No numeric prefixes. The specifier agent MUST use this exact directory name.
 
 6. **PRD freeze**: The PRD is frozen the moment you read it. Do NOT ask the user for confirmation — just proceed. Log a one-line message: "PRD frozen — starting pipeline on branch `$BRANCH_NAME` from `$(git rev-parse --abbrev-ref HEAD@{-1})`." If the user needs to change requirements mid-run, they can trigger a scope-change pause (see Step 4 in Monitor and Steer).
 
@@ -96,6 +105,8 @@ The pipeline always flows through these roles. This is the minimum — you MUST 
      The audit-pr agent includes the QA report summary and issue links in the PR body.
 
    The QA engineer tracks its checkpoint history in `.kiln/qa/checkpoints.md` so it doesn't re-test unchanged flows. It is a peer to implementers, not a gate after them.
+
+   **QA snapshot guidance (FR-013)**: QA result snapshots and incremental test-result files MUST NOT be committed to the feature branch. They belong in `.kiln/qa/` which is gitignored. The QA engineer should write all artifacts (screenshots, videos, reports) to `.kiln/qa/` and never `git add` them.
 
    **Skip this role** for CLI-only, API-only, or non-visual projects.
 
@@ -277,7 +288,7 @@ Spawn teammates using the `Agent` tool with:
 - `mode: "bypassPermissions"`
 
 Each teammate's prompt should include:
-- The working directory and branch name
+- **Canonical paths (FR-006)**: "Working directory: <absolute-path>, Branch: <branch-name>, Spec directory: specs/<feature-slug>/". These MUST be included in every agent's prompt at spawn time so agents never need to guess or glob for paths.
 - Which tasks they own (by task ID or description)
 - Instructions to run the appropriate kiln commands for their tasks
 - The feature description from user input
@@ -291,6 +302,11 @@ Each teammate's prompt should include:
 The specifier's prompt MUST include these exact instructions to prevent stalling between commands:
 
 ```
+SPEC DIRECTORY NAMING (FR-005): The spec directory MUST be specs/<feature-slug>/ where <feature-slug>
+matches the branch name's feature portion (the part between "build/" and the trailing "-YYYYMMDD").
+No numeric prefixes. For example, if the branch is build/pipeline-workflow-polish-20260401,
+the spec directory MUST be specs/pipeline-workflow-polish/. Do NOT use any other naming scheme.
+
 You MUST run all three kiln commands in a single uninterrupted pass:
 1. Run `/specify` with the feature description
 2. IMMEDIATELY after specify completes, run `/plan` — do NOT stop, do NOT wait, do NOT go idle
@@ -570,6 +586,49 @@ If the user changes scope, updates the PRD, or asks to modify requirements while
 5. **Resume**: Send each a message: "RESUME — scope change applied. Re-read tasks.md and contracts/interfaces.md before starting your next task." The QA engineer should re-run `/qa-setup` to regenerate the test matrix.
 
 **Why this matters**: Without an explicit pause, implementers work against stale spec artifacts and the QA engineer tests against outdated flows. The pause-update-resume cycle ensures all agents work from the same source of truth.
+
+## Step 4b: Issue Lifecycle Completion (FR-007, FR-008)
+
+After the audit-pr agent creates the PR, and before spawning the retrospective, the team lead completes the issue lifecycle for this build:
+
+1. **Identify the PRD path** used for this build (from Pre-Flight step 3).
+
+2. **Scan for matching issues**:
+   ```bash
+   PRD_PATH="<the PRD path used for this build>"
+   for issue_file in .kiln/issues/*.md; do
+     [ -f "$issue_file" ] || continue
+     # Check if status is prd-created
+     status=$(grep -m1 '^status:' "$issue_file" | sed 's/^status:[[:space:]]*//')
+     [ "$status" = "prd-created" ] || continue
+     # Check if prd field matches
+     prd_field=$(grep -m1 '^prd:' "$issue_file" | sed 's/^prd:[[:space:]]*//')
+     if [ "$prd_field" = "$PRD_PATH" ]; then
+       echo "MATCH: $issue_file"
+     fi
+   done
+   ```
+
+3. **Update matching issues** to `status: completed`:
+   - Set `status: completed` (replace the existing status line)
+   - Add `completed_date: YYYY-MM-DD` (today's date)
+   - Add `pr: #<PR-number>` (the PR number from audit-pr)
+   - Report how many issues were updated
+
+4. **Archive completed issues (FR-008)**:
+   ```bash
+   mkdir -p .kiln/issues/completed
+   # Move each updated issue file to completed/
+   mv "$issue_file" .kiln/issues/completed/
+   ```
+   If the move fails for any file, log a warning and continue — do not block the pipeline.
+
+5. Commit the issue updates if any files were changed:
+   ```bash
+   git add .kiln/issues/ && git commit -m "chore: mark prd-created issues as completed after PR creation"
+   ```
+
+If no matching issues are found, skip this step silently.
 
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 

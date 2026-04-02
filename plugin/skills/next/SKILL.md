@@ -320,6 +320,36 @@ After the recommendations list (or after the project state summary if no recomme
 
 - The "Suggested next" line MUST appear in **both** normal and `--brief` modes — it is never suppressed.
 
+### Roadmap Suggestions (when idle) — FR-016
+
+If **no actionable recommendations exist** (no critical, high, or medium items — the project is clean), check for roadmap items:
+
+```bash
+echo "=== ROADMAP ITEMS ==="
+if [ -f ".kiln/roadmap.md" ]; then
+  # Extract up to 5 bullet items from the roadmap
+  grep -E '^\s*- ' .kiln/roadmap.md 2>/dev/null | head -5
+else
+  echo "No roadmap file found."
+fi
+```
+
+If roadmap items are found and there is no urgent work, append after the "Suggested next" line:
+
+```markdown
+### Ideas from Your Roadmap
+
+Nothing pressing. Here are some ideas from your roadmap:
+
+- [item 1]
+- [item 2]
+- [item 3]
+
+_Add more with `/roadmap <idea>`. Pick one and run `/specify` to start._
+```
+
+If urgent work exists (any critical, high, or medium priority items), do NOT show roadmap items — urgent work takes priority.
+
 If **BRIEF_MODE=false**, append after the "Suggested next" line:
 ```markdown
 Full report: `.kiln/logs/next-<timestamp>.md`

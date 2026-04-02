@@ -146,6 +146,13 @@ function scaffoldProject() {
     join(PROJECT_DIR, ".kiln", "templates", "issue.md"),
     ".kiln/templates/issue.md (issue template)"
   );
+
+  // FR-014: Scaffold roadmap into consumer project
+  copyIfMissing(
+    join(PLUGIN_ROOT, "templates", "roadmap-template.md"),
+    join(PROJECT_DIR, ".kiln", "roadmap.md"),
+    ".kiln/roadmap.md (roadmap)"
+  );
 }
 
 // ── Sync: shared infrastructure (always update to latest) ──

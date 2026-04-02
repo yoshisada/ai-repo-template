@@ -175,6 +175,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
    - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **Commit noise reduction (FR-012)**: For features with a single implementation phase, include the task-marking updates to tasks.md in the phase commit rather than creating separate task-marking commits. Multi-phase features continue to commit per-phase as before — but tasks.md changes should be staged alongside the phase's code changes whenever possible.
 
 9. Completion validation:
    - Verify all required tasks are completed
@@ -189,6 +190,20 @@ You **MUST** consider the user input before proceeding (if not empty).
      Also remove the lock on any failure or early exit. If the skill encounters an unrecoverable error, ensure the lock is removed before stopping so it does not persist as a stale lock.
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/tasks` first to regenerate the task list.
+
+9b. **Non-compiled validation gate** (FR-002): After completion validation, check whether the feature branch includes any `src/` directory changes:
+
+    ```bash
+    SRC_CHANGES=$(git diff --name-only "$(git merge-base HEAD main 2>/dev/null || echo HEAD~1)" HEAD -- src/ 2>/dev/null | wc -l | tr -d ' ')
+    ```
+
+    - **If `SRC_CHANGES` is 0** (no `src/` changes — non-compiled feature): Skip the 80% test coverage gate. Instead, run the non-compiled validation script:
+      ```bash
+      bash scripts/validate-non-compiled.sh
+      ```
+      - If the script exits 0 (PASS): Report the validation results as the coverage substitute. Log: "Non-compiled validation PASS — coverage gate skipped (no src/ changes)."
+      - If the script exits non-zero (FAIL): **Halt implementation.** Report the validation failures and instruct the developer to fix them before proceeding.
+    - **If `SRC_CHANGES` is greater than 0**: Proceed with the normal 80% test coverage gate as before.
 
 10. **Check for extension hooks**: After completion validation, check if `.specify/extensions.yml` exists in the project root.
     - If it exists, read it and look for entries under the `hooks.after_implement` key
