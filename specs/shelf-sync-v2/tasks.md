@@ -151,7 +151,7 @@
 ## Phase 4: Tags Taxonomy Update (FR-008)
 
 ### Task 4.1: Update tags.md with any missing values
-- [ ] Review `plugin-shelf/tags.md` for completeness against all template tag references
+- [X] Review `plugin-shelf/tags.md` for completeness against all template tag references
 - Add `language/*` and `framework/*` and `infra/*` namespaces for tech stack tags (used by dashboard template)
 - Ensure all namespaces referenced in contracts are present
 - **FRs**: FR-008

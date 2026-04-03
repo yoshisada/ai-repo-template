@@ -48,6 +48,28 @@ Current state of the item.
 - `status/implemented` — feature has been built
 - `status/in-progress` — currently being worked on
 
+## Language
+Programming languages detected in the project.
+- `language/javascript` — JavaScript (from package.json without TypeScript)
+- `language/typescript` — TypeScript (from tsconfig.json or TypeScript dependency)
+- `language/rust` — Rust (from Cargo.toml)
+- `language/python` — Python (from pyproject.toml or requirements.txt)
+- `language/go` — Go (from go.mod)
+- `language/ruby` — Ruby (from Gemfile)
+
+## Framework
+Frameworks and libraries detected in the project.
+- `framework/react` — React (from package.json dependencies)
+- `framework/next` — Next.js (from package.json dependencies)
+- `framework/vue` — Vue.js (from package.json dependencies)
+- `framework/express` — Express (from package.json dependencies)
+- `framework/fastify` — Fastify (from package.json dependencies)
+
+## Infrastructure
+Infrastructure and CI/CD tools detected in the project.
+- `infra/docker` — Docker (from Dockerfile or docker-compose.yml)
+- `infra/github-actions` — GitHub Actions (from .github/workflows/)
+
 ## Usage
 
 All shelf skills that create or update Obsidian notes MUST:
