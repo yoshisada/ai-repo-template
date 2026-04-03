@@ -36,7 +36,7 @@
 
 ### Implementation
 
-- [ ] T004 [US2] Write `plugin-shelf/skills/shelf-update/SKILL.md` — full skill definition covering: read-before-write (FR-012), interactive prompting (FR-011), monthly file creation (FR-008), progress entry append (FR-007), decision record creation (FR-031, FR-032, FR-033), dashboard frontmatter update (FR-009), Human Needed section update (FR-010), graceful degradation (NFR-004)
+- [X] T004 [US2] Write `plugin-shelf/skills/shelf-update/SKILL.md` — full skill definition covering: read-before-write (FR-012), interactive prompting (FR-011), monthly file creation (FR-008), progress entry append (FR-007), decision record creation (FR-031, FR-032, FR-033), dashboard frontmatter update (FR-009), Human Needed section update (FR-010), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-update` records session work in Obsidian
 
