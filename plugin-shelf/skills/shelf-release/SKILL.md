@@ -89,26 +89,23 @@ If `--summary` was provided, use it.
 
 If not, ask the user: "One-liner summary for this release?" and wait for a response.
 
-## Step 6: Create Release Note (FR-034)
+## Step 6: Create Release Note (FR-034, FR-003, FR-004, FR-005)
+
+**Template resolution** (FR-004): Read the release template. First check if `.shelf/templates/release.md` exists in the repo. If it does, use that. Otherwise, use `plugin-shelf/templates/release.md`.
+
+Replace placeholders in the template:
+- `{version}` — the release version
+- `{date}` — today `YYYY-MM-DD`
+- `{summary}` — one-liner release summary
+- `{changelog}` — formatted changelog entries
+- `{slug}` — project slug (for `project: "[[{slug}]]"` backlink, FR-005)
+
+The template includes `tags: status/implemented` (FR-008).
 
 ```
 mcp__obsidian-projects__create_file({
   path: "{base_path}/{slug}/releases/v{version}.md",
-  content: "---
-type: release
-version: \"{version}\"
-date: {YYYY-MM-DD}
-summary: \"{summary}\"
----
-
-# v{version}
-
-{summary}
-
-## Changelog
-
-{changelog entries}
-"
+  content: "{rendered release template}"
 })
 ```
 

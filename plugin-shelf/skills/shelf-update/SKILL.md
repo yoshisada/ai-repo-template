@@ -61,28 +61,35 @@ If `--status` was not provided: keep the current status from dashboard frontmatt
 
 If `--next-step` was not provided: ask "What's the next step?" or infer from context.
 
-## Step 4: Ensure Monthly Progress File Exists (FR-008)
+## Step 4: Ensure Monthly Progress File Exists (FR-008, FR-003, FR-004)
 
 Determine the current month: `YYYY-MM` (e.g., `2026-04`).
+
+**Template resolution** (FR-004): Read the progress template. First check if `.shelf/templates/progress.md` exists in the repo. If it does, use that. Otherwise, use `plugin-shelf/templates/progress.md`. The template includes `project: "[[{slug}]]"` as a backlink (FR-005) and `tags: status/in-progress`.
 
 ```
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/progress/{YYYY-MM}.md" })
 ```
 
-- If not found, create it:
+- If not found, create it using the progress template header (frontmatter + month heading):
   ```
   mcp__obsidian-projects__create_file({
     path: "{base_path}/{slug}/progress/{YYYY-MM}.md",
-    content: "# Progress — {YYYY-MM}\n"
+    content: "{rendered progress template header with frontmatter}"
   })
   ```
 - If found, store existing content for appending
 
 **If MCP fails**: warn and continue — progress entry will be skipped. (NFR-004)
 
-## Step 5: Append Progress Entry (FR-007)
+## Step 5: Append Progress Entry (FR-007, FR-003, FR-005)
 
-Build the progress entry:
+Build the progress entry using the body section of the progress template from `plugin-shelf/templates/progress.md` (FR-003). Replace placeholders:
+- `{date}` — today `YYYY-MM-DD`
+- `{summary}` — session summary
+- `{outcomes}` — bulleted key outcomes
+- `{links}` — PR links, commit SHAs, or issue references
+- `{decision_link}` — if a decision was made, link to the decision file
 
 ```markdown
 ## {YYYY-MM-DD}
@@ -108,36 +115,26 @@ mcp__obsidian-projects__update_file({
 
 **If MCP fails**: warn "Could not append progress entry" and continue. (NFR-004)
 
-## Step 6: Create Decision Record (FR-031, FR-032, FR-033)
+## Step 6: Create Decision Record (FR-031, FR-032, FR-033, FR-003, FR-004, FR-005)
 
 If `--decision` was provided OR a decision was detected from conversation context:
 
 1. Generate a decision slug from the decision text (lowercase, hyphens, max 50 chars)
-2. Create the decision record:
+2. **Template resolution** (FR-004): Read the decision template. First check if `.shelf/templates/decision.md` exists in the repo. If it does, use that. Otherwise, use `plugin-shelf/templates/decision.md`.
+3. Replace placeholders in the template:
+   - `{title}` — decision title
+   - `{date}` — today `YYYY-MM-DD`
+   - `{slug}` — project slug (for `project: "[[{slug}]]"` backlink, FR-005)
+   - `{context}` — context from conversation
+   - `{options}` — options considered, or "Documented post-decision"
+   - `{decision}` — decision text
+   - `{rationale}` — reasoning, or inferred from context
+4. Create the decision record:
 
 ```
 mcp__obsidian-projects__create_file({
   path: "{base_path}/{slug}/decisions/{YYYY-MM-DD}-{decision_slug}.md",
-  content: "---
-type: decision
-date: {YYYY-MM-DD}
-status: accepted
----
-
-# {decision_title}
-
-## Context
-{context from conversation}
-
-## Options Considered
-{options if available, otherwise 'Documented post-decision'}
-
-## Decision
-{decision text}
-
-## Rationale
-{rationale if available, otherwise inferred from context}
-"
+  content: "{rendered decision template}"
 })
 ```
 

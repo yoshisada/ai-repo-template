@@ -80,7 +80,7 @@ Display format:
 ...
 ```
 
-## Step 6: Archive to Feedback Log (FR-021)
+## Step 6: Archive to Feedback Log (FR-021, FR-005)
 
 After displaying all items, move them from `## Feedback` to `## Feedback Log`:
 
@@ -90,6 +90,7 @@ After displaying all items, move them from `## Feedback` to `## Feedback Log`:
    - Clear the `## Feedback` section (leave the heading, remove all items)
    - Append the timestamped items to the `## Feedback Log` section
    - Preserve all other sections unchanged (frontmatter, Human Needed, etc.)
+   - **Preserve the `project: "[[{slug}]]"` backlink and `tags:` in frontmatter** (FR-005) — do not remove these fields when rewriting
 
 ```
 mcp__obsidian-projects__update_file({
