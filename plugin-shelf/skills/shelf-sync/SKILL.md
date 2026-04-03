@@ -15,18 +15,22 @@ $ARGUMENTS
 
 No arguments required. This command is fully automatic.
 
-## Step 1: Resolve Project Slug (FR-004)
+## Step 1: Resolve Project Identity (FR-005, FR-006)
 
-1. If the user provided a project name as an argument, use it as the slug
-2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
-3. Store as `$SLUG`
+Determine the project slug and base path. Priority order: explicit argument > `.shelf-config` > git remote defaults.
 
-## Step 2: Resolve Base Path (NFR-003)
+1. If `.shelf-config` exists in the repo root:
+   a. Parse it: skip lines starting with `#` (comments) and blank lines; split each remaining line on the first `=` to get key and value; trim whitespace from both
+   b. Extract `base_path` and `slug` values
+   c. If both are present and non-empty: use them as `$BASE_PATH` and `$SLUG` — do NOT derive from git remote or prompt the user (FR-006). Skip to substep 4
+   d. If either is missing or empty: warn ".shelf-config is malformed — missing {key}. Falling back to defaults." and continue to substep 2
+2. If no valid `.shelf-config`:
+   a. If the user provided a project name as an argument: use it as `$SLUG`
+   b. Otherwise: run `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix) as `$SLUG`
+   c. Set `$BASE_PATH = "projects"` (default)
+3. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
-2. Default: `projects`
-
-## Step 3: Verify Project Exists
+## Step 2: Verify Project Exists
 
 ```
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
@@ -35,7 +39,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 - If not found: suggest "No project found — run `/shelf-create` first" and STOP
 - If MCP fails: warn "MCP server unavailable — cannot sync issues" and STOP (NFR-004)
 
-## Step 4: Fetch GitHub Issues (FR-013)
+## Step 3: Fetch GitHub Issues (FR-013)
 
 Run:
 ```bash
@@ -45,7 +49,7 @@ gh issue list --state all --json number,title,state,labels,body,updatedAt --limi
 - If `gh` is not installed or not authenticated: warn "GitHub CLI not authenticated — skipping GitHub issues" and continue with backlog-only sync
 - Parse the JSON output into a list of issues
 
-## Step 5: Read Backlog Issues (FR-014)
+## Step 4: Read Backlog Issues (FR-014)
 
 Check if `.kiln/issues/` directory exists:
 ```bash
@@ -55,7 +59,7 @@ ls .kiln/issues/*.md 2>/dev/null
 - If directory doesn't exist or is empty: skip backlog sync
 - If files exist: read each `.md` file and extract title, type, severity from frontmatter
 
-## Step 6: Read Existing Obsidian Issue Notes
+## Step 5: Read Existing Obsidian Issue Notes
 
 List current issue notes in Obsidian:
 ```
@@ -71,7 +75,7 @@ Extract `last_synced` and `source` from frontmatter to determine which issues ne
 
 **If MCP fails**: warn and continue with what we have (NFR-004)
 
-## Step 7: Determine Sync Actions (FR-017)
+## Step 6: Determine Sync Actions (FR-017)
 
 For each issue (GitHub + backlog), compare with existing Obsidian notes:
 
@@ -82,7 +86,7 @@ For each issue (GitHub + backlog), compare with existing Obsidian notes:
 
 Track counters: `created`, `updated`, `closed`, `skipped`
 
-## Step 8: Generate Slug Filenames (FR-018)
+## Step 7: Generate Slug Filenames (FR-018)
 
 For each issue that needs a note, generate a human-readable slug from the title:
 
@@ -95,7 +99,7 @@ For each issue that needs a note, generate a human-readable slug from the title:
 
 Example: "Fix sidebar overflow on mobile" -> `fix-sidebar-overflow-on-mobile.md`
 
-## Step 9: Create/Update Issue Notes (FR-013, FR-014, FR-015, FR-016, FR-018)
+## Step 8: Create/Update Issue Notes (FR-013, FR-014, FR-015, FR-016, FR-018)
 
 For each issue that needs creating or updating:
 
@@ -146,7 +150,7 @@ last_synced: {ISO 8601 timestamp}
 
 **If any individual MCP call fails**: warn for that issue, increment an error counter, and continue with the rest (NFR-004)
 
-## Step 10: Report Results
+## Step 9: Report Results
 
 Print a sync summary:
 

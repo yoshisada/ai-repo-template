@@ -53,11 +53,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Replace Steps 1-2 in shelf-sync with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-sync/SKILL.md
-- [ ] T005 [P] [US2] Replace Steps 1-2 in shelf-update with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-update/SKILL.md
-- [ ] T006 [P] [US2] Replace Steps 1-2 in shelf-status with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-status/SKILL.md
-- [ ] T007 [P] [US2] Replace Steps 1-2 in shelf-feedback with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-feedback/SKILL.md
-- [ ] T008 [P] [US2] Replace Steps 1-2 in shelf-release with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-release/SKILL.md
+- [X] T004 [P] [US2] Replace Steps 1-2 in shelf-sync with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-sync/SKILL.md
+- [X] T005 [P] [US2] Replace Steps 1-2 in shelf-update with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-update/SKILL.md
+- [X] T006 [P] [US2] Replace Steps 1-2 in shelf-status with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-status/SKILL.md
+- [X] T007 [P] [US2] Replace Steps 1-2 in shelf-feedback with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-feedback/SKILL.md
+- [X] T008 [P] [US2] Replace Steps 1-2 in shelf-release with unified "Resolve Project Identity" step per contracts/interfaces.md Contract 3 in plugin-shelf/skills/shelf-release/SKILL.md
 
 **Checkpoint**: All 6 shelf skills read .shelf-config. The full feature is functional end-to-end.
 

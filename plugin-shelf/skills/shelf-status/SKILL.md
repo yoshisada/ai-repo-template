@@ -15,18 +15,22 @@ $ARGUMENTS
 
 No arguments required.
 
-## Step 1: Resolve Project Slug (FR-004)
+## Step 1: Resolve Project Identity (FR-005, FR-006)
 
-1. If the user provided a project name as an argument, use it as the slug
-2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
-3. Store as `$SLUG`
+Determine the project slug and base path. Priority order: explicit argument > `.shelf-config` > git remote defaults.
 
-## Step 2: Resolve Base Path (NFR-003)
+1. If `.shelf-config` exists in the repo root:
+   a. Parse it: skip lines starting with `#` (comments) and blank lines; split each remaining line on the first `=` to get key and value; trim whitespace from both
+   b. Extract `base_path` and `slug` values
+   c. If both are present and non-empty: use them as `$BASE_PATH` and `$SLUG` — do NOT derive from git remote or prompt the user (FR-006). Skip to substep 4
+   d. If either is missing or empty: warn ".shelf-config is malformed — missing {key}. Falling back to defaults." and continue to substep 2
+2. If no valid `.shelf-config`:
+   a. If the user provided a project name as an argument: use it as `$SLUG`
+   b. Otherwise: run `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix) as `$SLUG`
+   c. Set `$BASE_PATH = "projects"` (default)
+3. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
-2. Default: `projects`
-
-## Step 3: Read Project Dashboard (FR-028)
+## Step 2: Read Project Dashboard (FR-028)
 
 ```
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
@@ -35,7 +39,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 - If not found: suggest "No project found — run `/shelf-create` first" and STOP (FR-028)
 - If MCP fails: warn "MCP server unavailable — cannot read project status" and STOP (NFR-004)
 
-## Step 4: Parse Dashboard Frontmatter (FR-024)
+## Step 3: Parse Dashboard Frontmatter (FR-024)
 
 Extract from YAML frontmatter:
 - `status` — current project status
@@ -44,7 +48,7 @@ Extract from YAML frontmatter:
 - `tags` — tech stack and category tags
 - `repo` — repository URL
 
-## Step 5: Read Latest Progress Entry (FR-025)
+## Step 4: Read Latest Progress Entry (FR-025)
 
 List progress files:
 ```
@@ -60,7 +64,7 @@ mcp__obsidian-projects__list_files({ path: "{base_path}/{slug}/progress" })
 
 **If MCP fails**: warn "Could not read progress" and continue with other sections (NFR-004)
 
-## Step 6: Count Open Issues (FR-026)
+## Step 5: Count Open Issues (FR-026)
 
 List issue notes:
 ```
@@ -79,13 +83,13 @@ Parse frontmatter and count:
 
 **If MCP fails**: warn "Could not read issues" and continue (NFR-004)
 
-## Step 7: Extract Human Needed Items (FR-027)
+## Step 6: Extract Human Needed Items (FR-027)
 
 From the dashboard content (already read in Step 3), parse the `## Human Needed` section:
 - Extract all `- [ ]` (pending) and `- [x]` (completed) items
 - Count pending vs completed
 
-## Step 8: Display Formatted Summary
+## Step 7: Display Formatted Summary
 
 Print the complete status view:
 

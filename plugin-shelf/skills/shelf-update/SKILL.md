@@ -20,18 +20,22 @@ Parse these optional flags from the arguments:
 - `--decision "text"` — a decision made this session
 - `--human-needed "item1, item2"` — items requiring human attention
 
-## Step 1: Resolve Project Slug (FR-004)
+## Step 1: Resolve Project Identity (FR-005, FR-006)
 
-1. If the user provided a project name as an argument, use it as the slug
-2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
-3. Store as `$SLUG`
+Determine the project slug and base path. Priority order: explicit argument > `.shelf-config` > git remote defaults.
 
-## Step 2: Resolve Base Path (NFR-003)
+1. If `.shelf-config` exists in the repo root:
+   a. Parse it: skip lines starting with `#` (comments) and blank lines; split each remaining line on the first `=` to get key and value; trim whitespace from both
+   b. Extract `base_path` and `slug` values
+   c. If both are present and non-empty: use them as `$BASE_PATH` and `$SLUG` — do NOT derive from git remote or prompt the user (FR-006). Skip to substep 4
+   d. If either is missing or empty: warn ".shelf-config is malformed — missing {key}. Falling back to defaults." and continue to substep 2
+2. If no valid `.shelf-config`:
+   a. If the user provided a project name as an argument: use it as `$SLUG`
+   b. Otherwise: run `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix) as `$SLUG`
+   c. Set `$BASE_PATH = "projects"` (default)
+3. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
-2. Default: `projects`
-
-## Step 3: Read Current Dashboard State (FR-012)
+## Step 2: Read Current Dashboard State (FR-012)
 
 Read the existing dashboard before making any changes:
 
@@ -46,7 +50,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 
 **If MCP fails**: warn "MCP server unavailable — cannot update project" and STOP. (NFR-004)
 
-## Step 4: Resolve Inputs (FR-011)
+## Step 3: Resolve Inputs (FR-011)
 
 If `--summary` was not provided:
 1. Run `git log --oneline -10` to see recent commits
@@ -57,7 +61,7 @@ If `--status` was not provided: keep the current status from dashboard frontmatt
 
 If `--next-step` was not provided: ask "What's the next step?" or infer from context.
 
-## Step 5: Ensure Monthly Progress File Exists (FR-008)
+## Step 4: Ensure Monthly Progress File Exists (FR-008)
 
 Determine the current month: `YYYY-MM` (e.g., `2026-04`).
 
@@ -76,7 +80,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/progress/{YYYY-MM}
 
 **If MCP fails**: warn and continue — progress entry will be skipped. (NFR-004)
 
-## Step 6: Append Progress Entry (FR-007)
+## Step 5: Append Progress Entry (FR-007)
 
 Build the progress entry:
 
@@ -104,7 +108,7 @@ mcp__obsidian-projects__update_file({
 
 **If MCP fails**: warn "Could not append progress entry" and continue. (NFR-004)
 
-## Step 7: Create Decision Record (FR-031, FR-032, FR-033)
+## Step 6: Create Decision Record (FR-031, FR-032, FR-033)
 
 If `--decision` was provided OR a decision was detected from conversation context:
 
@@ -139,7 +143,7 @@ status: accepted
 
 **If MCP fails**: warn "Could not create decision record" and continue. (NFR-004)
 
-## Step 8: Update Dashboard (FR-009, FR-010)
+## Step 7: Update Dashboard (FR-009, FR-010)
 
 Rebuild the dashboard content:
 
@@ -159,7 +163,7 @@ mcp__obsidian-projects__update_file({
 
 **If MCP fails**: warn "Could not update dashboard" and report partial completion. (NFR-004)
 
-## Step 9: Report Results
+## Step 8: Report Results
 
 Print a confirmation:
 
