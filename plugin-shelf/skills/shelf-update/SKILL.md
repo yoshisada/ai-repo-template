@@ -1,0 +1,187 @@
+---
+name: shelf-update
+description: Push a progress update to Obsidian. Records session summary, status change, next steps, decisions, and human-needed items — all appended to the project dashboard via MCP.
+---
+
+# shelf-update — Push Progress Update
+
+Record your session's work in Obsidian. Appends a timestamped progress entry, updates dashboard frontmatter (status, next step), optionally creates a decision record, and manages the Human Needed checklist.
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+Parse these optional flags from the arguments:
+- `--summary "text"` — session summary
+- `--status "text"` — project status (e.g., "in-progress", "blocked", "done")
+- `--next-step "text"` — what to do next
+- `--decision "text"` — a decision made this session
+- `--human-needed "item1, item2"` — items requiring human attention
+
+## Step 1: Resolve Project Slug (FR-004)
+
+1. If the user provided a project name as an argument, use it as the slug
+2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
+3. Store as `$SLUG`
+
+## Step 2: Resolve Base Path (NFR-003)
+
+1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
+2. Default: `projects`
+
+## Step 3: Read Current Dashboard State (FR-012)
+
+Read the existing dashboard before making any changes:
+
+```
+mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
+```
+
+- If not found: suggest "No project found — run `/shelf-create` first" and STOP
+- Parse the YAML frontmatter to get current `status`, `next_step`, `last_updated`
+- Parse the `## Human Needed` section to preserve existing `- [x]` items (FR-010)
+- Parse the `## Feedback` and `## Feedback Log` sections to preserve them
+
+**If MCP fails**: warn "MCP server unavailable — cannot update project" and STOP. (NFR-004)
+
+## Step 4: Resolve Inputs (FR-011)
+
+If `--summary` was not provided:
+1. Run `git log --oneline -10` to see recent commits
+2. Analyze the conversation context for what was accomplished
+3. Ask the user: "What did you work on this session?" and wait for a response
+
+If `--status` was not provided: keep the current status from dashboard frontmatter.
+
+If `--next-step` was not provided: ask "What's the next step?" or infer from context.
+
+## Step 5: Ensure Monthly Progress File Exists (FR-008)
+
+Determine the current month: `YYYY-MM` (e.g., `2026-04`).
+
+```
+mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/progress/{YYYY-MM}.md" })
+```
+
+- If not found, create it:
+  ```
+  mcp__obsidian-projects__create_file({
+    path: "{base_path}/{slug}/progress/{YYYY-MM}.md",
+    content: "# Progress — {YYYY-MM}\n"
+  })
+  ```
+- If found, store existing content for appending
+
+**If MCP fails**: warn and continue — progress entry will be skipped. (NFR-004)
+
+## Step 6: Append Progress Entry (FR-007)
+
+Build the progress entry:
+
+```markdown
+## {YYYY-MM-DD}
+
+**Summary**: {summary}
+
+**Key outcomes**:
+- {outcome_1}
+- {outcome_2}
+
+**Links**: {any PR links, commit SHAs, or issue references from the session}
+{if decision: "**Decision**: [{decision_title}](../decisions/{decision_file})"}
+```
+
+Append to the monthly progress file:
+
+```
+mcp__obsidian-projects__update_file({
+  path: "{base_path}/{slug}/progress/{YYYY-MM}.md",
+  content: "{existing_content}\n\n{new_entry}"
+})
+```
+
+**If MCP fails**: warn "Could not append progress entry" and continue. (NFR-004)
+
+## Step 7: Create Decision Record (FR-031, FR-032, FR-033)
+
+If `--decision` was provided OR a decision was detected from conversation context:
+
+1. Generate a decision slug from the decision text (lowercase, hyphens, max 50 chars)
+2. Create the decision record:
+
+```
+mcp__obsidian-projects__create_file({
+  path: "{base_path}/{slug}/decisions/{YYYY-MM-DD}-{decision_slug}.md",
+  content: "---
+type: decision
+date: {YYYY-MM-DD}
+status: accepted
+---
+
+# {decision_title}
+
+## Context
+{context from conversation}
+
+## Options Considered
+{options if available, otherwise 'Documented post-decision'}
+
+## Decision
+{decision text}
+
+## Rationale
+{rationale if available, otherwise inferred from context}
+"
+})
+```
+
+**If MCP fails**: warn "Could not create decision record" and continue. (NFR-004)
+
+## Step 8: Update Dashboard (FR-009, FR-010)
+
+Rebuild the dashboard content:
+
+1. **Update frontmatter**: set `status`, `next_step`, `last_updated` to new values (FR-009)
+2. **Update Human Needed section** (FR-010):
+   - Preserve existing `- [x]` (completed) items
+   - Add new `- [ ]` items from `--human-needed` argument
+   - Remove duplicates
+3. **Preserve** all other sections (`## Feedback`, `## Feedback Log`) unchanged
+
+```
+mcp__obsidian-projects__update_file({
+  path: "{base_path}/{slug}/{slug}.md",
+  content: "{rebuilt dashboard content}"
+})
+```
+
+**If MCP fails**: warn "Could not update dashboard" and report partial completion. (NFR-004)
+
+## Step 9: Report Results
+
+Print a confirmation:
+
+```
+Project '{slug}' updated in Obsidian.
+
+  Status:     {status}
+  Next step:  {next_step}
+  Progress:   Appended to progress/{YYYY-MM}.md
+  {if decision: "Decision:   decisions/{YYYY-MM-DD}-{decision_slug}.md"}
+  {if human_needed: "Human Needed: {N} items added"}
+
+Updated: {YYYY-MM-DD}
+```
+
+If any steps had partial failures, include a warnings section.
+
+## Rules
+
+- **Read before write** — always read the current dashboard state before updating (FR-012)
+- **All writes go through MCP** — never write directly to the filesystem (NFR-001)
+- **No hardcoded vault paths** — always use the resolved base path (NFR-002, NFR-003)
+- **Graceful degradation** — if MCP is unavailable, warn and exit cleanly (NFR-004)
+- **No secrets in notes** — do not include API keys, tokens, or credentials (NFR-005)
+- **Preserve existing content** — never clobber completed Human Needed items or other sections (FR-010, FR-012)

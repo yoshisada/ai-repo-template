@@ -10,7 +10,7 @@ This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-
 > Old skill names (`/speckit-harness:speckit-*`) are no longer available.
 > Use the new names: `/specify`, `/plan`, `/tasks`, `/implement`, `/audit`, etc.
 
-**This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin/bin/init.mjs`.
+**This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin-kiln/bin/init.mjs`.
 
 ## Quick Start
 
@@ -23,11 +23,11 @@ First time? Run `/init` to set up kiln in an existing repo, or `/create-repo` fo
 ```bash
 # No build step — skills/agents/hooks are markdown and shell scripts
 # Plugin is published as an npm package:
-npm publish --access public    # from plugin/ directory
+npm publish --access public    # from plugin-kiln/ directory
 
 # Run the scaffold locally (simulates what consumers do):
-node plugin/bin/init.mjs init          # scaffold a project
-node plugin/bin/init.mjs update        # re-sync templates
+node plugin-kiln/bin/init.mjs init          # scaffold a project
+node plugin-kiln/bin/init.mjs update        # re-sync templates
 
 # Version management:
 ./scripts/version-bump.sh release      # bump release segment
@@ -41,7 +41,7 @@ There is no test suite for the plugin itself. Testing is done by running the pip
 ## Architecture
 
 ```
-plugin/
+plugin-kiln/
 ├── .claude-plugin/
 │   ├── plugin.json          # Plugin manifest (name, version, description)
 │   └── marketplace.json     # Distribution config for Claude Code marketplace
@@ -218,7 +218,7 @@ Format: `release.feature.pr.edit` — `000.000.000.000`
 | **pr** (3rd) | `./scripts/version-bump.sh pr` | Resets edit to 0 |
 | **edit** (4th) | Auto — increments on every file edit (Edit/Write hook) | — |
 
-Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The `.version.lock` directory is a transient concurrency lock — do not commit it.
+Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`. The `.version.lock` directory is a transient concurrency lock — do not commit it.
 
 ## Security
 
@@ -238,6 +238,8 @@ Stored in `VERSION` file (project root) and synced to `plugin/package.json`. The
 - N/A — file-based lock and marker files only (build/pipeline-reliability-20260401)
 - Markdown (skill/agent definitions), Bash 5.x (hook scripts), Node.js 18+ (init.mjs), JSON (configs) + Claude Code plugin system, GitHub CLI (`gh`), Playwright (QA config changes) (build/qa-tooling-templates-20260401)
 - Filesystem — `.kiln/` directory tree, `specs/` artifacts (build/qa-tooling-templates-20260401)
+- Markdown (skill definitions), Bash 5.x (hooks), Node.js 18+ (init.mjs scaffold) + `jq` (JSON parsing in hooks), `bash -n` (syntax checking), `gh` CLI (GitHub operations) (build/pipeline-workflow-polish-20260401)
+- Filesystem — `.kiln/` directory tree for issues, logs, roadmap, QA artifacts (build/pipeline-workflow-polish-20260401)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)

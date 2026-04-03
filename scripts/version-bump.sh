@@ -24,7 +24,7 @@ fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 VERSION_FILE="$PROJECT_DIR/VERSION"
-PKG_FILE="$PROJECT_DIR/plugin/package.json"
+PKG_FILE="$PROJECT_DIR/plugin-kiln/package.json"
 LOCK_DIR="$PROJECT_DIR/.version.lock"
 
 # Stale lock cleanup
@@ -92,7 +92,7 @@ echo "$CURRENT → $NEW_VERSION ($SEGMENT bump)"
 # Write VERSION file
 echo "$NEW_VERSION" > "$VERSION_FILE"
 
-# Sync to plugin/package.json
+# Sync to plugin-kiln/package.json
 if [[ -f "$PKG_FILE" ]] && command -v jq &>/dev/null; then
   TMP_PKG=$(mktemp)
   if jq --arg v "$NEW_VERSION" '.version = $v' "$PKG_FILE" > "$TMP_PKG" 2>/dev/null; then
@@ -102,8 +102,8 @@ if [[ -f "$PKG_FILE" ]] && command -v jq &>/dev/null; then
   fi
 fi
 
-# Sync to plugin/.claude-plugin/plugin.json
-PLUGIN_JSON="$PROJECT_DIR/plugin/.claude-plugin/plugin.json"
+# Sync to plugin-kiln/.claude-plugin/plugin.json
+PLUGIN_JSON="$PROJECT_DIR/plugin-kiln/.claude-plugin/plugin.json"
 if [[ -f "$PLUGIN_JSON" ]] && command -v jq &>/dev/null; then
   TMP_PLUGIN=$(mktemp)
   if jq --arg v "$NEW_VERSION" '.version = $v' "$PLUGIN_JSON" > "$TMP_PLUGIN" 2>/dev/null; then
@@ -114,4 +114,4 @@ if [[ -f "$PLUGIN_JSON" ]] && command -v jq &>/dev/null; then
 fi
 
 echo "VERSION: $NEW_VERSION"
-echo "Synced to: plugin/package.json, plugin/.claude-plugin/plugin.json"
+echo "Synced to: plugin-kiln/package.json, plugin-kiln/.claude-plugin/plugin.json"

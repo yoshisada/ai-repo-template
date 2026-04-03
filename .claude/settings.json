@@ -6,11 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash plugin/hooks/require-spec.sh"
+            "command": "bash plugin-kiln/hooks/require-spec.sh"
           },
           {
             "type": "command",
-            "command": "bash plugin/hooks/version-increment.sh"
+            "command": "bash plugin-kiln/hooks/version-increment.sh"
           }
         ]
       },
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash plugin/hooks/block-env-commit.sh"
+            "command": "bash plugin-kiln/hooks/block-env-commit.sh"
           }
         ]
       }

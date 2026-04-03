@@ -1,0 +1,9 @@
+{
+  "name": "wheel",
+  "version": "000.000.000.000",
+  "description": "Hook-based workflow engine for Claude Code. Deterministic multi-agent pipeline orchestration using a state machine, Stop/TeammateIdle hooks, and per-step context injection.",
+  "author": {
+    "name": "yoshisada"
+  },
+  "homepage": "https://github.com/yoshisada/ai-repo-template"
+}
