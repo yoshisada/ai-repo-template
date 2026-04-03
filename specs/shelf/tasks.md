@@ -7,8 +7,8 @@
 
 **Purpose**: Create the plugin directory structure and package files
 
-- [ ] T001 Create `plugin-shelf/package.json` with name `@yoshisada/shelf`, version from VERSION file, and description matching plugin.json
-- [ ] T002 [P] Create skill directories: `plugin-shelf/skills/shelf-create/`, `shelf-update/`, `shelf-sync/`, `shelf-feedback/`, `shelf-status/`, `shelf-release/`
+- [X] T001 Create `plugin-shelf/package.json` with name `@yoshisada/shelf`, version from VERSION file, and description matching plugin.json
+- [X] T002 [P] Create skill directories: `plugin-shelf/skills/shelf-create/`, `shelf-update/`, `shelf-sync/`, `shelf-feedback/`, `shelf-status/`, `shelf-release/`
 
 **Checkpoint**: Plugin directory structure ready for skill files
 
