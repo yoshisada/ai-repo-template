@@ -8,7 +8,7 @@
 ## Phase 1: Templates (FR-001, FR-002, FR-005, FR-006, FR-007, FR-008)
 
 ### Task 1.1: Create issue.md template
-- [ ] Create `plugin-shelf/templates/issue.md`
+- [X] Create `plugin-shelf/templates/issue.md`
 - Frontmatter: type, status, severity, source, github_number, project backlink, tags (source/*, severity/*, type/*, category/*), last_synced
 - Body: title heading, body content, sync footer
 - All tag fields reference namespaces from `plugin-shelf/tags.md`, not hardcoded values
@@ -16,34 +16,34 @@
 - **File**: `plugin-shelf/templates/issue.md` (create)
 
 ### Task 1.2: Create doc.md template
-- [ ] Create `plugin-shelf/templates/doc.md`
+- [X] Create `plugin-shelf/templates/doc.md`
 - Frontmatter: type, title, summary, fr_count, nfr_count, status, project backlink, tags (doc/*, status/*, category/*), prd_path
 - Body: title heading, summary, requirements counts, source link
 - **FRs**: FR-001, FR-002, FR-005, FR-007, FR-008
 - **File**: `plugin-shelf/templates/doc.md` (create)
 
 ### Task 1.3: Create progress.md template
-- [ ] Create `plugin-shelf/templates/progress.md`
+- [X] Create `plugin-shelf/templates/progress.md`
 - Frontmatter header for monthly file, entry format with date heading, summary, outcomes, links, optional decision link, project backlink, tags (status/*)
 - **FRs**: FR-001, FR-002, FR-005
 - **File**: `plugin-shelf/templates/progress.md` (create)
 
 ### Task 1.4: Create release.md template
-- [ ] Create `plugin-shelf/templates/release.md`
+- [X] Create `plugin-shelf/templates/release.md`
 - Frontmatter: type, version, date, summary, project backlink, tags (status/*)
 - Body: version heading, summary, changelog section
 - **FRs**: FR-001, FR-002, FR-005
 - **File**: `plugin-shelf/templates/release.md` (create)
 
 ### Task 1.5: Create decision.md template
-- [ ] Create `plugin-shelf/templates/decision.md`
+- [X] Create `plugin-shelf/templates/decision.md`
 - Frontmatter: type, date, status, project backlink, tags (status/*)
 - Body: title heading, context, options considered, decision, rationale sections
 - **FRs**: FR-001, FR-002, FR-005
 - **File**: `plugin-shelf/templates/decision.md` (create)
 
 ### Task 1.6: Create dashboard.md template
-- [ ] Create `plugin-shelf/templates/dashboard.md`
+- [X] Create `plugin-shelf/templates/dashboard.md`
 - Frontmatter: type, status, repo, tags (tech stack tags), next_step, last_updated, project backlink
 - Body: slug heading, sections for Human Needed, Feedback, Feedback Log
 - **FRs**: FR-001, FR-002, FR-005
