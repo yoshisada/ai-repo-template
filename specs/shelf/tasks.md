@@ -102,9 +102,9 @@
 
 **Purpose**: Final packaging and manifest updates
 
-- [ ] T009 Verify `plugin-shelf/.claude-plugin/plugin.json` has correct name, version, and description
-- [ ] T010 [P] Verify all 6 SKILL.md files reference the correct FR IDs in their instructions
-- [ ] T011 [P] Verify all SKILL.md files include the shared slug resolution, base path, and graceful degradation patterns from contracts/interfaces.md
+- [X] T009 Verify `plugin-shelf/.claude-plugin/plugin.json` has correct name, version, and description
+- [X] T010 [P] Verify all 6 SKILL.md files reference the correct FR IDs in their instructions
+- [X] T011 [P] Verify all SKILL.md files include the shared slug resolution, base path, and graceful degradation patterns from contracts/interfaces.md
 
 **Checkpoint**: Plugin is complete and ready for publishing
 
