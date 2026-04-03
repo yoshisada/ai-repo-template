@@ -37,9 +37,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update shelf-create to read slug from .shelf-config in Step 1 (Resolve Project Slug) and Step 2 (Resolve Base Path) per contracts/interfaces.md parsing algorithm in plugin-shelf/skills/shelf-create/SKILL.md
-- [ ] T002 [US1] Add new Step 9.5 (Write .shelf-config) to shelf-create that writes the config file after directory structure creation, including user confirmation prompt per FR-007, in plugin-shelf/skills/shelf-create/SKILL.md
-- [ ] T003 [US1] Update Step 10 (Report Results) in shelf-create to include .shelf-config in the summary output in plugin-shelf/skills/shelf-create/SKILL.md
+- [X] T001 [US1] Update shelf-create to read slug from .shelf-config in Step 1 (Resolve Project Slug) and Step 2 (Resolve Base Path) per contracts/interfaces.md parsing algorithm in plugin-shelf/skills/shelf-create/SKILL.md
+- [X] T002 [US1] Add new Step 9.5 (Write .shelf-config) to shelf-create that writes the config file after directory structure creation, including user confirmation prompt per FR-007, in plugin-shelf/skills/shelf-create/SKILL.md
+- [X] T003 [US1] Update Step 10 (Report Results) in shelf-create to include .shelf-config in the summary output in plugin-shelf/skills/shelf-create/SKILL.md
 
 **Checkpoint**: shelf-create writes .shelf-config after project creation. Other skills not yet updated.
 
