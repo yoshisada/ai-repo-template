@@ -22,7 +22,7 @@
 
 ### Implementation
 
-- [ ] T003 [US1] Write `plugin-shelf/skills/shelf-create/SKILL.md` — full skill definition covering: slug resolution (FR-004), duplicate check (FR-005), tech stack detection (FR-029), `--tags` merge (FR-030), dashboard creation with frontmatter (FR-002), about.md creation (FR-003), directory scaffolding (FR-001), MCP-only writes (FR-006), graceful degradation (NFR-004)
+- [X] T003 [US1] Write `plugin-shelf/skills/shelf-create/SKILL.md` — full skill definition covering: slug resolution (FR-004), duplicate check (FR-005), tech stack detection (FR-029), `--tags` merge (FR-030), dashboard creation with frontmatter (FR-002), about.md creation (FR-003), directory scaffolding (FR-001), MCP-only writes (FR-006), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-create` produces complete Obsidian project structure
 
