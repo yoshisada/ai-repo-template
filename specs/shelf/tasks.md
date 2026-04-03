@@ -78,7 +78,7 @@
 
 ### Implementation
 
-- [ ] T007 [US5] Write `plugin-shelf/skills/shelf-status/SKILL.md` — full skill definition covering: project existence check (FR-028), frontmatter display (FR-024), latest progress entry (FR-025), open issue count (FR-026), Human Needed items (FR-027), graceful degradation (NFR-004)
+- [X] T007 [US5] Write `plugin-shelf/skills/shelf-status/SKILL.md` — full skill definition covering: project existence check (FR-028), frontmatter display (FR-024), latest progress entry (FR-025), open issue count (FR-026), Human Needed items (FR-027), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-status` displays complete read-only project summary
 
