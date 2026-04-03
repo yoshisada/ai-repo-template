@@ -64,7 +64,7 @@
 
 ### Implementation
 
-- [ ] T006 [US4] Write `plugin-shelf/skills/shelf-feedback/SKILL.md` — full skill definition covering: project existence check (FR-022), Feedback section extraction (FR-019), action suggestion (FR-020), archive to Feedback Log with timestamp (FR-021), empty feedback handling (FR-023), graceful degradation (NFR-004)
+- [X] T006 [US4] Write `plugin-shelf/skills/shelf-feedback/SKILL.md` — full skill definition covering: project existence check (FR-022), Feedback section extraction (FR-019), action suggestion (FR-020), archive to Feedback Log with timestamp (FR-021), empty feedback handling (FR-023), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-feedback` reads and archives feedback from Obsidian
 
