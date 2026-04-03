@@ -13,24 +13,21 @@ Create a complete Obsidian project dashboard for the current repo. Detects tech 
 $ARGUMENTS
 ```
 
-## Step 1: Resolve Project Slug (FR-004)
+## Step 1: Resolve Project Identity (FR-004, FR-005, FR-006)
 
-Determine the project slug:
+Determine the project slug and base path. Priority order: explicit argument > `.shelf-config` > git remote defaults.
 
-1. If the user provided a project name as an argument, use it as the slug
-2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
-3. Slugify: lowercase, replace spaces with hyphens
-4. Store as `$SLUG` for all vault path construction
+1. If the user provided a project name as an argument, use it as `$SLUG` and skip to substep 4
+2. Check if `.shelf-config` exists in the repo root:
+   a. If it exists, parse it: skip lines starting with `#` (comments) and blank lines; split each remaining line on the first `=` to get key and value; trim whitespace from both
+   b. Extract `base_path` and `slug` values
+   c. If both `base_path` and `slug` are present and non-empty: use them as `$BASE_PATH` and `$SLUG` — do NOT derive from git remote (FR-006). Skip to substep 5
+   d. If either is missing or empty: warn ".shelf-config is malformed — missing {key}. Falling back to defaults." and continue to substep 3
+3. Fallback: run `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix). Slugify: lowercase, replace spaces with hyphens. Store as `$SLUG`
+4. If `$BASE_PATH` is not yet set: check if `.shelf-config` exists and has a `base_path` value. If so, use it. Otherwise default: `$BASE_PATH = "projects"`
+5. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-## Step 2: Resolve Base Path (NFR-003)
-
-Determine the Obsidian vault base path:
-
-1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
-2. Default: `projects`
-3. All vault paths use: `{base_path}/{slug}/...`
-
-## Step 3: Check for Duplicate Project (FR-005)
+## Step 2: Check for Duplicate Project (FR-005)
 
 Before creating anything, check if the project already exists:
 
@@ -41,7 +38,7 @@ mcp__obsidian-projects__list_files({ path: "{base_path}/{slug}" })
 - If files are returned: warn the user **"Project '{slug}' already exists in Obsidian. Aborting to avoid overwriting."** and STOP
 - If empty or error (not found): proceed
 
-## Step 4: Detect Tech Stack (FR-029)
+## Step 3: Detect Tech Stack (FR-029)
 
 Scan the repo for known config files and map them to namespaced tags:
 
@@ -68,7 +65,7 @@ cat package.json
 
 Parse the dependencies and map framework names to tags.
 
-## Step 5: Merge Custom Tags (FR-030)
+## Step 4: Merge Custom Tags (FR-030)
 
 If the user passed `--tags "tag1, tag2"` as an argument:
 - Split on comma, trim whitespace
@@ -76,7 +73,7 @@ If the user passed `--tags "tag1, tag2"` as an argument:
 
 Combine all tags into a YAML list for frontmatter.
 
-## Step 6: Get Repo Metadata
+## Step 5: Get Repo Metadata
 
 Gather additional repo info:
 ```bash
@@ -87,7 +84,7 @@ Extract the repo URL for the `repo` frontmatter field.
 
 Read repo description if available (from `package.json` description field or similar).
 
-## Step 7: Create Dashboard (FR-002)
+## Step 6: Create Dashboard (FR-002)
 
 Create the main project dashboard file:
 
@@ -119,7 +116,7 @@ last_updated: {today YYYY-MM-DD}
 
 **If MCP fails**: warn the user ("MCP server unavailable — cannot create project") and STOP. Do not attempt filesystem writes. (NFR-004)
 
-## Step 8: Create About Doc (FR-003)
+## Step 7: Create About Doc (FR-003)
 
 ```
 mcp__obsidian-projects__create_file({
@@ -140,7 +137,7 @@ TBD
 
 **If MCP fails**: warn and continue to next step (partial completion). (NFR-004)
 
-## Step 9: Create Directory Structure (FR-001)
+## Step 8: Create Directory Structure (FR-001)
 
 Create placeholder files to establish the directory structure. MCP file creation implicitly creates parent directories:
 
@@ -153,6 +150,36 @@ mcp__obsidian-projects__create_file({ path: "{base_path}/{slug}/decisions/.gitke
 
 **If any MCP call fails**: warn for that specific directory and continue with the rest. (NFR-004)
 
+## Step 9: Write .shelf-config (FR-001, FR-002, FR-003, FR-004, FR-007, FR-008)
+
+After the Obsidian project is successfully created, write the `.shelf-config` artifact to the repo root so all shelf skills can resolve the project path automatically.
+
+1. Compute `$DASHBOARD_PATH = {$BASE_PATH}/{$SLUG}/{$SLUG}.md`
+2. Present the config to the user for confirmation (FR-007):
+
+```
+The following will be saved to .shelf-config:
+  base_path: {$BASE_PATH}
+  slug: {$SLUG}
+  dashboard_path: {$DASHBOARD_PATH}
+
+Confirm? (Y/n)
+```
+
+3. If the user confirms (or presses Enter for default Y):
+   - Write `.shelf-config` to the repo root using the Write tool (this is a local repo file, NOT an Obsidian vault file — do NOT use MCP):
+
+```ini
+# Shelf configuration — maps this repo to its Obsidian project
+base_path = {$BASE_PATH}
+slug = {$SLUG}
+dashboard_path = {$DASHBOARD_PATH}
+```
+
+4. If the user declines: skip writing `.shelf-config` and note it in the Step 10 summary
+
+**Important**: The `.shelf-config` file lives in the repo root (local filesystem), NOT in the Obsidian vault. Use the Write tool, not MCP. This file should be committed to git (FR-008).
+
 ## Step 10: Report Results
 
 Print a confirmation summary:
@@ -160,9 +187,10 @@ Print a confirmation summary:
 ```
 Project '{slug}' created in Obsidian.
 
-  Dashboard: {base_path}/{slug}/{slug}.md
-  About:     {base_path}/{slug}/docs/about.md
-  Tags:      {comma-separated tag list}
+  Dashboard:    {base_path}/{slug}/{slug}.md
+  About:        {base_path}/{slug}/docs/about.md
+  Tags:         {comma-separated tag list}
+  Config:       .shelf-config {written | skipped by user}
 
   Directories created:
     - progress/
@@ -172,6 +200,9 @@ Project '{slug}' created in Obsidian.
 
 Next: Run /shelf-update to record your first progress entry.
 ```
+
+If `.shelf-config` was written, note: "Config saved — all shelf skills will now auto-resolve this project."
+If `.shelf-config` was skipped, note: "Config skipped — you can create it manually or re-run /shelf-create."
 
 If any steps had partial failures, include a warnings section listing what failed.
 

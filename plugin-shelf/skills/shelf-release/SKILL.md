@@ -17,18 +17,22 @@ Parse these optional flags from the arguments:
 - `--version "1.2.0"` — version override
 - `--summary "text"` — human-readable one-liner for the release
 
-## Step 1: Resolve Project Slug (FR-004)
+## Step 1: Resolve Project Identity (FR-005, FR-006)
 
-1. If the user provided a project name as an argument, use it as the slug
-2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
-3. Store as `$SLUG`
+Determine the project slug and base path. Priority order: explicit argument > `.shelf-config` > git remote defaults.
 
-## Step 2: Resolve Base Path (NFR-003)
+1. If `.shelf-config` exists in the repo root:
+   a. Parse it: skip lines starting with `#` (comments) and blank lines; split each remaining line on the first `=` to get key and value; trim whitespace from both
+   b. Extract `base_path` and `slug` values
+   c. If both are present and non-empty: use them as `$BASE_PATH` and `$SLUG` — do NOT derive from git remote or prompt the user (FR-006). Skip to substep 4
+   d. If either is missing or empty: warn ".shelf-config is malformed — missing {key}. Falling back to defaults." and continue to substep 2
+2. If no valid `.shelf-config`:
+   a. If the user provided a project name as an argument: use it as `$SLUG`
+   b. Otherwise: run `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix) as `$SLUG`
+   c. Set `$BASE_PATH = "projects"` (default)
+3. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
-2. Default: `projects`
-
-## Step 3: Detect Version (FR-035)
+## Step 2: Detect Version (FR-035)
 
 If `--version` was provided, use it. Otherwise, auto-detect in order:
 
@@ -40,7 +44,7 @@ If none found, ask the user: "Could not detect version. What version is this rel
 
 Store as `$VERSION`.
 
-## Step 4: Check for Duplicate Release (FR-038)
+## Step 3: Check for Duplicate Release (FR-038)
 
 ```
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/releases/v{version}.md" })
@@ -51,7 +55,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/releases/v{version
 
 **If MCP fails for other reasons**: warn "MCP server unavailable — cannot create release note" and STOP (NFR-004)
 
-## Step 5: Generate Changelog (FR-036)
+## Step 4: Generate Changelog (FR-036)
 
 Find the previous release tag:
 ```bash
@@ -79,13 +83,13 @@ Format the changelog as a markdown list:
 - {commit_hash} {commit_message} (PR #{number})
 ```
 
-## Step 6: Resolve Summary (FR-037)
+## Step 5: Resolve Summary (FR-037)
 
 If `--summary` was provided, use it.
 
 If not, ask the user: "One-liner summary for this release?" and wait for a response.
 
-## Step 7: Create Release Note (FR-034)
+## Step 6: Create Release Note (FR-034)
 
 ```
 mcp__obsidian-projects__create_file({
@@ -110,7 +114,7 @@ summary: \"{summary}\"
 
 **If MCP fails**: warn "Could not create release note" and STOP (NFR-004)
 
-## Step 8: Append Progress Entry (FR-039)
+## Step 7: Append Progress Entry (FR-039)
 
 Follow the same pattern as shelf-update for appending a progress entry:
 
@@ -131,7 +135,7 @@ Follow the same pattern as shelf-update for appending a progress entry:
 
 **If MCP fails**: warn "Could not append progress entry" and continue (NFR-004)
 
-## Step 9: Report Results
+## Step 8: Report Results
 
 ```
 Release v{version} recorded in Obsidian.
