@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/shelf",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
   "author": "yoshisada",
   "license": "MIT",
@@ -19,6 +19,8 @@
   "files": [
     ".claude-plugin/",
     "skills/",
+    "templates/",
+    "tags.md",
     "docs/"
   ]
 }
