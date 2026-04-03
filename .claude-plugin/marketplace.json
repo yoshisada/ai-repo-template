@@ -41,6 +41,23 @@
       "license": "MIT",
       "keywords": ["wheel", "workflow", "orchestration", "hooks", "state-machine"],
       "category": "development"
+    },
+    {
+      "name": "shelf",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/yoshisada/ai-repo-template.git",
+        "path": "plugin-shelf"
+      },
+      "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
+      "version": "0.1.0",
+      "author": {
+        "name": "yoshisada"
+      },
+      "repository": "https://github.com/yoshisada/ai-repo-template",
+      "license": "MIT",
+      "keywords": ["shelf", "obsidian", "mcp", "project-dashboard", "sync"],
+      "category": "productivity"
     }
   ]
 }
