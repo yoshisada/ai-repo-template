@@ -109,7 +109,7 @@
 ## Phase 3: Shelf-Sync Enhancements (FR-009 through FR-016)
 
 ### Task 3.1: Add issue lifecycle management to shelf-sync
-- [ ] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
 - Add new step after issue sync: for each Obsidian issue note with `source: "backlog:*"`, check if source file exists in `.kiln/issues/`. If not there but in `.kiln/issues/completed/`, update note to `status: closed`
 - Add `closed` counter to sync summary
 - **FRs**: FR-009, FR-010
@@ -117,7 +117,7 @@
 - **Depends on**: Task 2.6
 
 ### Task 3.2: Add docs sync to shelf-sync
-- [ ] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
 - Add new step: scan `docs/features/*/PRD.md`
 - For each PRD: extract title, Problem Statement summary (1-2 sentences), count FR-*/NFR-* occurrences, read Status field
 - Create/update doc note at `{base_path}/{slug}/docs/{feature-slug}.md` using doc.md template
@@ -128,7 +128,7 @@
 - **Depends on**: Task 1.2, Task 2.6
 
 ### Task 3.3: Add tech tag refresh to shelf-sync
-- [ ] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
 - Add new step: re-run tech stack detection (same lookup table as shelf-create Step 3)
 - Read current dashboard tags from frontmatter
 - Compare detected vs current; if different, update dashboard with new tags
@@ -138,7 +138,7 @@
 - **Depends on**: Task 2.6
 
 ### Task 3.4: Update shelf-sync summary format
-- [ ] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
 - Rewrite the Report Results step to include all counters per the contracts sync summary format
 - Issues: created/updated/closed/skipped
 - Docs: created/updated/skipped
