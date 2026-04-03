@@ -52,7 +52,7 @@
 ## Phase 2: Skill Updates — Template Adoption (FR-003, FR-004)
 
 ### Task 2.1: Update shelf-create to use templates
-- [ ] Modify `plugin-shelf/skills/shelf-create/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-create/SKILL.md`
 - Add template resolution step: check `.shelf/templates/dashboard.md` then `plugin-shelf/templates/dashboard.md`
 - Replace hardcoded dashboard format in Step 6 with template reference
 - Replace hardcoded about.md format in Step 7 with template-aware format
@@ -62,7 +62,7 @@
 - **Depends on**: Task 1.6
 
 ### Task 2.2: Update shelf-update to use templates
-- [ ] Modify `plugin-shelf/skills/shelf-update/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-update/SKILL.md`
 - Add template resolution for progress and decision templates
 - Replace hardcoded progress entry format in Step 5 with template reference
 - Replace hardcoded decision format in Step 6 with template reference
@@ -72,7 +72,7 @@
 - **Depends on**: Tasks 1.3, 1.5
 
 ### Task 2.3: Update shelf-release to use templates
-- [ ] Modify `plugin-shelf/skills/shelf-release/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-release/SKILL.md`
 - Add template resolution for release template
 - Replace hardcoded release note format in Step 6 with template reference
 - Add backlink and tags to created notes
@@ -81,7 +81,7 @@
 - **Depends on**: Task 1.4
 
 ### Task 2.4: Update shelf-feedback to use templates
-- [ ] Modify `plugin-shelf/skills/shelf-feedback/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-feedback/SKILL.md`
 - Shelf-feedback modifies the dashboard but doesn't create new note types — update to preserve backlinks and tags when rewriting the dashboard
 - Reference dashboard template format for consistency
 - **FRs**: FR-003, FR-005
@@ -89,7 +89,7 @@
 - **Depends on**: Task 1.6
 
 ### Task 2.5: Update shelf-status to reference template format
-- [ ] Modify `plugin-shelf/skills/shelf-status/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-status/SKILL.md`
 - Shelf-status is read-only — update parsing logic to be aware of new frontmatter fields (project backlink, tags) so it can display them
 - No template writes needed
 - **FRs**: FR-003
@@ -97,7 +97,7 @@
 - **Depends on**: Phase 1
 
 ### Task 2.6: Update shelf-sync for template adoption
-- [ ] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
+- [X] Modify `plugin-shelf/skills/shelf-sync/SKILL.md`
 - Add template resolution step for issue template
 - Replace hardcoded issue note format in Step 8 with template reference
 - Add user override check (`.shelf/templates/issue.md` first)

@@ -99,52 +99,43 @@ For each issue that needs a note, generate a human-readable slug from the title:
 
 Example: "Fix sidebar overflow on mobile" -> `fix-sidebar-overflow-on-mobile.md`
 
-## Step 8: Create/Update Issue Notes (FR-013, FR-014, FR-015, FR-016, FR-018)
+## Step 8: Create/Update Issue Notes (FR-003, FR-004, FR-005, FR-006, FR-008)
 
-For each issue that needs creating or updating:
+**Template resolution** (FR-004): Read the issue template. First check if `.shelf/templates/issue.md` exists in the repo. If it does, use that. Otherwise, use `plugin-shelf/templates/issue.md`.
+
+**Tag derivation** (FR-006, FR-008): For each issue, derive tags using the algorithm from `plugin-shelf/tags.md`:
+1. `source/*` — GitHub issues -> `source/github`, backlog -> `source/backlog`
+2. `severity/*` — From labels or frontmatter. Default: `severity/medium`
+3. `type/*` — From labels or frontmatter `type` field. Default: `type/improvement`
+4. `category/*` — Infer from content: mentions skills -> `category/skills`, agents -> `category/agents`, hooks -> `category/hooks`, templates -> `category/templates`, scaffold -> `category/scaffold`, else -> `category/workflow`
+
+For each issue that needs creating or updating, replace placeholders in the template:
 
 **For GitHub issues** (source: `github`):
-```
-mcp__obsidian-projects__create_file or update_file({
-  path: "{base_path}/{slug}/issues/{slug-from-title}.md",
-  content: "---
-type: issue
-status: {open or closed}
-severity: {from labels: bug=high, enhancement=medium, else=medium}
-source: \"GitHub #{number}\"
-github_number: {number}
-last_synced: {ISO 8601 timestamp}
----
-
-# {title}
-
-{body}
-
----
-*Synced from GitHub issue #{number}*
-"
-})
-```
+- `{title}` — issue title
+- `{status}` — `open` or `closed`
+- `{severity}` — derived from labels (bug=high, enhancement=medium, else=medium)
+- `{source}` — `GitHub #{number}`
+- `{github_number}` — the issue number
+- `{slug}` — project slug (for `project: "[[{slug}]]"` backlink, FR-005)
+- `{source_tag}` — `source/github`
+- `{severity_tag}` — derived severity tag
+- `{type_tag}` — derived type tag
+- `{category_tag}` — derived category tag
+- `{body}` — issue body text
+- `{sync_footer}` — `*Synced from GitHub issue #{number}*`
+- `{last_synced}` — ISO 8601 timestamp
 
 **For backlog issues** (source: `backlog`):
+- `{source}` — `backlog:{filename}`
+- `{github_number}` — `null`
+- `{source_tag}` — `source/backlog`
+- Other fields derived from backlog frontmatter
+
 ```
 mcp__obsidian-projects__create_file or update_file({
   path: "{base_path}/{slug}/issues/{slug-from-title}.md",
-  content: "---
-type: issue
-status: open
-severity: {from backlog frontmatter or medium}
-source: \"backlog:{filename}\"
-last_synced: {ISO 8601 timestamp}
----
-
-# {title}
-
-{body}
-
----
-*Synced from .kiln/issues/{filename}*
-"
+  content: "{rendered issue template}"
 })
 ```
 

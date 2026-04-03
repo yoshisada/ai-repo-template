@@ -39,7 +39,7 @@ mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 - If not found: suggest "No project found — run `/shelf-create` first" and STOP (FR-028)
 - If MCP fails: warn "MCP server unavailable — cannot read project status" and STOP (NFR-004)
 
-## Step 3: Parse Dashboard Frontmatter (FR-024)
+## Step 3: Parse Dashboard Frontmatter (FR-024, FR-003)
 
 Extract from YAML frontmatter:
 - `status` — current project status
@@ -47,6 +47,7 @@ Extract from YAML frontmatter:
 - `last_updated` — when the project was last updated
 - `tags` — tech stack and category tags
 - `repo` — repository URL
+- `project` — backlink to project dashboard (e.g., `"[[slug]]"`) — display if present
 
 ## Step 4: Read Latest Progress Entry (FR-025)
 
@@ -80,6 +81,8 @@ Parse frontmatter and count:
 - Total issues
 - Open issues (`status` != `closed`)
 - Closed issues (`status` == `closed`)
+
+Note: Issue notes now include `project`, `tags`, `source`, `severity` fields in frontmatter (from template system). Parse these for richer display if present.
 
 **If MCP fails**: warn "Could not read issues" and continue (NFR-004)
 

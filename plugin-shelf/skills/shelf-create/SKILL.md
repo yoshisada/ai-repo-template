@@ -84,44 +84,42 @@ Extract the repo URL for the `repo` frontmatter field.
 
 Read repo description if available (from `package.json` description field or similar).
 
-## Step 6: Create Dashboard (FR-002)
+## Step 6: Create Dashboard (FR-002, FR-003, FR-004, FR-005)
 
-Create the main project dashboard file:
+Create the main project dashboard file using the dashboard template.
+
+**Template resolution** (FR-004): Read the template file. First check if `.shelf/templates/dashboard.md` exists in the repo. If it does, use that. Otherwise, use `plugin-shelf/templates/dashboard.md`.
+
+Replace placeholders in the template:
+- `{slug}` — the project slug
+- `{repo_url}` — the git remote URL
+- `{tags_yaml}` — YAML-formatted tag list from tech detection (e.g., `  - language/typescript\n  - framework/react`)
+- `{date}` — today's date `YYYY-MM-DD`
+- `{description}` — from package.json description or empty
+
+The template includes `project: "[[{slug}]]"` as a backlink (FR-005).
 
 ```
 mcp__obsidian-projects__create_file({
   path: "{base_path}/{slug}/{slug}.md",
-  content: "---
-type: project
-status: idea
-repo: {repo_url}
-tags:
-  - {tag1}
-  - {tag2}
-  ...
-next_step: \"\"
-last_updated: {today YYYY-MM-DD}
----
-
-# {slug}
-
-## Human Needed
-
-## Feedback
-
-## Feedback Log
-"
+  content: "{rendered dashboard template}"
 })
 ```
 
 **If MCP fails**: warn the user ("MCP server unavailable — cannot create project") and STOP. Do not attempt filesystem writes. (NFR-004)
 
-## Step 7: Create About Doc (FR-003)
+## Step 7: Create About Doc (FR-003, FR-005)
+
+Create the about doc. Include a `project: "[[{slug}]]"` backlink in frontmatter (FR-005).
 
 ```
 mcp__obsidian-projects__create_file({
   path: "{base_path}/{slug}/docs/about.md",
-  content: "# About {slug}
+  content: "---
+project: \"[[{slug}]]\"
+---
+
+# About {slug}
 
 ## Description
 {repo_description or 'TBD'}
