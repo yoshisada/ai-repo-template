@@ -1,0 +1,153 @@
+---
+name: shelf-release
+description: Record a release in Obsidian. Creates a release note with auto-generated changelog from git history, and appends a progress entry marking the release event.
+---
+
+# shelf-release — Record a Release
+
+Create a release note in Obsidian with an auto-generated changelog from git history. Also appends a progress entry documenting the release event.
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+Parse these optional flags from the arguments:
+- `--version "1.2.0"` — version override
+- `--summary "text"` — human-readable one-liner for the release
+
+## Step 1: Resolve Project Slug (FR-004)
+
+1. If the user provided a project name as an argument, use it as the slug
+2. Otherwise, run: `git remote get-url origin` and extract the repo name (last path segment, strip `.git` suffix)
+3. Store as `$SLUG`
+
+## Step 2: Resolve Base Path (NFR-003)
+
+1. Check if `.shelf-config` exists in the repo root — if so, read the `base_path` value
+2. Default: `projects`
+
+## Step 3: Detect Version (FR-035)
+
+If `--version` was provided, use it. Otherwise, auto-detect in order:
+
+1. Read `VERSION` file: `cat VERSION`
+2. Read from `package.json`: `node -p "require('./package.json').version"` (if package.json exists)
+3. Read from git tags: `git describe --tags --abbrev=0`
+
+If none found, ask the user: "Could not detect version. What version is this release?"
+
+Store as `$VERSION`.
+
+## Step 4: Check for Duplicate Release (FR-038)
+
+```
+mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/releases/v{version}.md" })
+```
+
+- If the file exists: warn **"Release note already exists for v{version}. Aborting to avoid overwriting."** and STOP
+- If not found (error): proceed
+
+**If MCP fails for other reasons**: warn "MCP server unavailable — cannot create release note" and STOP (NFR-004)
+
+## Step 5: Generate Changelog (FR-036)
+
+Find the previous release tag:
+```bash
+git tag --sort=-version:refname | head -5
+```
+
+If a previous tag exists, generate changelog between that tag and HEAD:
+```bash
+git log {previous_tag}..HEAD --oneline --no-decorate
+```
+
+Also find merged PRs:
+```bash
+git log {previous_tag}..HEAD --merges --oneline
+```
+
+If no previous tag exists, use the last 20 commits:
+```bash
+git log -20 --oneline --no-decorate
+```
+
+Format the changelog as a markdown list:
+```markdown
+- {commit_hash} {commit_message}
+- {commit_hash} {commit_message} (PR #{number})
+```
+
+## Step 6: Resolve Summary (FR-037)
+
+If `--summary` was provided, use it.
+
+If not, ask the user: "One-liner summary for this release?" and wait for a response.
+
+## Step 7: Create Release Note (FR-034)
+
+```
+mcp__obsidian-projects__create_file({
+  path: "{base_path}/{slug}/releases/v{version}.md",
+  content: "---
+type: release
+version: \"{version}\"
+date: {YYYY-MM-DD}
+summary: \"{summary}\"
+---
+
+# v{version}
+
+{summary}
+
+## Changelog
+
+{changelog entries}
+"
+})
+```
+
+**If MCP fails**: warn "Could not create release note" and STOP (NFR-004)
+
+## Step 8: Append Progress Entry (FR-039)
+
+Follow the same pattern as shelf-update for appending a progress entry:
+
+1. Determine current month: `YYYY-MM`
+2. Read or create the monthly progress file:
+   ```
+   mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/progress/{YYYY-MM}.md" })
+   ```
+   If not found, create it with a header.
+
+3. Append a release progress entry:
+   ```
+   mcp__obsidian-projects__update_file({
+     path: "{base_path}/{slug}/progress/{YYYY-MM}.md",
+     content: "{existing_content}\n\n## {YYYY-MM-DD}\n\n**Summary**: Released v{version} — {summary}\n\n**Links**: [Release note](../releases/v{version}.md)\n"
+   })
+   ```
+
+**If MCP fails**: warn "Could not append progress entry" and continue (NFR-004)
+
+## Step 9: Report Results
+
+```
+Release v{version} recorded in Obsidian.
+
+  Release note: {base_path}/{slug}/releases/v{version}.md
+  Progress:     Appended to progress/{YYYY-MM}.md
+  Changelog:    {N} commits since {previous_tag or 'initial'}
+
+Summary: {summary}
+```
+
+## Rules
+
+- **All writes go through MCP** — never write directly to the filesystem for Obsidian content (NFR-001)
+- **No hardcoded vault paths** — always use the resolved base path (NFR-002, NFR-003)
+- **Graceful degradation** — if MCP is unavailable, warn and exit cleanly (NFR-004)
+- **No secrets in notes** — do not include API keys, tokens, or credentials (NFR-005)
+- **Idempotency guard** — always check for existing release note before creating (FR-038)
+- **Auto-detect version** — try VERSION, package.json, git tags before asking the user (FR-035)

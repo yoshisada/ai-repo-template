@@ -92,7 +92,7 @@
 
 ### Implementation
 
-- [ ] T008 [US6] Write `plugin-shelf/skills/shelf-release/SKILL.md` — full skill definition covering: version detection (FR-035), duplicate check (FR-038), changelog from git log (FR-036), summary prompt (FR-037), release note creation (FR-034), progress entry append (FR-039), graceful degradation (NFR-004)
+- [X] T008 [US6] Write `plugin-shelf/skills/shelf-release/SKILL.md` — full skill definition covering: version detection (FR-035), duplicate check (FR-038), changelog from git log (FR-036), summary prompt (FR-037), release note creation (FR-034), progress entry append (FR-039), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-release` creates release note with auto-generated changelog
 
