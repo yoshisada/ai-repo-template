@@ -95,8 +95,8 @@ No additional tasks — the parsing algorithm in Contract 1 reads the file fresh
 
 **Purpose**: Final cleanup and verification across all skill files.
 
-- [ ] T009 Verify all 6 SKILL.md files have consistent path resolution wording and step numbering after modifications across all files in plugin-shelf/skills/*/SKILL.md
-- [ ] T010 Run quickstart.md validation — verify the documented usage matches the implemented behavior in specs/shelf-config-artifact/quickstart.md
+- [X] T009 Verify all 6 SKILL.md files have consistent path resolution wording and step numbering after modifications across all files in plugin-shelf/skills/*/SKILL.md
+- [X] T010 Run quickstart.md validation — verify the documented usage matches the implemented behavior in specs/shelf-config-artifact/quickstart.md
 
 ---
 

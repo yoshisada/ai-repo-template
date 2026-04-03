@@ -27,7 +27,7 @@ Determine the project slug and base path. Priority order: explicit argument > `.
 4. If `$BASE_PATH` is not yet set: check if `.shelf-config` exists and has a `base_path` value. If so, use it. Otherwise default: `$BASE_PATH = "projects"`
 5. All vault paths use: `{$BASE_PATH}/{$SLUG}/...`
 
-## Step 3: Check for Duplicate Project (FR-005)
+## Step 2: Check for Duplicate Project (FR-005)
 
 Before creating anything, check if the project already exists:
 
@@ -38,7 +38,7 @@ mcp__obsidian-projects__list_files({ path: "{base_path}/{slug}" })
 - If files are returned: warn the user **"Project '{slug}' already exists in Obsidian. Aborting to avoid overwriting."** and STOP
 - If empty or error (not found): proceed
 
-## Step 4: Detect Tech Stack (FR-029)
+## Step 3: Detect Tech Stack (FR-029)
 
 Scan the repo for known config files and map them to namespaced tags:
 
@@ -65,7 +65,7 @@ cat package.json
 
 Parse the dependencies and map framework names to tags.
 
-## Step 5: Merge Custom Tags (FR-030)
+## Step 4: Merge Custom Tags (FR-030)
 
 If the user passed `--tags "tag1, tag2"` as an argument:
 - Split on comma, trim whitespace
@@ -73,7 +73,7 @@ If the user passed `--tags "tag1, tag2"` as an argument:
 
 Combine all tags into a YAML list for frontmatter.
 
-## Step 6: Get Repo Metadata
+## Step 5: Get Repo Metadata
 
 Gather additional repo info:
 ```bash
@@ -84,7 +84,7 @@ Extract the repo URL for the `repo` frontmatter field.
 
 Read repo description if available (from `package.json` description field or similar).
 
-## Step 7: Create Dashboard (FR-002)
+## Step 6: Create Dashboard (FR-002)
 
 Create the main project dashboard file:
 
@@ -116,7 +116,7 @@ last_updated: {today YYYY-MM-DD}
 
 **If MCP fails**: warn the user ("MCP server unavailable — cannot create project") and STOP. Do not attempt filesystem writes. (NFR-004)
 
-## Step 8: Create About Doc (FR-003)
+## Step 7: Create About Doc (FR-003)
 
 ```
 mcp__obsidian-projects__create_file({
@@ -137,7 +137,7 @@ TBD
 
 **If MCP fails**: warn and continue to next step (partial completion). (NFR-004)
 
-## Step 9: Create Directory Structure (FR-001)
+## Step 8: Create Directory Structure (FR-001)
 
 Create placeholder files to establish the directory structure. MCP file creation implicitly creates parent directories:
 
@@ -150,7 +150,7 @@ mcp__obsidian-projects__create_file({ path: "{base_path}/{slug}/decisions/.gitke
 
 **If any MCP call fails**: warn for that specific directory and continue with the rest. (NFR-004)
 
-## Step 9.5: Write .shelf-config (FR-001, FR-002, FR-003, FR-004, FR-007, FR-008)
+## Step 9: Write .shelf-config (FR-001, FR-002, FR-003, FR-004, FR-007, FR-008)
 
 After the Obsidian project is successfully created, write the `.shelf-config` artifact to the repo root so all shelf skills can resolve the project path automatically.
 
