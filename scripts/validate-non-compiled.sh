@@ -40,7 +40,7 @@ done
 if [[ "$MODE" == "all" ]]; then
   while IFS= read -r f; do
     FILES+=("$f")
-  done < <(find plugin/ -type f \( -name "*.md" -o -name "*.sh" \) 2>/dev/null)
+  done < <(find plugin-kiln/ -type f \( -name "*.md" -o -name "*.sh" \) 2>/dev/null)
 elif [[ "$MODE" == "auto" ]]; then
   while IFS= read -r f; do
     FILES+=("$f")
@@ -152,11 +152,11 @@ for f in "${FILES[@]}"; do
       REF_FAIL=$((REF_FAIL + 1))
       REF_DETAILS+=("$f -> $ref (not found)")
     fi
-  done < <(grep -oE '(plugin|scripts|\.kiln|\.specify|\.claude)/[a-zA-Z0-9_./-]+' "$f" 2>/dev/null | sort -u)
+  done < <(grep -oE '(plugin-kiln|plugin-wheel|scripts|\.kiln|\.specify|\.claude)/[a-zA-Z0-9_./-]+' "$f" 2>/dev/null | sort -u)
 done
 
 # --- Check 4: Scaffold output verification ---
-if [[ -f "plugin/bin/init.mjs" ]]; then
+if [[ -f "plugin-kiln/bin/init.mjs" ]]; then
   SCAFFOLD_TESTED=1
   TMPDIR=$(mktemp -d /tmp/scaffold-test-XXXXXX)
   trap 'rm -rf "$TMPDIR"' EXIT
@@ -169,7 +169,7 @@ if [[ -f "plugin/bin/init.mjs" ]]; then
     git add -A && git commit -q -m "init"
   ) 2>/dev/null
 
-  if node "$PROJECT_DIR/plugin/bin/init.mjs" init "$TMPDIR" 2>/dev/null; then
+  if node "$PROJECT_DIR/plugin-kiln/bin/init.mjs" init "$TMPDIR" 2>/dev/null; then
     SCAFFOLD_PASS=1
     SCAFFOLD_DETAIL="pass"
   else

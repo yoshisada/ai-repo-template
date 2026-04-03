@@ -13,7 +13,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/yoshisada/ai-repo-template.git",
-        "path": "plugin"
+        "path": "plugin-kiln"
       },
       "description": "Spec-first development harness with 4-gate enforcement, PRD-driven workflow, and agent teams. Includes 15 skills, 4 agents, hooks, and templates.",
       "version": "1.0.0",
@@ -23,6 +23,23 @@
       "repository": "https://github.com/yoshisada/ai-repo-template",
       "license": "MIT",
       "keywords": ["kiln", "spec-first", "prd", "tdd", "agents"],
+      "category": "development"
+    },
+    {
+      "name": "wheel",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/yoshisada/ai-repo-template.git",
+        "path": "plugin-wheel"
+      },
+      "description": "Hook-based workflow engine for Claude Code. Deterministic multi-agent pipeline orchestration using a state machine and per-step context injection.",
+      "version": "0.0.1",
+      "author": {
+        "name": "yoshisada"
+      },
+      "repository": "https://github.com/yoshisada/ai-repo-template",
+      "license": "MIT",
+      "keywords": ["wheel", "workflow", "orchestration", "hooks", "state-machine"],
       "category": "development"
     }
   ]
