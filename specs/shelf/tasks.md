@@ -50,7 +50,7 @@
 
 ### Implementation
 
-- [ ] T005 [US3] Write `plugin-shelf/skills/shelf-sync/SKILL.md` — full skill definition covering: GitHub issue fetch via `gh` (FR-013), backlog read from `.kiln/issues/` (FR-014), frontmatter with type/status/severity/source/last_synced (FR-015), closed issue handling (FR-016), skip-unchanged logic (FR-017), slug filename generation (FR-018), graceful degradation (NFR-004)
+- [X] T005 [US3] Write `plugin-shelf/skills/shelf-sync/SKILL.md` — full skill definition covering: GitHub issue fetch via `gh` (FR-013), backlog read from `.kiln/issues/` (FR-014), frontmatter with type/status/severity/source/last_synced (FR-015), closed issue handling (FR-016), skip-unchanged logic (FR-017), slug filename generation (FR-018), graceful degradation (NFR-004)
 
 **Checkpoint**: `/shelf-sync` mirrors all issues into Obsidian
 
