@@ -50,14 +50,14 @@
 
 **Purpose**: Step type routing, context injection, and the main engine module
 
-- [ ] T009 [US1] Implement `plugin-wheel/lib/context.sh` with all functions per contracts/interfaces.md: `context_build`, `context_capture_output`, `context_subagent_start`
-- [ ] T010 [US1] Implement `plugin-wheel/lib/dispatch.sh` — `dispatch_step` (router) and `dispatch_agent` (FR-003)
-- [ ] T011 [US1] Add `dispatch_command` to `plugin-wheel/lib/dispatch.sh` (FR-019/020/021) — execute shell command, record output, support chaining via exec
-- [ ] T012 [US3] Add `dispatch_parallel` to `plugin-wheel/lib/dispatch.sh` (FR-009) — fan-out agent instructions
-- [ ] T013 [US4] Add `dispatch_approval` to `plugin-wheel/lib/dispatch.sh` (FR-013) — gate until approved
-- [ ] T014 [US5] Add `dispatch_branch` to `plugin-wheel/lib/dispatch.sh` (FR-024) — evaluate condition, jump to target
-- [ ] T015 [US5] Add `dispatch_loop` to `plugin-wheel/lib/dispatch.sh` (FR-025/026) — repeat substep with condition and max_iterations
-- [ ] T016 [US1] Implement `plugin-wheel/lib/engine.sh` with all functions per contracts/interfaces.md: `engine_init`, `engine_current_step`, `engine_handle_hook` — sources all lib modules
+- [X] T009 [US1] Implement `plugin-wheel/lib/context.sh` with all functions per contracts/interfaces.md: `context_build`, `context_capture_output`, `context_subagent_start`
+- [X] T010 [US1] Implement `plugin-wheel/lib/dispatch.sh` — `dispatch_step` (router) and `dispatch_agent` (FR-003)
+- [X] T011 [US1] Add `dispatch_command` to `plugin-wheel/lib/dispatch.sh` (FR-019/020/021) — execute shell command, record output, support chaining via exec
+- [X] T012 [US3] Add `dispatch_parallel` to `plugin-wheel/lib/dispatch.sh` (FR-009) — fan-out agent instructions
+- [X] T013 [US4] Add `dispatch_approval` to `plugin-wheel/lib/dispatch.sh` (FR-013) — gate until approved
+- [X] T014 [US5] Add `dispatch_branch` to `plugin-wheel/lib/dispatch.sh` (FR-024) — evaluate condition, jump to target
+- [X] T015 [US5] Add `dispatch_loop` to `plugin-wheel/lib/dispatch.sh` (FR-025/026) — repeat substep with condition and max_iterations
+- [X] T016 [US1] Implement `plugin-wheel/lib/engine.sh` with all functions per contracts/interfaces.md: `engine_init`, `engine_current_step`, `engine_handle_hook` — sources all lib modules
 
 **Checkpoint**: Full engine logic complete — all step types dispatchable
 
