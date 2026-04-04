@@ -15,10 +15,10 @@
 
 **Purpose**: Create the plugin directory structure and package configuration
 
-- [ ] T001 [P] [US7] Create `plugin-wheel/.claude-plugin/plugin.json` with plugin manifest per contracts/interfaces.md
-- [ ] T002 [P] [US7] Create `plugin-wheel/.claude-plugin/marketplace.json` with distribution config
-- [ ] T003 [P] [US7] Create `plugin-wheel/package.json` for npm package `@yoshisada/wheel` (version 0.1.0)
-- [ ] T004 [P] [US7] Create `plugin-wheel/scaffold/settings-hooks.json` defining all 6 hook event configurations
+- [X] T001 [P] [US7] Create `plugin-wheel/.claude-plugin/plugin.json` with plugin manifest per contracts/interfaces.md
+- [X] T002 [P] [US7] Create `plugin-wheel/.claude-plugin/marketplace.json` with distribution config
+- [X] T003 [P] [US7] Create `plugin-wheel/package.json` for npm package `@yoshisada/wheel` (version 0.1.0)
+- [X] T004 [P] [US7] Create `plugin-wheel/scaffold/settings-hooks.json` defining all 6 hook event configurations
 
 **Checkpoint**: Plugin skeleton exists, no logic yet
 
