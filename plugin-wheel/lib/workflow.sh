@@ -44,6 +44,22 @@ workflow_load() {
   echo "$content"
 }
 
+# FR-006 (wheel-skill-activation): Validate that all step IDs in a workflow are unique
+# Params: $1 = workflow JSON (string)
+# Output (stderr): error message listing duplicate IDs if found
+# Exit: 0 if all IDs unique, 1 if duplicates found
+workflow_validate_unique_ids() {
+  local workflow_json="$1"
+  local duplicates
+  duplicates=$(echo "$workflow_json" | jq -r '
+    [.steps[].id] | group_by(.) | map(select(length > 1)) | map(.[0]) | .[]')
+  if [[ -n "$duplicates" ]]; then
+    echo "ERROR: duplicate step IDs found: $duplicates" >&2
+    return 1
+  fi
+  return 0
+}
+
 # FR-012: Get the list of steps from a workflow
 # Params: $1 = workflow JSON (string)
 # Output (stdout): JSON array of step objects

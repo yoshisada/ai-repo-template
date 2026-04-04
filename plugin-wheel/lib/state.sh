@@ -38,12 +38,14 @@ state_write() {
 }
 
 # FR-002: Initialize a new state.json from a workflow definition
-# Params: $1 = state file path, $2 = workflow JSON (string)
+# FR-001 (wheel-skill-activation): Extended to accept optional workflow_file path
+# Params: $1 = state file path, $2 = workflow JSON (string), $3 = workflow file path (string, optional)
 # Output: none (creates state file)
 # Exit: 0 on success, 1 on failure
 state_init() {
   local state_file="$1"
   local workflow_json="$2"
+  local workflow_file="${3:-}"
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local wf_name wf_version step_count
@@ -73,11 +75,13 @@ state_init() {
   state=$(jq -n \
     --arg name "$wf_name" \
     --arg version "$wf_version" \
+    --arg wf_file "$workflow_file" \
     --arg now "$now" \
     --argjson steps "$steps_json" \
     '{
       workflow_name: $name,
       workflow_version: $version,
+      workflow_file: $wf_file,
       status: "running",
       cursor: 0,
       started_at: $now,

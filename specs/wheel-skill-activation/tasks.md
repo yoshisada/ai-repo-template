@@ -7,8 +7,8 @@
 
 **Purpose**: Add the `workflow_file` field to state.json and the unique-ID validator, so skills and hooks can use them.
 
-- [ ] T001 [US1] Add `workflow_validate_unique_ids()` to `plugin-wheel/lib/workflow.sh` — validates all step IDs are unique per contracts/interfaces.md. Params: `$1 = workflow JSON string`. Exit 0 if unique, 1 if duplicates (error on stderr).
-- [ ] T002 [US1] Modify `state_init()` in `plugin-wheel/lib/state.sh` — accept optional `$3 = workflow_file` parameter and include `"workflow_file"` in the generated state.json per contracts/interfaces.md.
+- [X] T001 [US1] Add `workflow_validate_unique_ids()` to `plugin-wheel/lib/workflow.sh` — validates all step IDs are unique per contracts/interfaces.md. Params: `$1 = workflow JSON string`. Exit 0 if unique, 1 if duplicates (error on stderr).
+- [X] T002 [US1] Modify `state_init()` in `plugin-wheel/lib/state.sh` — accept optional `$3 = workflow_file` parameter and include `"workflow_file"` in the generated state.json per contracts/interfaces.md.
 
 **Checkpoint**: `workflow_validate_unique_ids()` and updated `state_init()` are available for skills and hooks.
 
