@@ -11,11 +11,11 @@
 
 ### Implementation
 
-- [ ] T001 [US1] Add `resolve_next_index` function to `plugin-wheel/lib/dispatch.sh` — resolves `next` field to step index via `workflow_get_step_index`, defaults to `step_index + 1` if no `next` field. Returns resolved index. (FR-001, FR-002, FR-003, FR-006)
+- [X] T001 [US1] Add `resolve_next_index` function to `plugin-wheel/lib/dispatch.sh` — resolves `next` field to step index via `workflow_get_step_index`, defaults to `step_index + 1` if no `next` field. Returns resolved index. (FR-001, FR-002, FR-003, FR-006)
 
-- [ ] T002 [US1] Modify `dispatch_command` in `plugin-wheel/lib/dispatch.sh` — replace hardcoded `$((step_index + 1))` cursor advance with `resolve_next_index` call. Apply to both the direct advance path and the command-chaining path. (FR-004)
+- [X] T002 [US1] Modify `dispatch_command` in `plugin-wheel/lib/dispatch.sh` — replace hardcoded `$((step_index + 1))` cursor advance with `resolve_next_index` call. Apply to both the direct advance path and the command-chaining path. (FR-004)
 
-- [ ] T003 [US1] Modify `dispatch_agent` in `plugin-wheel/lib/dispatch.sh` — replace hardcoded `$((step_index + 1))` cursor advance with `resolve_next_index` call. Apply to both the `stop` handler (working branch, output-complete path) and the `subagent_stop` handler. (FR-005)
+- [X] T003 [US1] Modify `dispatch_agent` in `plugin-wheel/lib/dispatch.sh` — replace hardcoded `$((step_index + 1))` cursor advance with `resolve_next_index` call. Apply to both the `stop` handler (working branch, output-complete path) and the `subagent_stop` handler. (FR-005)
 
 - [ ] T004 [US1] Extend `workflow_validate_references` in `plugin-wheel/lib/workflow.sh` — add validation that checks all steps with a `next` field reference an existing step ID. Reuse the same `all_ids` array already built for branch target validation. (FR-007)
 
@@ -65,9 +65,9 @@
 
 ### Implementation
 
-- [ ] T010 [P] [US4] Fix screenshot path in `plugin-kiln/agents/ux-evaluator.md` — change the "Screenshot directory" reference in the Input section to use absolute path `$(git rev-parse --show-toplevel)/.kiln/qa/screenshots/`. Also update Step 3a screenshot save paths. (FR-019, FR-020)
+- [X] T010 [P] [US4] Fix screenshot path in `plugin-kiln/agents/ux-evaluator.md` — change the "Screenshot directory" reference in the Input section to use absolute path `$(git rev-parse --show-toplevel)/.kiln/qa/screenshots/`. Also update Step 3a screenshot save paths. (FR-019, FR-020)
 
-- [ ] T011 [P] [US4] Add nested `.kiln/` detection to `plugin-kiln/skills/kiln-cleanup/SKILL.md` — add a step between Step 2.5 and Step 3 that scans for `.kiln/` directories inside `.kiln/qa/` using `find .kiln/qa -name ".kiln" -type d`. In dry-run mode, list them. In delete mode, `rm -rf` each match. (FR-021)
+- [X] T011 [P] [US4] Add nested `.kiln/` detection to `plugin-kiln/skills/kiln-cleanup/SKILL.md` — add a step between Step 2.5 and Step 3 that scans for `.kiln/` directories inside `.kiln/qa/` using `find .kiln/qa -name ".kiln" -type d`. In dry-run mode, list them. In delete mode, `rm -rf` each match. (FR-021)
 
 **Checkpoint**: UX evaluator uses absolute paths. Cleanup skill detects and removes nested .kiln/ trees.
 
