@@ -107,7 +107,7 @@
 
 **Purpose**: Documentation and final packaging
 
-- [ ] T030 [P] Create `plugin-wheel/README.md` with usage instructions, workflow format reference, and getting started guide
+- [X] T030 [P] Create `plugin-wheel/README.md` with usage instructions, workflow format reference, and getting started guide
 - [X] T031 [P] Add `.gitignore` entries for `.wheel/state.json` and `.wheel/.locks/` to `plugin-wheel/scaffold/`
 
 ---
