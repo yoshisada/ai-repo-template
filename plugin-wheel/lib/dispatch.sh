@@ -396,6 +396,11 @@ dispatch_branch() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   state_append_command_log "$state_file" "$step_index" "branch: condition='${condition}' exit=${cond_exit} target=${target_id}" "$cond_exit" "$now"
+
+  # Chain into the target step so the workflow doesn't stall
+  local target_step_json
+  target_step_json=$(printf '%s\n' "$workflow_json" | jq --argjson idx "$target_index" '.steps[$idx]')
+  dispatch_step "$target_step_json" "stop" "$WHEEL_HOOK_INPUT" "$state_file" "$target_index"
 }
 
 # FR-025/026: Handle a loop step — evaluate condition, repeat or advance
