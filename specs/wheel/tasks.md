@@ -39,8 +39,8 @@
 
 **Purpose**: Workflow loading/validation and atomic locking
 
-- [ ] T007 [P] [US1] Implement `plugin-wheel/lib/workflow.sh` with all functions per contracts/interfaces.md: `workflow_load`, `workflow_get_steps`, `workflow_get_step`, `workflow_get_step_by_id`, `workflow_get_step_index`, `workflow_step_count`, `workflow_validate_references`
-- [ ] T008 [P] [US3] Implement `plugin-wheel/lib/lock.sh` with all functions per contracts/interfaces.md: `lock_acquire`, `lock_release`, `lock_clean_all`
+- [X] T007 [P] [US1] Implement `plugin-wheel/lib/workflow.sh` with all functions per contracts/interfaces.md: `workflow_load`, `workflow_get_steps`, `workflow_get_step`, `workflow_get_step_by_id`, `workflow_get_step_index`, `workflow_step_count`, `workflow_validate_references`
+- [X] T008 [P] [US3] Implement `plugin-wheel/lib/lock.sh` with all functions per contracts/interfaces.md: `lock_acquire`, `lock_release`, `lock_clean_all`
 
 **Checkpoint**: Can load workflows, validate references, and acquire/release locks
 
