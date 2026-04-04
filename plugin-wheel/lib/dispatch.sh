@@ -26,6 +26,76 @@ advance_past_skipped() {
   echo "$idx"
 }
 
+# FR-001/FR-002/FR-003: Resolve the next step index after a step completes.
+# If step has a `next` field, resolve it to the target step index.
+# If step has no `next` field, default to step_index + 1.
+# If the resolved index >= total_steps, the workflow ends.
+# Params: $1 = step JSON (string), $2 = step index (int), $3 = workflow JSON (string)
+# Output (stdout): integer — the next step index
+# Exit: 0 on success, 1 if next field references nonexistent step
+resolve_next_index() {
+  local step_json="$1"
+  local step_index="$2"
+  local workflow_json="$3"
+
+  local next_id
+  next_id=$(printf '%s\n' "$step_json" | jq -r '.next // empty')
+
+  if [[ -n "$next_id" ]]; then
+    # FR-001: Resolve next field to target step index
+    local target_index
+    target_index=$(workflow_get_step_index "$workflow_json" "$next_id")
+    if [[ $? -ne 0 ]]; then
+      echo "ERROR: next field references nonexistent step: $next_id" >&2
+      return 1
+    fi
+    echo "$target_index"
+  else
+    # FR-002: Default to step_index + 1
+    echo "$((step_index + 1))"
+  fi
+}
+
+# FR-008/FR-009/FR-010: Handle terminal step cleanup.
+# Archives state.json to .wheel/history/success/ or .wheel/history/failure/
+# based on step ID, then removes state.json.
+# Params: $1 = state file path, $2 = step JSON (string)
+# Output: none
+# Exit: 0 on success, 1 on archive failure
+handle_terminal_step() {
+  local state_file="$1"
+  local step_json="$2"
+
+  local is_terminal
+  is_terminal=$(printf '%s\n' "$step_json" | jq -r '.terminal // false')
+  if [[ "$is_terminal" != "true" ]]; then
+    return 1
+  fi
+
+  # FR-009: Determine archive subdirectory based on step ID
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "unknown"')
+  local archive_dir=".wheel/history/success"
+  if [[ "$step_id" == *"failure"* ]]; then
+    archive_dir=".wheel/history/failure"
+  fi
+
+  # Archive state.json
+  mkdir -p "$archive_dir"
+  local workflow_name
+  workflow_name=$(jq -r '.workflow_name // "workflow"' "$state_file" 2>/dev/null || echo "workflow")
+  local timestamp
+  timestamp=$(date -u +%Y%m%d-%H%M%S)
+  if ! cp "$state_file" "${archive_dir}/${workflow_name}-${timestamp}.json"; then
+    echo "ERROR: failed to archive state.json" >&2
+    return 1
+  fi
+
+  # FR-010: Remove state.json
+  rm -f "$state_file"
+  return 0
+}
+
 # FR-003/019/024/025/026: Dispatch a step based on its type
 # Params: $1 = step JSON (string), $2 = hook_type, $3 = hook_input_json, $4 = state file path, $5 = step index
 # Output (stdout): JSON hook response
@@ -98,8 +168,16 @@ dispatch_agent() {
           # Agent step is done — mark complete, capture output, advance
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
+          # FR-008: Check for terminal step — archive and end workflow
+          if handle_terminal_step "$state_file" "$step_json"; then
+            jq -n '{"decision": "approve"}'
+            return 0
+          fi
+          # FR-005: Resolve next index via next field or default to step_index + 1
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
           local next_index
-          next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
           state_set_cursor "$state_file" "$next_index"
           # Dispatch next step
           local total_steps
@@ -140,9 +218,16 @@ dispatch_agent() {
       if [[ -n "$output_key" ]]; then
         context_capture_output "$state_file" "$step_index" "$output_key"
       fi
-      # Advance cursor past any skipped steps
+      # FR-008: Check for terminal step — archive and end workflow
+      if handle_terminal_step "$state_file" "$step_json"; then
+        jq -n '{"decision": "approve"}'
+        return 0
+      fi
+      # FR-005: Resolve next index via next field or default to step_index + 1
+      local raw_next
+      raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
       local next_index
-      next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
+      next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
       state_set_cursor "$state_file" "$next_index"
       jq -n '{"decision": "approve"}'
       ;;
@@ -208,9 +293,17 @@ dispatch_command() {
     state_set_step_status "$state_file" "$step_index" "failed"
   fi
 
-  # Advance cursor past any skipped steps
+  # FR-008: Check for terminal step — archive and end workflow
+  if handle_terminal_step "$state_file" "$step_json"; then
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  # FR-004: Resolve next index via next field or default to step_index + 1
+  local raw_next
+  raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
   local next_index
-  next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
+  next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
   state_set_cursor "$state_file" "$next_index"
 
   # FR-020: Check if next step is also a command — chain via re-exec

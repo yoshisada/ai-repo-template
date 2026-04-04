@@ -17,7 +17,7 @@
 
 - [X] T003 [US1] Modify `dispatch_agent` in `plugin-wheel/lib/dispatch.sh` — replace hardcoded `$((step_index + 1))` cursor advance with `resolve_next_index` call. Apply to both the `stop` handler (working branch, output-complete path) and the `subagent_stop` handler. (FR-005)
 
-- [ ] T004 [US1] Extend `workflow_validate_references` in `plugin-wheel/lib/workflow.sh` — add validation that checks all steps with a `next` field reference an existing step ID. Reuse the same `all_ids` array already built for branch target validation. (FR-007)
+- [X] T004 [US1] Extend `workflow_validate_references` in `plugin-wheel/lib/workflow.sh` — add validation that checks all steps with a `next` field reference an existing step ID. Reuse the same `all_ids` array already built for branch target validation. (FR-007)
 
 **Checkpoint**: A workflow with `next` fields should follow the specified step order instead of linear advancement. Existing workflows without `next` fields should behave identically.
 
