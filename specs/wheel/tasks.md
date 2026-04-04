@@ -67,12 +67,12 @@
 
 **Purpose**: Wire Claude Code hooks to the engine
 
-- [ ] T017 [P] [US1] Implement `plugin-wheel/hooks/stop.sh` (FR-004) — read stdin JSON, source engine, call `engine_handle_hook("stop", input)`, output response JSON
-- [ ] T018 [P] [US1] Implement `plugin-wheel/hooks/teammate-idle.sh` (FR-005) — gate agents with step instruction or allow idle
-- [ ] T019 [P] [US1] Implement `plugin-wheel/hooks/subagent-start.sh` (FR-006) — inject context via `context_subagent_start`
-- [ ] T020 [P] [US1] Implement `plugin-wheel/hooks/subagent-stop.sh` (FR-007) — mark agent done, check fan-in, advance step
-- [ ] T021 [P] [US2] Implement `plugin-wheel/hooks/session-start.sh` (FR-008) — reload state.json on resume, inject resume instructions
-- [ ] T022 [P] [US6] Implement `plugin-wheel/hooks/post-tool-use.sh` (FR-022/023) — log Bash commands to step command_log
+- [X] T017 [P] [US1] Implement `plugin-wheel/hooks/stop.sh` (FR-004) — read stdin JSON, source engine, call `engine_handle_hook("stop", input)`, output response JSON
+- [X] T018 [P] [US1] Implement `plugin-wheel/hooks/teammate-idle.sh` (FR-005) — gate agents with step instruction or allow idle
+- [X] T019 [P] [US1] Implement `plugin-wheel/hooks/subagent-start.sh` (FR-006) — inject context via `context_subagent_start`
+- [X] T020 [P] [US1] Implement `plugin-wheel/hooks/subagent-stop.sh` (FR-007) — mark agent done, check fan-in, advance step
+- [X] T021 [P] [US2] Implement `plugin-wheel/hooks/session-start.sh` (FR-008) — reload state.json on resume, inject resume instructions
+- [X] T022 [P] [US6] Implement `plugin-wheel/hooks/post-tool-use.sh` (FR-022/023) — log Bash commands to step command_log
 
 **Checkpoint**: All 6 hooks wired — engine is drivable by Claude Code
 
