@@ -1,0 +1,41 @@
+{
+  "name": "branch-multi",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "detect-language",
+      "type": "command",
+      "command": "if [ -f package.json ]; then echo 'javascript'; elif [ -f Cargo.toml ]; then echo 'rust'; elif [ -f go.mod ]; then echo 'go'; else echo 'unknown'; fi",
+      "output": ".wheel/outputs/detected-language.txt"
+    },
+    {
+      "id": "check-js",
+      "type": "branch",
+      "condition": "grep -q javascript .wheel/outputs/detected-language.txt",
+      "if_zero": "analyze-js",
+      "if_nonzero": "fallback-analysis"
+    },
+    {
+      "id": "analyze-js",
+      "type": "command",
+      "command": "echo '## JS Analysis' && echo \"Dependencies: $(jq '.dependencies | length // 0' package.json 2>/dev/null || echo 0)\" && echo \"DevDeps: $(jq '.devDependencies | length // 0' package.json 2>/dev/null || echo 0)\" && echo \"Scripts: $(jq '.scripts | keys[]' package.json 2>/dev/null | wc -l | tr -d ' ')\"",
+      "output": ".wheel/outputs/js-analysis.txt",
+      "next": "write-report"
+    },
+    {
+      "id": "fallback-analysis",
+      "type": "command",
+      "command": "LANG=$(cat .wheel/outputs/detected-language.txt) && echo \"## ${LANG} Analysis\" && echo 'No detailed analyzer for this language yet.' && echo \"File count: $(find . -maxdepth 3 -type f | wc -l | tr -d ' ')\"",
+      "output": ".wheel/outputs/fallback-analysis.txt",
+      "next": "write-report"
+    },
+    {
+      "id": "write-report",
+      "type": "agent",
+      "instruction": "Read the language detection and analysis outputs from previous steps. Write a short project analysis report to reports/language-analysis.md summarizing what was detected and the key stats.",
+      "context_from": ["detect-language", "analyze-js", "fallback-analysis"],
+      "output": "reports/language-analysis.md",
+      "terminal": true
+    }
+  ]
+}

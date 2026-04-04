@@ -1,0 +1,30 @@
+{
+  "name": "loop-test",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "command": "rm -f /tmp/wheel-loop-counter.txt && echo '0' > /tmp/wheel-loop-counter.txt && echo 'Counter initialized'",
+      "output": ".wheel/outputs/loop-setup.txt"
+    },
+    {
+      "id": "increment-loop",
+      "type": "loop",
+      "condition": "test $(cat /tmp/wheel-loop-counter.txt) -ge 3",
+      "max_iterations": 5,
+      "on_exhaustion": "fail",
+      "substep": {
+        "type": "command",
+        "command": "COUNT=$(cat /tmp/wheel-loop-counter.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-loop-counter.txt && echo \"Iteration: $COUNT\""
+      }
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "command": "FINAL=$(cat /tmp/wheel-loop-counter.txt) && echo \"Loop completed after $FINAL iterations\"",
+      "output": ".wheel/outputs/loop-result.txt",
+      "terminal": true
+    }
+  ]
+}

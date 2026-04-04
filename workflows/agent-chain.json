@@ -1,0 +1,33 @@
+{
+  "name": "agent-chain",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "gather-git-stats",
+      "type": "command",
+      "command": "echo \"## Git Stats\" && echo \"Commits (last 30 days): $(git log --since='30 days ago' --oneline | wc -l | tr -d ' ')\" && echo \"Contributors: $(git log --since='30 days ago' --format='%aN' | sort -u | wc -l | tr -d ' ')\" && echo \"Branches: $(git branch -a | wc -l | tr -d ' ')\" && echo \"Latest tag: $(git describe --tags --abbrev=0 2>/dev/null || echo 'none')\"",
+      "output": ".wheel/outputs/git-stats.txt"
+    },
+    {
+      "id": "gather-repo-structure",
+      "type": "command",
+      "command": "echo \"## Repo Structure\" && echo \"Top-level dirs:\" && ls -d */ 2>/dev/null && echo \"---\" && echo \"Total files: $(find . -type f -not -path './.git/*' -not -path './node_modules/*' | wc -l | tr -d ' ')\" && echo \"Total dirs: $(find . -type d -not -path './.git/*' -not -path './node_modules/*' | wc -l | tr -d ' ')\"",
+      "output": ".wheel/outputs/repo-structure.txt"
+    },
+    {
+      "id": "draft-summary",
+      "type": "agent",
+      "instruction": "Read the git stats and repo structure data from previous steps. Write a draft project health summary to reports/health-draft.md. Include sections for activity level, structure overview, and any observations (e.g., lots of recent commits = active development).",
+      "context_from": ["gather-git-stats", "gather-repo-structure"],
+      "output": "reports/health-draft.md"
+    },
+    {
+      "id": "review-and-finalize",
+      "type": "agent",
+      "instruction": "Read the draft at reports/health-draft.md. Review it for accuracy — cross-check any claims against the raw data in .wheel/outputs/. Fix any inaccuracies, tighten the prose, and write the final version to reports/health-report.md.",
+      "context_from": ["gather-git-stats", "gather-repo-structure", "draft-summary"],
+      "output": "reports/health-report.md",
+      "terminal": true
+    }
+  ]
+}

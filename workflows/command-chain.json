@@ -1,0 +1,32 @@
+{
+  "name": "command-chain",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "count-files",
+      "type": "command",
+      "command": "echo \"Markdown files:\" && find . -name '*.md' -not -path './node_modules/*' | wc -l | tr -d ' '",
+      "output": ".wheel/outputs/count-files.txt"
+    },
+    {
+      "id": "count-scripts",
+      "type": "command",
+      "command": "echo \"Shell scripts:\" && find . -name '*.sh' -not -path './node_modules/*' | wc -l | tr -d ' '",
+      "output": ".wheel/outputs/count-scripts.txt"
+    },
+    {
+      "id": "count-json",
+      "type": "command",
+      "command": "echo \"JSON files:\" && find . -name '*.json' -not -path './node_modules/*' -not -path './.wheel/*' | wc -l | tr -d ' '",
+      "output": ".wheel/outputs/count-json.txt"
+    },
+    {
+      "id": "summarize",
+      "type": "agent",
+      "instruction": "Read the file counts from the previous steps and write a one-paragraph summary to reports/file-census.md. Include the exact counts for markdown, shell, and JSON files.",
+      "context_from": ["count-files", "count-scripts", "count-json"],
+      "output": "reports/file-census.md",
+      "terminal": true
+    }
+  ]
+}

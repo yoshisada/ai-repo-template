@@ -578,6 +578,15 @@ dispatch_loop() {
       state_set_step_status "$state_file" "$step_index" "done"
       local next_index=$((step_index + 1))
       state_set_cursor "$state_file" "$next_index"
+      # Chain into next step so workflow doesn't stall
+      local total_steps
+      total_steps=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
+      if [[ "$next_index" -lt "$total_steps" ]]; then
+        local next_step_json
+        next_step_json=$(printf '%s\n' "$workflow_json" | jq --argjson idx "$next_index" '.steps[$idx]')
+        dispatch_step "$next_step_json" "stop" "$WHEEL_HOOK_INPUT" "$state_file" "$next_index"
+        return $?
+      fi
       jq -n '{"decision": "approve"}'
       return 0
     else
@@ -604,6 +613,15 @@ dispatch_loop() {
       state_set_step_status "$state_file" "$step_index" "done"
       local next_index=$((step_index + 1))
       state_set_cursor "$state_file" "$next_index"
+      # Chain into next step so workflow doesn't stall
+      local total_steps
+      total_steps=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
+      if [[ "$next_index" -lt "$total_steps" ]]; then
+        local next_step_json
+        next_step_json=$(printf '%s\n' "$workflow_json" | jq --argjson idx "$next_index" '.steps[$idx]')
+        dispatch_step "$next_step_json" "stop" "$WHEEL_HOOK_INPUT" "$state_file" "$next_index"
+        return $?
+      fi
       jq -n '{"decision": "approve"}'
       return 0
     fi
