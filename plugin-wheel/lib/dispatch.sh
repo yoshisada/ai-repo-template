@@ -316,7 +316,14 @@ dispatch_command() {
     next_step_type=$(printf '%s\n' "$WORKFLOW" | jq -r --argjson idx "$next_index" '.steps[$idx].type')
     if [[ "$next_step_type" == "command" ]]; then
       # Chain: re-exec the hook to handle the next command step without LLM round-trip
-      exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
+      if [[ -n "$WHEEL_HOOK_SCRIPT" && -x "$WHEEL_HOOK_SCRIPT" ]]; then
+        exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
+      fi
+      # Fallback: direct dispatch (e.g., during kickstart when no hook script)
+      local next_step_json
+      next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+      dispatch_step "$next_step_json" "stop" "${WHEEL_HOOK_INPUT:-{}}" "$state_file" "$next_index"
+      return $?
     else
       # Next step is not a command — dispatch to its handler (e.g., agent → block with instruction)
       local next_step_json
@@ -660,8 +667,12 @@ dispatch_loop() {
       state_append_command_log "$state_file" "$step_index" "$command" "$cmd_exit_code" "$now"
 
       # After substep execution, re-dispatch the loop to check condition again
-      # Use re-exec to avoid recursion
-      exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
+      if [[ -n "$WHEEL_HOOK_SCRIPT" && -x "$WHEEL_HOOK_SCRIPT" ]]; then
+        exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
+      fi
+      # Fallback: direct re-dispatch (e.g., during kickstart)
+      dispatch_loop "$step_json" "$state_file" "$step_index" "$workflow_json"
+      return $?
       ;;
     agent)
       # Return instruction for the agent substep

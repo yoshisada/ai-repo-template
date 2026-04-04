@@ -48,6 +48,53 @@ engine_init() {
   return 0
 }
 
+# Kickstart the workflow by dispatching the first step inline.
+# Called by /wheel-run after state_init. For command/loop/branch steps,
+# this executes them immediately so the workflow doesn't stall waiting
+# for a hook event. For agent steps, returns the instruction as context.
+# Params: $1 = state file path (default: .wheel/state.json)
+# Output (stdout): For agent steps, prints the step instruction for the LLM.
+#                  For command steps, executes silently (output goes to files).
+# Exit: 0
+engine_kickstart() {
+  local state_file="${1:-.wheel/state.json}"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local cursor
+  cursor=$(state_get_cursor "$state")
+  local total_steps
+  total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+
+  if [[ "$cursor" -ge "$total_steps" ]]; then
+    return 0
+  fi
+
+  local first_step
+  first_step=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$cursor" '.steps[$idx]')
+  local step_type
+  step_type=$(printf '%s\n' "$first_step" | jq -r '.type')
+
+  case "$step_type" in
+    command|loop|branch)
+      # Execute inline — these don't need LLM interaction
+      export WHEEL_HOOK_SCRIPT=""
+      export WHEEL_HOOK_INPUT='{}'
+      dispatch_step "$first_step" "stop" '{}' "$state_file" "$cursor" >/dev/null 2>&1
+      ;;
+    agent)
+      # Return the instruction so the skill can display it
+      local instruction
+      instruction=$(printf '%s\n' "$first_step" | jq -r '.instruction // empty')
+      if [[ -n "$instruction" ]]; then
+        echo "$instruction"
+      fi
+      ;;
+  esac
+
+  return 0
+}
+
 # FR-001: Determine the current step and return its definition
 # Params: none (uses globals set by engine_init)
 # Output (stdout): JSON object — the current step definition from the workflow, or empty if workflow complete

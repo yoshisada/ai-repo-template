@@ -70,15 +70,21 @@ fi
 
 If validation fails, **stop here** and report the error. Do NOT create state.json.
 
-## Step 4: Create State and Activate (FR-001)
+## Step 4: Create State, Activate, and Kickstart (FR-001)
 
 ```bash
 state_init ".wheel/state.json" "$WORKFLOW" "$WORKFLOW_FILE"
+
+# Kickstart: dispatch the first step inline so command/loop/branch
+# workflows don't stall waiting for a hook event
+STATE_DIR=".wheel"
+STATE_FILE=".wheel/state.json"
+KICKSTART_OUTPUT=$(engine_kickstart ".wheel/state.json")
 ```
 
 ## Step 5: Report Success
 
-Read back state.json and display:
+Read back state and display:
 
 ```bash
 STEP_COUNT=$(echo "$WORKFLOW" | jq '.steps | length')
@@ -88,7 +94,24 @@ FIRST_STEP_TYPE=$(echo "$WORKFLOW" | jq -r '.steps[0].type')
 
 echo "Workflow '$WF_NAME' started ($STEP_COUNT steps)."
 echo "First step: $FIRST_STEP_ID ($FIRST_STEP_TYPE)"
+
+# Show post-kickstart status
+if [[ -f ".wheel/state.json" ]]; then
+  CURRENT_CURSOR=$(jq -r '.cursor' .wheel/state.json)
+  CURRENT_STEP_ID=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].id // "complete"')
+  CURRENT_STEP_TYPE=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].type // "done"')
+  if [[ "$CURRENT_CURSOR" -gt 0 ]]; then
+    echo "Kickstarted: advanced to step $CURRENT_STEP_ID ($CURRENT_STEP_TYPE)"
+  fi
+else
+  echo "Workflow completed during kickstart (all steps were automatic)."
+fi
+
 echo ""
+if [[ -n "$KICKSTART_OUTPUT" ]]; then
+  echo "First agent instruction:"
+  echo "$KICKSTART_OUTPUT"
+fi
 echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate."
 ```
 
