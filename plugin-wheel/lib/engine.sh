@@ -89,10 +89,10 @@ engine_handle_hook() {
     return 0
   fi
 
-  # Get current step
+  # Get current step (|| true to prevent set -e from killing us on exit 2)
   local current_step
-  current_step=$(engine_current_step)
-  local step_exit=$?
+  local step_exit
+  current_step=$(engine_current_step) && step_exit=0 || step_exit=$?
 
   if [[ "$step_exit" -eq 2 ]]; then
     # Workflow complete — mark it and allow
@@ -126,7 +126,7 @@ engine_handle_hook() {
         now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
         state_append_command_log "$STATE_FILE" "$cursor" "$command_text" "$exit_code" "$now"
       fi
-      jq -n '{"decision": "approve"}'
+      jq -n '{"hookEventName": "PostToolUse"}'
       return 0
       ;;
     session_start)

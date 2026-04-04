@@ -63,10 +63,38 @@ dispatch_agent() {
       # Gate the orchestrator — inject step instruction
       if [[ "$step_status" == "pending" ]]; then
         state_set_step_status "$state_file" "$step_index" "working"
+        local context
+        context=$(context_build "$step_json" "$state" "$WORKFLOW")
+        jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+      elif [[ "$step_status" == "working" ]]; then
+        # Check if the agent completed its work (output file exists)
+        local output_key
+        output_key=$(echo "$step_json" | jq -r '.output // empty')
+        if [[ -n "$output_key" && -f "$output_key" ]]; then
+          # Agent step is done — mark complete, capture output, advance
+          state_set_step_status "$state_file" "$step_index" "done"
+          context_capture_output "$state_file" "$step_index" "$output_key"
+          local next_index=$((step_index + 1))
+          state_set_cursor "$state_file" "$next_index"
+          # Dispatch next step
+          local total_steps
+          total_steps=$(echo "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(echo "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
+        else
+          # Output not yet produced — re-inject instruction
+          local context
+          context=$(context_build "$step_json" "$state" "$WORKFLOW")
+          jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+        fi
+      else
+        jq -n '{"decision": "approve"}'
       fi
-      local context
-      context=$(context_build "$step_json" "$state" "$WORKFLOW")
-      jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # Gate agent with its task instruction
