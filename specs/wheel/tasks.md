@@ -94,10 +94,10 @@
 
 **Purpose**: Verify the engine works end-to-end with the example workflow
 
-- [ ] T026 [US1] Create `tests/integration/test-linear-workflow.sh` — run the example 3-step workflow, assert state.json shows all steps `done` in order
-- [ ] T027 [US2] Create `tests/integration/test-resume.sh` — run a workflow, simulate crash by truncating state to step 2, resume session, verify step 3 executes
-- [ ] T028 [US1] Create `tests/integration/test-command-step.sh` — run a workflow with command steps, verify output and exit code in state.json
-- [ ] T029 [US5] Create `tests/integration/test-branch-loop.sh` — run a workflow with branch and loop steps, verify correct control flow
+- [X] T026 [US1] Create `tests/integration/test-linear-workflow.sh` — run the example 3-step workflow, assert state.json shows all steps `done` in order
+- [X] T027 [US2] Create `tests/integration/test-resume.sh` — run a workflow, simulate crash by truncating state to step 2, resume session, verify step 3 executes
+- [X] T028 [US1] Create `tests/integration/test-command-step.sh` — run a workflow with command steps, verify output and exit code in state.json
+- [X] T029 [US5] Create `tests/integration/test-branch-loop.sh` — run a workflow with branch and loop steps, verify correct control flow
 
 **Checkpoint**: All core user stories verified via integration tests
 
