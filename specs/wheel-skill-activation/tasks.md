@@ -35,7 +35,7 @@
 
 **Independent Test**: Run `/wheel-run example` — verify `.wheel/state.json` is created, hooks begin intercepting.
 
-- [ ] T009 [US1] Create `plugin-wheel/skills/wheel-run/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check for existing state.json and refuse if present (FR-007), (2) resolve `workflows/$ARGUMENTS.json`, (3) source engine libs and call `workflow_load()` + `workflow_validate_unique_ids()` for validation (FR-006), (4) call `state_init()` with the workflow file path, (5) output the first step info.
+- [X] T009 [US1] Create `plugin-wheel/skills/wheel-run/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check for existing state.json and refuse if present (FR-007), (2) resolve `workflows/$ARGUMENTS.json`, (3) source engine libs and call `workflow_load()` + `workflow_validate_unique_ids()` for validation (FR-006), (4) call `state_init()` with the workflow file path, (5) output the first step info.
 
 **Checkpoint**: `/wheel-run example` creates state.json and hooks activate.
 
@@ -47,7 +47,7 @@
 
 **Independent Test**: After `/wheel-run example`, run `/wheel-stop` — verify state.json is removed and hooks pass through.
 
-- [ ] T010 [US2] Create `plugin-wheel/skills/wheel-stop/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check if state.json exists, (2) archive to `.wheel/history/`, (3) remove state.json, (4) confirm deactivation.
+- [X] T010 [US2] Create `plugin-wheel/skills/wheel-stop/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check if state.json exists, (2) archive to `.wheel/history/`, (3) remove state.json, (4) confirm deactivation.
 
 **Checkpoint**: `/wheel-stop` removes state.json, hooks become dormant.
 
@@ -59,7 +59,7 @@
 
 **Independent Test**: Start a workflow, run `/wheel-status` — verify it shows name, step, progress, elapsed time.
 
-- [ ] T011 [US3] Create `plugin-wheel/skills/wheel-status/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check if state.json exists, (2) read and parse state.json with jq, (3) display formatted status output.
+- [X] T011 [US3] Create `plugin-wheel/skills/wheel-status/SKILL.md` — skill definition per contracts/interfaces.md. Must instruct the LLM to: (1) check if state.json exists, (2) read and parse state.json with jq, (3) display formatted status output.
 
 **Checkpoint**: `/wheel-status` shows accurate workflow progress.
 
@@ -69,7 +69,7 @@
 
 **Purpose**: Ensure skills are included in the published npm package.
 
-- [ ] T012 [P] Add `"skills/"` to the `files` array in `plugin-wheel/package.json`.
+- [X] T012 [P] Add `"skills/"` to the `files` array in `plugin-wheel/package.json`.
 
 ---
 
