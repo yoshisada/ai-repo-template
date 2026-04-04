@@ -5,7 +5,8 @@ severity: high
 category: workflow
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-03-wheel/PRD.md
 date: 2026-04-02
 ---
 

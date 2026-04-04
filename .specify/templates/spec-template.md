@@ -18,6 +18,8 @@
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
+
+  FR-020: If feature involves a rename/rebrand: include an FR for grep-based verification of ALL references
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)
@@ -80,6 +82,8 @@
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right functional requirements.
+
+  FR-022: Document credentials and auth flow required for QA testing (e.g., login URLs, test accounts, OAuth flows)
 -->
 
 ### Functional Requirements
