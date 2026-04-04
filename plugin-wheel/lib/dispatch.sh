@@ -66,16 +66,16 @@ dispatch_agent() {
       fi
       local context
       context=$(context_build "$step_json" "$state" "$WORKFLOW")
-      jq -n --arg msg "$context" '{"decision": "block", "message": $msg}'
+      jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # Gate agent with its task instruction
       if [[ "$step_status" == "working" ]]; then
         local instruction
         instruction=$(echo "$step_json" | jq -r '.instruction // empty')
-        jq -n --arg msg "$instruction" '{"decision": "block", "message": $msg}'
+        jq -n --arg msg "$instruction" '{"decision": "block", "reason": $msg}'
       else
-        jq -n '{"decision": "allow"}'
+        jq -n '{"decision": "approve"}'
       fi
       ;;
     subagent_stop)
@@ -90,10 +90,10 @@ dispatch_agent() {
       # Advance cursor
       local next_index=$((step_index + 1))
       state_set_cursor "$state_file" "$next_index"
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       ;;
     *)
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       ;;
   esac
 }
@@ -166,10 +166,16 @@ dispatch_command() {
     if [[ "$next_step_type" == "command" ]]; then
       # Chain: re-exec the hook to handle the next command step without LLM round-trip
       exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
+    else
+      # Next step is not a command — dispatch to its handler (e.g., agent → block with instruction)
+      local next_step_json
+      next_step_json=$(echo "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+      dispatch_step "$next_step_json" "stop" "$WHEEL_HOOK_INPUT" "$state_file" "$next_index"
+      return $?
     fi
   fi
 
-  jq -n '{"decision": "allow"}'
+  jq -n '{"decision": "approve"}'
 }
 
 # FR-009: Handle a parallel step — fan-out agent instructions
@@ -206,7 +212,7 @@ dispatch_parallel() {
       local agent_list
       agent_list=$(echo "$step_json" | jq -r '.agents | join(", ")')
       jq -n --arg msg "Spawn these agents in parallel: ${agent_list}. ${instruction}" \
-        '{"decision": "block", "message": $msg}'
+        '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # Gate specific agent with its instruction
@@ -219,12 +225,12 @@ dispatch_parallel() {
           state_set_agent_status "$state_file" "$step_index" "$agent_type" "working"
           local agent_instruction
           agent_instruction=$(echo "$step_json" | jq -r --arg agent "$agent_type" '.agent_instructions[$agent] // .instruction // empty')
-          jq -n --arg msg "$agent_instruction" '{"decision": "block", "message": $msg}'
+          jq -n --arg msg "$agent_instruction" '{"decision": "block", "reason": $msg}'
         else
-          jq -n '{"decision": "allow"}'
+          jq -n '{"decision": "approve"}'
         fi
       else
-        jq -n '{"decision": "allow"}'
+        jq -n '{"decision": "approve"}'
       fi
       ;;
     subagent_stop)
@@ -249,10 +255,10 @@ dispatch_parallel() {
           state_set_cursor "$state_file" "$next_index"
         fi
       fi
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       ;;
     *)
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       ;;
   esac
 }
@@ -281,7 +287,7 @@ dispatch_approval() {
       local message
       message=$(echo "$step_json" | jq -r '.message // "Approval required to continue."')
       jq -n --arg msg "APPROVAL GATE: ${message} — Waiting for approval via TeammateIdle." \
-        '{"decision": "block", "message": $msg}'
+        '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # User/agent approves by sending idle with approval context
@@ -291,15 +297,15 @@ dispatch_approval() {
         state_set_step_status "$state_file" "$step_index" "done"
         local next_index=$((step_index + 1))
         state_set_cursor "$state_file" "$next_index"
-        jq -n '{"decision": "allow"}'
+        jq -n '{"decision": "approve"}'
       else
         local message
         message=$(echo "$step_json" | jq -r '.message // "Approval required to continue."')
-        jq -n --arg msg "WAITING FOR APPROVAL: ${message}" '{"decision": "block", "message": $msg}'
+        jq -n --arg msg "WAITING FOR APPROVAL: ${message}" '{"decision": "block", "reason": $msg}'
       fi
       ;;
     *)
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       ;;
   esac
 }
@@ -401,7 +407,7 @@ dispatch_loop() {
       state_set_step_status "$state_file" "$step_index" "done"
       local next_index=$((step_index + 1))
       state_set_cursor "$state_file" "$next_index"
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       return 0
     else
       state_set_step_status "$state_file" "$step_index" "failed"
@@ -410,7 +416,7 @@ dispatch_loop() {
       local updated
       updated=$(echo "$state" | jq '.status = "failed"')
       state_write "$state_file" "$updated"
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       return 1
     fi
   fi
@@ -427,7 +433,7 @@ dispatch_loop() {
       state_set_step_status "$state_file" "$step_index" "done"
       local next_index=$((step_index + 1))
       state_set_cursor "$state_file" "$next_index"
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       return 0
     fi
   fi
@@ -473,7 +479,7 @@ dispatch_loop() {
       local instruction
       instruction=$(echo "$substep" | jq -r '.instruction // empty')
       jq -n --arg msg "Loop iteration $((current_iteration + 1))/${max_iterations}: ${instruction}" \
-        '{"decision": "block", "message": $msg}'
+        '{"decision": "block", "reason": $msg}'
       ;;
     *)
       echo "ERROR: unsupported substep type: $substep_type" >&2

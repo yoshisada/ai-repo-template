@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 npm-debug.log*
 .version.lock
+
+.wheel/state.json
+.wheel/.locks/

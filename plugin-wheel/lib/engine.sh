@@ -85,7 +85,7 @@ engine_handle_hook() {
   wf_status=$(echo "$state" | jq -r '.status')
 
   if [[ "$wf_status" == "completed" || "$wf_status" == "failed" ]]; then
-    jq -n '{"decision": "allow"}'
+    jq -n '{"decision": "approve"}'
     return 0
   fi
 
@@ -100,10 +100,10 @@ engine_handle_hook() {
     updated=$(echo "$state" | jq --arg now "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
       '.status = "completed" | .updated_at = $now')
     state_write "$STATE_FILE" "$updated"
-    jq -n '{"decision": "allow"}'
+    jq -n '{"decision": "approve"}'
     return 0
   elif [[ "$step_exit" -ne 0 ]]; then
-    jq -n '{"decision": "allow"}'
+    jq -n '{"decision": "approve"}'
     return 1
   fi
 
@@ -126,7 +126,7 @@ engine_handle_hook() {
         now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
         state_append_command_log "$STATE_FILE" "$cursor" "$command_text" "$exit_code" "$now"
       fi
-      jq -n '{"decision": "allow"}'
+      jq -n '{"decision": "approve"}'
       return 0
       ;;
     session_start)
@@ -145,7 +145,7 @@ engine_handle_hook() {
       if [[ "$step_status" == "working" ]]; then
         resume_msg="${resume_msg} Step was in progress when session ended — re-running from the beginning of this step."
       fi
-      jq -n --arg msg "$resume_msg" '{"decision": "allow", "additionalContext": $msg}'
+      jq -n --arg msg "$resume_msg" '{"decision": "approve", "additionalContext": $msg}'
       return 0
       ;;
   esac

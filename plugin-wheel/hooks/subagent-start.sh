@@ -5,7 +5,7 @@ set -euo pipefail
 
 # FR-004: Guard — exit if no workflow active
 if [[ ! -f ".wheel/state.json" ]]; then
-  echo '{"decision": "allow"}'
+  echo '{"decision": "approve"}'
   exit 0
 fi
 
@@ -19,7 +19,7 @@ PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 # FR-005: Read workflow file path from state.json (no auto-discovery)
 WORKFLOW_FILE=$(jq -r '.workflow_file // empty' ".wheel/state.json")
 if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
-  echo '{"decision": "allow"}'
+  echo '{"decision": "approve"}'
   exit 0
 fi
 
@@ -29,7 +29,7 @@ export WHEEL_HOOK_INPUT="$HOOK_INPUT"
 source "${PLUGIN_DIR}/lib/engine.sh"
 
 if ! engine_init "$WORKFLOW_FILE" ".wheel"; then
-  echo '{"decision": "allow"}'
+  echo '{"decision": "approve"}'
   exit 0
 fi
 
@@ -38,7 +38,7 @@ current_step=$(engine_current_step)
 step_exit=$?
 
 if [[ "$step_exit" -ne 0 ]]; then
-  echo '{"decision": "allow"}'
+  echo '{"decision": "approve"}'
   exit 0
 fi
 
@@ -48,10 +48,10 @@ agent_type=$(echo "$HOOK_INPUT" | jq -r '.agent_type // empty')
 if [[ -n "$agent_type" ]]; then
   additional_context=$(context_subagent_start "$current_step" "$state" "$WORKFLOW" "$agent_type")
   if [[ -n "$additional_context" ]]; then
-    jq -n --arg ctx "$additional_context" '{"decision": "allow", "additionalContext": $ctx}'
+    jq -n --arg ctx "$additional_context" '{"decision": "approve", "additionalContext": $ctx}'
   else
-    echo '{"decision": "allow"}'
+    echo '{"decision": "approve"}'
   fi
 else
-  echo '{"decision": "allow"}'
+  echo '{"decision": "approve"}'
 fi
