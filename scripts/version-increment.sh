@@ -35,7 +35,6 @@ esac
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 VERSION_FILE="$PROJECT_DIR/VERSION"
-PKG_FILE="$PROJECT_DIR/plugin/package.json"
 LOCK_DIR="$PROJECT_DIR/.version.lock"
 
 # Stale lock cleanup (older than 5 seconds)
@@ -87,33 +86,33 @@ NEW_VERSION=$(printf "%03d.%03d.%03d.%03d" "$SEG1" "$SEG2" "$SEG3" "$SEG4")
 # Write VERSION file
 echo "$NEW_VERSION" > "$VERSION_FILE"
 
-# Sync to plugin/package.json if it exists and jq is available
-if [[ -f "$PKG_FILE" ]] && command -v jq &>/dev/null; then
-  TMP_PKG=$(mktemp)
-  if jq --arg v "$NEW_VERSION" '.version = $v' "$PKG_FILE" > "$TMP_PKG" 2>/dev/null; then
-    mv "$TMP_PKG" "$PKG_FILE"
-  else
-    rm -f "$TMP_PKG"
-  fi
-fi
+# Sync to all plugin-*/package.json and plugin-*/.claude-plugin/plugin.json
+if command -v jq &>/dev/null; then
+  for PKG_FILE in "$PROJECT_DIR"/plugin-*/package.json; do
+    [[ -f "$PKG_FILE" ]] || continue
+    TMP_PKG=$(mktemp)
+    if jq --arg v "$NEW_VERSION" '.version = $v' "$PKG_FILE" > "$TMP_PKG" 2>/dev/null; then
+      mv "$TMP_PKG" "$PKG_FILE"
+    else
+      rm -f "$TMP_PKG"
+    fi
+  done
 
-# Sync to plugin/.claude-plugin/plugin.json if it exists
-PLUGIN_JSON="$PROJECT_DIR/plugin/.claude-plugin/plugin.json"
-if [[ -f "$PLUGIN_JSON" ]] && command -v jq &>/dev/null; then
-  TMP_PLUGIN=$(mktemp)
-  if jq --arg v "$NEW_VERSION" '.version = $v' "$PLUGIN_JSON" > "$TMP_PLUGIN" 2>/dev/null; then
-    mv "$TMP_PLUGIN" "$PLUGIN_JSON"
-  else
-    rm -f "$TMP_PLUGIN"
-  fi
+  for PLUGIN_JSON in "$PROJECT_DIR"/plugin-*/.claude-plugin/plugin.json; do
+    [[ -f "$PLUGIN_JSON" ]] || continue
+    TMP_PLUGIN=$(mktemp)
+    if jq --arg v "$NEW_VERSION" '.version = $v' "$PLUGIN_JSON" > "$TMP_PLUGIN" 2>/dev/null; then
+      mv "$TMP_PLUGIN" "$PLUGIN_JSON"
+    else
+      rm -f "$TMP_PLUGIN"
+    fi
+  done
 fi
 
 # Stage version changes for inclusion in the next commit (FR-011)
-# This avoids a separate "chore: bump version" commit — the version bump
-# gets folded into whatever commit the agent creates next.
 git add "$VERSION_FILE" 2>/dev/null || true
-[ -f "$PKG_FILE" ] && git add "$PKG_FILE" 2>/dev/null || true
-[ -f "$PLUGIN_JSON" ] && git add "$PLUGIN_JSON" 2>/dev/null || true
+git add "$PROJECT_DIR"/plugin-*/package.json 2>/dev/null || true
+git add "$PROJECT_DIR"/plugin-*/.claude-plugin/plugin.json 2>/dev/null || true
 
 # Always allow the edit
 exit 0
