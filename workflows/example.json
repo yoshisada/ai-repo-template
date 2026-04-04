@@ -32,21 +32,18 @@
     {
       "id": "cleanup-success",
       "type": "agent",
-      "instruction": "The workflow completed successfully. Do the following:\n1. Run: mkdir -p .wheel/history/success && cp .wheel/state.json \".wheel/history/success/example-workflow-$(date -u +%Y%m%d-%H%M%S).json\"\n2. Write a short explanation to reports/workflow-result.md explaining that the workflow succeeded — include which steps passed and why (reference the outputs in .wheel/outputs/).",
+      "terminal": true,
+      "instruction": "The workflow completed successfully. Write a short explanation to reports/workflow-result.md explaining that the workflow succeeded — include which steps passed and why (reference the outputs in .wheel/outputs/).",
       "context_from": ["check-env", "generate-report", "verify-report"],
       "output": "reports/workflow-result.md"
     },
     {
       "id": "cleanup-failure",
       "type": "agent",
-      "instruction": "The workflow failed. Do the following:\n1. Run: mkdir -p .wheel/history/failure && cp .wheel/state.json \".wheel/history/failure/example-workflow-$(date -u +%Y%m%d-%H%M%S).json\"\n2. Write a short explanation to reports/workflow-result.md explaining why the workflow failed — examine the step outputs in .wheel/outputs/ and .wheel/state.json to identify which step failed and what went wrong.",
+      "terminal": true,
+      "instruction": "The workflow failed. Write a short explanation to reports/workflow-result.md explaining why the workflow failed — examine the step outputs in .wheel/outputs/ and .wheel/state.json to identify which step failed and what went wrong.",
       "context_from": ["check-env", "generate-report", "verify-report"],
       "output": "reports/workflow-result.md"
-    },
-    {
-      "id": "remove-state",
-      "type": "command",
-      "command": "rm -f .wheel/state.json && echo 'State file removed. Workflow complete.'"
     }
   ]
 }

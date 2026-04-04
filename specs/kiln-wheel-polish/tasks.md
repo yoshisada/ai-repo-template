@@ -31,13 +31,13 @@
 
 ### Implementation
 
-- [ ] T005 [US2] Add `handle_terminal_step` function to `plugin-wheel/lib/dispatch.sh` — checks step JSON for `terminal: true`, archives state.json to `.wheel/history/success/` or `.wheel/history/failure/` based on step ID, removes state.json, sets cursor to total_steps. (FR-008, FR-009, FR-010)
+- [X] T005 [US2] Add `handle_terminal_step` function to `plugin-wheel/lib/dispatch.sh` — checks step JSON for `terminal: true`, archives state.json to `.wheel/history/success/` or `.wheel/history/failure/` based on step ID, removes state.json, sets cursor to total_steps. (FR-008, FR-009, FR-010)
 
-- [ ] T006 [US2] Integrate `handle_terminal_step` into `dispatch_command` — after marking step done, check for terminal field before advancing cursor. If terminal, call `handle_terminal_step` and return. (FR-008)
+- [X] T006 [US2] Integrate `handle_terminal_step` into `dispatch_command` — after marking step done, check for terminal field before advancing cursor. If terminal, call `handle_terminal_step` and return. (FR-008)
 
-- [ ] T007 [US2] Integrate `handle_terminal_step` into `dispatch_agent` — same integration in both `stop` (working/output-complete) and `subagent_stop` handlers. (FR-008)
+- [X] T007 [US2] Integrate `handle_terminal_step` into `dispatch_agent` — same integration in both `stop` (working/output-complete) and `subagent_stop` handlers. (FR-008)
 
-- [ ] T008 [US2] Verify no-op guard in `plugin-wheel/hooks/stop.sh` and `plugin-wheel/hooks/post-tool-use.sh` — confirm that missing state.json is already handled silently (exit 0 with approve response). If not, downgrade the error to a silent no-op. (FR-011, FR-012)
+- [X] T008 [US2] Verify no-op guard in `plugin-wheel/hooks/stop.sh` and `plugin-wheel/hooks/post-tool-use.sh` — confirm that missing state.json is already handled silently (exit 0 with approve response). If not, downgrade the error to a silent no-op. (FR-011, FR-012)
 
 **Checkpoint**: A workflow with `terminal: true` on a step should auto-archive and remove state.json when that step completes. Existing workflows should work identically.
 
