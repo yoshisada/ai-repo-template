@@ -13,11 +13,11 @@ context_build() {
   local workflow_json="$3"
 
   local instruction
-  instruction=$(echo "$step_json" | jq -r '.instruction // empty')
+  instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // empty')
 
   # Collect outputs from context_from dependencies
   local context_from
-  context_from=$(echo "$step_json" | jq -r '.context_from // [] | .[]')
+  context_from=$(printf '%s\n' "$step_json" | jq -r '.context_from // [] | .[]')
 
   local context_parts=""
   if [[ -n "$instruction" ]]; then
@@ -29,10 +29,10 @@ context_build() {
     while IFS= read -r dep_id; do
       [[ -z "$dep_id" ]] && continue
       local dep_index
-      dep_index=$(echo "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
+      dep_index=$(printf '%s\n' "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
       if [[ "$dep_index" != "null" && -n "$dep_index" ]]; then
         local dep_output
-        dep_output=$(echo "$state_json" | jq -r --argjson idx "$dep_index" '.steps[$idx].output // empty')
+        dep_output=$(printf '%s\n' "$state_json" | jq -r --argjson idx "$dep_index" '.steps[$idx].output // empty')
         if [[ -n "$dep_output" ]]; then
           context_parts="${context_parts}\n\n### Output from step: ${dep_id}\n${dep_output}"
         fi
@@ -65,14 +65,14 @@ context_subagent_start() {
   local agent_type="$4"
 
   local step_type
-  step_type=$(echo "$step_json" | jq -r '.type')
+  step_type=$(printf '%s\n' "$step_json" | jq -r '.type')
 
   local instruction=""
   if [[ "$step_type" == "parallel" ]]; then
     # Get agent-specific instruction from agent_instructions map
-    instruction=$(echo "$step_json" | jq -r --arg agent "$agent_type" '.agent_instructions[$agent] // .instruction // empty')
+    instruction=$(printf '%s\n' "$step_json" | jq -r --arg agent "$agent_type" '.agent_instructions[$agent] // .instruction // empty')
   else
-    instruction=$(echo "$step_json" | jq -r '.instruction // empty')
+    instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // empty')
   fi
 
   # Build context from dependencies
@@ -83,16 +83,16 @@ context_subagent_start() {
   if [[ -n "$instruction" && "$step_type" == "parallel" ]]; then
     local context_from_deps=""
     local context_from
-    context_from=$(echo "$step_json" | jq -r '.context_from // [] | .[]')
+    context_from=$(printf '%s\n' "$step_json" | jq -r '.context_from // [] | .[]')
     if [[ -n "$context_from" ]]; then
       context_from_deps="\n\n## Context from Previous Steps\n"
       while IFS= read -r dep_id; do
         [[ -z "$dep_id" ]] && continue
         local dep_index
-        dep_index=$(echo "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
+        dep_index=$(printf '%s\n' "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
         if [[ "$dep_index" != "null" && -n "$dep_index" ]]; then
           local dep_output
-          dep_output=$(echo "$state_json" | jq -r --argjson idx "$dep_index" '.steps[$idx].output // empty')
+          dep_output=$(printf '%s\n' "$state_json" | jq -r --argjson idx "$dep_index" '.steps[$idx].output // empty')
           if [[ -n "$dep_output" ]]; then
             context_from_deps="${context_from_deps}\n\n### Output from step: ${dep_id}\n${dep_output}"
           fi
@@ -101,6 +101,6 @@ context_subagent_start() {
     fi
     printf '%b' "## Step Instruction\n\n${instruction}${context_from_deps}"
   else
-    echo "$dep_context"
+    printf '%s\n' "$dep_context"
   fi
 }

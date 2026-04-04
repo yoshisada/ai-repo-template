@@ -82,7 +82,7 @@ engine_handle_hook() {
   local state
   state=$(state_read "$STATE_FILE") || return 1
   local wf_status
-  wf_status=$(echo "$state" | jq -r '.status')
+  wf_status=$(printf '%s\n' "$state" | jq -r '.status')
 
   if [[ "$wf_status" == "completed" || "$wf_status" == "failed" ]]; then
     jq -n '{"decision": "approve"}'
@@ -97,7 +97,7 @@ engine_handle_hook() {
   if [[ "$step_exit" -eq 2 ]]; then
     # Workflow complete — mark it and allow
     local updated
-    updated=$(echo "$state" | jq --arg now "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+    updated=$(printf '%s\n' "$state" | jq --arg now "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
       '.status = "completed" | .updated_at = $now')
     state_write "$STATE_FILE" "$updated"
     jq -n '{"decision": "approve"}'
@@ -116,12 +116,12 @@ engine_handle_hook() {
     post_tool_use)
       # FR-022: Log bash commands to command_log
       local tool_name
-      tool_name=$(echo "$hook_input_json" | jq -r '.tool_name // empty')
+      tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
       if [[ "$tool_name" == "Bash" ]]; then
         local command_text
-        command_text=$(echo "$hook_input_json" | jq -r '.tool_input.command // empty')
+        command_text=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.command // empty')
         local exit_code
-        exit_code=$(echo "$hook_input_json" | jq -r '.tool_output.exit_code // 0')
+        exit_code=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_output.exit_code // 0')
         local now
         now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
         state_append_command_log "$STATE_FILE" "$cursor" "$command_text" "$exit_code" "$now"
@@ -132,7 +132,7 @@ engine_handle_hook() {
     session_start)
       # FR-008: Resume — inject context about where we left off
       local step_id
-      step_id=$(echo "$current_step" | jq -r '.id')
+      step_id=$(printf '%s\n' "$current_step" | jq -r '.id')
       local step_status
       step_status=$(state_get_step_status "$state" "$cursor")
       local cmd_log

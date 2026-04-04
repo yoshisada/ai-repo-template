@@ -14,7 +14,7 @@ dispatch_step() {
   local step_index="$5"
 
   local step_type
-  step_type=$(echo "$step_json" | jq -r '.type')
+  step_type=$(printf '%s\n' "$step_json" | jq -r '.type')
 
   case "$step_type" in
     agent)
@@ -69,7 +69,7 @@ dispatch_agent() {
       elif [[ "$step_status" == "working" ]]; then
         # Check if the agent completed its work (output file exists)
         local output_key
-        output_key=$(echo "$step_json" | jq -r '.output // empty')
+        output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
         if [[ -n "$output_key" && -f "$output_key" ]]; then
           # Agent step is done — mark complete, capture output, advance
           state_set_step_status "$state_file" "$step_index" "done"
@@ -78,10 +78,10 @@ dispatch_agent() {
           state_set_cursor "$state_file" "$next_index"
           # Dispatch next step
           local total_steps
-          total_steps=$(echo "$WORKFLOW" | jq '.steps | length')
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
           if [[ "$next_index" -lt "$total_steps" ]]; then
             local next_step_json
-            next_step_json=$(echo "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
             dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
           else
             jq -n '{"decision": "approve"}'
@@ -100,7 +100,7 @@ dispatch_agent() {
       # Gate agent with its task instruction
       if [[ "$step_status" == "working" ]]; then
         local instruction
-        instruction=$(echo "$step_json" | jq -r '.instruction // empty')
+        instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // empty')
         jq -n --arg msg "$instruction" '{"decision": "block", "reason": $msg}'
       else
         jq -n '{"decision": "approve"}'
@@ -111,7 +111,7 @@ dispatch_agent() {
       state_set_step_status "$state_file" "$step_index" "done"
       # Capture output if step defines an output key
       local output_key
-      output_key=$(echo "$step_json" | jq -r '.output // empty')
+      output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
       if [[ -n "$output_key" ]]; then
         context_capture_output "$state_file" "$step_index" "$output_key"
       fi
@@ -139,7 +139,7 @@ dispatch_command() {
   state_set_step_status "$state_file" "$step_index" "working"
 
   local command
-  command=$(echo "$step_json" | jq -r '.command // empty')
+  command=$(printf '%s\n' "$step_json" | jq -r '.command // empty')
   if [[ -z "$command" ]]; then
     echo "ERROR: command step missing 'command' field" >&2
     state_set_step_status "$state_file" "$step_index" "failed"
@@ -165,11 +165,14 @@ dispatch_command() {
     truncated_output="$output"
   fi
 
-  # Record step output
+  # Record step output in state and write to disk
   local output_key
-  output_key=$(echo "$step_json" | jq -r '.output // empty')
+  output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
   if [[ -n "$output_key" ]]; then
     context_capture_output "$state_file" "$step_index" "$truncated_output"
+    # Write output to the file path so branch conditions and other steps can read it
+    mkdir -p "$(dirname "$output_key")"
+    printf '%s\n' "$truncated_output" > "$output_key"
   fi
 
   # Mark step done (or failed if non-zero exit)
@@ -187,17 +190,17 @@ dispatch_command() {
   local state
   state=$(state_read "$state_file") || return 0
   local total_steps
-  total_steps=$(echo "$WORKFLOW" | jq '.steps | length')
+  total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
   if [[ "$next_index" -lt "$total_steps" ]]; then
     local next_step_type
-    next_step_type=$(echo "$WORKFLOW" | jq -r --argjson idx "$next_index" '.steps[$idx].type')
+    next_step_type=$(printf '%s\n' "$WORKFLOW" | jq -r --argjson idx "$next_index" '.steps[$idx].type')
     if [[ "$next_step_type" == "command" ]]; then
       # Chain: re-exec the hook to handle the next command step without LLM round-trip
       exec "$WHEEL_HOOK_SCRIPT" <<< "$WHEEL_HOOK_INPUT"
     else
       # Next step is not a command — dispatch to its handler (e.g., agent → block with instruction)
       local next_step_json
-      next_step_json=$(echo "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+      next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
       dispatch_step "$next_step_json" "stop" "$WHEEL_HOOK_INPUT" "$state_file" "$next_index"
       return $?
     fi
@@ -229,30 +232,30 @@ dispatch_parallel() {
         state_set_step_status "$state_file" "$step_index" "working"
         # Initialize agent statuses
         local agents
-        agents=$(echo "$step_json" | jq -r '.agents[]')
+        agents=$(printf '%s\n' "$step_json" | jq -r '.agents[]')
         while IFS= read -r agent; do
           [[ -z "$agent" ]] && continue
           state_set_agent_status "$state_file" "$step_index" "$agent" "pending"
         done <<< "$agents"
       fi
       local instruction
-      instruction=$(echo "$step_json" | jq -r '.instruction // "Spawn parallel agents for this step."')
+      instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // "Spawn parallel agents for this step."')
       local agent_list
-      agent_list=$(echo "$step_json" | jq -r '.agents | join(", ")')
+      agent_list=$(printf '%s\n' "$step_json" | jq -r '.agents | join(", ")')
       jq -n --arg msg "Spawn these agents in parallel: ${agent_list}. ${instruction}" \
         '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # Gate specific agent with its instruction
       local agent_type
-      agent_type=$(echo "$hook_input_json" | jq -r '.agent_type // empty')
+      agent_type=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_type // empty')
       if [[ -n "$agent_type" ]]; then
         local agent_status
         agent_status=$(state_get_agent_status "$state" "$step_index" "$agent_type" 2>/dev/null)
         if [[ "$agent_status" == "pending" || "$agent_status" == "idle" ]]; then
           state_set_agent_status "$state_file" "$step_index" "$agent_type" "working"
           local agent_instruction
-          agent_instruction=$(echo "$step_json" | jq -r --arg agent "$agent_type" '.agent_instructions[$agent] // .instruction // empty')
+          agent_instruction=$(printf '%s\n' "$step_json" | jq -r --arg agent "$agent_type" '.agent_instructions[$agent] // .instruction // empty')
           jq -n --arg msg "$agent_instruction" '{"decision": "block", "reason": $msg}'
         else
           jq -n '{"decision": "approve"}'
@@ -264,14 +267,14 @@ dispatch_parallel() {
     subagent_stop)
       # Mark specific agent as done, check fan-in
       local agent_type
-      agent_type=$(echo "$hook_input_json" | jq -r '.agent_type // empty')
+      agent_type=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_type // empty')
       if [[ -n "$agent_type" ]]; then
         state_set_agent_status "$state_file" "$step_index" "$agent_type" "done"
       fi
       # FR-010: Check if all agents are done (fan-in)
       state=$(state_read "$state_file") || return 1
       local all_done
-      all_done=$(echo "$state" | jq --argjson idx "$step_index" '
+      all_done=$(printf '%s\n' "$state" | jq --argjson idx "$step_index" '
         [.steps[$idx].agents | to_entries[] | .value.status] | all(. == "done")')
       if [[ "$all_done" == "true" ]]; then
         # FR-010: Acquire lock to prevent double-advance
@@ -313,14 +316,14 @@ dispatch_approval() {
         state_set_step_status "$state_file" "$step_index" "working"
       fi
       local message
-      message=$(echo "$step_json" | jq -r '.message // "Approval required to continue."')
+      message=$(printf '%s\n' "$step_json" | jq -r '.message // "Approval required to continue."')
       jq -n --arg msg "APPROVAL GATE: ${message} — Waiting for approval via TeammateIdle." \
         '{"decision": "block", "reason": $msg}'
       ;;
     teammate_idle)
       # User/agent approves by sending idle with approval context
       local approval
-      approval=$(echo "$hook_input_json" | jq -r '.approval // empty')
+      approval=$(printf '%s\n' "$hook_input_json" | jq -r '.approval // empty')
       if [[ "$approval" == "approved" ]]; then
         state_set_step_status "$state_file" "$step_index" "done"
         local next_index=$((step_index + 1))
@@ -328,7 +331,7 @@ dispatch_approval() {
         jq -n '{"decision": "approve"}'
       else
         local message
-        message=$(echo "$step_json" | jq -r '.message // "Approval required to continue."')
+        message=$(printf '%s\n' "$step_json" | jq -r '.message // "Approval required to continue."')
         jq -n --arg msg "WAITING FOR APPROVAL: ${message}" '{"decision": "block", "reason": $msg}'
       fi
       ;;
@@ -351,7 +354,7 @@ dispatch_branch() {
   state_set_step_status "$state_file" "$step_index" "working"
 
   local condition
-  condition=$(echo "$step_json" | jq -r '.condition // empty')
+  condition=$(printf '%s\n' "$step_json" | jq -r '.condition // empty')
   if [[ -z "$condition" ]]; then
     echo "ERROR: branch step missing 'condition' field" >&2
     state_set_step_status "$state_file" "$step_index" "failed"
@@ -364,9 +367,9 @@ dispatch_branch() {
 
   local target_id
   if [[ "$cond_exit" -eq 0 ]]; then
-    target_id=$(echo "$step_json" | jq -r '.if_zero // empty')
+    target_id=$(printf '%s\n' "$step_json" | jq -r '.if_zero // empty')
   else
-    target_id=$(echo "$step_json" | jq -r '.if_nonzero // empty')
+    target_id=$(printf '%s\n' "$step_json" | jq -r '.if_nonzero // empty')
   fi
 
   if [[ -z "$target_id" ]]; then
@@ -415,16 +418,16 @@ dispatch_loop() {
   fi
 
   local max_iterations
-  max_iterations=$(echo "$step_json" | jq -r '.max_iterations // 10')
+  max_iterations=$(printf '%s\n' "$step_json" | jq -r '.max_iterations // 10')
   local on_exhaustion
-  on_exhaustion=$(echo "$step_json" | jq -r '.on_exhaustion // "fail"')
+  on_exhaustion=$(printf '%s\n' "$step_json" | jq -r '.on_exhaustion // "fail"')
   local condition
-  condition=$(echo "$step_json" | jq -r '.condition // empty')
+  condition=$(printf '%s\n' "$step_json" | jq -r '.condition // empty')
 
   # Get current iteration count
   state=$(state_read "$state_file") || return 1
   local current_iteration
-  current_iteration=$(echo "$state" | jq --argjson idx "$step_index" '.steps[$idx].loop_iteration // 0')
+  current_iteration=$(printf '%s\n' "$state" | jq --argjson idx "$step_index" '.steps[$idx].loop_iteration // 0')
 
   # Check max iterations
   if [[ "$current_iteration" -ge "$max_iterations" ]]; then
@@ -442,7 +445,7 @@ dispatch_loop() {
       # Update workflow status to failed
       state=$(state_read "$state_file") || return 1
       local updated
-      updated=$(echo "$state" | jq '.status = "failed"')
+      updated=$(printf '%s\n' "$state" | jq '.status = "failed"')
       state_write "$state_file" "$updated"
       jq -n '{"decision": "approve"}'
       return 1
@@ -469,13 +472,13 @@ dispatch_loop() {
   # Increment iteration counter
   state=$(state_read "$state_file") || return 1
   local updated
-  updated=$(echo "$state" | jq --argjson idx "$step_index" --argjson iter "$((current_iteration + 1))" \
+  updated=$(printf '%s\n' "$state" | jq --argjson idx "$step_index" --argjson iter "$((current_iteration + 1))" \
     '.steps[$idx].loop_iteration = $iter')
   state_write "$state_file" "$updated"
 
   # Execute substep
   local substep
-  substep=$(echo "$step_json" | jq '.substep // empty')
+  substep=$(printf '%s\n' "$step_json" | jq '.substep // empty')
   if [[ -z "$substep" || "$substep" == "null" ]]; then
     echo "ERROR: loop step missing 'substep' field" >&2
     state_set_step_status "$state_file" "$step_index" "failed"
@@ -483,13 +486,13 @@ dispatch_loop() {
   fi
 
   local substep_type
-  substep_type=$(echo "$substep" | jq -r '.type')
+  substep_type=$(printf '%s\n' "$substep" | jq -r '.type')
 
   case "$substep_type" in
     command)
       # Execute the command substep directly
       local command
-      command=$(echo "$substep" | jq -r '.command // empty')
+      command=$(printf '%s\n' "$substep" | jq -r '.command // empty')
       local output
       local cmd_exit_code
       output=$(eval "$command" 2>&1) || true
@@ -505,7 +508,7 @@ dispatch_loop() {
     agent)
       # Return instruction for the agent substep
       local instruction
-      instruction=$(echo "$substep" | jq -r '.instruction // empty')
+      instruction=$(printf '%s\n' "$substep" | jq -r '.instruction // empty')
       jq -n --arg msg "Loop iteration $((current_iteration + 1))/${max_iterations}: ${instruction}" \
         '{"decision": "block", "reason": $msg}'
       ;;

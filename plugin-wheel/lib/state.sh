@@ -12,13 +12,11 @@ state_read() {
     echo "ERROR: state file not found: $state_file" >&2
     return 1
   fi
-  local content
-  content=$(cat "$state_file")
-  if ! echo "$content" | jq empty 2>/dev/null; then
+  if ! jq empty "$state_file" 2>/dev/null; then
     echo "ERROR: invalid JSON in state file: $state_file" >&2
     return 1
   fi
-  echo "$content"
+  jq -c '.' "$state_file"
 }
 
 # FR-002: Write state.json atomically (write to tmp, then mv)
@@ -30,7 +28,7 @@ state_write() {
   local new_state="$2"
   local tmp_file
   tmp_file=$(mktemp "${state_file}.tmp.XXXXXX") || return 1
-  if ! echo "$new_state" > "$tmp_file"; then
+  if ! printf '%s\n' "$new_state" > "$tmp_file"; then
     rm -f "$tmp_file"
     return 1
   fi
@@ -49,13 +47,13 @@ state_init() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local wf_name wf_version step_count
-  wf_name=$(echo "$workflow_json" | jq -r '.name // "unnamed"')
-  wf_version=$(echo "$workflow_json" | jq -r '.version // "0.0.0"')
-  step_count=$(echo "$workflow_json" | jq '.steps | length')
+  wf_name=$(printf '%s\n' "$workflow_json" | jq -r '.name // "unnamed"')
+  wf_version=$(printf '%s\n' "$workflow_json" | jq -r '.version // "0.0.0"')
+  step_count=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
 
   # Build steps array from workflow definition
   local steps_json
-  steps_json=$(echo "$workflow_json" | jq --arg now "$now" '[
+  steps_json=$(printf '%s\n' "$workflow_json" | jq --arg now "$now" '[
     .steps[] | {
       id: .id,
       type: .type,
@@ -99,7 +97,7 @@ state_init() {
 # Exit: 0
 state_get_cursor() {
   local state_json="$1"
-  echo "$state_json" | jq -r '.cursor'
+  printf '%s\n' "$state_json" | jq -r '.cursor'
 }
 
 # FR-002: Advance the step cursor to a specific index
@@ -114,7 +112,7 @@ state_set_cursor() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local updated
-  updated=$(echo "$state" | jq \
+  updated=$(printf '%s\n' "$state" | jq \
     --argjson idx "$target_index" \
     --arg now "$now" \
     '.cursor = $idx | .updated_at = $now')
@@ -128,7 +126,7 @@ state_set_cursor() {
 state_get_step_status() {
   local state_json="$1"
   local step_index="$2"
-  echo "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].status'
+  printf '%s\n' "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].status'
 }
 
 # FR-002/011: Set the status of a specific step
@@ -144,7 +142,7 @@ state_set_step_status() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local updated
-  updated=$(echo "$state" | jq \
+  updated=$(printf '%s\n' "$state" | jq \
     --argjson idx "$step_index" \
     --arg status "$new_status" \
     --arg now "$now" \
@@ -164,7 +162,7 @@ state_get_agent_status() {
   local step_index="$2"
   local agent_type="$3"
   local result
-  result=$(echo "$state_json" | jq -r \
+  result=$(printf '%s\n' "$state_json" | jq -r \
     --argjson idx "$step_index" \
     --arg agent "$agent_type" \
     '.steps[$idx].agents[$agent].status // empty')
@@ -172,7 +170,7 @@ state_get_agent_status() {
     echo "ERROR: agent not found: $agent_type at step $step_index" >&2
     return 1
   fi
-  echo "$result"
+  printf '%s\n' "$result"
 }
 
 # FR-011: Set the status of a specific agent within a parallel step
@@ -189,7 +187,7 @@ state_set_agent_status() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local updated
-  updated=$(echo "$state" | jq \
+  updated=$(printf '%s\n' "$state" | jq \
     --argjson idx "$step_index" \
     --arg agent "$agent_type" \
     --arg status "$new_status" \
@@ -214,7 +212,7 @@ state_set_step_output() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local updated
-  updated=$(echo "$state" | jq \
+  updated=$(printf '%s\n' "$state" | jq \
     --argjson idx "$step_index" \
     --arg output "$output_value" \
     --arg now "$now" \
@@ -229,7 +227,7 @@ state_set_step_output() {
 state_get_step_output() {
   local state_json="$1"
   local step_index="$2"
-  echo "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].output // empty'
+  printf '%s\n' "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].output // empty'
 }
 
 # FR-021/022: Append an entry to a step's command log
@@ -247,7 +245,7 @@ state_append_command_log() {
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local updated
-  updated=$(echo "$state" | jq \
+  updated=$(printf '%s\n' "$state" | jq \
     --argjson idx "$step_index" \
     --arg cmd "$command_str" \
     --argjson code "$exit_code" \
@@ -264,5 +262,5 @@ state_append_command_log() {
 state_get_command_log() {
   local state_json="$1"
   local step_index="$2"
-  echo "$state_json" | jq --argjson idx "$step_index" '.steps[$idx].command_log // []'
+  printf '%s\n' "$state_json" | jq --argjson idx "$step_index" '.steps[$idx].command_log // []'
 }

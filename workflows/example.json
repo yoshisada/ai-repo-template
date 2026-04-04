@@ -1,6 +1,6 @@
 {
   "name": "example-workflow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "steps": [
     {
       "id": "check-env",
@@ -18,9 +18,30 @@
     {
       "id": "verify-report",
       "type": "command",
-      "command": "test -f reports/env-report.md && echo 'Report generated successfully' || echo 'Report missing'",
+      "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
       "context_from": ["generate-report"],
       "output": ".wheel/outputs/verify-report.txt"
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "condition": "grep -q SUCCESS .wheel/outputs/verify-report.txt",
+      "if_zero": "cleanup-success",
+      "if_nonzero": "cleanup-failure"
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "instruction": "The workflow completed successfully. Do the following:\n1. Create the directory .wheel/history/success/ if it doesn't exist\n2. Copy .wheel/state.json to .wheel/history/success/example-workflow.json\n3. Write a short explanation to reports/workflow-result.md explaining that the workflow succeeded — include which steps passed and why (reference the outputs in .wheel/outputs/).",
+      "context_from": ["check-env", "generate-report", "verify-report"],
+      "output": "reports/workflow-result.md"
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "instruction": "The workflow failed. Do the following:\n1. Create the directory .wheel/history/failure/ if it doesn't exist\n2. Copy .wheel/state.json to .wheel/history/failure/example-workflow.json\n3. Write a short explanation to reports/workflow-result.md explaining why the workflow failed — examine the step outputs in .wheel/outputs/ and .wheel/state.json to identify which step failed and what went wrong.",
+      "context_from": ["check-env", "generate-report", "verify-report"],
+      "output": "reports/workflow-result.md"
     }
   ]
 }

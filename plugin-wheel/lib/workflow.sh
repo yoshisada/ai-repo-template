@@ -12,16 +12,14 @@ workflow_load() {
     echo "ERROR: workflow file not found: $workflow_file" >&2
     return 1
   fi
-  local content
-  content=$(cat "$workflow_file")
-  if ! echo "$content" | jq empty 2>/dev/null; then
+  if ! jq empty "$workflow_file" 2>/dev/null; then
     echo "ERROR: invalid JSON in workflow file: $workflow_file" >&2
     return 1
   fi
-  # Validate required fields
+  # Validate required fields (read directly from file to avoid echo/pipe corruption)
   local name steps_count
-  name=$(echo "$content" | jq -r '.name // empty')
-  steps_count=$(echo "$content" | jq '.steps | length')
+  name=$(jq -r '.name // empty' "$workflow_file")
+  steps_count=$(jq '.steps | length' "$workflow_file")
   if [[ -z "$name" ]]; then
     echo "ERROR: workflow missing required field: name" >&2
     return 1
@@ -32,16 +30,18 @@ workflow_load() {
   fi
   # Validate each step has required fields
   local invalid_steps
-  invalid_steps=$(echo "$content" | jq -r '[.steps[] | select(.id == null or .type == null)] | length')
+  invalid_steps=$(jq -r '[.steps[] | select(.id == null or .type == null)] | length' "$workflow_file")
   if [[ "$invalid_steps" -gt 0 ]]; then
     echo "ERROR: $invalid_steps step(s) missing required id or type field" >&2
     return 1
   fi
   # Validate branch targets
+  local content
+  content=$(jq -c '.' "$workflow_file")
   if ! workflow_validate_references "$content"; then
     return 1
   fi
-  echo "$content"
+  printf '%s\n' "$content"
 }
 
 # FR-006 (wheel-skill-activation): Validate that all step IDs in a workflow are unique
@@ -51,7 +51,7 @@ workflow_load() {
 workflow_validate_unique_ids() {
   local workflow_json="$1"
   local duplicates
-  duplicates=$(echo "$workflow_json" | jq -r '
+  duplicates=$(printf '%s\n' "$workflow_json" | jq -r '
     [.steps[].id] | group_by(.) | map(select(length > 1)) | map(.[0]) | .[]')
   if [[ -n "$duplicates" ]]; then
     echo "ERROR: duplicate step IDs found: $duplicates" >&2
@@ -66,7 +66,7 @@ workflow_validate_unique_ids() {
 # Exit: 0
 workflow_get_steps() {
   local workflow_json="$1"
-  echo "$workflow_json" | jq '.steps'
+  printf '%s\n' "$workflow_json" | jq '.steps'
 }
 
 # FR-012: Get a specific step by index
@@ -77,12 +77,12 @@ workflow_get_step() {
   local workflow_json="$1"
   local step_index="$2"
   local step_count
-  step_count=$(echo "$workflow_json" | jq '.steps | length')
+  step_count=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
   if [[ "$step_index" -ge "$step_count" || "$step_index" -lt 0 ]]; then
     echo "ERROR: step index out of range: $step_index (total: $step_count)" >&2
     return 1
   fi
-  echo "$workflow_json" | jq --argjson idx "$step_index" '.steps[$idx]'
+  printf '%s\n' "$workflow_json" | jq --argjson idx "$step_index" '.steps[$idx]'
 }
 
 # FR-012: Get a specific step by ID
@@ -93,12 +93,12 @@ workflow_get_step_by_id() {
   local workflow_json="$1"
   local step_id="$2"
   local result
-  result=$(echo "$workflow_json" | jq --arg id "$step_id" '.steps[] | select(.id == $id)')
+  result=$(printf '%s\n' "$workflow_json" | jq --arg id "$step_id" '.steps[] | select(.id == $id)')
   if [[ -z "$result" ]]; then
     echo "ERROR: step not found with id: $step_id" >&2
     return 1
   fi
-  echo "$result"
+  printf '%s\n' "$result"
 }
 
 # FR-012: Get the index of a step by its ID
@@ -109,12 +109,12 @@ workflow_get_step_index() {
   local workflow_json="$1"
   local step_id="$2"
   local index
-  index=$(echo "$workflow_json" | jq --arg id "$step_id" '[.steps[].id] | index($id)')
+  index=$(printf '%s\n' "$workflow_json" | jq --arg id "$step_id" '[.steps[].id] | index($id)')
   if [[ "$index" == "null" || -z "$index" ]]; then
     echo "ERROR: step not found with id: $step_id" >&2
     return 1
   fi
-  echo "$index"
+  printf '%s\n' "$index"
 }
 
 # FR-012: Get the total number of steps
@@ -123,7 +123,7 @@ workflow_get_step_index() {
 # Exit: 0
 workflow_step_count() {
   local workflow_json="$1"
-  echo "$workflow_json" | jq '.steps | length'
+  printf '%s\n' "$workflow_json" | jq '.steps | length'
 }
 
 # FR-012: Validate that all branch targets reference existing step IDs
@@ -133,17 +133,17 @@ workflow_step_count() {
 workflow_validate_references() {
   local workflow_json="$1"
   local all_ids
-  all_ids=$(echo "$workflow_json" | jq -r '[.steps[].id] | @json')
+  all_ids=$(printf '%s\n' "$workflow_json" | jq -r '[.steps[].id] | @json')
   # Check branch step targets
   local invalid_refs
-  invalid_refs=$(echo "$workflow_json" | jq --argjson ids "$all_ids" -r '
+  invalid_refs=$(printf '%s\n' "$workflow_json" | jq --argjson ids "$all_ids" -r '
     [.steps[] | select(.type == "branch") |
       (if .if_zero != null and (.if_zero | IN($ids[])) == false then "branch step \(.id): if_zero target \(.if_zero) not found" else empty end),
       (if .if_nonzero != null and (.if_nonzero | IN($ids[])) == false then "branch step \(.id): if_nonzero target \(.if_nonzero) not found" else empty end)
     ] | .[]')
   if [[ -n "$invalid_refs" ]]; then
     echo "ERROR: invalid step references:" >&2
-    echo "$invalid_refs" >&2
+    printf '%s\n' "$invalid_refs" >&2
     return 1
   fi
   return 0
