@@ -18,12 +18,12 @@
 
 **Purpose**: Replace auto-discovery logic in all hooks with the state.json existence check.
 
-- [ ] T003 [P] [US1] Rewrite `plugin-wheel/hooks/stop.sh` — replace lines 23-33 (auto-discovery + WHEEL_WORKFLOW fallback) with state.json guard clause per contracts/interfaces.md. Read `workflow_file` from state.json instead of scanning `workflows/`. Keep engine_init and engine_handle_hook calls.
-- [ ] T004 [P] [US1] Rewrite `plugin-wheel/hooks/teammate-idle.sh` — same guard clause pattern as T003. Remove auto-discovery, add state.json guard, read workflow_file from state.json.
-- [ ] T005 [P] [US1] Rewrite `plugin-wheel/hooks/subagent-start.sh` — same guard clause pattern. Remove auto-discovery. Note: this hook has custom context injection logic after engine_init; preserve that.
-- [ ] T006 [P] [US1] Rewrite `plugin-wheel/hooks/subagent-stop.sh` — same guard clause pattern as T003.
-- [ ] T007 [P] [US1] Rewrite `plugin-wheel/hooks/session-start.sh` — same guard clause pattern. This hook already checks for state.json existence; simplify by removing auto-discovery and making the state.json check the FIRST thing (before reading stdin).
-- [ ] T008 [P] [US1] Rewrite `plugin-wheel/hooks/post-tool-use.sh` — same guard but use `exit 0` instead of JSON output (PostToolUse hooks don't return decisions). Remove auto-discovery. This hook already has a state.json check; move it to the top and remove the workflow file lookup.
+- [X] T003 [P] [US1] Rewrite `plugin-wheel/hooks/stop.sh` — replace lines 23-33 (auto-discovery + WHEEL_WORKFLOW fallback) with state.json guard clause per contracts/interfaces.md. Read `workflow_file` from state.json instead of scanning `workflows/`. Keep engine_init and engine_handle_hook calls.
+- [X] T004 [P] [US1] Rewrite `plugin-wheel/hooks/teammate-idle.sh` — same guard clause pattern as T003. Remove auto-discovery, add state.json guard, read workflow_file from state.json.
+- [X] T005 [P] [US1] Rewrite `plugin-wheel/hooks/subagent-start.sh` — same guard clause pattern. Remove auto-discovery. Note: this hook has custom context injection logic after engine_init; preserve that.
+- [X] T006 [P] [US1] Rewrite `plugin-wheel/hooks/subagent-stop.sh` — same guard clause pattern as T003.
+- [X] T007 [P] [US1] Rewrite `plugin-wheel/hooks/session-start.sh` — same guard clause pattern. This hook already checks for state.json existence; simplify by removing auto-discovery and making the state.json check the FIRST thing (before reading stdin).
+- [X] T008 [P] [US1] Rewrite `plugin-wheel/hooks/post-tool-use.sh` — same guard but use `exit 0` instead of JSON output (PostToolUse hooks don't return decisions). Remove auto-discovery. This hook already has a state.json check; move it to the top and remove the workflow file lookup.
 
 **Checkpoint**: All hooks pass through silently when `.wheel/state.json` does not exist. No workflow auto-discovery remains.
 

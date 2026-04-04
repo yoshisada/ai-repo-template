@@ -2,30 +2,27 @@
 # post-tool-use.sh — PostToolUse(Bash) hook handler
 # FR-022/023: Logs every command the LLM executes during agent steps
 # into the current step's command_log array in state.json
-
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
-
-HOOK_INPUT=$(cat)
-
-source "${PLUGIN_DIR}/lib/engine.sh"
-
-WORKFLOW_FILE="${WHEEL_WORKFLOW:-}"
-if [[ -z "$WORKFLOW_FILE" ]]; then
-  WORKFLOW_FILE=$(find workflows/ -name '*.json' -type f 2>/dev/null | head -1)
-fi
-
-if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
-  # No workflow active — nothing to log
-  exit 0
-fi
-
-# Only proceed if state.json exists (workflow is running)
+# FR-004: Guard — exit if no workflow active
 if [[ ! -f ".wheel/state.json" ]]; then
   exit 0
 fi
+
+# Read hook input from stdin
+HOOK_INPUT=$(cat)
+
+# Resolve paths
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
+
+# FR-005: Read workflow file path from state.json (no auto-discovery)
+WORKFLOW_FILE=$(jq -r '.workflow_file // empty' ".wheel/state.json")
+if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
+  exit 0
+fi
+
+source "${PLUGIN_DIR}/lib/engine.sh"
 
 if ! engine_init "$WORKFLOW_FILE" ".wheel"; then
   exit 0
