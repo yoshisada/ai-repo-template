@@ -28,8 +28,8 @@
 
 **Purpose**: Build the state persistence layer that all other modules depend on
 
-- [ ] T005 [US1] Implement `plugin-wheel/lib/state.sh` with all functions per contracts/interfaces.md: `state_read`, `state_write` (atomic tmp+rename), `state_init`, `state_get_cursor`, `state_set_cursor`, `state_get_step_status`, `state_set_step_status`, `state_set_step_output`, `state_get_step_output`, `state_append_command_log`, `state_get_command_log`
-- [ ] T006 [US3] Add parallel agent state functions to `plugin-wheel/lib/state.sh`: `state_get_agent_status`, `state_set_agent_status`
+- [X] T005 [US1] Implement `plugin-wheel/lib/state.sh` with all functions per contracts/interfaces.md: `state_read`, `state_write` (atomic tmp+rename), `state_init`, `state_get_cursor`, `state_set_cursor`, `state_get_step_status`, `state_set_step_status`, `state_set_step_output`, `state_get_step_output`, `state_append_command_log`, `state_get_command_log`
+- [X] T006 [US3] Add parallel agent state functions to `plugin-wheel/lib/state.sh`: `state_get_agent_status`, `state_set_agent_status`
 
 **Checkpoint**: State module complete — can read/write/query state.json atomically
 
@@ -82,9 +82,9 @@
 
 **Purpose**: Consumer project scaffolding and npm packaging
 
-- [ ] T023 [US7] Implement `plugin-wheel/bin/init.mjs` with `init()` and `update()` functions per contracts/interfaces.md — create .wheel/, workflows/, merge hooks into .claude/settings.json
-- [ ] T024 [P] [US7] Create `plugin-wheel/scaffold/example-workflow.json` — a 3-step example workflow (1 command step + 1 agent step + 1 command step) that proves linear execution end-to-end
-- [ ] T025 [P] [US7] Create `plugin-wheel/workflows/example.json` — same example workflow shipped with the plugin for reference
+- [X] T023 [US7] Implement `plugin-wheel/bin/init.mjs` with `init()` and `update()` functions per contracts/interfaces.md — create .wheel/, workflows/, merge hooks into .claude/settings.json
+- [X] T024 [P] [US7] Create `plugin-wheel/scaffold/example-workflow.json` — a 3-step example workflow (1 command step + 1 agent step + 1 command step) that proves linear execution end-to-end
+- [X] T025 [P] [US7] Create `plugin-wheel/workflows/example.json` — same example workflow shipped with the plugin for reference
 
 **Checkpoint**: `npx @yoshisada/wheel init` works in a consumer project
 
@@ -108,7 +108,7 @@
 **Purpose**: Documentation and final packaging
 
 - [ ] T030 [P] Create `plugin-wheel/README.md` with usage instructions, workflow format reference, and getting started guide
-- [ ] T031 [P] Add `.gitignore` entries for `.wheel/state.json` and `.wheel/.locks/` to `plugin-wheel/scaffold/`
+- [X] T031 [P] Add `.gitignore` entries for `.wheel/state.json` and `.wheel/.locks/` to `plugin-wheel/scaffold/`
 
 ---
 

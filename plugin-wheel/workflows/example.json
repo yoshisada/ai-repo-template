@@ -1,0 +1,26 @@
+{
+  "name": "example-workflow",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "command": "echo 'Checking environment...' && which jq && which bash",
+      "output": ".wheel/outputs/check-env.txt"
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "instruction": "Read the environment check output from the previous step. Create a short summary file at reports/env-report.md listing the detected tool versions and paths.",
+      "context_from": ["check-env"],
+      "output": "reports/env-report.md"
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "command": "test -f reports/env-report.md && echo 'Report generated successfully' || echo 'Report missing'",
+      "context_from": ["generate-report"],
+      "output": ".wheel/outputs/verify-report.txt"
+    }
+  ]
+}
