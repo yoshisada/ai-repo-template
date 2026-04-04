@@ -1,0 +1,268 @@
+#!/usr/bin/env bash
+# state.sh — State persistence for .wheel/state.json
+# FR-002: Read, write, and query workflow execution state
+
+# FR-002: Read the full state.json and output it
+# Params: $1 = state file path
+# Output (stdout): full state.json contents
+# Exit: 0 on success, 1 if file missing or invalid JSON
+state_read() {
+  local state_file="$1"
+  if [[ ! -f "$state_file" ]]; then
+    echo "ERROR: state file not found: $state_file" >&2
+    return 1
+  fi
+  local content
+  content=$(cat "$state_file")
+  if ! echo "$content" | jq empty 2>/dev/null; then
+    echo "ERROR: invalid JSON in state file: $state_file" >&2
+    return 1
+  fi
+  echo "$content"
+}
+
+# FR-002: Write state.json atomically (write to tmp, then mv)
+# Params: $1 = state file path, $2 = new state JSON (string)
+# Output: none
+# Exit: 0 on success, 1 on write failure
+state_write() {
+  local state_file="$1"
+  local new_state="$2"
+  local tmp_file
+  tmp_file=$(mktemp "${state_file}.tmp.XXXXXX") || return 1
+  if ! echo "$new_state" > "$tmp_file"; then
+    rm -f "$tmp_file"
+    return 1
+  fi
+  mv "$tmp_file" "$state_file" || return 1
+}
+
+# FR-002: Initialize a new state.json from a workflow definition
+# FR-001 (wheel-skill-activation): Extended to accept optional workflow_file path
+# Params: $1 = state file path, $2 = workflow JSON (string), $3 = workflow file path (string, optional)
+# Output: none (creates state file)
+# Exit: 0 on success, 1 on failure
+state_init() {
+  local state_file="$1"
+  local workflow_json="$2"
+  local workflow_file="${3:-}"
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local wf_name wf_version step_count
+  wf_name=$(echo "$workflow_json" | jq -r '.name // "unnamed"')
+  wf_version=$(echo "$workflow_json" | jq -r '.version // "0.0.0"')
+  step_count=$(echo "$workflow_json" | jq '.steps | length')
+
+  # Build steps array from workflow definition
+  local steps_json
+  steps_json=$(echo "$workflow_json" | jq --arg now "$now" '[
+    .steps[] | {
+      id: .id,
+      type: .type,
+      status: "pending",
+      started_at: null,
+      completed_at: null,
+      output: null,
+      command_log: [],
+      agents: (if .type == "parallel" then
+        (.agents // [] | map({key: ., value: {status: "pending", started_at: null, completed_at: null}}) | from_entries)
+      else {} end),
+      loop_iteration: 0
+    }
+  ]')
+
+  local state
+  state=$(jq -n \
+    --arg name "$wf_name" \
+    --arg version "$wf_version" \
+    --arg wf_file "$workflow_file" \
+    --arg now "$now" \
+    --argjson steps "$steps_json" \
+    '{
+      workflow_name: $name,
+      workflow_version: $version,
+      workflow_file: $wf_file,
+      status: "running",
+      cursor: 0,
+      started_at: $now,
+      updated_at: $now,
+      steps: $steps
+    }')
+
+  mkdir -p "$(dirname "$state_file")"
+  state_write "$state_file" "$state"
+}
+
+# FR-002: Get the current step index from state
+# Params: $1 = state JSON (string)
+# Output (stdout): integer step index (0-based)
+# Exit: 0
+state_get_cursor() {
+  local state_json="$1"
+  echo "$state_json" | jq -r '.cursor'
+}
+
+# FR-002: Advance the step cursor to a specific index
+# Params: $1 = state file path, $2 = target step index
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_set_cursor() {
+  local state_file="$1"
+  local target_index="$2"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(echo "$state" | jq \
+    --argjson idx "$target_index" \
+    --arg now "$now" \
+    '.cursor = $idx | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
+
+# FR-002/011: Get the status of a specific step
+# Params: $1 = state JSON (string), $2 = step index
+# Output (stdout): status string (pending|working|done|failed)
+# Exit: 0
+state_get_step_status() {
+  local state_json="$1"
+  local step_index="$2"
+  echo "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].status'
+}
+
+# FR-002/011: Set the status of a specific step
+# Params: $1 = state file path, $2 = step index, $3 = new status
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_set_step_status() {
+  local state_file="$1"
+  local step_index="$2"
+  local new_status="$3"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(echo "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg status "$new_status" \
+    --arg now "$now" \
+    '.steps[$idx].status = $status | .updated_at = $now |
+     if $status == "working" then .steps[$idx].started_at = $now
+     elif ($status == "done" or $status == "failed") then .steps[$idx].completed_at = $now
+     else . end')
+  state_write "$state_file" "$updated"
+}
+
+# FR-011: Get the status of a specific agent within a parallel step
+# Params: $1 = state JSON (string), $2 = step index, $3 = agent_type
+# Output (stdout): status string (working|idle|done|failed)
+# Exit: 0 if agent found, 1 if not found
+state_get_agent_status() {
+  local state_json="$1"
+  local step_index="$2"
+  local agent_type="$3"
+  local result
+  result=$(echo "$state_json" | jq -r \
+    --argjson idx "$step_index" \
+    --arg agent "$agent_type" \
+    '.steps[$idx].agents[$agent].status // empty')
+  if [[ -z "$result" ]]; then
+    echo "ERROR: agent not found: $agent_type at step $step_index" >&2
+    return 1
+  fi
+  echo "$result"
+}
+
+# FR-011: Set the status of a specific agent within a parallel step
+# Params: $1 = state file path, $2 = step index, $3 = agent_type, $4 = new status
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_set_agent_status() {
+  local state_file="$1"
+  local step_index="$2"
+  local agent_type="$3"
+  local new_status="$4"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(echo "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg agent "$agent_type" \
+    --arg status "$new_status" \
+    --arg now "$now" \
+    '.steps[$idx].agents[$agent].status = $status | .updated_at = $now |
+     if $status == "working" then .steps[$idx].agents[$agent].started_at = $now
+     elif ($status == "done" or $status == "failed") then .steps[$idx].agents[$agent].completed_at = $now
+     else . end')
+  state_write "$state_file" "$updated"
+}
+
+# FR-028: Record step output artifact path
+# Params: $1 = state file path, $2 = step index, $3 = output path or value
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_set_step_output() {
+  local state_file="$1"
+  local step_index="$2"
+  local output_value="$3"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(echo "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg output "$output_value" \
+    --arg now "$now" \
+    '.steps[$idx].output = $output | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
+
+# FR-028: Get step output artifact path
+# Params: $1 = state JSON (string), $2 = step index
+# Output (stdout): output path/value string, or empty if none
+# Exit: 0
+state_get_step_output() {
+  local state_json="$1"
+  local step_index="$2"
+  echo "$state_json" | jq -r --argjson idx "$step_index" '.steps[$idx].output // empty'
+}
+
+# FR-021/022: Append an entry to a step's command log
+# Params: $1 = state file path, $2 = step index, $3 = command string, $4 = exit code, $5 = timestamp
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_append_command_log() {
+  local state_file="$1"
+  local step_index="$2"
+  local command_str="$3"
+  local exit_code="$4"
+  local timestamp="$5"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(echo "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg cmd "$command_str" \
+    --argjson code "$exit_code" \
+    --arg ts "$timestamp" \
+    --arg now "$now" \
+    '.steps[$idx].command_log += [{command: $cmd, exit_code: $code, timestamp: $ts}] | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
+
+# FR-023: Get the command log for a step
+# Params: $1 = state JSON (string), $2 = step index
+# Output (stdout): JSON array of {command, exit_code, timestamp} objects
+# Exit: 0
+state_get_command_log() {
+  local state_json="$1"
+  local step_index="$2"
+  echo "$state_json" | jq --argjson idx "$step_index" '.steps[$idx].command_log // []'
+}

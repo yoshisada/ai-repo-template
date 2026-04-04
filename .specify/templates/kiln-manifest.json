@@ -1,0 +1,22 @@
+{
+  "version": "1.1.0",
+  "description": "Expected project structure for kiln-managed projects",
+  "directories": {
+    ".kiln": { "required": true, "tracked": true },
+    ".kiln/workflows": { "required": true, "tracked": true },
+    ".kiln/agents": { "required": true, "tracked": false },
+    ".kiln/issues": { "required": true, "tracked": true, "retention": { "archive_completed": true } },
+    ".kiln/issues/completed": { "required": false, "tracked": true },
+    ".kiln/qa": { "required": true, "tracked": false, "retention": { "purge_artifacts": true } },
+    ".kiln/qa/tests": { "required": true, "tracked": false },
+    ".kiln/qa/results": { "required": true, "tracked": false },
+    ".kiln/qa/screenshots": { "required": true, "tracked": false },
+    ".kiln/qa/videos": { "required": true, "tracked": false },
+    ".kiln/qa/config": { "required": true, "tracked": false },
+    ".kiln/logs": { "required": true, "tracked": false, "retention": { "keep_last": 10 } }
+  },
+  "migrations": {
+    "docs/backlog/": ".kiln/issues/",
+    "qa-results/": ".kiln/qa/"
+  }
+}

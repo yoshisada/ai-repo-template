@@ -3,7 +3,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
+**Note**: This template is filled in by the `/plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
@@ -15,6 +15,9 @@
   ACTION REQUIRED: Replace the content in this section with the technical details
   for the project. The structure here is presented in advisory capacity to guide
   the iteration process.
+
+  FR-021: When depending on container CLI, add Phase 1 task to run `--help` and document results
+  FR-023: For a11y features, run axe-core locally and fix all violations before committing
 -->
 
 **Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
@@ -39,12 +42,12 @@
 
 ```text
 specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md              # This file (/plan command output)
+├── research.md          # Phase 0 output (/plan command)
+├── data-model.md        # Phase 1 output (/plan command)
+├── quickstart.md        # Phase 1 output (/plan command)
+├── contracts/           # Phase 1 output (/plan command)
+└── tasks.md             # Phase 2 output (/tasks command - NOT created by /plan)
 ```
 
 ### Source Code (repository root)
@@ -93,26 +96,6 @@ ios/ or android/
 
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
-
-## Deployment Readiness
-
-<!--
-  ACTION REQUIRED: List every deployment artifact this feature requires.
-  Delete rows that don't apply. Add rows for project-specific artifacts.
-  This section prevents deployment artifacts from being missed during task
-  generation and caught only at audit time.
--->
-
-| Artifact | Path | Required? | Notes |
-|----------|------|-----------|-------|
-| Dockerfile | [e.g., packages/server/Dockerfile] | [Yes/No/N/A] | [e.g., multi-stage build for production] |
-| docker-compose.yml | [e.g., docker-compose.yml] | [Yes/No/N/A] | [e.g., local dev + CI environments] |
-| CI config | [e.g., .github/workflows/ci.yml] | [Yes/No/N/A] | [e.g., build, test, deploy pipeline] |
-| Env template | [e.g., .env.example] | [Yes/No/N/A] | [e.g., required env vars documented] |
-| Kubernetes manifests | [e.g., k8s/deployment.yml] | [Yes/No/N/A] | [e.g., deployment, service, ingress] |
-| Terraform / IaC | [e.g., infra/main.tf] | [Yes/No/N/A] | [e.g., cloud resources] |
-
-**Deployment notes**: [Any additional deployment considerations — DNS, secrets management, migration scripts, etc.]
 
 ## Complexity Tracking
 

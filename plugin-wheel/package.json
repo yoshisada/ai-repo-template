@@ -1,0 +1,37 @@
+{
+  "name": "@yoshisada/wheel",
+  "version": "0.1.0",
+  "description": "Hook-based workflow engine for Claude Code agent pipelines",
+  "author": "yoshisada",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "wheel": "./bin/init.mjs"
+  },
+  "files": [
+    ".claude-plugin/",
+    "hooks/",
+    "lib/",
+    "bin/",
+    "scaffold/",
+    "skills/",
+    "workflows/",
+    "README.md"
+  ],
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "workflow-engine",
+    "hooks",
+    "agent-orchestration",
+    "deterministic-pipeline"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yoshisada/ai-repo-template.git",
+    "directory": "plugin-wheel"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

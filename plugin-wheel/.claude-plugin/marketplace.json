@@ -1,0 +1,7 @@
+{
+  "listed": false,
+  "categories": ["workflow", "automation", "agent-orchestration"],
+  "tags": ["workflow-engine", "hooks", "deterministic", "pipeline"],
+  "repository": "https://github.com/yoshisada/ai-repo-template",
+  "homepage": "https://github.com/yoshisada/ai-repo-template/tree/main/plugin-wheel"
+}
