@@ -2,20 +2,23 @@
 # engine.sh — Core state machine engine for Wheel
 # FR-001: Sources all lib modules, provides main dispatch loop
 
-# Resolve the directory this script lives in
-WHEEL_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the directory this script lives in.
+# If WHEEL_LIB_DIR is already set (libs sourced individually), skip re-sourcing.
+if [[ -z "${WHEEL_LIB_DIR:-}" ]] || ! declare -f workflow_load &>/dev/null; then
+  WHEEL_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source all library modules
-# shellcheck source=state.sh
-source "${WHEEL_LIB_DIR}/state.sh"
-# shellcheck source=workflow.sh
-source "${WHEEL_LIB_DIR}/workflow.sh"
-# shellcheck source=dispatch.sh
-source "${WHEEL_LIB_DIR}/dispatch.sh"
-# shellcheck source=lock.sh
-source "${WHEEL_LIB_DIR}/lock.sh"
-# shellcheck source=context.sh
-source "${WHEEL_LIB_DIR}/context.sh"
+  # Source all library modules
+  # shellcheck source=state.sh
+  source "${WHEEL_LIB_DIR}/state.sh"
+  # shellcheck source=workflow.sh
+  source "${WHEEL_LIB_DIR}/workflow.sh"
+  # shellcheck source=dispatch.sh
+  source "${WHEEL_LIB_DIR}/dispatch.sh"
+  # shellcheck source=lock.sh
+  source "${WHEEL_LIB_DIR}/lock.sh"
+  # shellcheck source=context.sh
+  source "${WHEEL_LIB_DIR}/context.sh"
+fi
 
 # Globals set by engine_init
 WORKFLOW=""

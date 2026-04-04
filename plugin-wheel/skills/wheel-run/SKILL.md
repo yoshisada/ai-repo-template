@@ -50,9 +50,14 @@ If the file doesn't exist, **stop here** and show the error.
 Source the wheel engine libs and validate:
 
 ```bash
-HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-PLUGIN_DIR="$(cd "${HOOK_DIR}/../../" && pwd)"
-source "${PLUGIN_DIR}/lib/engine.sh"
+PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+source "${WHEEL_LIB_DIR}/state.sh"
+source "${WHEEL_LIB_DIR}/workflow.sh"
+source "${WHEEL_LIB_DIR}/dispatch.sh"
+source "${WHEEL_LIB_DIR}/lock.sh"
+source "${WHEEL_LIB_DIR}/context.sh"
+source "${WHEEL_LIB_DIR}/engine.sh"
 
 # workflow_load validates: valid JSON, required fields, branch targets
 WORKFLOW=$(workflow_load "$WORKFLOW_FILE")
@@ -79,6 +84,8 @@ state_init ".wheel/state.json" "$WORKFLOW" "$WORKFLOW_FILE"
 # workflows don't stall waiting for a hook event
 STATE_DIR=".wheel"
 STATE_FILE=".wheel/state.json"
+export WHEEL_HOOK_SCRIPT=""
+export WHEEL_HOOK_INPUT='{}'
 KICKSTART_OUTPUT=$(engine_kickstart ".wheel/state.json")
 ```
 

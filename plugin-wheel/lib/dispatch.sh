@@ -15,9 +15,9 @@ advance_past_skipped() {
   local state
   state=$(state_read "$state_file") || return 1
   while [[ "$idx" -lt "$total_steps" ]]; do
-    local status
-    status=$(printf '%s\n' "$state" | jq -r --argjson i "$idx" '.steps[$i].status')
-    if [[ "$status" == "skipped" ]]; then
+    local step_st
+    step_st=$(printf '%s\n' "$state" | jq -r --argjson i "$idx" '.steps[$i].status')
+    if [[ "$step_st" == "skipped" ]]; then
       idx=$((idx + 1))
     else
       break
