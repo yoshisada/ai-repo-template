@@ -51,7 +51,7 @@
 
 ### Implementation
 
-- [ ] T009 [US3] Create `plugin-kiln/skills/todo/prompt.md` — skill definition with frontmatter (name: todo, description), argument parsing for 4 modes (list, add, done N, clear), file creation on first use, date stamping. (FR-013, FR-014, FR-015, FR-016, FR-017, FR-018)
+- [X] T009 [US3] Create `plugin-kiln/skills/todo/SKILL.md` — skill definition with frontmatter (name: todo, description), argument parsing for 4 modes (list, add, done N, clear), file creation on first use, date stamping. (FR-013, FR-014, FR-015, FR-016, FR-017, FR-018)
 
 **Checkpoint**: `/todo` skill should be discoverable and functional for all 4 operations.
 
