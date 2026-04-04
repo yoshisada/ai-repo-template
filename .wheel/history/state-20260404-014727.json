@@ -1,0 +1,50 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.0.0",
+  "workflow_file": "",
+  "status": "running",
+  "cursor": 1,
+  "started_at": "2026-04-04T08:39:23.000Z",
+  "updated_at": "2026-04-04T08:42:02.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-04T08:41:34.000Z",
+      "completed_at": "2026-04-04T08:41:34.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T08:41:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "working",
+      "started_at": "2026-04-04T08:42:02.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

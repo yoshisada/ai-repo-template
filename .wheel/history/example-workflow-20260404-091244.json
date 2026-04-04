@@ -1,0 +1,116 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/example.json",
+  "status": "running",
+  "cursor": 5,
+  "started_at": "2026-04-04T09:12:00.000Z",
+  "updated_at": "2026-04-04T09:12:23.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-04T09:12:07.000Z",
+      "completed_at": "2026-04-04T09:12:07.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "WF=\"/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/example.json\" && NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000Z) && mkdir -p .wheel && jq --arg now \"$NOW\" --arg wf_file \"$WF\" '{\n  workflow_name: .name,\n  workflow_version: .version,\n  workflow_file: $wf_file,\n  status: \"running\",\n  cursor: 0,\n  started_at: $now,\n  updated_at: $now,\n  steps: [.steps[] | {\n    id: .id,\n    type: .type,\n    status: \"pending\",\n    started_at: null,\n    completed_at: null,\n    output: null,\n    command_log: [],\n    agents: (if .type == \"parallel\" then (.agents // [] | map({key: ., value: {status: \"pending\", started_at: null, completed_at: null}}) | from_entries) else {} end),\n    loop_iteration: 0\n  }]\n}' \"$WF\" > .wheel/state.json && echo \"State created\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:00.000Z"
+        },
+        {
+          "command": "jq -r '.workflow_name, \" \\(.steps | length) steps\", \"First step: \\(.steps[0].id) (\\(.steps[0].type))\"' .wheel/state.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:03.000Z"
+        },
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-04T09:12:07.000Z",
+      "completed_at": "2026-04-04T09:12:23.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [
+        {
+          "command": "mkdir -p reports",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:11.000Z"
+        },
+        {
+          "command": "cat > /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports/env-report.md << 'EOF'\n# Environment Check Report\n\n## Detected Tools\n\n| Tool | Path |\n|------|------|\n| jq   | /usr/bin/jq |\n| bash | /opt/homebrew/bin/bash |\n\n## Summary\n\nEnvironment check passed. Both required tools (jq and bash) are installed and available on the system PATH. Bash is installed via Homebrew at /opt/homebrew/bin/bash.\nEOF\necho \"Report created\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:20.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-04T09:12:23.000Z",
+      "completed_at": "2026-04-04T09:12:23.000Z",
+      "output": "SUCCESS",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:12:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-04T09:12:23.000Z",
+      "completed_at": "2026-04-04T09:12:23.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=2 target=cleanup-failure",
+          "exit_code": 2,
+          "timestamp": "2026-04-04T09:12:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

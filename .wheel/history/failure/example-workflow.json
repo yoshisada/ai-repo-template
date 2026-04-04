@@ -1,0 +1,148 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "workflows/example.json",
+  "status": "running",
+  "cursor": 5,
+  "started_at": "2026-04-04T09:35:18.000Z",
+  "updated_at": "2026-04-04T09:37:48.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-04T09:35:21.000Z",
+      "completed_at": "2026-04-04T09:35:21.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "set -euo pipefail && PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/0.3.1\" && source \"${PLUGIN_DIR}/lib/state.sh\" && source \"${PLUGIN_DIR}/lib/workflow.sh\" && WORKFLOW_FILE=\"workflows/example.json\" && WORKFLOW=$(workflow_load \"$WORKFLOW_FILE\") && workflow_validate_unique_ids \"$WORKFLOW\" && state_init \".wheel/state.json\" \"$WORKFLOW\" \"$WORKFLOW_FILE\" && STEP_COUNT=$(printf '%s\\n' \"$WORKFLOW\" | jq '.steps | length') && WF_NAME=$(printf '%s\\n' \"$WORKFLOW\" | jq -r '.name') && FIRST_STEP_ID=$(printf '%s\\n' \"$WORKFLOW\" | jq -r '.steps[0].id') && FIRST_STEP_TYPE=$(printf '%s\\n' \"$WORKFLOW\" | jq -r '.steps[0].type') && echo \"Workflow '$WF_NAME' started ($STEP_COUNT steps).\" && echo \"First step: $FIRST_STEP_ID ($FIRST_STEP_TYPE)\" && echo \"\" && echo \"Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:35:18.000Z"
+        },
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:35:21.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-04T09:35:21.000Z",
+      "completed_at": "2026-04-04T09:35:33.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [
+        {
+          "command": "mkdir -p reports && cat > reports/env-report.md << 'EOF'\n# Environment Check Report\n\n## Detected Tools\n\n| Tool | Path |\n|------|------|\n| jq   | /usr/bin/jq |\n| bash | /opt/homebrew/bin/bash |\n\n## Summary\n\nEnvironment check passed. Both required tools (jq and bash) are installed and available on the system PATH. Bash is installed via Homebrew at /opt/homebrew/bin/bash.\nEOF\necho \"Report created\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:35:29.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-04T09:35:33.000Z",
+      "completed_at": "2026-04-04T09:35:33.000Z",
+      "output": "SUCCESS",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:35:33.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-04T09:35:33.000Z",
+      "completed_at": "2026-04-04T09:35:33.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=0 target=cleanup-success",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:35:33.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-04T09:37:25.000Z",
+      "completed_at": "2026-04-04T09:37:41.000Z",
+      "output": "reports/workflow-result.md",
+      "command_log": [
+        {
+          "command": "jq -r '\"Status: \\(.status), Cursor: \\(.cursor)/\\(.steps | length)\\nSteps: \" + ([.steps[] | \"\\(.id): \\(.status)\"] | join(\", \"))' .wheel/state.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:36:36.000Z"
+        },
+        {
+          "command": "grep -i 'error\\|warn\\|fail\\|stop.*hook' /Users/ryansuematsu/.claude/debug/33337bb8-b118-402b-a7c1-0671522df662.txt | tail -30",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:36:42.000Z"
+        },
+        {
+          "command": "grep 'Stop.*hook\\|stop.sh' /Users/ryansuematsu/.claude/debug/33337bb8-b118-402b-a7c1-0671522df662.txt | tail -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:36:45.000Z"
+        },
+        {
+          "command": "cp plugin-wheel/lib/dispatch.sh /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/0.3.1/lib/dispatch.sh && echo \"Cache synced\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:37:06.000Z"
+        },
+        {
+          "command": "git add plugin-wheel/lib/dispatch.sh plugin-wheel/package.json plugin-wheel/.claude-plugin/plugin.json && git commit -m \"$(cat <<'EOF'\nfix(wheel): chain branch step into target step dispatch\n\ndispatch_branch was setting the cursor to the target step but not\ndispatching it, causing the workflow to stall until the next hook\ntrigger. Now chains into dispatch_step for the target, matching\nhow dispatch_command already chains into subsequent steps.\n\nBumps wheel plugin to 0.3.2.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>\nEOF\n)\" && git push origin main",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:37:21.000Z"
+        },
+        {
+          "command": "mkdir -p .wheel/history/success && cp .wheel/state.json .wheel/history/success/example-workflow.json && echo \"State archived to success\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:37:30.000Z"
+        },
+        {
+          "command": "cat > reports/workflow-result.md << 'EOF'\n# Workflow Result: SUCCESS\n\n## Summary\n\nThe example-workflow completed successfully. All steps passed.\n\n## Step Results\n\n| Step | Status | Details |\n|------|--------|---------|\n| check-env | Passed | Found jq at /usr/bin/jq and bash at /opt/homebrew/bin/bash |\n| generate-report | Passed | Created reports/env-report.md with tool summary |\n| verify-report | Passed | Output: SUCCESS — report exists and is non-empty |\n| check-result | Passed | Branch condition matched SUCCESS, routed to cleanup-success |\n| cleanup-success | Passed | Archived state and wrote this report |\nEOF\necho \"Report written\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:37:36.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "working",
+      "started_at": "2026-04-04T09:37:42.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "jq -r '\"Status: \\(.status), Cursor: \\(.cursor)/\\(.steps | length)\\nSteps: \" + ([.steps[] | \"\\(.id): \\(.status)\"] | join(\", \"))' .wheel/state.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-04T09:37:48.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

@@ -5,7 +5,8 @@ severity: medium
 category: agents
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-04-kiln-wheel-polish/PRD.md
 date: 2026-04-02
 ---
 

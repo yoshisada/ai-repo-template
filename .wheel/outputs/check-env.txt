@@ -1,0 +1,3 @@
+Checking environment...
+/usr/bin/jq
+/opt/homebrew/bin/bash
