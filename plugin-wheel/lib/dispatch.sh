@@ -2,6 +2,30 @@
 # dispatch.sh — Step type dispatcher
 # FR-003/019/024/025/026: Routes to the correct handler based on step type
 
+# Advance cursor past any "skipped" steps, returning the next actionable index.
+# Params: $1 = state file path, $2 = starting index, $3 = workflow JSON
+# Output (stdout): the next non-skipped step index (may be >= total steps if all remaining are skipped)
+# Exit: 0
+advance_past_skipped() {
+  local state_file="$1"
+  local idx="$2"
+  local workflow_json="$3"
+  local total_steps
+  total_steps=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
+  local state
+  state=$(state_read "$state_file") || return 1
+  while [[ "$idx" -lt "$total_steps" ]]; do
+    local status
+    status=$(printf '%s\n' "$state" | jq -r --argjson i "$idx" '.steps[$i].status')
+    if [[ "$status" == "skipped" ]]; then
+      idx=$((idx + 1))
+    else
+      break
+    fi
+  done
+  echo "$idx"
+}
+
 # FR-003/019/024/025/026: Dispatch a step based on its type
 # Params: $1 = step JSON (string), $2 = hook_type, $3 = hook_input_json, $4 = state file path, $5 = step index
 # Output (stdout): JSON hook response
@@ -74,7 +98,8 @@ dispatch_agent() {
           # Agent step is done — mark complete, capture output, advance
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
-          local next_index=$((step_index + 1))
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
           state_set_cursor "$state_file" "$next_index"
           # Dispatch next step
           local total_steps
@@ -115,8 +140,9 @@ dispatch_agent() {
       if [[ -n "$output_key" ]]; then
         context_capture_output "$state_file" "$step_index" "$output_key"
       fi
-      # Advance cursor
-      local next_index=$((step_index + 1))
+      # Advance cursor past any skipped steps
+      local next_index
+      next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
       state_set_cursor "$state_file" "$next_index"
       jq -n '{"decision": "approve"}'
       ;;
@@ -182,8 +208,9 @@ dispatch_command() {
     state_set_step_status "$state_file" "$step_index" "failed"
   fi
 
-  # Advance cursor
-  local next_index=$((step_index + 1))
+  # Advance cursor past any skipped steps
+  local next_index
+  next_index=$(advance_past_skipped "$state_file" "$((step_index + 1))" "$WORKFLOW")
   state_set_cursor "$state_file" "$next_index"
 
   # FR-020: Check if next step is also a command — chain via re-exec
@@ -391,6 +418,21 @@ dispatch_branch() {
 
   state_set_step_status "$state_file" "$step_index" "done"
   state_set_cursor "$state_file" "$target_index"
+
+  # Mark the other branch target as "skipped"
+  local other_target_id
+  if [[ "$cond_exit" -eq 0 ]]; then
+    other_target_id=$(printf '%s\n' "$step_json" | jq -r '.if_nonzero // empty')
+  else
+    other_target_id=$(printf '%s\n' "$step_json" | jq -r '.if_zero // empty')
+  fi
+  if [[ -n "$other_target_id" ]]; then
+    local other_index
+    other_index=$(workflow_get_step_index "$workflow_json" "$other_target_id") || true
+    if [[ -n "$other_index" ]]; then
+      state_set_step_status "$state_file" "$other_index" "skipped"
+    fi
+  fi
 
   # Record the branch decision in command log for auditability
   local now
