@@ -146,5 +146,16 @@ workflow_validate_references() {
     printf '%s\n' "$invalid_refs" >&2
     return 1
   fi
+  # FR-007: Validate next field references on ALL step types
+  local invalid_next
+  invalid_next=$(printf '%s\n' "$workflow_json" | jq --argjson ids "$all_ids" -r '
+    [.steps[] | select(.next != null) |
+      (if (.next | IN($ids[])) == false then "step \(.id): next target \(.next) not found" else empty end)
+    ] | .[]')
+  if [[ -n "$invalid_next" ]]; then
+    echo "ERROR: invalid next field references:" >&2
+    printf '%s\n' "$invalid_next" >&2
+    return 1
+  fi
   return 0
 }

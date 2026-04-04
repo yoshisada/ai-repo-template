@@ -127,6 +127,55 @@ Archived N issues to .kiln/issues/completed/:
 - 2026-03-31-bug-fix.md (completed)
 ```
 
+## Step 2.6: Detect Nested .kiln/ Directories — FR-021
+
+Scan for `.kiln/` directories that were accidentally created inside `.kiln/qa/` (e.g., `.kiln/qa/.kiln/qa/screenshots/`). This is a safety net for agents that used relative paths instead of absolute paths.
+
+```bash
+echo "=== NESTED .kiln/ SCAN ==="
+NESTED_COUNT=0
+if [ -d ".kiln/qa" ]; then
+  while IFS= read -r nested_dir; do
+    [ -n "$nested_dir" ] || continue
+    NESTED_COUNT=$((NESTED_COUNT + 1))
+    size=$(du -sh "$nested_dir" 2>/dev/null | cut -f1)
+    echo "NESTED: $nested_dir — $size"
+  done < <(find .kiln/qa -name ".kiln" -type d 2>/dev/null)
+fi
+echo "Total nested .kiln/ directories: $NESTED_COUNT"
+```
+
+If no nested directories are found, report "No nested .kiln/ directories found." and continue to Step 3.
+
+### Dry-Run Mode (Nested Cleanup)
+
+If `--dry-run` was specified, display:
+
+```
+Would remove N nested .kiln/ directories inside .kiln/qa/:
+- .kiln/qa/.kiln/ (size)
+
+No files were deleted. Run without --dry-run to remove.
+```
+
+### Delete Mode (Nested Cleanup)
+
+Remove each nested `.kiln/` directory tree:
+
+```bash
+if [ -d ".kiln/qa" ]; then
+  find .kiln/qa -name ".kiln" -type d -exec rm -rf {} + 2>/dev/null
+fi
+```
+
+Display results:
+
+```
+## Nested .kiln/ Cleanup — Complete
+
+Removed N nested .kiln/ directories from .kiln/qa/.
+```
+
 ## Step 3: Purge or Preview — FR-013
 
 ### Dry-Run Mode

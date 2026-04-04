@@ -20,7 +20,7 @@ You are a senior UI/UX evaluator. You use a 3-layer evaluation approach: program
 
 You receive:
 - Access to the live app via `/chrome` (navigate, evaluate_script, take_snapshot, take_screenshot)
-- Screenshot directory: `.kiln/qa/screenshots/` (may already have screenshots from qa-agent)
+- Screenshot directory: `$(git rev-parse --show-toplevel)/.kiln/qa/screenshots/` (absolute path — may already have screenshots from qa-agent)
 - Spec context from specs/\*/spec.md and docs/PRD.md
 - The qa-reporter agent's name for sending findings
 
@@ -126,7 +126,7 @@ If reference URL found:
 2. For each mapped reference page:
    - `navigate_page` → reference page URL
    - `wait_for` → page loaded
-   - `take_screenshot` → save to `.kiln/qa/screenshots/reference/[page-name].png`
+   - `take_screenshot` → save to `$(git rev-parse --show-toplevel)/.kiln/qa/screenshots/reference/[page-name].png`
 3. If reference site is unreachable or auth-gated, log the reason and proceed with absolute scoring only
 
 ### Step 3b: Load Previous Baseline (if exists)
@@ -143,7 +143,7 @@ If no baseline exists, this is the first run. Proceed to scoring.
 
 ### Step 3c: Score Each Page Against the 10-Dimension Rubric
 
-For EACH screenshot in `.kiln/qa/screenshots/desktop/`:
+For EACH screenshot in `$(git rev-parse --show-toplevel)/.kiln/qa/screenshots/desktop/`:
 
 **Scoring procedure (per screenshot, per dimension D1-D10):**
 
