@@ -5,7 +5,7 @@ severity: high
 category: hooks
 source: manual
 github_issue: null
-status: prd-created
+status: completed
 prd: docs/features/2026-04-05-wheel-session-guard/PRD.md
 date: 2026-04-04
 ---
@@ -21,3 +21,5 @@ Any workflow run alongside other agents (e.g., during a `/build-prd` pipeline) r
 ## Suggested Fix
 
 Add a `session_id` or `agent_id` field to `.wheel/state.json` at creation time (captured from the hook input's session/agent context). In each hook handler, compare the incoming event's session/agent ID against the stored one — if they don't match, return `{"decision": "approve"}` immediately (pass-through). This ensures only the originating agent drives the workflow.
+completed_date: 2026-04-05
+pr: #54
