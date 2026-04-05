@@ -82,6 +82,8 @@ state_init() {
       workflow_file: $wf_file,
       status: "running",
       cursor: 0,
+      owner_session_id: "",
+      owner_agent_id: "",
       started_at: $now,
       updated_at: $now,
       steps: $steps

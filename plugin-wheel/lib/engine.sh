@@ -18,6 +18,8 @@ if [[ -z "${WHEEL_LIB_DIR:-}" ]] || ! declare -f workflow_load &>/dev/null; then
   source "${WHEEL_LIB_DIR}/lock.sh"
   # shellcheck source=context.sh
   source "${WHEEL_LIB_DIR}/context.sh"
+  # shellcheck source=guard.sh
+  source "${WHEEL_LIB_DIR}/guard.sh"
 fi
 
 # Globals set by engine_init

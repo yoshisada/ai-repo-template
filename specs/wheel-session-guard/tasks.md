@@ -27,9 +27,9 @@
 
 **Purpose**: Create the guard function and extend state.json schema. MUST complete before any hook integration.
 
-- [ ] T001 Create shared guard function `guard_check` in `plugin-wheel/lib/guard.sh` per contracts/interfaces.md — reads owner fields from state.json, extracts session_id/agent_id from hook input, implements first-hook stamping when owner fields are empty, returns 0 (owner) or 1 (non-owner)
-- [ ] T002 Modify `state_init` in `plugin-wheel/lib/state.sh` to include `owner_session_id: ""` and `owner_agent_id: ""` in the initial state JSON object
-- [ ] T003 Add `source "${WHEEL_LIB_DIR}/guard.sh"` to the module loading block in `plugin-wheel/lib/engine.sh`
+- [X] T001 Create shared guard function `guard_check` in `plugin-wheel/lib/guard.sh` per contracts/interfaces.md — reads owner fields from state.json, extracts session_id/agent_id from hook input, implements first-hook stamping when owner fields are empty, returns 0 (owner) or 1 (non-owner)
+- [X] T002 Modify `state_init` in `plugin-wheel/lib/state.sh` to include `owner_session_id: ""` and `owner_agent_id: ""` in the initial state JSON object
+- [X] T003 Add `source "${WHEEL_LIB_DIR}/guard.sh"` to the module loading block in `plugin-wheel/lib/engine.sh`
 
 **Checkpoint**: guard.sh exists with guard_check function, state_init produces ownership fields, engine.sh sources guard.sh
 
