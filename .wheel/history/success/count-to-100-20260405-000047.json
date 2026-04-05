@@ -1,0 +1,562 @@
+{
+  "workflow_name": "count-to-100",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/count-to-100.json",
+  "status": "running",
+  "cursor": 2,
+  "started_at": "2026-04-05T00:00:40.000Z",
+  "updated_at": "2026-04-05T00:00:47.000Z",
+  "steps": [
+    {
+      "id": "init",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-05T00:00:40.000Z",
+      "completed_at": "2026-04-05T00:00:40.000Z",
+      "output": "Counter initialized",
+      "command_log": [
+        {
+          "command": "echo '0' > /tmp/wheel-count-100.txt && echo 'Counter initialized'",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:40.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "count-loop",
+      "type": "loop",
+      "status": "done",
+      "started_at": "2026-04-05T00:00:40.000Z",
+      "completed_at": "2026-04-05T00:00:47.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:40.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:41.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:42.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:43.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:44.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:45.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:46.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-count-100.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-count-100.txt && echo $COUNT",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        },
+        {
+          "command": "loop: condition met at iteration 100",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 100
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-05T00:00:47.000Z",
+      "completed_at": "2026-04-05T00:00:47.000Z",
+      "output": "Counted to 100",
+      "command_log": [
+        {
+          "command": "FINAL=$(cat /tmp/wheel-count-100.txt) && echo \"Counted to $FINAL\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-05T00:00:47.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

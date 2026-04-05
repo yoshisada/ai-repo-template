@@ -5,7 +5,8 @@ severity: high
 category: hooks
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-05-wheel-session-guard/PRD.md
 date: 2026-04-04
 ---
 
