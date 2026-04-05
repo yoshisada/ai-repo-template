@@ -33,6 +33,12 @@ if ! engine_init "$WORKFLOW_FILE" ".wheel"; then
   exit 0
 fi
 
+# FR-002: Session guard — only the owning agent can advance the workflow
+if ! guard_check "$STATE_FILE" "$HOOK_INPUT"; then
+  echo '{"decision": "approve"}'
+  exit 0
+fi
+
 # For SubagentStart, build context and inject it
 current_step=$(engine_current_step)
 step_exit=$?

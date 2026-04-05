@@ -43,12 +43,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Add guard call to `plugin-wheel/hooks/stop.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
-- [ ] T005 [P] [US1] Add guard call to `plugin-wheel/hooks/post-tool-use.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"hookEventName": "PostToolUse"}` if non-owner
-- [ ] T006 [P] [US1] Add guard call to `plugin-wheel/hooks/subagent-start.sh` — after `engine_init` succeeds but before inline context logic, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
-- [ ] T007 [P] [US1] Add guard call to `plugin-wheel/hooks/subagent-stop.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
-- [ ] T008 [P] [US1] Add guard call to `plugin-wheel/hooks/teammate-idle.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
-- [ ] T009 [P] [US1] Add guard call to `plugin-wheel/hooks/session-start.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
+- [X] T004 [P] [US1] Add guard call to `plugin-wheel/hooks/stop.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
+- [X] T005 [P] [US1] Add guard call to `plugin-wheel/hooks/post-tool-use.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"hookEventName": "PostToolUse"}` if non-owner
+- [X] T006 [P] [US1] Add guard call to `plugin-wheel/hooks/subagent-start.sh` — after `engine_init` succeeds but before inline context logic, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
+- [X] T007 [P] [US1] Add guard call to `plugin-wheel/hooks/subagent-stop.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
+- [X] T008 [P] [US1] Add guard call to `plugin-wheel/hooks/teammate-idle.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
+- [X] T009 [P] [US1] Add guard call to `plugin-wheel/hooks/session-start.sh` — after `engine_init` succeeds, call `guard_check "$STATE_FILE" "$HOOK_INPUT"` and exit with `{"decision": "approve"}` if non-owner
 
 **Checkpoint**: All 6 hooks call guard_check. Non-owner events get pass-through responses. Owner events proceed normally.
 
