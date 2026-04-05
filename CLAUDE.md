@@ -242,6 +242,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - Filesystem — `.kiln/` directory tree for issues, logs, roadmap, QA artifacts (build/pipeline-workflow-polish-20260401)
 - Markdown (skill definitions) + Bash (inline shell commands in skills) + None — shelf plugin skills are Markdown files with embedded shell/MCP instructions (build/shelf-config-artifact-20260403)
 - `.shelf-config` plain-text key-value file at repo roo (build/shelf-config-artifact-20260403)
+- Bash 5.x + `jq` (JSON parsing), existing wheel engine libs (state.sh, workflow.sh, dispatch.sh, engine.sh, context.sh, lock.sh) (build/wheel-session-guard-20260405)
+- `.wheel/state.json` (file-based JSON state) (build/wheel-session-guard-20260405)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
