@@ -122,6 +122,10 @@ fi
 echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate."
 ```
 
+## Ownership (FR-004)
+
+State is created with empty `owner_session_id` and `owner_agent_id` fields. Since this skill does not receive hook input, ownership is stamped by the **first hook event** after state creation. The guard in `lib/guard.sh` detects the empty owner fields and writes the session/agent context from that first hook event. Subsequent hook events from other agents are passed through without touching workflow state.
+
 ## Rules
 
 - If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json`.

@@ -100,8 +100,8 @@
 
 **Purpose**: Documentation and verification.
 
-- [ ] T010 Update `plugin-wheel/skills/wheel-run/SKILL.md` to document that ownership is stamped by the first hook event after state creation, per FR-004
-- [ ] T011 Verify end-to-end: run `/wheel-run`, confirm state.json has empty owner fields, trigger a hook event, confirm owner fields are stamped, trigger a hook event with different session_id, confirm pass-through
+- [X] T010 Update `plugin-wheel/skills/wheel-run/SKILL.md` to document that ownership is stamped by the first hook event after state creation, per FR-004
+- [X] T011 Verify end-to-end: run `/wheel-run`, confirm state.json has empty owner fields, trigger a hook event, confirm owner fields are stamped, trigger a hook event with different session_id, confirm pass-through
 
 ---
 
