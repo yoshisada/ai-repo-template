@@ -1,0 +1,15 @@
+## Repo Structure
+Top-level dirs:
+docs/
+plugin-kiln/
+plugin-shelf/
+plugin-wheel/
+reports/
+scripts/
+specs/
+src/
+tests/
+workflows/
+---
+Total files: 380
+Total dirs: 170
