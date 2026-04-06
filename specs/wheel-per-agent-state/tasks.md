@@ -34,9 +34,9 @@
 
 **Purpose**: Update wheel skills to work with per-agent state filenames.
 
-- [ ] T010 [US2] Update `plugin-wheel/skills/wheel-run/SKILL.md` — obtain session_id, pass to `state_init`, check for existing `state_{session_id}*.json` before creating, use session_id-based filename for kickstart. (FR-002, FR-007, FR-010)
-- [ ] T011 [US4] Update `plugin-wheel/skills/wheel-status/SKILL.md` — glob `state_*.json`, display all active workflows with session/agent IDs. (FR-008)
-- [ ] T012 [US4] Update `plugin-wheel/skills/wheel-stop/SKILL.md` — glob `state_*.json`, support optional target identifier, archive each stopped file to `.wheel/history/`. (FR-009)
+- [X] T010 [US2] Update `plugin-wheel/skills/wheel-run/SKILL.md` — obtain session_id, pass to `state_init`, check for existing `state_{session_id}*.json` before creating, use session_id-based filename for kickstart. (FR-002, FR-007, FR-010)
+- [X] T011 [US4] Update `plugin-wheel/skills/wheel-status/SKILL.md` — glob `state_*.json`, display all active workflows with session/agent IDs. (FR-008)
+- [X] T012 [US4] Update `plugin-wheel/skills/wheel-stop/SKILL.md` — glob `state_*.json`, support optional target identifier, archive each stopped file to `.wheel/history/`. (FR-009)
 
 **Checkpoint**: All skills work with per-agent state files. Feature is functionally complete.
 
