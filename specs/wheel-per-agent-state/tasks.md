@@ -7,9 +7,9 @@
 
 **Purpose**: Update the foundational libraries to support per-agent state filenames.
 
-- [ ] T001 [US2] Replace `guard_check` with `resolve_state_file` in `plugin-wheel/lib/guard.sh`. The new function takes `state_dir` and `hook_input_json`, extracts session_id and agent_id, checks for `state_{session_id}_{agent_id}.json` then falls back to `state_{session_id}.json`, performs first-hook rename if needed, and returns the resolved path. (FR-003, FR-004, FR-005)
-- [ ] T002 [US2] Update `state_init` in `plugin-wheel/lib/state.sh` to accept `state_dir` and `session_id` instead of `state_file`. It constructs the filename as `state_{session_id}.json`, sets `owner_session_id` in the JSON, and leaves `owner_agent_id` empty. (FR-011)
-- [ ] T003 [US1] Update `engine_init` in `plugin-wheel/lib/engine.sh` to accept `state_file` (resolved path) as second param instead of `state_dir`. Remove hardcoded `STATE_FILE="${STATE_DIR}/state.json"`. Set `STATE_DIR` from dirname of state_file. Do NOT create state if missing (hooks only run when state exists). (FR-010)
+- [X] T001 [US2] Replace `guard_check` with `resolve_state_file` in `plugin-wheel/lib/guard.sh`. The new function takes `state_dir` and `hook_input_json`, extracts session_id and agent_id, checks for `state_{session_id}_{agent_id}.json` then falls back to `state_{session_id}.json`, performs first-hook rename if needed, and returns the resolved path. (FR-003, FR-004, FR-005)
+- [X] T002 [US2] Update `state_init` in `plugin-wheel/lib/state.sh` to accept `state_dir` and `session_id` instead of `state_file`. It constructs the filename as `state_{session_id}.json`, sets `owner_session_id` in the JSON, and leaves `owner_agent_id` empty. (FR-011)
+- [X] T003 [US1] Update `engine_init` in `plugin-wheel/lib/engine.sh` to accept `state_file` (resolved path) as second param instead of `state_dir`. Remove hardcoded `STATE_FILE="${STATE_DIR}/state.json"`. Set `STATE_DIR` from dirname of state_file. Do NOT create state if missing (hooks only run when state exists). (FR-010)
 
 **Checkpoint**: Core libraries support per-agent state filenames. Hooks and skills can now be updated.
 
