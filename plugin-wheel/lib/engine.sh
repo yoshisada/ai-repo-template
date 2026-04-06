@@ -27,28 +27,27 @@ WORKFLOW=""
 STATE_DIR=""
 STATE_FILE=""
 
-# FR-001: Initialize engine — load workflow definition, load or create state.json
-# Sources lib/state.sh, lib/workflow.sh, lib/dispatch.sh, lib/lock.sh, lib/context.sh
-# Params: $1 = workflow file path, $2 = state directory path (default: .wheel)
+# FR-010: Initialize engine — load workflow definition, use provided state file.
+# No longer hardcodes STATE_FILE. Receives the resolved state file path.
+#
+# Params:
+#   $1 = workflow_file (string) — path to workflow JSON file
+#   $2 = state_file (string) — resolved state file path (from resolve_state_file or skill)
+#
 # Output: none (sets global variables: WORKFLOW, STATE_DIR, STATE_FILE)
 # Exit: 0 on success, 1 if workflow file missing or invalid
+#
+# CHANGED FROM: engine_init(workflow_file, state_dir)
+# CHANGED TO:   engine_init(workflow_file, state_file)
 engine_init() {
   local workflow_file="$1"
-  local state_dir="${2:-.wheel}"
+  local state_file="$2"
 
-  STATE_DIR="$state_dir"
-  STATE_FILE="${STATE_DIR}/state.json"
+  STATE_FILE="$state_file"
+  STATE_DIR="$(dirname "$state_file")"
 
   # Load and validate workflow
   WORKFLOW=$(workflow_load "$workflow_file") || return 1
-
-  # Initialize state if it doesn't exist
-  if [[ ! -f "$STATE_FILE" ]]; then
-    mkdir -p "$STATE_DIR"
-    state_init "$STATE_FILE" "$WORKFLOW" || return 1
-    # Clean any stale locks on fresh start
-    lock_clean_all "${STATE_DIR}/.locks"
-  fi
 
   return 0
 }

@@ -35,15 +35,27 @@ state_write() {
   mv "$tmp_file" "$state_file" || return 1
 }
 
-# FR-002: Initialize a new state.json from a workflow definition
-# FR-001 (wheel-skill-activation): Extended to accept optional workflow_file path
-# Params: $1 = state file path, $2 = workflow JSON (string), $3 = workflow file path (string, optional)
-# Output: none (creates state file)
+# FR-011: Initialize a new state file from a workflow definition.
+# Now accepts session_id to construct filename as state_{session_id}.json.
+#
+# Params:
+#   $1 = state_dir (string) — path to .wheel directory
+#   $2 = session_id (string) — session identifier for filename construction
+#   $3 = workflow_json (string) — validated workflow JSON
+#   $4 = workflow_file (string, optional) — path to workflow file
+#
+# Output: none (creates state file at state_dir/state_{session_id}.json)
 # Exit: 0 on success, 1 on failure
+#
+# CHANGED FROM: state_init(state_file, workflow_json, workflow_file)
+# CHANGED TO:   state_init(state_dir, session_id, workflow_json, workflow_file)
 state_init() {
-  local state_file="$1"
-  local workflow_json="$2"
-  local workflow_file="${3:-}"
+  local state_dir="$1"
+  local session_id="$2"
+  local workflow_json="$3"
+  local workflow_file="${4:-}"
+
+  local state_file="${state_dir}/state_${session_id}.json"
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local wf_name wf_version step_count
@@ -74,6 +86,7 @@ state_init() {
     --arg name "$wf_name" \
     --arg version "$wf_version" \
     --arg wf_file "$workflow_file" \
+    --arg sid "$session_id" \
     --arg now "$now" \
     --argjson steps "$steps_json" \
     '{
@@ -82,14 +95,14 @@ state_init() {
       workflow_file: $wf_file,
       status: "running",
       cursor: 0,
-      owner_session_id: "",
+      owner_session_id: $sid,
       owner_agent_id: "",
       started_at: $now,
       updated_at: $now,
       steps: $steps
     }')
 
-  mkdir -p "$(dirname "$state_file")"
+  mkdir -p "$state_dir"
   state_write "$state_file" "$state"
 }
 

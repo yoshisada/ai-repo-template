@@ -1,6 +1,6 @@
 ---
 name: wheel-run
-description: Start a workflow by name. Validates the workflow JSON, creates .wheel/state.json, and activates hook interception. Usage: /wheel-run <workflow-name>
+description: Start a workflow by name. Validates the workflow JSON, creates per-agent state file, and activates hook interception. Usage: /wheel-run <workflow-name>
 ---
 
 # Wheel Run — Start a Workflow
@@ -13,20 +13,19 @@ Start a named workflow so that wheel hooks begin intercepting Claude Code events
 $ARGUMENTS
 ```
 
-## Step 1: Check for Already-Running Workflow (FR-007)
+## Step 1: Obtain Session ID (FR-002)
 
-Run:
+The session_id is needed to construct the per-agent state filename. Extract it from the environment or conversation context:
 
 ```bash
-if [[ -f ".wheel/state.json" ]]; then
-  CURRENT=$(jq -r '.workflow_name' .wheel/state.json)
-  echo "ERROR: Workflow '$CURRENT' is already running."
-  echo "Run /wheel-stop to stop it, or /wheel-status to check progress."
-  exit 1
+# Try CLAUDE_SESSION_ID env var first, fall back to a generated ID
+SESSION_ID="${CLAUDE_SESSION_ID:-}"
+if [[ -z "$SESSION_ID" ]]; then
+  # Generate a short unique ID if env var not available
+  SESSION_ID="s$(date +%s | tail -c 9)"
 fi
+echo "Session ID: $SESSION_ID"
 ```
-
-If this prints an error, **stop here** — do not proceed. Tell the user.
 
 ## Step 2: Resolve Workflow File
 
@@ -45,7 +44,23 @@ fi
 
 If the file doesn't exist, **stop here** and show the error.
 
-## Step 3: Validate Workflow (FR-006)
+## Step 3: Check for Already-Running Workflow (FR-007)
+
+```bash
+# FR-007: Check for existing state file for this session
+EXISTING=$(ls .wheel/state_${SESSION_ID}*.json 2>/dev/null)
+if [[ -n "$EXISTING" ]]; then
+  CURRENT=$(jq -r '.workflow_name' $(echo "$EXISTING" | head -1))
+  echo "ERROR: Workflow '$CURRENT' is already running for this session."
+  echo "State file: $EXISTING"
+  echo "Run /wheel-stop to stop it, or /wheel-status to check progress."
+  exit 1
+fi
+```
+
+If this prints an error, **stop here** — do not proceed. Tell the user.
+
+## Step 4: Validate Workflow (FR-006)
 
 Source the wheel engine libs and validate:
 
@@ -73,23 +88,23 @@ if ! workflow_validate_unique_ids "$WORKFLOW"; then
 fi
 ```
 
-If validation fails, **stop here** and report the error. Do NOT create state.json.
+If validation fails, **stop here** and report the error. Do NOT create a state file.
 
-## Step 4: Create State, Activate, and Kickstart (FR-001)
+## Step 5: Create State, Activate, and Kickstart (FR-002, FR-010, FR-011)
 
 ```bash
-state_init ".wheel/state.json" "$WORKFLOW" "$WORKFLOW_FILE"
+# FR-011: Pass session_id to state_init — creates .wheel/state_{session_id}.json
+state_init ".wheel" "$SESSION_ID" "$WORKFLOW" "$WORKFLOW_FILE"
 
-# Kickstart: dispatch the first step inline so command/loop/branch
-# workflows don't stall waiting for a hook event
+# FR-010: Kickstart with session_id-based filename
+STATE_FILE=".wheel/state_${SESSION_ID}.json"
 STATE_DIR=".wheel"
-STATE_FILE=".wheel/state.json"
 export WHEEL_HOOK_SCRIPT=""
 export WHEEL_HOOK_INPUT='{}'
-KICKSTART_OUTPUT=$(engine_kickstart ".wheel/state.json")
+KICKSTART_OUTPUT=$(engine_kickstart "$STATE_FILE")
 ```
 
-## Step 5: Report Success
+## Step 6: Report Success
 
 Read back state and display:
 
@@ -100,11 +115,13 @@ FIRST_STEP_ID=$(echo "$WORKFLOW" | jq -r '.steps[0].id')
 FIRST_STEP_TYPE=$(echo "$WORKFLOW" | jq -r '.steps[0].type')
 
 echo "Workflow '$WF_NAME' started ($STEP_COUNT steps)."
+echo "Session: $SESSION_ID"
+echo "State file: $STATE_FILE"
 echo "First step: $FIRST_STEP_ID ($FIRST_STEP_TYPE)"
 
 # Show post-kickstart status
-if [[ -f ".wheel/state.json" ]]; then
-  CURRENT_CURSOR=$(jq -r '.cursor' .wheel/state.json)
+if [[ -f "$STATE_FILE" ]]; then
+  CURRENT_CURSOR=$(jq -r '.cursor' "$STATE_FILE")
   CURRENT_STEP_ID=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].id // "complete"')
   CURRENT_STEP_TYPE=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].type // "done"')
   if [[ "$CURRENT_CURSOR" -gt 0 ]]; then
@@ -122,12 +139,12 @@ fi
 echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate."
 ```
 
-## Ownership (FR-004)
+## Ownership (FR-001/FR-003)
 
-State is created with empty `owner_session_id` and `owner_agent_id` fields. Since this skill does not receive hook input, ownership is stamped by the **first hook event** after state creation. The guard in `lib/guard.sh` detects the empty owner fields and writes the session/agent context from that first hook event. Subsequent hook events from other agents are passed through without touching workflow state.
+State is created with `owner_session_id` set to the session ID and `owner_agent_id` empty. Since the skill does not have an agent_id, the first hook event detects the session-only filename and renames it to include the agent_id (via `resolve_state_file` in `lib/guard.sh`). This two-phase creation ensures each agent gets its own state file.
 
 ## Rules
 
 - If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json`.
-- Never create state.json if validation fails.
-- Never overwrite an existing state.json — always check first (FR-007).
+- Never create a state file if validation fails.
+- Never create a state file if one already exists for this session (FR-007).

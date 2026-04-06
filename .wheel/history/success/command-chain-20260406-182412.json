@@ -1,0 +1,101 @@
+{
+  "workflow_name": "command-chain",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/command-chain.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "d3a3afa7-11a1-464d-8af5-19f06589cde2",
+  "owner_agent_id": "",
+  "started_at": "2026-04-06T18:23:45.000Z",
+  "updated_at": "2026-04-06T18:24:12.000Z",
+  "steps": [
+    {
+      "id": "count-files",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-06T18:23:45.000Z",
+      "completed_at": "2026-04-06T18:23:45.000Z",
+      "output": "Markdown files:\n300",
+      "command_log": [
+        {
+          "command": "echo \"Markdown files:\" && find . -name '*.md' -not -path './node_modules/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "count-scripts",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-06T18:23:45.000Z",
+      "completed_at": "2026-04-06T18:23:45.000Z",
+      "output": "Shell scripts:\n35",
+      "command_log": [
+        {
+          "command": "echo \"Shell scripts:\" && find . -name '*.sh' -not -path './node_modules/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "count-json",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-06T18:23:45.000Z",
+      "completed_at": "2026-04-06T18:23:45.000Z",
+      "output": "JSON files:\n23",
+      "command_log": [
+        {
+          "command": "echo \"JSON files:\" && find . -name '*.json' -not -path './node_modules/*' -not -path './.wheel/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "summarize",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-06T18:23:45.000Z",
+      "completed_at": "2026-04-06T18:24:12.000Z",
+      "output": "reports/file-census.md",
+      "command_log": [
+        {
+          "command": "SKILL_BASE_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.421/skills/wheel-run\" && PLUGIN_DIR=\"$SKILL_BASE_DIR/../..\" && WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${WHEEL_LIB_DIR}/state.sh\" && source \"${WHEEL_LIB_DIR}/workflow.sh\" && source \"${WHEEL_LIB_DIR}/dispatch.sh\" && source \"${WHEEL_LIB_DIR}/lock.sh\" && source \"${WHEEL_LIB_DIR}/context.sh\" && source \"${WHEEL_LIB_DIR}/engine.sh\" && WORKFLOW_FILE=\"workflows/command-chain.json\" && WORKFLOW=$(workflow_load \"$WORKFLOW_FILE\") && if [[ $? -ne 0 ]]; then echo \"ERROR: Workflow validation failed.\"; exit 1; fi && if ! workflow_validate_unique_ids \"$WORKFLOW\"; then echo \"ERROR: Duplicate step IDs.\"; exit 1; fi && echo \"Validation passed\" && state_init \".wheel/state.json\" \"$WORKFLOW\" \"$WORKFLOW_FILE\" && STATE_DIR=\".wheel\" && STATE_FILE=\".wheel/state.json\" && export WHEEL_HOOK_SCRIPT=\"\" && export WHEEL_HOOK_INPUT='{}' && KICKSTART_OUTPUT=$(engine_kickstart \".wheel/state.json\") && STEP_COUNT=$(echo \"$WORKFLOW\" | jq '.steps | length') && WF_NAME=$(echo \"$WORKFLOW\" | jq -r '.name') && FIRST_STEP_ID=$(echo \"$WORKFLOW\" | jq -r '.steps[0].id') && FIRST_STEP_TYPE=$(echo \"$WORKFLOW\" | jq -r '.steps[0].type') && echo \"Workflow '$WF_NAME' started ($STEP_COUNT steps).\" && echo \"First step: $FIRST_STEP_ID ($FIRST_STEP_TYPE)\" && if [[ -f \".wheel/state.json\" ]]; then CURRENT_CURSOR=$(jq -r '.cursor' .wheel/state.json); CURRENT_STEP_ID=$(echo \"$WORKFLOW\" | jq -r --argjson idx \"$CURRENT_CURSOR\" '.steps[$idx].id // \"complete\"'); CURRENT_STEP_TYPE=$(echo \"$WORKFLOW\" | jq -r --argjson idx \"$CURRENT_CURSOR\" '.steps[$idx].type // \"done\"'); if [[ \"$CURRENT_CURSOR\" -gt 0 ]]; then echo \"Kickstarted: advanced to step $CURRENT_STEP_ID ($CURRENT_STEP_TYPE)\"; fi; else echo \"Workflow completed during kickstart (all steps were automatic).\"; fi && echo \"\" && if [[ -n \"$KICKSTART_OUTPUT\" ]]; then echo \"First agent instruction:\"; echo \"$KICKSTART_OUTPUT\"; fi && echo \"Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:45.000Z"
+        },
+        {
+          "command": "cat /tmp/wheel-hook-debug.log 2>/dev/null || echo \"No hook debug log yet\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:51.000Z"
+        },
+        {
+          "command": "jq '{owner_session_id, owner_agent_id, cursor, status}' .wheel/state.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:23:55.000Z"
+        },
+        {
+          "command": "cat /tmp/wheel-hook-debug.log 2>/dev/null | jq 'keys' 2>/dev/null || cat /tmp/wheel-hook-debug.log 2>/dev/null || echo \"Still no log\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:24:02.000Z"
+        },
+        {
+          "command": "cat /tmp/wheel-hook-debug.log 2>&1; echo \"---EOF---\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-06T18:24:06.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
