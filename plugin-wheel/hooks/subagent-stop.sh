@@ -4,21 +4,21 @@
 # for the current step have finished, and advances to the next step if so
 set -euo pipefail
 
-# FR-004: Guard — exit if no workflow active
-if [[ ! -f ".wheel/state.json" ]]; then
+# 1. Read hook input from stdin
+HOOK_INPUT=$(cat)
+
+# 2. Resolve state file from hook input (FR-004)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
+source "${PLUGIN_DIR}/lib/guard.sh"
+STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT")
+if [[ $? -ne 0 || -z "$STATE_FILE" ]]; then
   echo '{"decision": "approve"}'
   exit 0
 fi
 
-# Read hook input from stdin
-HOOK_INPUT=$(cat)
-
-# Resolve paths
-HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
-
-# FR-005: Read workflow file path from state.json (no auto-discovery)
-WORKFLOW_FILE=$(jq -r '.workflow_file // empty' ".wheel/state.json")
+# 3. Read workflow file from resolved state (FR-005)
+WORKFLOW_FILE=$(jq -r '.workflow_file // empty' "$STATE_FILE")
 if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
   echo '{"decision": "approve"}'
   exit 0
@@ -27,17 +27,12 @@ fi
 export WHEEL_HOOK_SCRIPT="${BASH_SOURCE[0]}"
 export WHEEL_HOOK_INPUT="$HOOK_INPUT"
 
+# 4. Source engine, init with resolved state file (FR-010)
 source "${PLUGIN_DIR}/lib/engine.sh"
-
-if ! engine_init "$WORKFLOW_FILE" ".wheel"; then
+if ! engine_init "$WORKFLOW_FILE" "$STATE_FILE"; then
   echo '{"decision": "approve"}'
   exit 0
 fi
 
-# FR-002: Session guard — only the owning agent can advance the workflow
-if ! guard_check "$STATE_FILE" "$HOOK_INPUT"; then
-  echo '{"decision": "approve"}'
-  exit 0
-fi
-
+# 5. Proceed with hook-specific logic (FR-005: no guard_check needed)
 engine_handle_hook "subagent_stop" "$HOOK_INPUT"

@@ -19,12 +19,12 @@
 
 **Purpose**: Update all 6 hooks to resolve state files from hook input instead of hardcoding `.wheel/state.json`.
 
-- [ ] T004 [P] [US3] Update `plugin-wheel/hooks/stop.sh` — replace hardcoded `state.json` check with `resolve_state_file` preamble. Remove `guard_check` call. Pass resolved state file to `engine_init`. (FR-004)
-- [ ] T005 [P] [US3] Update `plugin-wheel/hooks/post-tool-use.sh` — same pattern as T004. (FR-004)
-- [ ] T006 [P] [US3] Update `plugin-wheel/hooks/subagent-start.sh` — same pattern as T004. (FR-004)
-- [ ] T007 [P] [US3] Update `plugin-wheel/hooks/subagent-stop.sh` — same pattern as T004. (FR-004)
-- [ ] T008 [P] [US3] Update `plugin-wheel/hooks/teammate-idle.sh` — same pattern as T004. (FR-004)
-- [ ] T009 [P] [US3] Update `plugin-wheel/hooks/session-start.sh` — same pattern as T004. (FR-004)
+- [X] T004 [P] [US3] Update `plugin-wheel/hooks/stop.sh` — replace hardcoded `state.json` check with `resolve_state_file` preamble. Remove `guard_check` call. Pass resolved state file to `engine_init`. (FR-004)
+- [X] T005 [P] [US3] Update `plugin-wheel/hooks/post-tool-use.sh` — same pattern as T004. (FR-004)
+- [X] T006 [P] [US3] Update `plugin-wheel/hooks/subagent-start.sh` — same pattern as T004. (FR-004)
+- [X] T007 [P] [US3] Update `plugin-wheel/hooks/subagent-stop.sh` — same pattern as T004. (FR-004)
+- [X] T008 [P] [US3] Update `plugin-wheel/hooks/teammate-idle.sh` — same pattern as T004. (FR-004)
+- [X] T009 [P] [US3] Update `plugin-wheel/hooks/session-start.sh` — same pattern as T004. (FR-004)
 
 **Checkpoint**: All hooks resolve per-agent state files. Concurrent agents each find their own state.
 
