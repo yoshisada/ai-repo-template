@@ -211,21 +211,31 @@ workflow_validate_workflow_refs() {
     fi
 
     # FR-004: Detect circular references via visited set
+    local chain
+    if [[ -n "$visited" ]]; then
+      chain="${visited},${current_name}"
+    else
+      chain="${current_name}"
+    fi
+    if [[ "$current_name" == "$child_name" ]]; then
+      local display_chain="${chain} -> ${child_name}"
+      display_chain=$(printf '%s\n' "$display_chain" | sed 's/,/ -> /g')
+      echo "ERROR: circular workflow reference detected: ${display_chain}" >&2
+      return 1
+    fi
     if [[ -n "$visited" ]]; then
       local IFS_OLD="$IFS"
       IFS=','
       for v in $visited; do
         if [[ "$v" == "$child_name" ]]; then
-          echo "ERROR: circular workflow reference detected: ${visited},${child_name}" >&2
+          local display_chain="${chain} -> ${child_name}"
+          display_chain=$(printf '%s\n' "$display_chain" | sed 's/,/ -> /g')
+          echo "ERROR: circular workflow reference detected: ${display_chain}" >&2
           IFS="$IFS_OLD"
           return 1
         fi
       done
       IFS="$IFS_OLD"
-    fi
-    if [[ "$current_name" == "$child_name" ]]; then
-      echo "ERROR: circular workflow reference detected: ${current_name} -> ${child_name}" >&2
-      return 1
     fi
 
     # FR-005: Recursively validate child workflow

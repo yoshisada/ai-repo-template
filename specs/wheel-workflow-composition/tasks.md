@@ -92,14 +92,14 @@
 
 **Purpose**: Verify the full lifecycle end-to-end with real workflow files.
 
-- [ ] T010 Create test child workflow at `workflows/test-child.json` with 2 command steps (echo commands, terminal on last step)
-- [ ] T011 Create test parent workflow at `workflows/test-parent.json` with: setup command step, workflow step referencing `test-child`, teardown command step (terminal)
-- [ ] T012 Run parent workflow via `/wheel-run test-parent` and verify: child activates, child steps execute, child completes, parent advances past workflow step, parent completes
-- [ ] T013 Test circular reference detection: create two workflows that reference each other, verify `workflow_load` rejects with circular error
-- [ ] T014 Test missing reference: create workflow referencing nonexistent child, verify `workflow_load` rejects with missing workflow error
-- [ ] T015 Test nesting depth: create chain of 6+ nested workflows, verify `workflow_load` rejects with depth exceeded error
-- [ ] T016 Test parent stop cascade: start parent with active child, stop parent, verify both archived to `history/stopped/`
-- [ ] T017 Clean up test workflow files (remove `test-child.json` and `test-parent.json` if they were only for testing)
+- [X] T010 Create test child workflow at `workflows/test-child.json` with 2 command steps (echo commands, terminal on last step)
+- [X] T011 Create test parent workflow at `workflows/test-parent.json` with: setup command step, workflow step referencing `test-child`, teardown command step (terminal)
+- [X] T012 Run parent workflow via `/wheel-run test-parent` and verify: child activates, child steps execute, child completes, parent advances past workflow step, parent completes
+- [X] T013 Test circular reference detection: create two workflows that reference each other, verify `workflow_load` rejects with circular error
+- [X] T014 Test missing reference: create workflow referencing nonexistent child, verify `workflow_load` rejects with missing workflow error
+- [X] T015 Test nesting depth: create chain of 6+ nested workflows, verify `workflow_load` rejects with depth exceeded error
+- [X] T016 Test parent stop cascade: start parent with active child, stop parent, verify both archived to `history/stopped/`
+- [X] T017 Clean up test workflow files (remove `test-child.json` and `test-parent.json` if they were only for testing)
 
 **Checkpoint**: All FRs validated end-to-end.
 
