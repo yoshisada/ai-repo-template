@@ -1,34 +1,31 @@
-## Repo State
 Branch: main
-Last 10 commits:
-365e392 Merge pull request #58 from yoshisada/build/wheel-create-workflow-20260406
-40abb77 docs: add auditor friction notes and blockers for wheel-create-workflow
-595e63d docs: add implementer friction notes for wheel-create-workflow
-5159af3 feat(wheel): mark Phase 6 complete - e2e validation passed (T018)
-de4d3ea feat(wheel): mark Phase 5 + Phase 6 content complete (US3 + polish)
-59aeddc feat(wheel): mark Phase 4 complete - File Mode (US2)
-1ac9b4b feat(wheel): mark Phase 3 complete - Description Mode (US1)
-d369c7a feat(wheel): add foundational sections to wheel-create skill (Phase 2)
-f9b1983 feat(wheel): create wheel-create skill with frontmatter (Phase 1)
-3c8e990 feat(wheel): add spec, plan, and tasks for wheel-create-workflow
+Last 5 commits:
+5da990a perf(workflow): slim shelf-full-sync context by ~80%
+70c83dc fix(wheel): stop re-injecting full context on every turn
+a78fb08 refactor(workflow): reduce report-issue-and-sync from 12 to 3 steps
+dfebc1f fix(wheel): fix two composition bugs found during e2e testing
+b69a72f Merge pull request #60 from yoshisada/build/wheel-workflow-composition-20260407
 ---
-Open GitHub issues:
-[{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":59,"title":"Retrospective: wheel-create-workflow pipeline (2026-04-06)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":57,"title":"Retrospective: wheel-per-agent-state pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":55,"title":"Retrospective: wheel-session-guard pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":53,"title":"Retrospective: kiln-wheel-polish pipeline (build/kiln-wheel-polish-20260404)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":51,"title":"Retrospective: wheel-skill-activation pipeline (build/wheel-skill-activation-20260404)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":49,"title":"Retrospective: wheel pipeline (build/wheel-20260403)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":47,"title":"Retrospective: shelf-sync-v2 pipeline (build/shelf-sync-v2-20260403)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":45,"title":"Retro: Codebase Hardening pipeline (2026-04-03)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":44,"title":"Retrospective: shelf-config-artifact pipeline (build/shelf-config-artifact-20260403)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":42,"title":"Retrospective: shelf plugin pipeline (build/shelf-20260403)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":40,"title":"Retro: MCP Tool Path Discovery pipeline (2026-04-02)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":39,"title":"Retrospective: qa-pass-fixes pipeline (build/qa-pass-fixes-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":38,"title":"Retrospective: pipeline-workflow-polish (build/pipeline-workflow-polish-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":36,"title":"Retrospective: qa-performance pipeline (build/qa-performance-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":35,"title":"Retrospective: qa-tooling-templates pipeline (build/qa-tooling-templates-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":34,"title":"Retrospective: traffic-mobile-polish pipeline (build/traffic-mobile-polish-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"}],"number":32,"title":"Retrospective: pipeline-reliability (build/pipeline-reliability-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":30,"title":"Retrospective: analyze-issues pipeline (build/analyze-issues-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":28,"title":"Retrospective: kiln-polish pipeline (build/kiln-polish-20260401)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI5wQ","name":"category:hooks","description":"","color":"D93F0B"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":26,"title":"Retro: admin-a11y-visual-fixes pipeline (PR #15)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":25,"title":"Retrospective: continuance-agent pipeline (build/continuance-agent-20260331)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":23,"title":"Retro: headless-settings-page pipeline (PR #14)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":22,"title":"Retrospective: kiln-rebrand-and-qa pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI5mg","name":"category:agents","description":"","color":"1D76DB"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":20,"title":"Retrospective: signout-button-placement pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":19,"title":"Retrospective: admin-a11y-fixes pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdbKKEg","name":"build-prd","description":"issues from the /build-prd command","color":"eac605"},{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":18,"title":"Retro: admin-panel-bugfix-polish pipeline (build 028)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":17,"title":"Pipeline Retro: speckit-observability (2026-03-31)"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":16,"title":"Retrospective: VNC Fixes & Dashboard UX pipeline"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":15,"title":"Pipeline Retro: obsidian-setup"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdtI6YA","name":"category:workflow","description":"","color":"5319E7"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":11,"title":"Retrospective: 015-tamagui-takeout-starter pipeline run"},{"labels":[{"id":"LA_kwDORw-6XM8AAAACdtI5wQ","name":"category:hooks","description":"","color":"D93F0B"},{"id":"LA_kwDORw-6XM8AAAACdtI6qQ","name":"analyzed","description":"","color":"EDEDED"}],"number":9,"title":"Retrospective: Tamagui Takeout Starter pipeline (014)"}]
+Open issues: 32
+Backlog: 14 items
+PRDs: 17
 ---
-Backlog items:
-.kiln/issues/2026-04-02-lobster-workflow-engine-plugin.md
-.kiln/issues/2026-04-02-ux-evaluator-nested-screenshot-dir.md
-.kiln/issues/2026-04-03-shelf-note-templates.md
-.kiln/issues/2026-04-03-shelf-notes-backlinks-tags.md
-.kiln/issues/2026-04-03-shelf-sync-close-archived-issues.md
-.kiln/issues/2026-04-03-shelf-sync-docs.md
-.kiln/issues/2026-04-03-shelf-sync-update-tech-tags.md
-.kiln/issues/2026-04-04-add-todo-skill.md
-.kiln/issues/2026-04-04-wheel-branch-subroutine-support.md
-.kiln/issues/2026-04-04-wheel-cleanup-in-hook.md
-.kiln/issues/2026-04-04-wheel-list-skill.md
-.kiln/issues/2026-04-04-wheel-skill-activation.md
----
-Feature PRDs:
-docs/features/2026-03-31-continuance-agent/PRD.md
-docs/features/2026-03-31-k... [truncated]
+Task progress:
+  001-kiln-polish: 13/13
+  analyze-issues: 11/11
+  continuance-agent: 15/15
+  kiln-rebrand-and-qa: 39/39
+  kiln-wheel-polish: 11/11
+  pipeline-reliability: 20/20
+  pipeline-workflow-polish: 17/19
+  qa-tooling-templates: 36/38
+  shelf-config-artifact: 10/10
+  shelf-sync-v2: 17/17
+  shelf: 12/12
+  wheel-create-workflow: 18/18
+  wheel-per-agent-state: 12/12
+  wheel-session-guard: 11/11
+  wheel-skill-activation: 12/12
+  wheel-workflow-composition: 19/19
+  wheel: 31/31
+VERSION: 000.000.000.617
