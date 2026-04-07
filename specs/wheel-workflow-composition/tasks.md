@@ -109,8 +109,8 @@
 
 **Purpose**: Final cleanup and documentation.
 
-- [ ] T018 [P] Verify all existing workflows still pass `workflow_load` validation (no regressions)
-- [ ] T019 [P] Write agent friction notes to `specs/wheel-workflow-composition/agent-notes/` documenting implementation experience
+- [X] T018 [P] Verify all existing workflows still pass `workflow_load` validation (no regressions)
+- [X] T019 [P] Write agent friction notes to `specs/wheel-workflow-composition/agent-notes/` documenting implementation experience
 
 ---
 
