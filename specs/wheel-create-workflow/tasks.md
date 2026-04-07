@@ -81,7 +81,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add agent-friendly guidance to the skill: ensure output is machine-parseable, collision handling works without prompts, no interactive questions when description is clear enough (FR-005, FR-025) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T015 [US3] Add agent-friendly guidance to the skill: ensure output is machine-parseable, collision handling works without prompts, no interactive questions when description is clear enough (FR-005, FR-025) in `plugin-wheel/skills/wheel-create/SKILL.md`
 
 **Checkpoint**: Agent self-service works — agents can create workflows programmatically.
 
@@ -91,8 +91,8 @@
 
 **Purpose**: Final validation and edge case handling
 
-- [ ] T016 Add edge case handling: vague descriptions (ask clarifying question), complex nested logic (wrap as agent steps), workflows exceeding 20 steps (consolidate), missing `workflows/` directory (create it) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T017 Add a Rules section at the bottom of the skill summarizing key constraints: never overwrite existing files, max 20 steps, validate before writing, no auto-execution in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T016 Add edge case handling: vague descriptions (ask clarifying question), complex nested logic (wrap as agent steps), workflows exceeding 20 steps (consolidate), missing `workflows/` directory (create it) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T017 Add a Rules section at the bottom of the skill summarizing key constraints: never overwrite existing files, max 20 steps, validate before writing, no auto-execution in `plugin-wheel/skills/wheel-create/SKILL.md`
 - [ ] T018 End-to-end validation: generate a test workflow from a description, validate it passes `workflow_load`, verify it can run via `/wheel-run`
 
 ---
