@@ -13,10 +13,10 @@
 
 **Purpose**: Create plugin-clay directory structure with manifests
 
-- [ ] T001 [US7] Create `plugin-clay/.claude-plugin/plugin.json` with name, version, description, author, homepage, dependencies (wheel, shelf), and workflows field per contracts/interfaces.md schema
-- [ ] T002 [P] [US7] Create `plugin-clay/.claude-plugin/marketplace.json` with distribution config matching kiln/wheel/shelf pattern
-- [ ] T003 [P] [US7] Create `plugin-clay/package.json` for npm package `@yoshisada/clay` with version from VERSION file, bin entry pointing to init script if needed
-- [ ] T004 [P] [US7] Create empty directory placeholders: `plugin-clay/skills/`, `plugin-clay/workflows/`
+- [X] T001 [US7] Create `plugin-clay/.claude-plugin/plugin.json` with name, version, description, author, homepage, dependencies (wheel, shelf), and workflows field per contracts/interfaces.md schema
+- [X] T002 [P] [US7] Create `plugin-clay/.claude-plugin/marketplace.json` with distribution config matching kiln/wheel/shelf pattern
+- [X] T003 [P] [US7] Create `plugin-clay/package.json` for npm package `@yoshisada/clay` with version from VERSION file, bin entry pointing to init script if needed
+- [X] T004 [P] [US7] Create empty directory placeholders: `plugin-clay/skills/`, `plugin-clay/workflows/`
 
 **Checkpoint**: Plugin scaffold exists, manifests are valid JSON, `jq . plugin-clay/.claude-plugin/plugin.json` succeeds
 
@@ -88,7 +88,7 @@
 
 **Independent Test**: Create product directories with varying artifacts, run `/clay-list`, verify table output
 
-- [ ] T012 [US6] Create `plugin-clay/skills/clay-list/SKILL.md` with frontmatter (name: clay-list, description per spec). Implement: (1) scan `products/*/` directories, (2) derive status using `clay_derive_status` logic from contracts/interfaces.md (FR-036), (3) enforce directory structure convention (FR-037), (4) output formatted table with product name, status, artifact list.
+- [X] T012 [US6] Create `plugin-clay/skills/clay-list/SKILL.md` with frontmatter (name: clay-list, description per spec). Implement: (1) scan `products/*/` directories, (2) derive status using `clay_derive_status` logic from contracts/interfaces.md (FR-036), (3) enforce directory structure convention (FR-037), (4) output formatted table with product name, status, artifact list.
 
 **Checkpoint**: `/clay-list` outputs correct statuses for products at different pipeline stages
 

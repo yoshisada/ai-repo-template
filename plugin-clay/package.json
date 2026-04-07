@@ -1,26 +1,25 @@
 {
-  "name": "@yoshisada/shelf",
+  "name": "@yoshisada/clay",
   "version": "000.000.000.639",
-  "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
+  "description": "Idea-to-project pipeline for Claude Code. Market research, naming, PRD creation, and repo scaffolding.",
   "author": "yoshisada",
   "license": "MIT",
   "homepage": "https://github.com/yoshisada/ai-repo-template",
   "repository": {
     "type": "git",
     "url": "https://github.com/yoshisada/ai-repo-template.git",
-    "directory": "plugin-shelf"
+    "directory": "plugin-clay"
   },
   "keywords": [
     "claude-code-plugin",
-    "obsidian",
-    "mcp",
-    "project-dashboard"
+    "ideation",
+    "product-research",
+    "prd",
+    "repo-scaffolding"
   ],
   "files": [
     ".claude-plugin/",
     "skills/",
-    "templates/",
-    "tags.md",
-    "docs/"
+    "workflows/"
   ]
 }
