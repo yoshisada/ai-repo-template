@@ -49,9 +49,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Write Step 3 — Step Decomposition (Description Mode): instructions for parsing natural language into discrete steps, classifying by type (command/agent/branch/loop), determining context_from dependencies, assigning output paths, capping at 20 steps (FR-006, FR-007, FR-008, FR-009, FR-025) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T010 [US1] Add step type classification heuristics to Step 3: shell commands/file checks/data gathering → command, LLM reasoning/writing/analysis → agent, conditional logic → branch, repeated execution → loop (FR-007) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T011 [US1] Add output path convention guidance to Step 3: `.wheel/outputs/<step-id>.txt` for command steps, `reports/<name>.md` for agent report steps (FR-009) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T009 [US1] Write Step 3 — Step Decomposition (Description Mode): instructions for parsing natural language into discrete steps, classifying by type (command/agent/branch/loop), determining context_from dependencies, assigning output paths, capping at 20 steps (FR-006, FR-007, FR-008, FR-009, FR-025) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T010 [US1] Add step type classification heuristics to Step 3: shell commands/file checks/data gathering → command, LLM reasoning/writing/analysis → agent, conditional logic → branch, repeated execution → loop (FR-007) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T011 [US1] Add output path convention guidance to Step 3: `.wheel/outputs/<step-id>.txt` for command steps, `reports/<name>.md` for agent report steps (FR-009) in `plugin-wheel/skills/wheel-create/SKILL.md`
 
 **Checkpoint**: Description Mode fully functional. `/wheel-create "description"` produces valid workflow JSON.
 
