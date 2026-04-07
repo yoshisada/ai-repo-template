@@ -318,21 +318,27 @@ dispatch_agent() {
             jq -n '{"decision": "approve"}'
           fi
         else
-          # Output not yet produced — re-inject instruction
-          local context
-          context=$(context_build "$step_json" "$state" "$WORKFLOW")
-          jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+          # Output not yet produced — short reminder instead of re-injecting full context
+          local step_id
+          step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
+          local output_key_hint
+          output_key_hint=$(printf '%s\n' "$step_json" | jq -r '.output // "the output file"')
+          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key_hint}" \
+            '{"decision": "block", "reason": $msg}'
         fi
       else
         jq -n '{"decision": "approve"}'
       fi
       ;;
     teammate_idle)
-      # Gate agent with its task instruction
+      # Gate agent with short reminder (full context already injected on first stop)
       if [[ "$step_status" == "working" ]]; then
-        local instruction
-        instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // empty')
-        jq -n --arg msg "$instruction" '{"decision": "block", "reason": $msg}'
+        local step_id
+        step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
+        local output_key_hint
+        output_key_hint=$(printf '%s\n' "$step_json" | jq -r '.output // "the output file"')
+        jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key_hint}" \
+          '{"decision": "block", "reason": $msg}'
       else
         jq -n '{"decision": "approve"}'
       fi
