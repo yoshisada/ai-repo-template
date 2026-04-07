@@ -100,8 +100,8 @@
 
 **Independent Test**: Run `/wheel-run clay:clay-sync` and verify Obsidian notes are created/updated
 
-- [ ] T013 [US5] Create `plugin-clay/workflows/clay-sync.json` per contracts/interfaces.md schema. Three steps: (1) `scan-products` command step — scans `products/` and writes manifest to `.clay/sync-manifest.json`, (2) `sync-to-obsidian` agent step — creates/updates Obsidian notes for each product via shelf MCP with name, status, artifact links (FR-032, FR-033, FR-035), (3) `sync-research` agent step — syncs research findings as linked notes (FR-034). Context flows from scan-products to both agent steps.
-- [ ] T014 [P] [US5] Update `plugin-clay/.claude-plugin/plugin.json` to include `"workflows": ["workflows/clay-sync.json"]` in the manifest (FR-032). Verify JSON is valid.
+- [X] T013 [US5] Create `plugin-clay/workflows/clay-sync.json` per contracts/interfaces.md schema. Three steps: (1) `scan-products` command step — scans `products/` and writes manifest to `.clay/sync-manifest.json`, (2) `sync-to-obsidian` agent step — creates/updates Obsidian notes for each product via shelf MCP with name, status, artifact links (FR-032, FR-033, FR-035), (3) `sync-research` agent step — syncs research findings as linked notes (FR-034). Context flows from scan-products to both agent steps.
+- [X] T014 [P] [US5] Update `plugin-clay/.claude-plugin/plugin.json` to include `"workflows": ["workflows/clay-sync.json"]` in the manifest (FR-032). Verify JSON is valid. (Done in T001 — workflows field was included at creation time.)
 
 **Checkpoint**: Workflow JSON passes `workflow_load` validation. Plugin manifest declares the workflow.
 
