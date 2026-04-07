@@ -1,20 +1,12 @@
-# Workflow Result: SUCCESS
+# Workflow Result
 
-## Summary
+## Status: SUCCESS
 
-The **example-workflow** completed successfully. All 3 executed steps passed, and the branch step correctly routed to the success cleanup path.
+The example-workflow (v1.1.0) completed successfully through all steps:
 
-## Step Results
-
-| Step | Status | Details |
-|------|--------|---------|
-| check-env | Passed | Detected `jq` at `/usr/bin/jq` and `bash` at `/opt/homebrew/bin/bash`. Output saved to `.wheel/outputs/check-env.txt`. |
-| generate-report | Passed | Created `reports/env-report.md` summarizing the detected tools. Output saved to `.wheel/outputs/generate-report.txt`. |
-| verify-report | Passed | Confirmed the report file exists and is non-empty — returned `SUCCESS`. Output saved to `.wheel/outputs/verify-report.txt`. |
-| check-result | Passed | Branch condition matched `SUCCESS` from verify-report, routed to cleanup-success. |
-| cleanup-success | Passed | Wrote this workflow result report. |
-| cleanup-failure | Skipped | Not executed — branch took the success path. |
-
-## Why It Succeeded
-
-Each step built on the previous one: `check-env` confirmed required tools were installed, `generate-report` used that output to produce a summary, and `verify-report` validated the summary file existed. With all checks green, the branch step routed to the success cleanup path.
+1. **check-env** (command) -- Verified that jq (/usr/bin/jq) and bash (/opt/homebrew/bin/bash) are available on the system. Output stored at .wheel/outputs/check-env.txt. Passed.
+2. **generate-report** (agent) -- Created reports/env-report.md summarizing detected tool paths and versions from the check-env output. Passed.
+3. **verify-report** (command) -- Confirmed reports/env-report.md exists and is non-empty. Output stored at .wheel/outputs/verify-report.txt, contains "SUCCESS". Passed.
+4. **check-result** (branch) -- Evaluated verify output via grep, condition returned zero (success), branched to cleanup-success path.
+5. **cleanup-success** (agent, terminal) -- Final step. Workflow completed with all checks passing.
+6. **cleanup-failure** (agent, terminal, skipped) -- Not executed because verification succeeded.

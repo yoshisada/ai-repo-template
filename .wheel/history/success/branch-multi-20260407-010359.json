@@ -1,0 +1,137 @@
+{
+  "workflow_name": "branch-multi",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/branch-multi.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd",
+  "owner_agent_id": "a1c81efd4b0a76f5b",
+  "started_at": "2026-04-07T01:01:29.000Z",
+  "updated_at": "2026-04-07T01:03:53.000Z",
+  "steps": [
+    {
+      "id": "detect-language",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:01:29.000Z",
+      "completed_at": "2026-04-07T01:01:29.000Z",
+      "output": "unknown",
+      "command_log": [
+        {
+          "command": "if [ -f package.json ]; then echo 'javascript'; elif [ -f Cargo.toml ]; then echo 'rust'; elif [ -f go.mod ]; then echo 'go'; else echo 'unknown'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:01:29.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-js",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-07T01:01:29.000Z",
+      "completed_at": "2026-04-07T01:01:29.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q javascript .wheel/outputs/detected-language.txt' exit=1 target=fallback-analysis",
+          "exit_code": 1,
+          "timestamp": "2026-04-07T01:01:29.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "analyze-js",
+      "type": "command",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fallback-analysis",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:01:30.000Z",
+      "completed_at": "2026-04-07T01:01:30.000Z",
+      "output": "## unknown Analysis\nNo detailed analyzer for this language yet.\nFile count: 265",
+      "command_log": [
+        {
+          "command": "LANG=$(cat .wheel/outputs/detected-language.txt) && echo \"## ${LANG} Analysis\" && echo 'No detailed analyzer for this language yet.' && echo \"File count: $(find . -maxdepth 3 -type f | wc -l | tr -d ' ')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:01:30.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T01:01:30.000Z",
+      "completed_at": "2026-04-07T01:03:53.000Z",
+      "output": "reports/language-analysis.md",
+      "command_log": [
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null && echo \"---\" && ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/pending.json 2>/dev/null; echo \"---\" && ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/ 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:01:34.000Z"
+        },
+        {
+          "command": "for sf in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json; do echo \"=== $(basename $sf) ===\"; jq '{workflow_name, cursor, status, completed_steps: (.completed_steps // [] | length), total_steps: (.workflow.steps | length)}' \"$sf\" 2>/dev/null; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:01:39.000Z"
+        },
+        {
+          "command": "mkdir -p /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:01:52.000Z"
+        },
+        {
+          "command": "cat > /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports/language-analysis.md << 'REPORT_EOF'\n# Project Language Analysis Report\n\n## Language Detection\n\nThe project was scanned for common language indicators:\n- `package.json` (JavaScript/Node.js): Not found\n- `Cargo.toml` (Rust): Not found\n- `go.mod` (Go): Not found\n\n**Detected language: unknown** -- This project is primarily a Claude Code plugin composed of Markdown skill/agent definitions and Bash shell scripts, which are not detected by the standard language probes.\n\n## Project Stats\n\n- **Total files (depth 3):** 265\n- **Primary content:** Markdown-based skill definitions, agent prompts, hook scripts, and workflow JSON templates\n- **No detailed language-specific analyzer** was applicable for this project type\n\n## Summary\n\nThis repository is a Claude Code plugin (`@yoshisada/kiln`) that uses Markdown and Bash as its primary technologies rather than a traditional compiled or interpreted language. The high file count (265) reflects the extensive skill, agent, template, and configuration files that make up the plugin system.\nREPORT_EOF\necho \"Report written\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:02:05.000Z"
+        },
+        {
+          "command": "STATE_FILE=\"/Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json\" && if [ -f \"$STATE_FILE\" ]; then jq '{workflow_name, status, cursor, write_report_status: .steps[4].status}' \"$STATE_FILE\"; else echo \"State file gone (possibly archived)\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:02:10.000Z"
+        },
+        {
+          "command": "jq -r '.steps[4].output // \"null\"' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json 2>/dev/null; echo \"---\"; jq -r '.steps[4]' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:02:15.000Z"
+        },
+        {
+          "command": "STATE_FILE=\"/Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json\" && if [ -f \"$STATE_FILE\" ]; then jq '{workflow_name, status, cursor, write_report_status: .steps[4].status}' \"$STATE_FILE\"; else echo \"State file GONE (archived)\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:02:54.000Z"
+        },
+        {
+          "command": "ls /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.441/hooks/",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:03:20.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json | jq '{owner_session_id, owner_agent_id}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:03:34.000Z"
+        },
+        {
+          "command": "PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.441\" && export WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${PLUGIN_DIR}/lib/state.sh\" && source \"${PLUGIN_DIR}/lib/workflow.sh\" && source \"${PLUGIN_DIR}/lib/dispatch.sh\" && source \"${PLUGIN_DIR}/lib/lock.sh\" && source \"${PLUGIN_DIR}/lib/context.sh\" && source \"${PLUGIN_DIR}/lib/guard.sh\" && source \"${PLUGIN_DIR}/lib/engine.sh\" && STATE_FILE=\".wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a1c81efd4b0a76f5b.json\" && state_set_step_status \"$STATE_FILE\" 4 \"done\" && echo \"Step marked done\" && WORKFLOW=$(workflow_load \"workflows/branch-multi.json\") && context_capture_output \"$STATE_FILE\" 4 \"reports/language-analysis.md\" && echo \"Output captured\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:03:53.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

@@ -1,30 +1,37 @@
 # Project Health Report
 
-## Activity
+## Activity Level
 
-181 commits in the last 30 days from 1 contributor (~6/day). 40 branches exist (local + remote). No git tags — versioning is tracked via `VERSION` file, not git releases.
+- **198 commits** in the last 30 days (~6.6/day) -- highly active
+- **1 contributor** -- solo development
+- **43 branches** (local + remote) -- frequent feature branching
+- **No release tags** -- pre-release phase, versioning via VERSION file
 
-**Assessment**: Very active, solo-developer build-out phase. High branch count suggests some post-merge cleanup is overdue.
+## Structure Overview
 
-## Structure
-
-380 files across 170 directories in a plugin monorepo layout:
+The repository contains **500 files** across **181 directories**.
 
 | Directory | Purpose |
 |-----------|---------|
-| `plugin-kiln/` | Spec-first development workflow plugin |
-| `plugin-shelf/` | Obsidian project tracking plugin |
-| `plugin-wheel/` | Hook-based workflow engine plugin |
-| `docs/` | Feature PRDs |
-| `specs/` | Feature specs, plans, tasks, contracts |
-| `scripts/` | Version management and build utilities |
-| `workflows/` | Wheel workflow definitions |
-| `reports/` | Generated analysis reports |
-| `src/`, `tests/` | Scaffolded directories for consumer projects |
+| plugin-kiln/ | Spec-first development workflow plugin |
+| plugin-shelf/ | Project management and Obsidian sync plugin |
+| plugin-wheel/ | Workflow engine plugin |
+| src/, tests/ | Application source and test code |
+| specs/ | Specification artifacts |
+| workflows/ | Wheel workflow definitions |
+| scripts/ | Automation and utility scripts |
+| docs/ | Documentation |
+| reports/ | Generated reports |
 
-## Key Observations
+## Observations
 
-1. **No formal releases**: Consumers can't pin to a stable version via git tags. The `VERSION` file (`000.000.000.390`) auto-increments on edits but isn't reflected in git tags.
-2. **Branch hygiene needed**: 40 branches is high for a solo project — likely stale feature branches post-merge.
-3. **Version sync working**: All three plugins now share a single `VERSION` file, synced via the version-increment hook.
-4. **No external code review**: Single contributor with no PR review requirement — quality relies on automated hooks and audits.
+1. **Sustained high velocity** -- averaging nearly 7 commits per day over 30 days indicates intensive, focused development on this plugin ecosystem.
+2. **Modular plugin architecture** -- three distinct plugins (kiln, shelf, wheel) with clear separation of concerns, packaged as a monorepo.
+3. **Spec-driven methodology** -- dedicated specs/ directory confirms specification-first approach is in active use.
+4. **Pre-release state** -- no tags created despite significant development activity; versioning is tracked via the VERSION file instead.
+5. **Branch hygiene opportunity** -- 43 branches suggests some may be stale and candidates for cleanup.
+
+## Data Sources
+
+- Git stats: 198 commits, 1 contributor, 43 branches, no tags (verified against .wheel/outputs/git-stats.txt)
+- Repo structure: 500 files, 181 directories, 10 top-level dirs (verified against .wheel/outputs/repo-structure.txt)

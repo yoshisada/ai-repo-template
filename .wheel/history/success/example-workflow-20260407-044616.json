@@ -1,0 +1,169 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "workflows/example.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd",
+  "owner_agent_id": "a4f5c4bd4a54f8e7a",
+  "started_at": "2026-04-07T04:44:27.000Z",
+  "updated_at": "2026-04-07T04:46:16.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:27.000Z",
+      "completed_at": "2026-04-07T04:44:27.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:27.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:27.000Z",
+      "completed_at": "2026-04-07T04:45:34.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state.json 2>/dev/null || echo \"No state.json found\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:31.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state-*.json 2>/dev/null || echo \"No per-agent state files\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:33.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel -name \"*.json\" -not -path \"*/history/*\" 2>/dev/null | head -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:37.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.523/workflows/ 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:37.000Z"
+        },
+        {
+          "command": "ls -lt /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a*.json | head -5",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:41.000Z"
+        },
+        {
+          "command": "for f in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a*.json; do echo \"=== $f ===\" && jq '{workflow: .workflow, session_id: .session_id, current_step: .current_step, status: .status}' \"$f\" 2>/dev/null; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:46.000Z"
+        },
+        {
+          "command": "jq '.' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a696f7bd55fae0093.json 2>/dev/null | head -80",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:49.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:54.000Z"
+        },
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/check-env.txt 2>/dev/null || echo \"No output file\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:17.000Z"
+        },
+        {
+          "command": "mkdir -p /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:20.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:45:34.000Z",
+      "completed_at": "2026-04-07T04:45:34.000Z",
+      "output": "SUCCESS",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-07T04:45:34.000Z",
+      "completed_at": "2026-04-07T04:45:34.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=0 target=cleanup-success",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T04:45:34.000Z",
+      "completed_at": "2026-04-07T04:46:16.000Z",
+      "output": "reports/workflow-result.md",
+      "command_log": [
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a4f5c4bd4a54f8e7a.json 2>/dev/null | jq '{status: .status, cursor: .cursor, steps: [.steps[] | {id: .id, status: .status}]}' 2>/dev/null || echo \"State file gone\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:41.000Z"
+        },
+        {
+          "command": "jq '.steps[4]' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a4f5c4bd4a54f8e7a.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:48.000Z"
+        },
+        {
+          "command": "jq -r '.steps[] | select(.id == \"cleanup-success\")' /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.523/workflows/example.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:55.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/verify-report.txt 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:46:09.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

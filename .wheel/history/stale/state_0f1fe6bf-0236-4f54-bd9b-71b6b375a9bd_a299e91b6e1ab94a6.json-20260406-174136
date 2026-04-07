@@ -1,0 +1,151 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "workflows/example.json",
+  "status": "running",
+  "cursor": 1,
+  "owner_session_id": "0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd",
+  "owner_agent_id": "a299e91b6e1ab94a6",
+  "started_at": "2026-04-07T00:39:25.000Z",
+  "updated_at": "2026-04-07T00:41:31.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T00:39:25.000Z",
+      "completed_at": "2026-04-07T00:39:25.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:39:25.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "working",
+      "started_at": "2026-04-07T00:39:25.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls -la .wheel/state_*.json 2>/dev/null; echo \"---\"; ls -la .wheel/pending.json 2>/dev/null; echo \"---\"; ls -la .wheel/outputs/ 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:39:30.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do echo \"=== $(basename $sf) ===\"; jq '{workflow_name, cursor, status: .steps_status}' \"$sf\" 2>/dev/null; echo; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:39:36.000Z"
+        },
+        {
+          "command": "mkdir -p /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:39:48.000Z"
+        },
+        {
+          "command": "/usr/bin/jq --version 2>&1; /opt/homebrew/bin/bash --version 2>&1 | head -1",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:39:55.000Z"
+        },
+        {
+          "command": "cat > /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports/env-report.md << 'ENDOFFILE'\n# Environment Check Report\n\n## Detected Tools\n\n| Tool | Path | Version |\n|------|------|---------|\n| jq | /usr/bin/jq | jq-1.7.1-apple |\n| bash | /opt/homebrew/bin/bash | GNU bash 5.2.15(1)-release (aarch64-apple-darwin22.1.0) |\n\n## Summary\n\nBoth required tools (jq and bash) are installed and accessible. The environment check passed successfully.\nENDOFFILE\necho \"Report created\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:03.000Z"
+        },
+        {
+          "command": "jq '{cursor, current_step_status: .steps[.cursor].status, current_step_id: .steps[.cursor].id}' .wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a299e91b6e1ab94a6.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:08.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/reports/env-report.md && echo \"---FILE EXISTS---\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:13.000Z"
+        },
+        {
+          "command": "jq '{cursor, steps: [.steps[] | {id, status}]}' .wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a299e91b6e1ab94a6.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:16.000Z"
+        },
+        {
+          "command": "echo \"Agent step generate-report complete — output written to reports/env-report.md\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:21.000Z"
+        },
+        {
+          "command": "jq '{cursor, steps: [.steps[] | {id, status}]}' .wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a299e91b6e1ab94a6.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:24.000Z"
+        },
+        {
+          "command": "test -f reports/env-report.md && echo \"output exists\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:43.000Z"
+        },
+        {
+          "command": "jq '{cursor, steps: [.steps[] | {id, status}]}' .wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a299e91b6e1ab94a6.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:40:50.000Z"
+        },
+        {
+          "command": "jq '{cursor, steps: [.steps[] | {id, status}]}' .wheel/state_0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd_a299e91b6e1ab94a6.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T00:41:31.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
