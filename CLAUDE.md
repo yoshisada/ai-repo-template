@@ -246,6 +246,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - `.wheel/state.json` (file-based JSON state) (build/wheel-session-guard-20260405)
 - Bash 5.x (shell commands in SKILL.md), Markdown (skill definition) + `jq` (JSON generation/validation), existing wheel engine libs (`plugin-wheel/lib/workflow.sh`) (build/wheel-create-workflow-20260406)
 - Filesystem — `workflows/<name>.json` at repo roo (build/wheel-create-workflow-20260406)
+- Bash 5.x + jq (JSON parsing), existing wheel engine libs (state.sh, workflow.sh, dispatch.sh, engine.sh, context.sh, lock.sh, guard.sh) (build/wheel-workflow-composition-20260407)
+- File-based JSON state in `.wheel/state_*.json` (build/wheel-workflow-composition-20260407)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)

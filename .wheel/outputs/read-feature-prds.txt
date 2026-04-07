@@ -20,3 +20,5 @@ SLUG=wheel-create-workflow TITLE=Feature PRD: Wheel Create Workflow FRs=24 NFRs=
 0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-create-workflow/PRD.md
 SLUG=wheel-per-agent-state TITLE=Feature PRD: Wheel Per-Agent State Files FRs=11 NFRs=0
 0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-per-agent-state/PRD.md
+SLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FRs=18 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-07-wheel-workflow-composition/PRD.md
