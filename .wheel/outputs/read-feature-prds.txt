@@ -1,0 +1,22 @@
+SLUG=continuance-agent TITLE=Feature PRD: Continuance Agent (/next) FRs=7 NFRs=0
+0 STATUS= PATH=docs/features/2026-03-31-continuance-agent/PRD.md
+SLUG=kiln-rebrand-and-qa TITLE=Feature PRD: Kiln Rebrand, Infrastructure & QA Reliability FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md
+SLUG=analyze-issues TITLE=Feature PRD: Analyze Issues Skill FRs=10 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-analyze-issues/PRD.md
+SLUG=kiln-polish TITLE=Feature PRD: Kiln Polish — Next Command Suggestion & QA Directory Structure FRs=8 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-kiln-polish/PRD.md
+SLUG=pipeline-reliability TITLE=Feature PRD: Pipeline Reliability & Health FRs=10 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-reliability/PRD.md
+SLUG=pipeline-workflow-polish TITLE=Feature PRD: Pipeline Workflow Polish FRs=24 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-workflow-polish/PRD.md
+SLUG=qa-tooling-templates TITLE=Feature PRD: QA Agent Optimization, Kiln Doctor Enhancements & Template Improvements FRs=32 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-qa-tooling-templates/PRD.md
+SLUG=shelf-config-artifact TITLE=Feature PRD: Shelf Config Artifact FRs=11 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-03-shelf-config-artifact/PRD.md
+SLUG=shelf-sync-v2 TITLE=Feature PRD: Shelf Sync v2 — Templates, Tags, Docs & Lifecycle FRs=21 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-shelf-sync-v2/PRD.md
+SLUG=shelf TITLE=Feature PRD: Shelf — Obsidian Project Dashboard Plugin FRs=45 NFRs=5 STATUS= PATH=docs/features/2026-04-03-shelf/PRD.md
+SLUG=wheel TITLE=Feature PRD: Wheel — Hook-based Workflow Engine Plugin FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-wheel/PRD.md
+SLUG=kiln-wheel-polish TITLE=Feature PRD: Kiln & Wheel Polish FRs=24 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-kiln-wheel-polish/PRD.md
+SLUG=wheel-skill-activation TITLE=Feature PRD: Wheel Skill-Based Activation FRs=10 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-wheel-skill-activation/PRD.md
+SLUG=wheel-session-guard TITLE=Feature PRD: Wheel Session Guard FRs=7 NFRs=2 STATUS=Draft PATH=docs/features/2026-04-05-wheel-session-guard/PRD.md
+SLUG=wheel-create-workflow TITLE=Feature PRD: Wheel Create Workflow FRs=24 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-create-workflow/PRD.md
+SLUG=wheel-per-agent-state TITLE=Feature PRD: Wheel Per-Agent State Files FRs=11 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-per-agent-state/PRD.md

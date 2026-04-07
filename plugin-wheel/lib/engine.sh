@@ -95,6 +95,10 @@ engine_kickstart() {
         echo "$instruction"
       fi
       ;;
+    workflow)
+      # FR-014: Workflow steps are NOT kickstartable — leave in pending for hook to handle
+      # FR-015: Child workflow kickstart happens inside dispatch_workflow()
+      ;;
   esac
 
   return 0

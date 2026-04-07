@@ -102,6 +102,21 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
     done
   fi
 
+  # FR-018: Cascade stop to active child workflows
+  # Scan remaining state files for any with parent_workflow pointing to a stopped file
+  for sf in .wheel/state_*.json; do
+    [[ -f "$sf" ]] || continue
+    PARENT_PATH=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null) || continue
+    if [[ -n "$PARENT_PATH" && ! -f "$PARENT_PATH" ]]; then
+      # Parent was stopped (no longer exists) — stop this child too
+      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+      FNAME=$(basename "$sf" .json)
+      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+      rm -f "$sf"
+      STOPPED=$((STOPPED + 1))
+    fi
+  done
+
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
