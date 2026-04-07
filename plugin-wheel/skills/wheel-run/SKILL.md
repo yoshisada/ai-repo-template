@@ -13,21 +13,7 @@ Start a named workflow so that wheel hooks begin intercepting Claude Code events
 $ARGUMENTS
 ```
 
-## Step 1: Obtain Session ID (FR-002)
-
-The session_id is needed to construct the per-agent state filename. Extract it from the environment or conversation context:
-
-```bash
-# Try CLAUDE_SESSION_ID env var first, fall back to a generated ID
-SESSION_ID="${CLAUDE_SESSION_ID:-}"
-if [[ -z "$SESSION_ID" ]]; then
-  # Generate a short unique ID if env var not available
-  SESSION_ID="s$(date +%s | tail -c 9)"
-fi
-echo "Session ID: $SESSION_ID"
-```
-
-## Step 2: Resolve Workflow File
+## Step 1: Resolve Workflow File
 
 The workflow name comes from `$ARGUMENTS`. Resolve it to a file path:
 
@@ -44,23 +30,26 @@ fi
 
 If the file doesn't exist, **stop here** and show the error.
 
-## Step 3: Check for Already-Running Workflow (FR-007)
+## Step 2: Check for Already-Running Workflow (FR-007)
 
 ```bash
-# FR-007: Check for existing state file for this session
-EXISTING=$(ls .wheel/state_${SESSION_ID}*.json 2>/dev/null)
+# FR-007: Check for existing state files (any agent)
+EXISTING=$(ls .wheel/state_*.json 2>/dev/null || true)
 if [[ -n "$EXISTING" ]]; then
-  CURRENT=$(jq -r '.workflow_name' $(echo "$EXISTING" | head -1))
-  echo "ERROR: Workflow '$CURRENT' is already running for this session."
-  echo "State file: $EXISTING"
-  echo "Run /wheel-stop to stop it, or /wheel-status to check progress."
-  exit 1
+  echo "Active workflows:"
+  for sf in $EXISTING; do
+    NAME=$(jq -r '.workflow_name // "unknown"' "$sf" 2>/dev/null || echo "unknown")
+    echo "  $(basename $sf): $NAME"
+  done
+  echo ""
+  echo "Run /wheel-stop to stop them, or /wheel-status to check progress."
+  echo "Multiple concurrent workflows are supported — proceeding."
 fi
 ```
 
-If this prints an error, **stop here** — do not proceed. Tell the user.
+Note: Multiple workflows CAN run concurrently (one per agent). This check is informational.
 
-## Step 4: Validate Workflow (FR-006)
+## Step 3: Validate Workflow
 
 Source the wheel engine libs and validate:
 
@@ -88,63 +77,75 @@ if ! workflow_validate_unique_ids "$WORKFLOW"; then
 fi
 ```
 
-If validation fails, **stop here** and report the error. Do NOT create a state file.
+If validation fails, **stop here** and report the error.
 
-## Step 5: Create State, Activate, and Kickstart (FR-002, FR-010, FR-011)
+## Step 4: Write Pending File and Activate
+
+The skill does NOT create the state file directly. Instead, it writes a pending file and runs the activate script. The PostToolUse hook intercepts the activate call and creates the state file with the correct session_id and agent_id from hook input.
 
 ```bash
-# FR-011: Pass session_id to state_init — creates .wheel/state_{session_id}.json
-state_init ".wheel" "$SESSION_ID" "$WORKFLOW" "$WORKFLOW_FILE"
+# Write validated workflow data to pending file
+mkdir -p .wheel
+jq -n \
+  --arg wf_file "$WORKFLOW_FILE" \
+  --argjson wf_json "$WORKFLOW" \
+  '{workflow_file: $wf_file, workflow_json: $wf_json}' > .wheel/pending.json
 
-# FR-010: Kickstart with session_id-based filename
-STATE_FILE=".wheel/state_${SESSION_ID}.json"
-STATE_DIR=".wheel"
-export WHEEL_HOOK_SCRIPT=""
-export WHEEL_HOOK_INPUT='{}'
-KICKSTART_OUTPUT=$(engine_kickstart "$STATE_FILE")
+# Run activate.sh — the PostToolUse hook intercepts this call
+# and creates the state file with proper ownership
+"${PLUGIN_DIR}/bin/activate.sh" "$WORKFLOW_NAME"
 ```
 
-## Step 6: Report Success
+## Step 5: Report Success
 
-Read back state and display:
+After activate.sh runs, the PostToolUse hook has created the state file and run kickstart. Report the result:
 
 ```bash
-STEP_COUNT=$(echo "$WORKFLOW" | jq '.steps | length')
 WF_NAME=$(echo "$WORKFLOW" | jq -r '.name')
+STEP_COUNT=$(echo "$WORKFLOW" | jq '.steps | length')
 FIRST_STEP_ID=$(echo "$WORKFLOW" | jq -r '.steps[0].id')
 FIRST_STEP_TYPE=$(echo "$WORKFLOW" | jq -r '.steps[0].type')
 
 echo "Workflow '$WF_NAME' started ($STEP_COUNT steps)."
-echo "Session: $SESSION_ID"
-echo "State file: $STATE_FILE"
 echo "First step: $FIRST_STEP_ID ($FIRST_STEP_TYPE)"
 
-# Show post-kickstart status
-if [[ -f "$STATE_FILE" ]]; then
+# Find the state file that was created by the hook
+STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1 || true)
+if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
+  OWNER_SID=$(jq -r '.owner_session_id // "(unknown)"' "$STATE_FILE")
+  OWNER_AID=$(jq -r '.owner_agent_id // "(none)"' "$STATE_FILE")
   CURRENT_CURSOR=$(jq -r '.cursor' "$STATE_FILE")
+  echo "State file: $(basename $STATE_FILE)"
+  echo "Owner: session=$OWNER_SID agent=$OWNER_AID"
+
   CURRENT_STEP_ID=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].id // "complete"')
-  CURRENT_STEP_TYPE=$(echo "$WORKFLOW" | jq -r --argjson idx "$CURRENT_CURSOR" '.steps[$idx].type // "done"')
   if [[ "$CURRENT_CURSOR" -gt 0 ]]; then
-    echo "Kickstarted: advanced to step $CURRENT_STEP_ID ($CURRENT_STEP_TYPE)"
+    echo "Kickstarted: advanced to step $CURRENT_STEP_ID"
   fi
-else
+elif [[ ! -f ".wheel/pending.json" ]]; then
   echo "Workflow completed during kickstart (all steps were automatic)."
+else
+  echo "WARNING: State file not created — pending.json still exists."
+  echo "The PostToolUse hook may not have intercepted the activate call."
 fi
 
 echo ""
-if [[ -n "$KICKSTART_OUTPUT" ]]; then
-  echo "First agent instruction:"
-  echo "$KICKSTART_OUTPUT"
-fi
 echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to deactivate."
 ```
 
-## Ownership (FR-001/FR-003)
+## Ownership
 
-State is created with `owner_session_id` set to the session ID and `owner_agent_id` empty. Since the skill does not have an agent_id, the first hook event detects the session-only filename and renames it to include the agent_id (via `resolve_state_file` in `lib/guard.sh`). This two-phase creation ensures each agent gets its own state file.
+State file creation happens in the PostToolUse hook, NOT in the skill. The hook has access to `session_id` and `agent_id` from the hook input JSON, so ownership is baked into the filename from the start: `state_{session_id}_{agent_id}.json`.
+
+The flow:
+1. Skill validates workflow → writes `.wheel/pending.json`
+2. Skill runs `activate.sh <name>` (no-op script)
+3. PostToolUse hook fires → sees `activate.sh` in command → reads pending.json → creates `state_{sid}_{aid}.json` → deletes pending.json → runs kickstart
+
+No race condition: PostToolUse fires per-agent, per-tool-call. Agent B's hook cannot fire for Agent A's bash call.
 
 ## Rules
 
 - If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json`.
-- Never create a state file if validation fails.
-- Never create a state file if one already exists for this session (FR-007).
+- Never create a state file directly — always go through activate.sh + hook.
+- Never write pending.json if validation fails.

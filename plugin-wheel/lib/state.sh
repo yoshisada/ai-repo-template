@@ -36,26 +36,25 @@ state_write() {
 }
 
 # FR-011: Initialize a new state file from a workflow definition.
-# Now accepts session_id to construct filename as state_{session_id}.json.
+# Called by the PostToolUse hook after intercepting activate.sh, which provides
+# session_id and agent_id from hook input for proper ownership.
 #
 # Params:
-#   $1 = state_dir (string) — path to .wheel directory
-#   $2 = session_id (string) — session identifier for filename construction
-#   $3 = workflow_json (string) — validated workflow JSON
-#   $4 = workflow_file (string, optional) — path to workflow file
+#   $1 = state_file (string) — full path to the state file to create
+#   $2 = workflow_json (string) — validated workflow JSON
+#   $3 = session_id (string) — owner session ID
+#   $4 = agent_id (string) — owner agent ID (may be empty for main orchestrator)
+#   $5 = workflow_file (string, optional) — path to workflow file
 #
-# Output: none (creates state file at state_dir/state_{session_id}.json)
+# Output: none (creates state file at the given path)
 # Exit: 0 on success, 1 on failure
-#
-# CHANGED FROM: state_init(state_file, workflow_json, workflow_file)
-# CHANGED TO:   state_init(state_dir, session_id, workflow_json, workflow_file)
 state_init() {
-  local state_dir="$1"
-  local session_id="$2"
-  local workflow_json="$3"
-  local workflow_file="${4:-}"
+  local state_file="$1"
+  local workflow_json="$2"
+  local session_id="$3"
+  local agent_id="${4:-}"
+  local workflow_file="${5:-}"
 
-  local state_file="${state_dir}/state_${session_id}.json"
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
   local wf_name wf_version step_count
@@ -87,6 +86,7 @@ state_init() {
     --arg version "$wf_version" \
     --arg wf_file "$workflow_file" \
     --arg sid "$session_id" \
+    --arg aid "$agent_id" \
     --arg now "$now" \
     --argjson steps "$steps_json" \
     '{
@@ -96,13 +96,13 @@ state_init() {
       status: "running",
       cursor: 0,
       owner_session_id: $sid,
-      owner_agent_id: "",
+      owner_agent_id: $aid,
       started_at: $now,
       updated_at: $now,
       steps: $steps
     }')
 
-  mkdir -p "$state_dir"
+  mkdir -p "$(dirname "$state_file")"
   state_write "$state_file" "$state"
 }
 
