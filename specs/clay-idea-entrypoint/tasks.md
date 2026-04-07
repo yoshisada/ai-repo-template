@@ -9,14 +9,14 @@
 
 **Independent Test**: Run `/clay:idea "build a habit tracker"` with empty products/ and no clay.config. Verify it presents "New product" and offers to chain to `/idea-research`.
 
-- [ ] T001 [US1] Create `plugin-clay/skills/idea/SKILL.md` with frontmatter (name: idea, description per contracts/interfaces.md) and User Input section that reads $ARGUMENTS and prompts if empty (FR-001)
-- [ ] T002 [US1,US2] Add Step 1: Gather Context — scan `products/` directory for all product slugs, read research.md/naming.md/PRD.md from each to extract names, descriptions, summaries (FR-002)
-- [ ] T003 [US3] Add clay.config reading to Step 1 — parse `clay.config` line by line with format `<slug> <url> <path> <date>`, skip malformed lines with warning, gracefully skip if file doesn't exist (FR-003, FR-010, FR-012)
-- [ ] T004 [US1,US2,US3] Add Step 2: Overlap Analysis — instruct LLM to compare input idea against gathered products and tracked repos for semantic overlap, explain reasoning for each match (FR-004)
-- [ ] T005 [US1,US2,US3] Add Step 3: Present Routing Options — display findings with exactly 4 routing options: "New product", "Add to existing product", "Work in existing repo", "Similar but distinct". Always require user confirmation before proceeding (FR-005)
-- [ ] T006 [US1] Add Step 4: Route to Downstream Skill — implement chaining logic: "New product" chains to `/idea-research` → `/project-naming` → `/create-prd` sequentially with confirmation at each step (FR-006, FR-007)
-- [ ] T007 [US2] Add "Add to existing product" route — chain to `/create-prd` in Mode C targeting the matched product slug (FR-006)
-- [ ] T008 [US3] Add "Work in existing repo" route — suggest `cd <local-path>` and running `/build-prd` or `/clay:idea` there (FR-006)
+- [X] T001 [US1] Create `plugin-clay/skills/idea/SKILL.md` with frontmatter (name: idea, description per contracts/interfaces.md) and User Input section that reads $ARGUMENTS and prompts if empty (FR-001)
+- [X] T002 [US1,US2] Add Step 1: Gather Context — scan `products/` directory for all product slugs, read research.md/naming.md/PRD.md from each to extract names, descriptions, summaries (FR-002)
+- [X] T003 [US3] Add clay.config reading to Step 1 — parse `clay.config` line by line with format `<slug> <url> <path> <date>`, skip malformed lines with warning, gracefully skip if file doesn't exist (FR-003, FR-010, FR-012)
+- [X] T004 [US1,US2,US3] Add Step 2: Overlap Analysis — instruct LLM to compare input idea against gathered products and tracked repos for semantic overlap, explain reasoning for each match (FR-004)
+- [X] T005 [US1,US2,US3] Add Step 3: Present Routing Options — display findings with exactly 4 routing options: "New product", "Add to existing product", "Work in existing repo", "Similar but distinct". Always require user confirmation before proceeding (FR-005)
+- [X] T006 [US1] Add Step 4: Route to Downstream Skill — implement chaining logic: "New product" chains to `/idea-research` → `/project-naming` → `/create-prd` sequentially with confirmation at each step (FR-006, FR-007)
+- [X] T007 [US2] Add "Add to existing product" route — chain to `/create-prd` in Mode C targeting the matched product slug (FR-006)
+- [X] T008 [US3] Add "Work in existing repo" route — suggest `cd <local-path>` and running `/build-prd` or `/clay:idea` there (FR-006)
 
 **Checkpoint**: `/clay:idea` skill is complete. All 4 routes work. Overlap detection reads both products/ and clay.config.
 
