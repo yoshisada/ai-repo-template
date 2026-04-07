@@ -19,8 +19,8 @@
 
 **Purpose**: Create skill directories
 
-- [ ] T001 [P] Create wheel-list skill directory at plugin-wheel/skills/wheel-list/
-- [ ] T002 [P] Create qa-audit skill directory at plugin-kiln/skills/qa-audit/
+- [X] T001 [P] Create wheel-list skill directory at plugin-wheel/skills/wheel-list/
+- [X] T002 [P] Create qa-audit skill directory at plugin-kiln/skills/qa-audit/
 
 ---
 
@@ -32,12 +32,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Create SKILL.md frontmatter and introduction in plugin-wheel/skills/wheel-list/SKILL.md
-- [ ] T004 [US1] Implement Step 1 — Scan: recursively find all .json files in workflows/ directory (FR-001) in plugin-wheel/skills/wheel-list/SKILL.md
-- [ ] T005 [US1] Implement Step 2 — Parse & Validate: extract name, step count, step types, composition flag, validation status for each workflow using jq (FR-002, FR-004) in plugin-wheel/skills/wheel-list/SKILL.md
-- [ ] T006 [US1] Implement Step 3 — Group & Display: group workflows by parent directory and output formatted tables (FR-003) in plugin-wheel/skills/wheel-list/SKILL.md
-- [ ] T007 [US1] Implement empty state: display helpful message suggesting /wheel-create when no workflows found (FR-005) in plugin-wheel/skills/wheel-list/SKILL.md
-- [ ] T008 [US1] End-to-end validation: run /wheel-list on this repo's workflows/ directory and verify output matches expected format from contracts/interfaces.md
+- [X] T003 [US1] Create SKILL.md frontmatter and introduction in plugin-wheel/skills/wheel-list/SKILL.md
+- [X] T004 [US1] Implement Step 1 — Scan: recursively find all .json files in workflows/ directory (FR-001) in plugin-wheel/skills/wheel-list/SKILL.md
+- [X] T005 [US1] Implement Step 2 — Parse & Validate: extract name, step count, step types, composition flag, validation status for each workflow using jq (FR-002, FR-004) in plugin-wheel/skills/wheel-list/SKILL.md
+- [X] T006 [US1] Implement Step 3 — Group & Display: group workflows by parent directory and output formatted tables (FR-003) in plugin-wheel/skills/wheel-list/SKILL.md
+- [X] T007 [US1] Implement empty state: display helpful message suggesting /wheel-create when no workflows found (FR-005) in plugin-wheel/skills/wheel-list/SKILL.md
+- [X] T008 [US1] End-to-end validation: run /wheel-list on this repo's workflows/ directory and verify output matches expected format from contracts/interfaces.md
 
 **Checkpoint**: `/wheel-list` is fully functional and independently testable.
 
