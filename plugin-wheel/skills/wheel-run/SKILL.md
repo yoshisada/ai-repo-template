@@ -1,11 +1,11 @@
 ---
 name: wheel-run
-description: Start a workflow by name. Validates the workflow JSON, creates per-agent state file, and activates hook interception. Usage: /wheel-run <workflow-name>
+description: Start a workflow by name or plugin:name. Validates the workflow JSON, creates per-agent state file, and activates hook interception. Usage: /wheel-run <workflow-name> or /wheel-run <plugin>:<workflow-name>
 ---
 
 # Wheel Run — Start a Workflow
 
-Start a named workflow so that wheel hooks begin intercepting Claude Code events. The workflow file must exist at `workflows/<name>.json`.
+Start a named workflow so that wheel hooks begin intercepting Claude Code events. Supports both local workflows (`workflows/<name>.json`) and plugin-provided workflows (`<plugin>:<workflow-name>`).
 
 ## User Input
 
@@ -13,18 +13,60 @@ Start a named workflow so that wheel hooks begin intercepting Claude Code events
 $ARGUMENTS
 ```
 
-## Step 1: Resolve Workflow File
+## Step 1: Resolve Workflow File (FR-031)
 
-The workflow name comes from `$ARGUMENTS`. Resolve it to a file path:
+The workflow name comes from `$ARGUMENTS`. Resolve it to a file path. If the name contains `:`, treat it as a `<plugin>:<workflow-name>` reference and look up the workflow from the plugin's install path.
 
 ```bash
 WORKFLOW_NAME="$ARGUMENTS"
-WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
-if [[ ! -f "$WORKFLOW_FILE" ]]; then
-  echo "ERROR: Workflow file not found: $WORKFLOW_FILE"
-  echo "Available workflows:"
-  ls workflows/*.json 2>/dev/null || echo "  (none)"
-  exit 1
+PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+source "${WHEEL_LIB_DIR}/workflow.sh"
+
+IS_PLUGIN_WORKFLOW=false
+
+if [[ "$WORKFLOW_NAME" == *":"* ]]; then
+  # FR-031: Plugin workflow — resolve via plugin manifest discovery
+  PLUGIN_NAME="${WORKFLOW_NAME%%:*}"
+  WF_NAME="${WORKFLOW_NAME#*:}"
+
+  PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows)
+  WORKFLOW_FILE=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r \
+    --arg plugin "$PLUGIN_NAME" --arg name "$WF_NAME" \
+    '.[] | select(.plugin == $plugin and .name == $name) | .path // empty')
+
+  if [[ -z "$WORKFLOW_FILE" ]]; then
+    echo "ERROR: Plugin workflow not found: $WORKFLOW_NAME"
+    echo ""
+    echo "Available plugin workflows:"
+    printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r '.[] | "  \(.plugin):\(.name)"'
+    AVAILABLE=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq 'length')
+    if [[ "$AVAILABLE" -eq 0 ]]; then
+      echo "  (none — no installed plugins declare workflows)"
+    fi
+    exit 1
+  fi
+
+  # FR-030: Check for local override
+  if [[ -f "workflows/${WF_NAME}.json" ]]; then
+    echo "Note: Local override found at workflows/${WF_NAME}.json — using local copy instead of plugin version."
+    WORKFLOW_FILE="workflows/${WF_NAME}.json"
+  else
+    IS_PLUGIN_WORKFLOW=true
+  fi
+
+  # For activate.sh, use the resolved absolute path
+  WORKFLOW_NAME_FOR_ACTIVATE="$WORKFLOW_FILE"
+else
+  # Local workflow — resolve from workflows/ directory
+  WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
+  if [[ ! -f "$WORKFLOW_FILE" ]]; then
+    echo "ERROR: Workflow file not found: $WORKFLOW_FILE"
+    echo "Available workflows:"
+    ls workflows/*.json 2>/dev/null || echo "  (none)"
+    exit 1
+  fi
+  WORKFLOW_NAME_FOR_ACTIVATE="$WORKFLOW_NAME"
 fi
 ```
 
@@ -51,13 +93,11 @@ Note: Multiple workflows CAN run concurrently (one per agent). This check is inf
 
 ## Step 3: Validate Workflow
 
-Source the wheel engine libs and validate:
+Source the remaining wheel engine libs (workflow.sh already sourced in Step 1) and validate:
 
 ```bash
-PLUGIN_DIR="$SKILL_BASE_DIR/../.."
-WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+# workflow.sh already sourced in Step 1 for plugin discovery
 source "${WHEEL_LIB_DIR}/state.sh"
-source "${WHEEL_LIB_DIR}/workflow.sh"
 source "${WHEEL_LIB_DIR}/dispatch.sh"
 source "${WHEEL_LIB_DIR}/lock.sh"
 source "${WHEEL_LIB_DIR}/context.sh"
@@ -83,11 +123,13 @@ If validation fails, **stop here** and report the error.
 
 The skill does NOT create the state file directly. It runs `activate.sh` which the PostToolUse hook intercepts. The hook reads the workflow file directly (no intermediate files), validates it, and creates the state file with the correct session_id and agent_id from hook input.
 
+For plugin workflows, `WORKFLOW_NAME_FOR_ACTIVATE` is the absolute path to the workflow file (so the hook can find it). For local workflows, it's the bare name.
+
 ```bash
 # Run activate.sh — the PostToolUse hook intercepts this call,
 # reads the workflow file, and creates the state file with proper ownership
 mkdir -p .wheel
-"${PLUGIN_DIR}/bin/activate.sh" "$WORKFLOW_NAME"
+"${PLUGIN_DIR}/bin/activate.sh" "$WORKFLOW_NAME_FOR_ACTIVATE"
 ```
 
 ## Step 5: Report Success
@@ -126,16 +168,23 @@ echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to 
 
 ## Ownership
 
-State file creation happens in the PostToolUse hook, NOT in the skill. The hook reads the workflow file directly from `workflows/<name>.json` (no intermediate pending file), validates it, and creates the state file with session_id and agent_id from the hook input JSON.
+State file creation happens in the PostToolUse hook, NOT in the skill. The hook reads the workflow file directly (no intermediate pending file), validates it, and creates the state file with session_id and agent_id from the hook input JSON.
 
-The flow:
+The flow for local workflows:
 1. Skill validates workflow (early error reporting)
 2. Skill runs `activate.sh <name>` (no-op script)
 3. PostToolUse hook fires → sees `activate.sh` in command → reads `workflows/<name>.json` → validates → creates `state_{sid}_{aid}.json` → runs kickstart
+
+The flow for plugin workflows (FR-031):
+1. Skill resolves `<plugin>:<name>` to absolute path via `workflow_discover_plugin_workflows()`
+2. Skill validates workflow at that path (early error reporting)
+3. Skill runs `activate.sh <absolute-path>` (no-op script)
+4. PostToolUse hook fires → sees `activate.sh` in command → reads workflow at the given path → validates → creates state file → runs kickstart
 
 No race condition: the hook reads the workflow file directly. No shared mutable state between concurrent agents.
 
 ## Rules
 
-- If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json`.
+- If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json` and installed plugins.
 - Never create a state file directly — always go through activate.sh + hook.
+- Plugin workflows are read-only (FR-030) — they execute from the plugin's install path. Users can copy to `workflows/` to customize, and the local copy takes precedence.

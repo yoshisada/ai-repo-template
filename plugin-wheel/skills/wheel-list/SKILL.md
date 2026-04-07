@@ -1,6 +1,6 @@
 ---
 name: wheel-list
-description: List all available wheel workflows. Scans workflows/ directory and displays names, step counts, step types, validation status, grouped by directory.
+description: List all available wheel workflows. Scans local workflows/ directory and installed plugin manifests. Displays names, step counts, step types, validation status, grouped by source.
 ---
 
 # Wheel List — Discover Available Workflows
@@ -126,16 +126,72 @@ echo "---"
 echo "Total: $TOTAL_WORKFLOWS workflow(s) found."
 ```
 
-Display the output from the bash block above. This is the final output of the skill.
+Display the output from the bash block above.
+
+## Step 3: Discover Plugin Workflows (FR-029, FR-030)
+
+After displaying local workflows, scan installed plugins for bundled workflows.
+
+```bash
+PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+source "${WHEEL_LIB_DIR}/workflow.sh"
+
+PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows)
+PLUGIN_WF_COUNT=$(echo "$PLUGIN_WORKFLOWS" | jq 'length')
+
+if [[ "$PLUGIN_WF_COUNT" -gt 0 ]]; then
+  echo ""
+  echo "## Plugin Workflows (read-only)"
+  echo ""
+  echo "| Plugin | Workflow | Steps | Types | Status |"
+  echo "|--------|----------|-------|-------|--------|"
+
+  for i in $(seq 0 $((PLUGIN_WF_COUNT - 1))); do
+    ENTRY=$(echo "$PLUGIN_WORKFLOWS" | jq -c ".[$i]")
+    P_NAME=$(echo "$ENTRY" | jq -r '.plugin')
+    WF_NAME=$(echo "$ENTRY" | jq -r '.name')
+    WF_PATH=$(echo "$ENTRY" | jq -r '.path')
+
+    # Validate the workflow file
+    if [[ ! -f "$WF_PATH" ]]; then
+      echo "| $P_NAME | $WF_NAME | - | - | ERROR: file not found |"
+      continue
+    fi
+
+    if ! WF_JSON=$(cat "$WF_PATH" 2>/dev/null) || ! echo "$WF_JSON" | jq empty 2>/dev/null; then
+      echo "| $P_NAME | $WF_NAME | - | - | ERROR: invalid JSON |"
+      continue
+    fi
+
+    WF_STEPS=$(echo "$WF_JSON" | jq '.steps | length' 2>/dev/null)
+    WF_TYPES=$(echo "$WF_JSON" | jq -r '[.steps[].type] | unique | join(", ")' 2>/dev/null)
+
+    # Check for local override
+    LOCAL_OVERRIDE=""
+    if [[ -f "workflows/${WF_NAME}.json" ]]; then
+      LOCAL_OVERRIDE=" (overridden by local)"
+    fi
+
+    echo "| $P_NAME | $WF_NAME | $WF_STEPS | $WF_TYPES | Valid${LOCAL_OVERRIDE} |"
+  done
+
+  echo ""
+  echo "Run plugin workflows with \`/wheel-run <plugin>:<workflow-name>\` (e.g., \`/wheel-run ${P_NAME}:${WF_NAME}\`)."
+  echo "Copy to \`workflows/\` to customize."
+fi
+```
+
+Display the output from the bash block above. This completes the skill output.
 
 ## Empty State (FR-005)
 
-If Step 1 found no workflow files, display this message:
+If Step 1 found no local workflow files AND Step 3 found no plugin workflows, display this message:
 
 ```
 No workflows found.
 
-Run `/wheel-create` to create your first workflow.
+Run `/wheel-create` to create your first workflow, or install a plugin that ships workflows.
 ```
 
 **Stop here** — there is nothing else to display.
@@ -147,3 +203,5 @@ Run `/wheel-create` to create your first workflow.
 - Workflows missing required fields (name, steps) appear with descriptive error messages.
 - Branch targets and context_from references are validated against known step IDs.
 - The skill scans recursively — deeply nested directories (e.g., `workflows/a/b/c/`) are supported.
+- Plugin workflows are displayed in a separate section labeled "Plugin Workflows (read-only)" (FR-029).
+- If a local workflow has the same name as a plugin workflow, the plugin entry shows "(overridden by local)" (FR-030).

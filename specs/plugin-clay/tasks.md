@@ -27,8 +27,8 @@
 **Purpose**: Extend wheel to discover workflows from installed plugins — prerequisite for clay's Obsidian workflow
 
 - [X] T005 [US7] Add `workflow_discover_plugin_workflows()` function to `plugin-wheel/lib/workflow.sh` per contracts/interfaces.md signature. Scans `.claude/plugins/*/plugin.json` for `workflows` field, returns JSON array of `{name, plugin, path, readonly}` descriptors.
-- [ ] T006 [US7] Update `plugin-wheel/skills/wheel-list/SKILL.md` to call `workflow_discover_plugin_workflows()` after scanning local `workflows/` directory. Display plugin workflows in a separate "Plugin Workflows (read-only)" section.
-- [ ] T007 [US7] Update `plugin-wheel/skills/wheel-run/SKILL.md` Step 1 to resolve `<plugin>:<workflow-name>` syntax per contracts/interfaces.md. When name contains `:`, split on `:` and look up plugin workflow via `workflow_discover_plugin_workflows()`.
+- [X] T006 [US7] Update `plugin-wheel/skills/wheel-list/SKILL.md` to call `workflow_discover_plugin_workflows()` after scanning local `workflows/` directory. Display plugin workflows in a separate "Plugin Workflows (read-only)" section.
+- [X] T007 [US7] Update `plugin-wheel/skills/wheel-run/SKILL.md` Step 1 to resolve `<plugin>:<workflow-name>` syntax per contracts/interfaces.md. When name contains `:`, split on `:` and look up plugin workflow via `workflow_discover_plugin_workflows()`.
 
 **Checkpoint**: `workflow_discover_plugin_workflows` returns valid JSON. `/wheel-list` shows plugin workflows. `/wheel-run clay:clay-sync` resolves to the correct file path.
 
