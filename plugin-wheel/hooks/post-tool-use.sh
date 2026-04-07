@@ -108,8 +108,8 @@ fi
 
 # 3. Resolve state file from hook input (FR-004) — normal hook path
 source "${PLUGIN_DIR}/lib/guard.sh"
-STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT")
-if [[ $? -ne 0 || -z "$STATE_FILE" ]]; then
+STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT") || true
+if [[ -z "$STATE_FILE" ]]; then
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi

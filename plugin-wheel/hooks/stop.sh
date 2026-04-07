@@ -11,8 +11,8 @@ HOOK_INPUT=$(cat)
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 source "${PLUGIN_DIR}/lib/guard.sh"
-STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT")
-if [[ $? -ne 0 || -z "$STATE_FILE" ]]; then
+STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT") || true
+if [[ -z "$STATE_FILE" ]]; then
   echo '{"decision": "approve"}'
   exit 0
 fi
