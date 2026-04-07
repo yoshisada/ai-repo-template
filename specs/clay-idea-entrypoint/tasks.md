@@ -28,7 +28,7 @@
 
 **Independent Test**: Run `/clay:create-repo` for a product. Verify clay.config is created/appended with the correct format.
 
-- [ ] T009 [US4] Add Step 7.5 to `plugin-clay/skills/create-repo/SKILL.md` — after successful repo creation (Step 7) and before status marker (Step 8), append entry to clay.config with format `<slug> <repo-url> <local-path> <YYYY-MM-DD>`. Use `>>` (append). Create clay.config if it doesn't exist. (FR-009, FR-013)
+- [X] T009 [US4] Add Step 7.5 to `plugin-clay/skills/create-repo/SKILL.md` — after successful repo creation (Step 7) and before status marker (Step 8), append entry to clay.config with format `<slug> <repo-url> <local-path> <YYYY-MM-DD>`. Use `>>` (append). Create clay.config if it doesn't exist. (FR-009, FR-013)
 
 **Checkpoint**: `/clay:create-repo` writes to clay.config after every successful repo creation.
 
@@ -40,8 +40,8 @@
 
 **Independent Test**: Create products/ with entries and a clay.config with matching slugs. Run `/clay:clay-list`. Verify table includes repo URL and local path columns.
 
-- [ ] T010 [US5] Add Step 1.5 to `plugin-clay/skills/clay-list/SKILL.md` — read clay.config if it exists, parse entries into a lookup map (slug → url, local_path, date). Skip gracefully if file doesn't exist. (FR-011, FR-012)
-- [ ] T011 [US5] Update Step 4 (Display table) in `plugin-clay/skills/clay-list/SKILL.md` — when clay.config exists, add "Repo URL" and "Local Path" columns. Products without clay.config entries show "—". When clay.config doesn't exist, render table without repo columns. (FR-014)
+- [X] T010 [US5] Add Step 1.5 to `plugin-clay/skills/clay-list/SKILL.md` — read clay.config if it exists, parse entries into a lookup map (slug → url, local_path, date). Skip gracefully if file doesn't exist. (FR-011, FR-012)
+- [X] T011 [US5] Update Step 4 (Display table) in `plugin-clay/skills/clay-list/SKILL.md` — when clay.config exists, add "Repo URL" and "Local Path" columns. Products without clay.config entries show "—". When clay.config doesn't exist, render table without repo columns. (FR-014)
 
 **Checkpoint**: `/clay:clay-list` shows repo info from clay.config when available.
 

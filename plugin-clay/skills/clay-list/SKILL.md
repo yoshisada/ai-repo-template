@@ -17,6 +17,22 @@ Check if the `products/` directory exists. If it does not exist, tell the user:
 
 If it exists, list all subdirectories under `products/`.
 
+### Step 1.5: Read Clay Config
+
+<!-- FR-011, FR-014: Read clay.config for repo URLs and local paths -->
+<!-- FR-012: Gracefully skip if clay.config doesn't exist -->
+If `clay.config` exists at the project root, read it line by line and build a lookup map:
+
+- **Format**: `<product-slug> <repo-url> <local-path> <created-date>`
+- Each line has exactly 4 space-separated fields
+- Lines starting with `#` are comments — skip them
+- Lines that don't have exactly 4 fields are malformed — skip them silently
+- Build a map: `slug → { url, local_path, date }`
+
+If `clay.config` does not exist, skip this step. The output table will not include repo columns.
+
+Set a flag `HAS_CLAY_CONFIG` to true/false based on whether the file was found and parsed.
+
 ### Step 2: Derive status for each product
 
 For each product directory under `products/`, derive its status using this logic (check in this order — first match wins):
@@ -40,7 +56,26 @@ For each product, count how many of these artifacts exist:
 
 ### Step 4: Display table
 
-Output a formatted table to the user:
+Output a formatted table to the user. The table format depends on whether `clay.config` was found in Step 1.5.
+
+**When `HAS_CLAY_CONFIG` is true** — include Repo URL and Local Path columns:
+
+```
+Product Portfolio
+=================
+
+| Product        | Status       | Artifacts | Repo URL                              | Local Path     |
+|----------------|--------------|-----------|---------------------------------------|----------------|
+| my-product     | repo-created | 5/6       | https://github.com/user/my-product    | ../my-product  |
+| another-idea   | researched   | 1/6       | —                                     | —              |
+| quick-thought  | idea         | 0/6       | —                                     | —              |
+
+Total: 3 products
+```
+
+For each product, look up its slug in the clay.config map from Step 1.5. If found, show the repo URL and local path. If not found, show "—" in both columns.
+
+**When `HAS_CLAY_CONFIG` is false** — render the table without repo columns:
 
 ```
 Product Portfolio
