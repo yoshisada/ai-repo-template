@@ -64,7 +64,7 @@
 
 **Independent Test**: Run `/create-prd` with a product idea, answer questions, verify PRD.md + PRD-MVP.md + PRD-Phases.md are created
 
-- [ ] T010 [US3] Create `plugin-clay/skills/create-prd/SKILL.md` with frontmatter (name: create-prd, description per spec). Implement merged logic from kiln's `/create-prd` and `founder-prd` skill (FR-015): (1) detect mode from input — Mode A (new product), Mode B (feature addition), Mode C (PRD-only workspace) (FR-016), (2) ask clarifying questions one at a time with multiple-choice options (FR-017) covering product, users, problem, use cases, MVP, scope control, success, constraints, tech stack, risks, absolute musts, (3) generate PRD.md, PRD-MVP.md, PRD-Phases.md (FR-018) under `products/<slug>/` (FR-019), (4) incorporate research.md and naming.md if present (FR-020), (5) enforce tech stack definition — never undefined, propose defaults (FR-021), (6) include "Absolute Musts" section with tech stack as #1.
+- [X] T010 [US3] Create `plugin-clay/skills/create-prd/SKILL.md` with frontmatter (name: create-prd, description per spec). Implement merged logic from kiln's `/create-prd` and `founder-prd` skill (FR-015): (1) detect mode from input — Mode A (new product), Mode B (feature addition), Mode C (PRD-only workspace) (FR-016), (2) ask clarifying questions one at a time with multiple-choice options (FR-017) covering product, users, problem, use cases, MVP, scope control, success, constraints, tech stack, risks, absolute musts, (3) generate PRD.md, PRD-MVP.md, PRD-Phases.md (FR-018) under `products/<slug>/` (FR-019), (4) incorporate research.md and naming.md if present (FR-020), (5) enforce tech stack definition — never undefined, propose defaults (FR-021), (6) include "Absolute Musts" section with tech stack as #1.
 
 **Checkpoint**: All 3 PRD files generated with tech stack defined and absolute musts present
 
@@ -76,7 +76,7 @@
 
 **Independent Test**: Run `/create-repo` with a product slug pointing at a finished PRD, verify GitHub repo is created with kiln infrastructure and PRD in docs/
 
-- [ ] T011 [US4] Create `plugin-clay/skills/create-repo/SKILL.md` with frontmatter (name: create-repo, description per spec). Implement: (1) resolve PRD from `$ARGUMENTS` — product slug or explicit path (FR-022), (2) validate `gh` CLI is authenticated, (3) create GitHub repo with specified name, visibility, org (FR-025), (4) scaffold kiln infrastructure via init script (FR-023), (5) copy PRD.md, PRD-MVP.md, PRD-Phases.md from `products/<slug>/` to `docs/` (FR-024), (6) install kiln, wheel, shelf plugins (FR-026), (7) suggest `/build-prd` as next step (FR-027), (8) write repo URL to `products/<slug>/.repo-url` marker file for status tracking.
+- [X] T011 [US4] Create `plugin-clay/skills/create-repo/SKILL.md` with frontmatter (name: create-repo, description per spec). Implement: (1) resolve PRD from `$ARGUMENTS` — product slug or explicit path (FR-022), (2) validate `gh` CLI is authenticated, (3) create GitHub repo with specified name, visibility, org (FR-025), (4) scaffold kiln infrastructure via init script (FR-023), (5) copy PRD.md, PRD-MVP.md, PRD-Phases.md from `products/<slug>/` to `docs/` (FR-024), (6) install kiln, wheel, shelf plugins (FR-026), (7) suggest `/build-prd` as next step (FR-027), (8) write repo URL to `products/<slug>/.repo-url` marker file for status tracking.
 
 **Checkpoint**: Skill creates repo, seeds PRD, installs plugins, suggests next step
 
