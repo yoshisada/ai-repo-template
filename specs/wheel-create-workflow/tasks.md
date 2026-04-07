@@ -93,7 +93,7 @@
 
 - [X] T016 Add edge case handling: vague descriptions (ask clarifying question), complex nested logic (wrap as agent steps), workflows exceeding 20 steps (consolidate), missing `workflows/` directory (create it) in `plugin-wheel/skills/wheel-create/SKILL.md`
 - [X] T017 Add a Rules section at the bottom of the skill summarizing key constraints: never overwrite existing files, max 20 steps, validate before writing, no auto-execution in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T018 End-to-end validation: generate a test workflow from a description, validate it passes `workflow_load`, verify it can run via `/wheel-run`
+- [X] T018 End-to-end validation: generate a test workflow from a description, validate it passes `workflow_load`, verify it can run via `/wheel-run`
 
 ---
 
