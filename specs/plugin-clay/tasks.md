@@ -26,7 +26,7 @@
 
 **Purpose**: Extend wheel to discover workflows from installed plugins — prerequisite for clay's Obsidian workflow
 
-- [ ] T005 [US7] Add `workflow_discover_plugin_workflows()` function to `plugin-wheel/lib/workflow.sh` per contracts/interfaces.md signature. Scans `.claude/plugins/*/plugin.json` for `workflows` field, returns JSON array of `{name, plugin, path, readonly}` descriptors.
+- [X] T005 [US7] Add `workflow_discover_plugin_workflows()` function to `plugin-wheel/lib/workflow.sh` per contracts/interfaces.md signature. Scans `.claude/plugins/*/plugin.json` for `workflows` field, returns JSON array of `{name, plugin, path, readonly}` descriptors.
 - [ ] T006 [US7] Update `plugin-wheel/skills/wheel-list/SKILL.md` to call `workflow_discover_plugin_workflows()` after scanning local `workflows/` directory. Display plugin workflows in a separate "Plugin Workflows (read-only)" section.
 - [ ] T007 [US7] Update `plugin-wheel/skills/wheel-run/SKILL.md` Step 1 to resolve `<plugin>:<workflow-name>` syntax per contracts/interfaces.md. When name contains `:`, split on `:` and look up plugin workflow via `workflow_discover_plugin_workflows()`.
 
@@ -40,7 +40,7 @@
 
 **Independent Test**: Run `/idea-research "a CLI tool that generates changelogs from git history"` and verify `products/<slug>/research.md` is created with classified findings
 
-- [ ] T008 [US1] Create `plugin-clay/skills/idea-research/SKILL.md` with frontmatter (name: idea-research, description per spec). Implement: (1) accept `$ARGUMENTS` as 1-5 sentence idea (FR-004), (2) derive slug via kebab-case, (3) create `products/<slug>/` if missing, (4) use WebSearch for market research (FR-005), (5) classify findings using rubric: EXACT MATCH, CLOSE COMPETITOR, ADJACENT, SLIGHTLY SIMILAR (FR-006), (6) write structured report to `products/<slug>/research.md` with product name, URL, description, classification, differentiators, pricing (FR-007, FR-008), (7) include go/no-go recommendation (FR-009).
+- [X] T008 [US1] Create `plugin-clay/skills/idea-research/SKILL.md` with frontmatter (name: idea-research, description per spec). Implement: (1) accept `$ARGUMENTS` as 1-5 sentence idea (FR-004), (2) derive slug via kebab-case, (3) create `products/<slug>/` if missing, (4) use WebSearch for market research (FR-005), (5) classify findings using rubric: EXACT MATCH, CLOSE COMPETITOR, ADJACENT, SLIGHTLY SIMILAR (FR-006), (6) write structured report to `products/<slug>/research.md` with product name, URL, description, classification, differentiators, pricing (FR-007, FR-008), (7) include go/no-go recommendation (FR-009).
 
 **Checkpoint**: SKILL.md has valid frontmatter, report output matches FR-007/FR-008 structure
 
@@ -52,7 +52,7 @@
 
 **Independent Test**: Run `/project-naming` with product context and verify `products/<slug>/naming.md` has ranked candidates
 
-- [ ] T009 [US2] Create `plugin-clay/skills/project-naming/SKILL.md` with frontmatter (name: project-naming, description per spec). Implement: (1) accept `$ARGUMENTS` as product context (FR-010), (2) read `products/<slug>/research.md` if available for context, (3) generate 5-10 candidate names with rationale (FR-011), (4) check npm, GitHub, domain availability for each (FR-012), (5) write naming report to `products/<slug>/naming.md` with ranked recommendations (FR-013), (6) support iterative refinement via conversational follow-up (FR-014).
+- [X] T009 [US2] Create `plugin-clay/skills/project-naming/SKILL.md` with frontmatter (name: project-naming, description per spec). Implement: (1) accept `$ARGUMENTS` as product context (FR-010), (2) read `products/<slug>/research.md` if available for context, (3) generate 5-10 candidate names with rationale (FR-011), (4) check npm, GitHub, domain availability for each (FR-012), (5) write naming report to `products/<slug>/naming.md` with ranked recommendations (FR-013), (6) support iterative refinement via conversational follow-up (FR-014).
 
 **Checkpoint**: SKILL.md has valid frontmatter, naming report includes availability data
 
