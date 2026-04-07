@@ -17,7 +17,7 @@
 
 **Purpose**: No new files or dependencies needed. This phase ensures the spec artifacts are committed before code changes begin.
 
-- [ ] T001 Commit spec.md, plan.md, research.md, data-model.md, quickstart.md, contracts/interfaces.md, and tasks.md to git before any code changes
+- [X] T001 Commit spec.md, plan.md, research.md, data-model.md, quickstart.md, contracts/interfaces.md, and tasks.md to git before any code changes
 
 ---
 
@@ -27,8 +27,8 @@
 
 **CRITICAL**: No dispatch/state/hook work can begin until validation is complete.
 
-- [ ] T002 [US2] Add `workflow_validate_workflow_refs()` function to `plugin-wheel/lib/workflow.sh` — FR-003: validate that every `workflow` step references an existing `workflows/<name>.json` file. FR-004: detect circular references via DFS with visited set. FR-005: recursively validate child workflows. FR-006: cap nesting depth at 5 levels. Signature per contracts/interfaces.md.
-- [ ] T003 [US2] Modify `workflow_load()` in `plugin-wheel/lib/workflow.sh` — after existing validation passes, call `workflow_validate_workflow_refs()` with the validated JSON, empty visited string, and depth 0. If it fails, return 1.
+- [X] T002 [US2] Add `workflow_validate_workflow_refs()` function to `plugin-wheel/lib/workflow.sh` — FR-003: validate that every `workflow` step references an existing `workflows/<name>.json` file. FR-004: detect circular references via DFS with visited set. FR-005: recursively validate child workflows. FR-006: cap nesting depth at 5 levels. Signature per contracts/interfaces.md.
+- [X] T003 [US2] Modify `workflow_load()` in `plugin-wheel/lib/workflow.sh` — after existing validation passes, call `workflow_validate_workflow_refs()` with the validated JSON, empty visited string, and depth 0. If it fails, return 1.
 
 **Checkpoint**: `workflow_load` now rejects workflows with missing refs, circular refs, and excessive nesting depth.
 

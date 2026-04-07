@@ -41,6 +41,11 @@ workflow_load() {
   if ! workflow_validate_references "$content"; then
     return 1
   fi
+  # FR-003/FR-004/FR-005/FR-006: Validate workflow step references
+  if ! workflow_validate_workflow_refs "$content" "" 0; then
+    return 1
+  fi
+
   printf '%s\n' "$content"
 }
 
@@ -157,5 +162,91 @@ workflow_validate_references() {
     printf '%s\n' "$invalid_next" >&2
     return 1
   fi
+  return 0
+}
+
+# FR-003/FR-004/FR-005/FR-006: Validate workflow step references, detect circular
+# references, enforce nesting depth, and recursively validate child workflows.
+#
+# Params:
+#   $1 = workflow_json (string) — validated workflow JSON
+#   $2 = visited (string) — comma-separated list of workflow names already in the call chain (for cycle detection)
+#   $3 = depth (integer) — current nesting depth (starts at 0)
+#
+# Output (stderr): error messages if validation fails
+# Exit: 0 if all workflow references valid, 1 if any validation fails
+workflow_validate_workflow_refs() {
+  local workflow_json="$1"
+  local visited="$2"
+  local depth="$3"
+
+  # FR-006: Cap nesting depth at 5 levels
+  if [[ "$depth" -gt 5 ]]; then
+    echo "ERROR: workflow nesting depth exceeds maximum (5)" >&2
+    return 1
+  fi
+
+  # Get current workflow name for cycle detection
+  local current_name
+  current_name=$(printf '%s\n' "$workflow_json" | jq -r '.name // "unknown"')
+
+  # Collect all workflow steps
+  local workflow_steps
+  workflow_steps=$(printf '%s\n' "$workflow_json" | jq -r '.steps[] | select(.type == "workflow") | .id + ":" + .workflow')
+
+  if [[ -z "$workflow_steps" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    local step_id="${entry%%:*}"
+    local child_name="${entry#*:}"
+
+    # FR-003: Validate that the referenced workflow file exists
+    local child_file="workflows/${child_name}.json"
+    if [[ ! -f "$child_file" ]]; then
+      echo "ERROR: workflow step '${step_id}' references missing workflow: ${child_name}" >&2
+      return 1
+    fi
+
+    # FR-004: Detect circular references via visited set
+    if [[ -n "$visited" ]]; then
+      local IFS_OLD="$IFS"
+      IFS=','
+      for v in $visited; do
+        if [[ "$v" == "$child_name" ]]; then
+          echo "ERROR: circular workflow reference detected: ${visited},${child_name}" >&2
+          IFS="$IFS_OLD"
+          return 1
+        fi
+      done
+      IFS="$IFS_OLD"
+    fi
+    if [[ "$current_name" == "$child_name" ]]; then
+      echo "ERROR: circular workflow reference detected: ${current_name} -> ${child_name}" >&2
+      return 1
+    fi
+
+    # FR-005: Recursively validate child workflow
+    local child_json
+    if ! child_json=$(jq -c '.' "$child_file" 2>/dev/null); then
+      echo "ERROR: invalid JSON in child workflow: ${child_name}" >&2
+      return 1
+    fi
+
+    # Build visited chain for recursion
+    local new_visited
+    if [[ -n "$visited" ]]; then
+      new_visited="${visited},${current_name}"
+    else
+      new_visited="${current_name}"
+    fi
+
+    if ! workflow_validate_workflow_refs "$child_json" "$new_visited" $((depth + 1)); then
+      return 1
+    fi
+  done <<< "$workflow_steps"
+
   return 0
 }
