@@ -1,11 +1,11 @@
 {
   "name": "shelf-full-sync",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "steps": [
     {
       "id": "gather-repo-state",
       "type": "command",
-      "command": "echo '## Repo State' && echo \"Branch: $(git branch --show-current)\" && echo \"Last 10 commits:\" && git log --format='%h %s' -10 && echo '---' && echo 'Open GitHub issues:' && gh issue list --state open --json number,title,labels --limit 50 2>/dev/null || echo '(gh unavailable)' && echo '---' && echo 'Backlog items:' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo 'Feature PRDs:' && ls docs/features/*/PRD.md 2>/dev/null || echo '(none)' && echo '---' && echo 'Specs:' && ls specs/*/spec.md 2>/dev/null || echo '(none)' && echo '---' && echo 'Recent commits (last 24h):' && git log --format='%h %s' --since='24 hours ago' 2>/dev/null || echo '(none)' && echo '---' && echo 'Uncommitted changes:' && git status --short && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL tasks\"; done && echo '---' && echo 'VERSION:' && cat VERSION 2>/dev/null || echo 'none'",
+      "command": "echo \"Branch: $(git branch --show-current)\" && echo \"Last 5 commits:\" && git log --format='%h %s' -5 && echo '---' && echo \"Open issues: $(gh issue list --state open --json number --limit 100 2>/dev/null | jq length)\" && echo \"Backlog: $(ls .kiln/issues/*.md 2>/dev/null | wc -l | tr -d ' ') items\" && echo \"PRDs: $(ls docs/features/*/PRD.md 2>/dev/null | wc -l | tr -d ' ')\" && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL\"; done && echo \"VERSION: $(cat VERSION 2>/dev/null || echo none)\"",
       "output": ".wheel/outputs/gather-repo-state.txt"
     },
     {
@@ -17,13 +17,13 @@
     {
       "id": "fetch-github-issues",
       "type": "command",
-      "command": "gh issue list --state all --json number,title,state,labels,body,updatedAt --limit 100 2>/dev/null || echo '[]'",
+      "command": "gh issue list --state all --json number,title,state,updatedAt --limit 100 2>/dev/null || echo '[]'",
       "output": ".wheel/outputs/fetch-github-issues.txt"
     },
     {
       "id": "read-backlog-issues",
       "type": "command",
-      "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; echo \"--- FILE: $(basename $f) ---\"; cat \"$f\"; echo; done && echo '## Completed' && for f in .kiln/issues/completed/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; echo \"$(basename $f)\"; done",
+      "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; TITLE=$(grep -m1 '^title:' \"$f\" | sed 's/^title:[[:space:]]*\"\\{0,1\\}//;s/\"$//' 2>/dev/null || echo '?'); STATUS=$(grep -m1 '^status:' \"$f\" | sed 's/^status:[[:space:]]*//' 2>/dev/null || echo '?'); echo \"$(basename $f): $TITLE [$STATUS]\"; done && echo '## Completed' && ls .kiln/issues/completed/*.md 2>/dev/null | wc -l | tr -d ' ' && echo ' completed issues'",
       "output": ".wheel/outputs/read-backlog-issues.txt"
     },
     {
@@ -62,8 +62,8 @@
     {
       "id": "push-progress-update",
       "type": "agent",
-      "instruction": "Push a progress update to the Obsidian project dashboard. You have MCP tools: mcp__obsidian-projects__read_file, mcp__obsidian-projects__create_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config to get base_path and slug.\n\n1. Read the current dashboard: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })\n2. Parse current status, next_step, last_updated from frontmatter.\n3. Read the repo state and sync results from context. Analyze recent commits, task progress, and sync stats to generate:\n   - summary: what was accomplished (based on recent commits and current branch work)\n   - status: infer from context (in-progress, blocked, done, etc.) — keep current if unclear\n   - next_step: infer from task progress and open work\n4. Determine current month (YYYY-MM). Check if progress file exists:\n   mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/progress/{YYYY-MM}.md\" })\n   If not found, create it with:\n     ---\n     type: progress\n     month: \"{YYYY-MM}\"\n     project: \"[[{slug}]]\"\n     tags:\n       - \"status/in-progress\"\n     ---\n     # Progress — {YYYY-MM}\n5. Append a new entry to the progress file:\n     ## {YYYY-MM-DD}\n     **Summary**: {summary}\n     **Key outcomes**:\n     - {outcome from commits/sync}\n     - {outcome from task progress}\n     **Links**: {PR links, commit SHAs, issue references from recent work}\n   Use mcp__obsidian-projects__update_file to append.\n6. Update dashboard frontmatter: set status, next_step, last_updated to today.\n   Preserve ALL other sections (Human Needed, Feedback, Feedback Log, About) exactly.\n7. Include the sync results summary (issues created/updated/closed, docs synced, tags updated) in the progress entry.\n\nWrite a final report to your output file summarizing everything that was updated.",
-      "context_from": ["read-shelf-config", "gather-repo-state", "sync-issues-to-obsidian", "sync-docs-to-obsidian", "update-dashboard-tags"],
+      "instruction": "Push a progress update to the Obsidian project dashboard. You have MCP tools: mcp__obsidian-projects__read_file, mcp__obsidian-projects__create_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config to get base_path and slug. Read repo state summary from .wheel/outputs/gather-repo-state.txt (recent commits, counts).\n\n1. Read the current dashboard: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })\n2. Parse current status, next_step, last_updated from frontmatter.\n3. Read the repo state file and sync results from context. Analyze recent commits, task progress, and sync stats to generate:\n   - summary: what was accomplished (based on recent commits and current branch work)\n   - status: infer from context (in-progress, blocked, done, etc.) — keep current if unclear\n   - next_step: infer from task progress and open work\n4. Determine current month (YYYY-MM). Check if progress file exists:\n   mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/progress/{YYYY-MM}.md\" })\n   If not found, create it with:\n     ---\n     type: progress\n     month: \"{YYYY-MM}\"\n     project: \"[[{slug}]]\"\n     tags:\n       - \"status/in-progress\"\n     ---\n     # Progress — {YYYY-MM}\n5. Append a new entry to the progress file:\n     ## {YYYY-MM-DD}\n     **Summary**: {summary}\n     **Key outcomes**:\n     - {outcome from commits/sync}\n     - {outcome from task progress}\n     **Links**: {PR links, commit SHAs, issue references from recent work}\n   Use mcp__obsidian-projects__update_file to append.\n6. Update dashboard frontmatter: set status, next_step, last_updated to today.\n   Preserve ALL other sections (Human Needed, Feedback, Feedback Log, About) exactly.\n7. Include the sync results summary (issues created/updated/closed, docs synced, tags updated) in the progress entry.\n\nWrite a final report to your output file summarizing everything that was updated.",
+      "context_from": ["read-shelf-config", "sync-issues-to-obsidian", "sync-docs-to-obsidian", "update-dashboard-tags"],
       "output": "reports/shelf-full-sync-report.md",
       "terminal": true
     }
