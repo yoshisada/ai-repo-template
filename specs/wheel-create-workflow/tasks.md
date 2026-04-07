@@ -65,9 +65,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Write Step 4 — Step Decomposition (File Mode): instructions for reading source file, validating existence (FR-003), and analyzing structure (FR-012) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T013 [US2] Add SKILL.md parsing guidance to Step 4: map headings to step boundaries, code blocks to command steps, prose/reasoning sections to agent steps (FR-013, FR-016) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T014 [US2] Add shell script and other file parsing guidance to Step 4: command sequences → command steps, complex logic → agent steps, JSON/YAML/Markdown heuristic parsing (FR-014, FR-015) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T012 [US2] Write Step 4 — Step Decomposition (File Mode): instructions for reading source file, validating existence (FR-003), and analyzing structure (FR-012) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T013 [US2] Add SKILL.md parsing guidance to Step 4: map headings to step boundaries, code blocks to command steps, prose/reasoning sections to agent steps (FR-013, FR-016) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T014 [US2] Add shell script and other file parsing guidance to Step 4: command sequences → command steps, complex logic → agent steps, JSON/YAML/Markdown heuristic parsing (FR-014, FR-015) in `plugin-wheel/skills/wheel-create/SKILL.md`
 
 **Checkpoint**: File Mode fully functional. `/wheel-create from:<path>` produces valid workflow JSON from any supported file type.
 
