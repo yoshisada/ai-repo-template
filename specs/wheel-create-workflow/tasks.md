@@ -17,7 +17,7 @@
 
 **Purpose**: Create the skill file with frontmatter and basic structure
 
-- [ ] T001 Create skill directory and SKILL.md with frontmatter at `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T001 Create skill directory and SKILL.md with frontmatter at `plugin-wheel/skills/wheel-create/SKILL.md`
 
 **Checkpoint**: Skill file exists with valid frontmatter (`name: wheel-create`, `description`).
 
