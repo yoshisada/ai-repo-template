@@ -82,7 +82,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [US4] Modify deactivate.sh interception in `plugin-wheel/hooks/post-tool-use.sh` — FR-018: after stopping a workflow (archiving its state file), scan remaining `.wheel/state_*.json` files for any with a `parent_workflow` field matching the stopped file's path. Archive those child state files to `.wheel/history/stopped/` as well.
+- [X] T009 [US4] Modify deactivate.sh interception in `plugin-wheel/hooks/post-tool-use.sh` — FR-018: after stopping a workflow (archiving its state file), scan remaining `.wheel/state_*.json` files for any with a `parent_workflow` field matching the stopped file's path. Archive those child state files to `.wheel/history/stopped/` as well.
 
 **Checkpoint**: Stopping a parent cascades to children. No orphaned child state files remain.
 
