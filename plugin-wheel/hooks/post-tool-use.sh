@@ -14,7 +14,8 @@ PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty')
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the command (activate.sh <name>)
-  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}')
+  # Strip quotes — bash commands may include escaped quotes: activate.sh \"name\"
+  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
   # Read workflow file directly — no pending.json needed, eliminates race condition
   WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
@@ -53,7 +54,7 @@ fi
 # 2b. Check for deactivate.sh interception — ownership-aware workflow stop
 if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
   # Extract argument from command (deactivate.sh [--all | <target>])
-  DEACTIVATE_ARG=$(printf '%s\n' "$COMMAND" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}')
+  DEACTIVATE_ARG=$(printf '%s\n' "$COMMAND" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
   SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty')
   AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty')
