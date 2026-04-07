@@ -16,40 +16,89 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the command (activate.sh <name>)
   WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}')
 
-  # Read pending.json for the validated workflow data
-  if [[ -n "$WORKFLOW_NAME" && -f ".wheel/pending.json" ]]; then
-    PENDING=$(cat .wheel/pending.json)
-    WORKFLOW_FILE=$(printf '%s\n' "$PENDING" | jq -r '.workflow_file // empty')
-    WORKFLOW_JSON=$(printf '%s\n' "$PENDING" | jq -c '.workflow_json // empty')
+  # Read workflow file directly — no pending.json needed, eliminates race condition
+  WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
+  if [[ -n "$WORKFLOW_NAME" && -f "$WORKFLOW_FILE" ]]; then
+    # Source engine libs for validation and state creation
+    export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+    source "${PLUGIN_DIR}/lib/engine.sh"
 
-    if [[ -n "$WORKFLOW_FILE" && -n "$WORKFLOW_JSON" ]]; then
-      # Extract session_id and agent_id from hook input — this is the whole point
+    # Validate workflow
+    WORKFLOW_JSON=$(workflow_load "$WORKFLOW_FILE" 2>/dev/null)
+    if [[ $? -eq 0 && -n "$WORKFLOW_JSON" ]]; then
+      # Extract session_id and agent_id from hook input — stored as ownership
       SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty')
       AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty')
 
-      # Construct state filename with full ownership
-      if [[ -n "$AGENT_ID" ]]; then
-        STATE_FILE=".wheel/state_${SESSION_ID}_${AGENT_ID}.json"
-      elif [[ -n "$SESSION_ID" ]]; then
-        STATE_FILE=".wheel/state_${SESSION_ID}.json"
-      else
-        STATE_FILE=".wheel/state_$(date +%s).json"
-      fi
+      # Generate unique state filename — ownership is inside the JSON, not the filename
+      UNIQUE="${AGENT_ID:-${SESSION_ID}_$(date +%s)_${RANDOM}}"
+      STATE_FILE=".wheel/state_${UNIQUE}.json"
 
-      # Source engine libs and create state
-      export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
-      source "${PLUGIN_DIR}/lib/engine.sh"
+      # Create state and run kickstart
       state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
-
-      # Run kickstart — execute command/loop/branch steps inline
       WORKFLOW="$WORKFLOW_JSON"
       export WHEEL_HOOK_SCRIPT=""
       export WHEEL_HOOK_INPUT='{}'
       engine_kickstart "$STATE_FILE" >/dev/null 2>&1
 
-      # Clean up pending file
+      # Clean up legacy pending file if present
       rm -f .wheel/pending.json
     fi
+  fi
+
+  echo '{"hookEventName": "PostToolUse"}'
+  exit 0
+fi
+
+# 2b. Check for deactivate.sh interception — ownership-aware workflow stop
+if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
+  # Extract argument from command (deactivate.sh [--all | <target>])
+  DEACTIVATE_ARG=$(printf '%s\n' "$COMMAND" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}')
+
+  SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty')
+  AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty')
+
+  mkdir -p .wheel/history/stopped
+
+  STOPPED=0
+  if [[ "$DEACTIVATE_ARG" == "--all" ]]; then
+    # Stop all workflows regardless of ownership
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+      FNAME=$(basename "$sf" .json)
+      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+      rm -f "$sf"
+      STOPPED=$((STOPPED + 1))
+    done
+  elif [[ -n "$DEACTIVATE_ARG" ]]; then
+    # Stop workflows matching target substring in filename
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      if [[ "$(basename "$sf")" == *"$DEACTIVATE_ARG"* ]]; then
+        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+        FNAME=$(basename "$sf" .json)
+        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+        rm -f "$sf"
+        STOPPED=$((STOPPED + 1))
+      fi
+    done
+  else
+    # Default: stop only the caller's own workflow (content-based ownership match)
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      local owner_sid owner_aid
+      owner_sid=$(jq -r '.owner_session_id // empty' "$sf" 2>/dev/null) || continue
+      owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
+      if [[ "$owner_sid" == "$SESSION_ID" && "$owner_aid" == "$AGENT_ID" ]]; then
+        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+        FNAME=$(basename "$sf" .json)
+        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+        rm -f "$sf"
+        STOPPED=$((STOPPED + 1))
+        break
+      fi
+    done
   fi
 
   echo '{"hookEventName": "PostToolUse"}'

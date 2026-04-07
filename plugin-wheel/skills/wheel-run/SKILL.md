@@ -79,20 +79,14 @@ fi
 
 If validation fails, **stop here** and report the error.
 
-## Step 4: Write Pending File and Activate
+## Step 4: Activate
 
-The skill does NOT create the state file directly. Instead, it writes a pending file and runs the activate script. The PostToolUse hook intercepts the activate call and creates the state file with the correct session_id and agent_id from hook input.
+The skill does NOT create the state file directly. It runs `activate.sh` which the PostToolUse hook intercepts. The hook reads the workflow file directly (no intermediate files), validates it, and creates the state file with the correct session_id and agent_id from hook input.
 
 ```bash
-# Write validated workflow data to pending file
+# Run activate.sh — the PostToolUse hook intercepts this call,
+# reads the workflow file, and creates the state file with proper ownership
 mkdir -p .wheel
-jq -n \
-  --arg wf_file "$WORKFLOW_FILE" \
-  --argjson wf_json "$WORKFLOW" \
-  '{workflow_file: $wf_file, workflow_json: $wf_json}' > .wheel/pending.json
-
-# Run activate.sh — the PostToolUse hook intercepts this call
-# and creates the state file with proper ownership
 "${PLUGIN_DIR}/bin/activate.sh" "$WORKFLOW_NAME"
 ```
 
@@ -122,11 +116,8 @@ if [[ -n "$STATE_FILE" && -f "$STATE_FILE" ]]; then
   if [[ "$CURRENT_CURSOR" -gt 0 ]]; then
     echo "Kickstarted: advanced to step $CURRENT_STEP_ID"
   fi
-elif [[ ! -f ".wheel/pending.json" ]]; then
-  echo "Workflow completed during kickstart (all steps were automatic)."
 else
-  echo "WARNING: State file not created — pending.json still exists."
-  echo "The PostToolUse hook may not have intercepted the activate call."
+  echo "Workflow completed during kickstart (all steps were automatic)."
 fi
 
 echo ""
@@ -135,17 +126,16 @@ echo "Hooks are now active. Run /wheel-status to check progress, /wheel-stop to 
 
 ## Ownership
 
-State file creation happens in the PostToolUse hook, NOT in the skill. The hook has access to `session_id` and `agent_id` from the hook input JSON, so ownership is baked into the filename from the start: `state_{session_id}_{agent_id}.json`.
+State file creation happens in the PostToolUse hook, NOT in the skill. The hook reads the workflow file directly from `workflows/<name>.json` (no intermediate pending file), validates it, and creates the state file with session_id and agent_id from the hook input JSON.
 
 The flow:
-1. Skill validates workflow → writes `.wheel/pending.json`
+1. Skill validates workflow (early error reporting)
 2. Skill runs `activate.sh <name>` (no-op script)
-3. PostToolUse hook fires → sees `activate.sh` in command → reads pending.json → creates `state_{sid}_{aid}.json` → deletes pending.json → runs kickstart
+3. PostToolUse hook fires → sees `activate.sh` in command → reads `workflows/<name>.json` → validates → creates `state_{sid}_{aid}.json` → runs kickstart
 
-No race condition: PostToolUse fires per-agent, per-tool-call. Agent B's hook cannot fire for Agent A's bash call.
+No race condition: the hook reads the workflow file directly. No shared mutable state between concurrent agents.
 
 ## Rules
 
 - If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json`.
 - Never create a state file directly — always go through activate.sh + hook.
-- Never write pending.json if validation fails.

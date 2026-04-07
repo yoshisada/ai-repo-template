@@ -178,6 +178,24 @@ engine_handle_hook() {
         now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
         state_append_command_log "$STATE_FILE" "$cursor" "$command_text" "$exit_code" "$now"
       fi
+      # FR-030: Detect agent step output file written via Write/Edit
+      local step_type
+      step_type=$(printf '%s\n' "$current_step" | jq -r '.type')
+      if [[ "$step_type" == "agent" ]]; then
+        local step_status
+        step_status=$(state_get_step_status "$state" "$cursor")
+        if [[ "$step_status" == "working" || "$step_status" == "pending" ]]; then
+          # Allow both "working" and "pending" — the agent may write the output
+          # file before the stop hook transitions the step to "working"
+          # (e.g., when PostToolUse advances cursor to a new agent step and the
+          # agent writes that step's output in the same turn)
+          if [[ "$step_status" == "pending" ]]; then
+            state_set_step_status "$STATE_FILE" "$cursor" "working"
+          fi
+          dispatch_agent "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
+          return $?
+        fi
+      fi
       jq -n '{"hookEventName": "PostToolUse"}'
       return 0
       ;;

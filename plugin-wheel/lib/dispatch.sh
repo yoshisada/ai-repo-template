@@ -209,6 +209,75 @@ dispatch_agent() {
         jq -n '{"decision": "approve"}'
       fi
       ;;
+    post_tool_use)
+      # FR-030: Detect when agent writes to the step's output file
+      # Only triggers on Write/Edit targeting the exact output path — safe during
+      # normal agent work (reads, bash, writing to other files are all ignored)
+      local output_key
+      output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
+      if [[ -z "$output_key" ]]; then
+        jq -n '{"hookEventName": "PostToolUse"}'
+        return 0
+      fi
+
+      # Only match Write or Edit tools
+      local tool_name
+      tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+      if [[ "$tool_name" != "Write" && "$tool_name" != "Edit" ]]; then
+        jq -n '{"hookEventName": "PostToolUse"}'
+        return 0
+      fi
+
+      # Compare the written file path to the step's output path
+      local wrote_to
+      wrote_to=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.file_path // empty')
+      local abs_output_key
+      if [[ "$output_key" == /* ]]; then
+        abs_output_key="$output_key"
+      else
+        abs_output_key="$(pwd)/$output_key"
+      fi
+
+      if [[ "$wrote_to" != "$abs_output_key" ]] || [[ ! -f "$wrote_to" ]]; then
+        jq -n '{"hookEventName": "PostToolUse"}'
+        return 0
+      fi
+
+      # Agent wrote to the output file — mark step done, advance
+      state_set_step_status "$state_file" "$step_index" "done"
+      context_capture_output "$state_file" "$step_index" "$output_key"
+
+      # FR-008: Check for terminal step — archive and end workflow
+      if handle_terminal_step "$state_file" "$step_json"; then
+        jq -n '{"hookEventName": "PostToolUse"}'
+        return 0
+      fi
+
+      # FR-005: Resolve next index and advance cursor
+      local raw_next
+      raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+      local next_index
+      next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+      state_set_cursor "$state_file" "$next_index"
+
+      # Chain into auto-executable steps (command/loop/branch) so workflow doesn't stall
+      local total_steps
+      total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+      if [[ "$next_index" -lt "$total_steps" ]]; then
+        local next_step_json
+        next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+        local next_step_type
+        next_step_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
+        if [[ "$next_step_type" == "command" || "$next_step_type" == "loop" || "$next_step_type" == "branch" ]]; then
+          export WHEEL_HOOK_SCRIPT=""
+          export WHEEL_HOOK_INPUT='{}'
+          dispatch_step "$next_step_json" "stop" '{}' "$state_file" "$next_index" >/dev/null 2>&1
+        fi
+      fi
+
+      jq -n '{"hookEventName": "PostToolUse"}'
+      return 0
+      ;;
     subagent_stop)
       # Agent finished — mark step done, advance
       state_set_step_status "$state_file" "$step_index" "done"
