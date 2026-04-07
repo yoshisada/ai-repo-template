@@ -185,7 +185,9 @@ dispatch_workflow() {
         agent_id=$(printf '%s\n' "$state" | jq -r '.owner_agent_id // empty')
 
         # FR-016: Create child state file with parent_workflow reference
-        local child_unique="child_${child_name}_$(date +%s)_${RANDOM}"
+        # Sanitize child_name: replace / with - to avoid subdirectory creation
+        local safe_child_name="${child_name//\//-}"
+        local child_unique="child_${safe_child_name}_$(date +%s)_${RANDOM}"
         local child_state_file=".wheel/state_${child_unique}.json"
 
         state_init "$child_state_file" "$child_json" "$session_id" "$agent_id" "$child_file" "$state_file"

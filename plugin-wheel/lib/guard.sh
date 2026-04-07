@@ -30,7 +30,11 @@ resolve_state_file() {
   hook_agent_id=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_id // empty')
 
   # Scan state files and match on owner fields
+  # FR-011/FR-013: When parent and child share the same ownership (workflow composition),
+  # prefer the deepest child (has parent_workflow set) since it's the active one.
   local sf
+  local matched_file=""
+  local matched_is_child=false
   for sf in "${state_dir}"/state_*.json; do
     [[ -f "$sf" ]] || continue
     local owner_sid owner_aid
@@ -38,10 +42,23 @@ resolve_state_file() {
     owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
 
     if [[ "$owner_sid" == "$hook_session_id" && "$owner_aid" == "$hook_agent_id" ]]; then
-      printf '%s\n' "$sf"
-      return 0
+      local has_parent
+      has_parent=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null)
+      if [[ -n "$has_parent" ]]; then
+        # Child state file — always prefer over parent
+        matched_file="$sf"
+        matched_is_child=true
+      elif [[ "$matched_is_child" == false ]]; then
+        # Parent state file — only use if no child found yet
+        matched_file="$sf"
+      fi
     fi
   done
+
+  if [[ -n "$matched_file" ]]; then
+    printf '%s\n' "$matched_file"
+    return 0
+  fi
 
   # No state file for this agent — pass through
   return 1

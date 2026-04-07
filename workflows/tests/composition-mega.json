@@ -1,0 +1,34 @@
+{
+  "name": "composition-mega",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "run-command-chain",
+      "type": "workflow",
+      "workflow": "tests/command-chain"
+    },
+    {
+      "id": "run-count-to-100",
+      "type": "workflow",
+      "workflow": "tests/count-to-100"
+    },
+    {
+      "id": "run-loop-test",
+      "type": "workflow",
+      "workflow": "tests/loop-test"
+    },
+    {
+      "id": "run-branch-multi",
+      "type": "workflow",
+      "workflow": "tests/branch-multi"
+    },
+    {
+      "id": "final-report",
+      "type": "agent",
+      "instruction": "Write a summary of all the child workflows that ran before this step. List each workflow name and confirm the composition chain worked end-to-end. Check .wheel/history/success/ for archived child state files as evidence.",
+      "context_from": [],
+      "output": "reports/composition-mega-report.md",
+      "terminal": true
+    }
+  ]
+}
