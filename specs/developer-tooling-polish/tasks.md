@@ -51,13 +51,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Create SKILL.md frontmatter and introduction in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T010 [US2] Implement Step 1 — Discover: find test files matching common patterns (*.test.*, *.spec.*, tests/**, __tests__/**, e2e/**), excluding node_modules/ (FR-006) in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T011 [US2] Implement Step 2 — Extract: read each test file, extract test names/descriptions from test()/it()/describe() blocks, collect selector patterns, URL patterns, and assertion targets (FR-007, FR-008) in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T012 [US2] Implement Step 3 — Analyze: compare test descriptions for similarity, compare selector/URL/assertion patterns across files, flag high-overlap pairs (FR-007, FR-008) in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T013 [US2] Implement Step 4 — Report: create .kiln/qa/ if needed, write prioritized report with summary stats, duplicate scenario pairs, redundant assertion groups, and consolidation suggestions to .kiln/qa/test-audit-report.md (FR-009, FR-010) in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T014 [US2] Implement empty state: display message when no test files found in plugin-kiln/skills/qa-audit/SKILL.md
-- [ ] T015 [US2] End-to-end validation: run /qa-audit on a project with test files and verify report output matches expected format from contracts/interfaces.md
+- [X] T009 [US2] Create SKILL.md frontmatter and introduction in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T010 [US2] Implement Step 1 — Discover: find test files matching common patterns (*.test.*, *.spec.*, tests/**, __tests__/**, e2e/**), excluding node_modules/ (FR-006) in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T011 [US2] Implement Step 2 — Extract: read each test file, extract test names/descriptions from test()/it()/describe() blocks, collect selector patterns, URL patterns, and assertion targets (FR-007, FR-008) in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T012 [US2] Implement Step 3 — Analyze: compare test descriptions for similarity, compare selector/URL/assertion patterns across files, flag high-overlap pairs (FR-007, FR-008) in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T013 [US2] Implement Step 4 — Report: create .kiln/qa/ if needed, write prioritized report with summary stats, duplicate scenario pairs, redundant assertion groups, and consolidation suggestions to .kiln/qa/test-audit-report.md (FR-009, FR-010) in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T014 [US2] Implement empty state: display message when no test files found in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T015 [US2] End-to-end validation: run /qa-audit on a project with test files and verify report output matches expected format from contracts/interfaces.md
 
 **Checkpoint**: `/qa-audit` is fully functional and independently testable.
 
@@ -71,7 +71,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Add Step 5 — Pipeline Integration: add optional pipeline mode that routes critical overlaps to implementer agents via SendMessage (FR-011) in plugin-kiln/skills/qa-audit/SKILL.md
+- [X] T016 [US3] Add Step 5 — Pipeline Integration: add optional pipeline mode that routes critical overlaps to implementer agents via SendMessage (FR-011) in plugin-kiln/skills/qa-audit/SKILL.md
 
 **Checkpoint**: Pipeline integration mode works alongside standalone mode.
 
