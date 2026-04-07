@@ -51,9 +51,9 @@
 
 **Goal**: Verify all skills work together and existing skills are unaffected.
 
-- [ ] T012 Verify `/clay:idea` skill file has correct frontmatter and all required sections per contracts/interfaces.md
-- [ ] T013 Verify `/clay:create-repo` changes are additive — all existing steps (1-9) are preserved and functional
-- [ ] T014 Verify `/clay:clay-list` changes are additive — existing status derivation and artifact counting are preserved
+- [X] T012 Verify `/clay:idea` skill file has correct frontmatter and all required sections per contracts/interfaces.md
+- [X] T013 Verify `/clay:create-repo` changes are additive — all existing steps (1-9) are preserved and functional
+- [X] T014 Verify `/clay:clay-list` changes are additive — existing status derivation and artifact counting are preserved
 
 **Checkpoint**: All 14 FRs are addressed. Existing clay skills are unaffected.
 
