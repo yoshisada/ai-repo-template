@@ -27,6 +27,7 @@ export WHEEL_HOOK_SCRIPT="${BASH_SOURCE[0]}"
 export WHEEL_HOOK_INPUT="$HOOK_INPUT"
 
 # 4. Source engine, init with resolved state file (FR-010)
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
 source "${PLUGIN_DIR}/lib/engine.sh"
 if ! engine_init "$WORKFLOW_FILE" "$STATE_FILE"; then
   echo '{"decision": "approve"}'

@@ -24,6 +24,7 @@ if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
 fi
 
 # 4. Source engine, init with resolved state file (FR-010)
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
 source "${PLUGIN_DIR}/lib/engine.sh"
 if ! engine_init "$WORKFLOW_FILE" "$STATE_FILE"; then
   echo '{"decision": "approve"}'

@@ -14,17 +14,13 @@ PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty')
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the command (activate.sh <name>)
-  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | grep -oP 'activate\.sh\s+\K\S+' 2>/dev/null || echo "")
-  if [[ -z "$WORKFLOW_NAME" ]]; then
-    # Try simpler extraction — last word after activate.sh
-    WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}')
-  fi
+  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}')
 
   # Read pending.json for the validated workflow data
   if [[ -n "$WORKFLOW_NAME" && -f ".wheel/pending.json" ]]; then
     PENDING=$(cat .wheel/pending.json)
     WORKFLOW_FILE=$(printf '%s\n' "$PENDING" | jq -r '.workflow_file // empty')
-    WORKFLOW_JSON=$(printf '%s\n' "$PENDING" | jq -r '.workflow_json // empty')
+    WORKFLOW_JSON=$(printf '%s\n' "$PENDING" | jq -c '.workflow_json // empty')
 
     if [[ -n "$WORKFLOW_FILE" && -n "$WORKFLOW_JSON" ]]; then
       # Extract session_id and agent_id from hook input — this is the whole point
@@ -41,6 +37,7 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
       fi
 
       # Source engine libs and create state
+      export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
       source "${PLUGIN_DIR}/lib/engine.sh"
       state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
 
@@ -75,6 +72,7 @@ if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
 fi
 
 # 5. Source engine, init with resolved state file (FR-010)
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
 source "${PLUGIN_DIR}/lib/engine.sh"
 if ! engine_init "$WORKFLOW_FILE" "$STATE_FILE"; then
   echo '{"hookEventName": "PostToolUse"}'

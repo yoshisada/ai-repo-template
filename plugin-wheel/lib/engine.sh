@@ -22,10 +22,11 @@ if [[ -z "${WHEEL_LIB_DIR:-}" ]] || ! declare -f workflow_load &>/dev/null; then
   source "${WHEEL_LIB_DIR}/guard.sh"
 fi
 
-# Globals set by engine_init
-WORKFLOW=""
-STATE_DIR=""
-STATE_FILE=""
+# Globals set by engine_init — only initialize if not already set
+# (hooks may set STATE_FILE before sourcing engine.sh)
+WORKFLOW="${WORKFLOW:-}"
+STATE_DIR="${STATE_DIR:-}"
+STATE_FILE="${STATE_FILE:-}"
 
 # FR-010: Initialize engine — load workflow definition, use provided state file.
 # No longer hardcodes STATE_FILE. Receives the resolved state file path.
