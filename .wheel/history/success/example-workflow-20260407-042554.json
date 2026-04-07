@@ -1,0 +1,129 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "workflows/example.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd",
+  "owner_agent_id": "a33aa2bb08e20f8c1",
+  "started_at": "2026-04-07T04:24:45.000Z",
+  "updated_at": "2026-04-07T04:25:54.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:24:45.000Z",
+      "completed_at": "2026-04-07T04:24:45.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:24:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T04:24:45.000Z",
+      "completed_at": "2026-04-07T04:25:25.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [
+        {
+          "command": "date +%s && ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state*.json 2>/dev/null; cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state*.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:24:51.000Z"
+        },
+        {
+          "command": "ls /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/workflows/ 2>/dev/null; find /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel -name \"example.json\" 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:03.000Z"
+        },
+        {
+          "command": "date +%s",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:13.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:25:25.000Z",
+      "completed_at": "2026-04-07T04:25:25.000Z",
+      "output": "SUCCESS",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:25.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-07T04:25:25.000Z",
+      "completed_at": "2026-04-07T04:25:25.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=0 target=cleanup-success",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:25.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T04:25:25.000Z",
+      "completed_at": "2026-04-07T04:25:54.000Z",
+      "output": "reports/workflow-result.md",
+      "command_log": [
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a33aa2bb08e20f8c1.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:30.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.523/workflows -name \"example*.json\" -exec cat {} \\;",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:37.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel -name \"example*.json\" | head -20 && echo \"---\" && find /Users/ryansuematsu/Documents/github/personal/ai-repo-template -path \"./.git\" -prune -o -name \"example*.json\" -print 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:25:43.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

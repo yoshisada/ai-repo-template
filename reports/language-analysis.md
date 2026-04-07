@@ -1,13 +1,17 @@
-# Language Analysis
+# Project Language Analysis
 
-## Detection Result
+## Detected Language
 
-Language detected: **unknown** — no root-level `package.json`, `Cargo.toml`, or `go.mod` was found. This is expected for a plugin monorepo where package manifests live in subdirectories (`plugin-kiln/`, `plugin-shelf/`, `plugin-wheel/`) rather than the repo root.
+The automated language detection classified this repository as **unknown**. The project does not contain a top-level `package.json`, `Cargo.toml`, or `go.mod` file, so none of the specialized analyzers were triggered.
 
-## Fallback Analysis
+This is expected: the repository is a Claude Code plugin source repo consisting primarily of Markdown skill/agent definitions, Bash shell scripts (hooks), and JSON configuration files rather than a conventional application codebase.
 
-The fallback analyzer found **245 files** across the repository (within 3 levels of depth). The primary languages are actually Markdown (skills, agents, specs, docs), Bash (hooks, engine libs), and JavaScript (init scripts), but the root-level detection missed them since there's no top-level manifest.
+## Key Stats
 
-## Observation
+- **File count** (up to 3 levels deep): 273
+- **Primary file types**: Markdown (`.md`), Shell (`.sh`), JSON (`.json`)
+- **Analysis path taken**: fallback (no specialized analyzer matched)
 
-The `detect-language` step should be enhanced to check `plugin-*/package.json` or scan for file extensions when no root manifest exists.
+## Summary
+
+This repository does not fit neatly into a single-language category. It is a multi-plugin monorepo (`plugin-kiln/`, `plugin-shelf/`, `plugin-wheel/`) where the "source code" is largely declarative Markdown and configuration. Each plugin subdirectory contains its own `package.json` for npm distribution, but the root does not, which is why the top-level detection returned unknown.

@@ -1,0 +1,97 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "workflows/example.json",
+  "status": "complete",
+  "cursor": 4,
+  "owner_session_id": "manual-session",
+  "owner_agent_id": "wf-example",
+  "started_at": "2026-04-07T01:54:01.000Z",
+  "updated_at": "2026-04-07T01:55:22.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:54:01.000Z",
+      "completed_at": "2026-04-07T01:54:01.000Z",
+      "output": "Checking environment...\n/usr/bin/jq\n/opt/homebrew/bin/bash",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:54:01.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T01:54:01.000Z",
+      "completed_at": "2026-04-07T01:54:56.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:54:56.000Z",
+      "completed_at": "2026-04-07T01:54:56.000Z",
+      "output": "SUCCESS",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:54:56.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-07T01:54:56.000Z",
+      "completed_at": "2026-04-07T01:54:56.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=0 target=cleanup-success",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:54:56.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T01:54:56.000Z",
+      "completed_at": "2026-04-07T01:55:22.000Z",
+      "output": "reports/workflow-result.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

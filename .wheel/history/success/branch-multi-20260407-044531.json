@@ -1,0 +1,132 @@
+{
+  "workflow_name": "branch-multi",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/branch-multi.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "0f1fe6bf-0236-4f54-bd9b-71b6b375a9bd",
+  "owner_agent_id": "a7052e25438082dd2",
+  "started_at": "2026-04-07T04:44:29.000Z",
+  "updated_at": "2026-04-07T04:45:31.000Z",
+  "steps": [
+    {
+      "id": "detect-language",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:29.000Z",
+      "completed_at": "2026-04-07T04:44:29.000Z",
+      "output": "unknown",
+      "command_log": [
+        {
+          "command": "if [ -f package.json ]; then echo 'javascript'; elif [ -f Cargo.toml ]; then echo 'rust'; elif [ -f go.mod ]; then echo 'go'; else echo 'unknown'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:29.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-js",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:30.000Z",
+      "completed_at": "2026-04-07T04:44:30.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q javascript .wheel/outputs/detected-language.txt' exit=1 target=fallback-analysis",
+          "exit_code": 1,
+          "timestamp": "2026-04-07T04:44:30.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "analyze-js",
+      "type": "command",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fallback-analysis",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:30.000Z",
+      "completed_at": "2026-04-07T04:44:30.000Z",
+      "output": "## unknown Analysis\nNo detailed analyzer for this language yet.\nFile count: 274",
+      "command_log": [
+        {
+          "command": "LANG=$(cat .wheel/outputs/detected-language.txt) && echo \"## ${LANG} Analysis\" && echo 'No detailed analyzer for this language yet.' && echo \"File count: $(find . -maxdepth 3 -type f | wc -l | tr -d ' ')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:30.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T04:44:30.000Z",
+      "completed_at": "2026-04-07T04:45:31.000Z",
+      "output": "reports/language-analysis.md",
+      "command_log": [
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state.json 2>/dev/null || echo \"No state.json\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:34.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state-*.json 2>/dev/null || echo \"No per-agent state files\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:35.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:39.000Z"
+        },
+        {
+          "command": "date +%s && ls -lt /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json | head -5",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:43.000Z"
+        },
+        {
+          "command": "for f in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json; do echo \"=== $(basename $f) ===\"; jq -r '.workflow_name // \"unknown\"' \"$f\" 2>/dev/null; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:45.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel -name \"branch-multi.json\" 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:46.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel -name \"*.json\" -path \"*/workflows/*\" 2>/dev/null | head -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:44:50.000Z"
+        },
+        {
+          "command": "date +%s && cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/detected-language.txt",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:12.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/fallback-analysis.txt",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T04:45:12.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

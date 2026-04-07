@@ -1,0 +1,69 @@
+{
+  "workflow_name": "agent-chain",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/agent-chain.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "test-session",
+  "owner_agent_id": "ac-agent",
+  "started_at": "2026-04-07T01:36:51.000Z",
+  "updated_at": "2026-04-07T01:38:26.000Z",
+  "steps": [
+    {
+      "id": "gather-git-stats",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:36:51.000Z",
+      "completed_at": "2026-04-07T01:36:51.000Z",
+      "output": "## Git Stats\nCommits (last 30 days): 196\nContributors: 1\nBranches: 43\nLatest tag: none",
+      "command_log": [
+        {
+          "command": "echo \"## Git Stats\" && echo \"Commits (last 30 days): $(git log --since='30 days ago' --oneline | wc -l | tr -d ' ')\" && echo \"Contributors: $(git log --since='30 days ago' --format='%aN' | sort -u | wc -l | tr -d ' ')\" && echo \"Branches: $(git branch -a | wc -l | tr -d ' ')\" && echo \"Latest tag: $(git describe --tags --abbrev=0 2>/dev/null || echo 'none')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:36:51.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "gather-repo-structure",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-07T01:36:51.000Z",
+      "completed_at": "2026-04-07T01:36:51.000Z",
+      "output": "## Repo Structure\nTop-level dirs:\ndocs/\nplugin-kiln/\nplugin-shelf/\nplugin-wheel/\nscripts/\nspecs/\nsrc/\ntests/\nworkflows/\n---\nTotal files: 451\nTotal dirs: 179",
+      "command_log": [
+        {
+          "command": "echo \"## Repo Structure\" && echo \"Top-level dirs:\" && ls -d */ 2>/dev/null && echo \"---\" && echo \"Total files: $(find . -type f -not -path './.git/*' -not -path './node_modules/*' | wc -l | tr -d ' ')\" && echo \"Total dirs: $(find . -type d -not -path './.git/*' -not -path './node_modules/*' | wc -l | tr -d ' ')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-07T01:36:51.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "draft-summary",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-07T01:36:51.000Z",
+      "completed_at": "2026-04-07T01:38:05.000Z",
+      "output": "reports/health-draft.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "review-and-finalize",
+      "type": "agent",
+      "status": "done",
+      "started_at": null,
+      "completed_at": "2026-04-07T01:38:26.000Z",
+      "output": "reports/health-report.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
