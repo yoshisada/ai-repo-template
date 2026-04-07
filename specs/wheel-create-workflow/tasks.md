@@ -29,13 +29,13 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Write the Title/Overview section documenting the two input modes (FR-001) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T003 Write the User Input section capturing `$ARGUMENTS` and detecting mode (FR-001, FR-002) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T004 Write Step 1 — Input Parsing: detect `from:` prefix for File Mode vs Description Mode, handle empty arguments by prompting user (FR-001, FR-002, FR-003) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T005 Write Step 2 — Name Resolution: derive kebab-case slug from input, check for collisions and append numeric suffix (FR-004, FR-005) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T006 Write Step 5 — JSON Assembly instructions: set `name`, `version: "1.0.0"`, mark terminal step, enforce step type schemas (FR-010, FR-011, FR-021, FR-022, FR-023, FR-024) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T007 Write Step 6 — Validation: validate generated JSON against `workflow_load` checks, attempt self-correction on failure (FR-017, FR-018) in `plugin-wheel/skills/wheel-create/SKILL.md`
-- [ ] T008 Write Step 7 — Write Output: write validated JSON to `workflows/<name>.json` with 2-space indent, report file path, name, step count, step summaries, run command (FR-019, FR-020) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T002 Write the Title/Overview section documenting the two input modes (FR-001) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T003 Write the User Input section capturing `$ARGUMENTS` and detecting mode (FR-001, FR-002) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T004 Write Step 1 — Input Parsing: detect `from:` prefix for File Mode vs Description Mode, handle empty arguments by prompting user (FR-001, FR-002, FR-003) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T005 Write Step 2 — Name Resolution: derive kebab-case slug from input, check for collisions and append numeric suffix (FR-004, FR-005) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T006 Write Step 5 — JSON Assembly instructions: set `name`, `version: "1.0.0"`, mark terminal step, enforce step type schemas (FR-010, FR-011, FR-021, FR-022, FR-023, FR-024) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T007 Write Step 6 — Validation: validate generated JSON against `workflow_load` checks, attempt self-correction on failure (FR-017, FR-018) in `plugin-wheel/skills/wheel-create/SKILL.md`
+- [X] T008 Write Step 7 — Write Output: write validated JSON to `workflows/<name>.json` with 2-space indent, report file path, name, step count, step summaries, run command (FR-019, FR-020) in `plugin-wheel/skills/wheel-create/SKILL.md`
 
 **Checkpoint**: Foundation sections complete — skill can parse input, resolve names, validate JSON, and write output. User story-specific decomposition sections (Steps 3 and 4) come next.
 
