@@ -35,7 +35,7 @@ state_write() {
   mv "$tmp_file" "$state_file" || return 1
 }
 
-# FR-011: Initialize a new state file from a workflow definition.
+# FR-011/FR-016: Initialize a new state file from a workflow definition.
 # Called by the PostToolUse hook after intercepting activate.sh, which provides
 # session_id and agent_id from hook input for proper ownership.
 #
@@ -45,6 +45,7 @@ state_write() {
 #   $3 = session_id (string) — owner session ID
 #   $4 = agent_id (string) — owner agent ID (may be empty for main orchestrator)
 #   $5 = workflow_file (string, optional) — path to workflow file
+#   $6 = parent_workflow (string, optional) — path to parent state file (FR-016)
 #
 # Output: none (creates state file at the given path)
 # Exit: 0 on success, 1 on failure
@@ -54,6 +55,7 @@ state_init() {
   local session_id="$3"
   local agent_id="${4:-}"
   local workflow_file="${5:-}"
+  local parent_workflow="${6:-}"
 
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
@@ -80,6 +82,7 @@ state_init() {
     }
   ]')
 
+  # FR-016: Include parent_workflow field when provided
   local state
   state=$(jq -n \
     --arg name "$wf_name" \
@@ -88,6 +91,7 @@ state_init() {
     --arg sid "$session_id" \
     --arg aid "$agent_id" \
     --arg now "$now" \
+    --arg parent "$parent_workflow" \
     --argjson steps "$steps_json" \
     '{
       workflow_name: $name,
@@ -100,7 +104,7 @@ state_init() {
       started_at: $now,
       updated_at: $now,
       steps: $steps
-    }')
+    } + (if $parent != "" then {parent_workflow: $parent} else {} end)')
 
   mkdir -p "$(dirname "$state_file")"
   state_write "$state_file" "$state"

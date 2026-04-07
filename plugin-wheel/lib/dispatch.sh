@@ -72,6 +72,51 @@ handle_terminal_step() {
     return 1
   fi
 
+  # FR-009/FR-012: Before archiving, check if this is a child workflow with a parent
+  local parent_state_path
+  parent_state_path=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+  if [[ -n "$parent_state_path" && -f "$parent_state_path" ]]; then
+    # FR-012: Find parent's workflow step in working status and mark it done
+    local parent_state
+    parent_state=$(state_read "$parent_state_path") || true
+    if [[ -n "$parent_state" ]]; then
+      # Find the workflow step index that is in "working" status
+      local parent_step_index
+      parent_step_index=$(printf '%s\n' "$parent_state" | jq -r '
+        [.steps | to_entries[] | select(.value.type == "workflow" and .value.status == "working") | .key] | first // empty')
+      if [[ -n "$parent_step_index" ]]; then
+        # Mark parent's workflow step as done
+        state_set_step_status "$parent_state_path" "$parent_step_index" "done"
+
+        # Resolve next index and advance parent cursor
+        local parent_wf_file
+        parent_wf_file=$(printf '%s\n' "$parent_state" | jq -r '.workflow_file // empty')
+        if [[ -n "$parent_wf_file" && -f "$parent_wf_file" ]]; then
+          local parent_workflow_json
+          parent_workflow_json=$(jq -c '.' "$parent_wf_file" 2>/dev/null) || true
+          if [[ -n "$parent_workflow_json" ]]; then
+            local parent_step_json
+            parent_step_json=$(printf '%s\n' "$parent_workflow_json" | jq --argjson idx "$parent_step_index" '.steps[$idx]')
+            local raw_next
+            raw_next=$(resolve_next_index "$parent_step_json" "$parent_step_index" "$parent_workflow_json") || true
+            if [[ -n "$raw_next" ]]; then
+              local next_index
+              next_index=$(advance_past_skipped "$parent_state_path" "$raw_next" "$parent_workflow_json")
+              state_set_cursor "$parent_state_path" "$next_index"
+
+              # FR-009: If the parent's workflow step was terminal, recurse
+              local parent_is_terminal
+              parent_is_terminal=$(printf '%s\n' "$parent_step_json" | jq -r '.terminal // false')
+              if [[ "$parent_is_terminal" == "true" ]]; then
+                handle_terminal_step "$parent_state_path" "$parent_step_json"
+              fi
+            fi
+          fi
+        fi
+      fi
+    fi
+  fi
+
   # FR-009: Determine archive subdirectory based on step ID
   local step_id
   step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "unknown"')
@@ -94,6 +139,83 @@ handle_terminal_step() {
   # FR-010: Remove state.json
   rm -f "$state_file"
   return 0
+}
+
+# FR-007/FR-008/FR-009/FR-010/FR-012/FR-013: Handle a workflow step — activate child
+# workflow, detect child completion, perform fan-in to parent.
+#
+# Params:
+#   $1 = step_json (string) — the workflow step JSON
+#   $2 = hook_type (string) — stop|post_tool_use
+#   $3 = hook_input_json (string) — raw JSON from hook stdin
+#   $4 = state_file (string) — parent state file path
+#   $5 = step_index (integer) — parent step index
+#
+# Output (stdout): JSON hook response
+# Exit: 0 on success, 1 on error
+dispatch_workflow() {
+  local step_json="$1"
+  local hook_type="$2"
+  local hook_input_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local step_status
+  step_status=$(state_get_step_status "$state" "$step_index")
+
+  case "$hook_type" in
+    stop)
+      # FR-008: On stop hook, if step is pending, activate child workflow
+      if [[ "$step_status" == "pending" ]]; then
+        state_set_step_status "$state_file" "$step_index" "working"
+
+        # FR-007: Load child workflow and create child state file
+        local child_name
+        child_name=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+        local child_file="workflows/${child_name}.json"
+
+        local child_json
+        child_json=$(workflow_load "$child_file") || return 1
+
+        # Extract parent ownership for child
+        local session_id agent_id
+        session_id=$(printf '%s\n' "$state" | jq -r '.owner_session_id // empty')
+        agent_id=$(printf '%s\n' "$state" | jq -r '.owner_agent_id // empty')
+
+        # FR-016: Create child state file with parent_workflow reference
+        local child_unique="child_${child_name}_$(date +%s)_${RANDOM}"
+        local child_state_file=".wheel/state_${child_unique}.json"
+
+        state_init "$child_state_file" "$child_json" "$session_id" "$agent_id" "$child_file" "$state_file"
+
+        # FR-015: Kickstart child workflow
+        local saved_workflow="$WORKFLOW"
+        WORKFLOW="$child_json"
+        engine_kickstart "$child_state_file" >/dev/null 2>&1
+        WORKFLOW="$saved_workflow"
+
+        jq -n --arg reason "Workflow step activated child: ${child_name}" \
+          '{"decision": "block", "reason": $reason}'
+      elif [[ "$step_status" == "working" ]]; then
+        # Child is still running — block with status message
+        local child_name
+        child_name=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+        jq -n --arg reason "Waiting for child workflow to complete: ${child_name}" \
+          '{"decision": "block", "reason": $reason}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
+      ;;
+    post_tool_use)
+      # No special action needed — fan-in is handled in handle_terminal_step
+      jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    *)
+      jq -n '{"decision": "approve"}'
+      ;;
+  esac
 }
 
 # FR-003/019/024/025/026: Dispatch a step based on its type
@@ -128,6 +250,10 @@ dispatch_step() {
       ;;
     loop)
       dispatch_loop "$step_json" "$state_file" "$step_index" "$WORKFLOW"
+      ;;
+    workflow)
+      # FR-001/FR-002: Dispatch workflow step to child workflow handler
+      dispatch_workflow "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
       ;;
     *)
       echo "ERROR: unknown step type: $step_type" >&2
