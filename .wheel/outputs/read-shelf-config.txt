@@ -1,0 +1,4 @@
+# Shelf configuration — maps this repo to its Obsidian project
+base_path = @second-brain/projects
+slug = ai-repo-template
+dashboard_path = @second-brain/projects/ai-repo-template/ai-repo-template.md

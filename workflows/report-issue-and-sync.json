@@ -1,0 +1,90 @@
+{
+  "name": "report-issue-and-sync",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+      "output": ".wheel/outputs/check-existing-issues.txt"
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "instruction": "Create a new backlog issue in .kiln/issues/. The user will have described the issue when they started this workflow — read the workflow activation context for their description.\n\n1. If the description references a GitHub issue number (e.g., #42), fetch it: `gh issue view <number> --json title,body,labels,state`\n2. Classify the issue:\n   - Type: bug | friction | improvement | feature-request\n   - Severity: blocking | high | medium | low\n   - Category: skills | agents | hooks | templates | scaffold | workflow | other\n   - Source: retro | manual | github-issue | pipeline-run\n3. Check existing issues (from context) — if a duplicate exists with the same GitHub number or very similar title, report it and update instead of creating new.\n4. Generate filename: YYYY-MM-DD-<short-slug>.md (today's date)\n5. Create .kiln/issues/ directory if needed: `mkdir -p .kiln/issues`\n6. Write the issue file with this frontmatter structure:\n   ---\n   title: \"<title>\"\n   type: <type>\n   severity: <severity>\n   category: <category>\n   source: <source>\n   github_issue: <number or null>\n   status: open\n   date: YYYY-MM-DD\n   ---\n   ## Description\n   <description text>\n   ## Impact\n   <impact if known>\n   ## Suggested Fix\n   <suggestion if known>\n7. Write a confirmation summary to your output file listing the filename, type, severity, and category.",
+      "context_from": ["check-existing-issues"],
+      "output": ".wheel/outputs/create-issue-result.md"
+    },
+    {
+      "id": "gather-repo-state",
+      "type": "command",
+      "command": "echo '## Repo State' && echo \"Branch: $(git branch --show-current)\" && echo \"Last 10 commits:\" && git log --format='%h %s' -10 && echo '---' && echo 'Open GitHub issues:' && gh issue list --state open --json number,title,labels --limit 50 2>/dev/null || echo '(gh unavailable)' && echo '---' && echo 'Backlog items:' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo 'Feature PRDs:' && ls docs/features/*/PRD.md 2>/dev/null || echo '(none)' && echo '---' && echo 'Recent commits (last 24h):' && git log --format='%h %s' --since='24 hours ago' 2>/dev/null || echo '(none)' && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL tasks\"; done && echo '---' && echo 'VERSION:' && cat VERSION 2>/dev/null || echo 'none'",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/gather-repo-state.txt"
+    },
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "command": "if [ -f .shelf-config ]; then cat .shelf-config; else echo 'No .shelf-config — using defaults'; echo \"slug=$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))\"; echo 'base_path=projects'; fi",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/read-shelf-config.txt"
+    },
+    {
+      "id": "fetch-github-issues",
+      "type": "command",
+      "command": "gh issue list --state all --json number,title,state,labels,body,updatedAt --limit 100 2>/dev/null || echo '[]'",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/fetch-github-issues.txt"
+    },
+    {
+      "id": "read-backlog-issues",
+      "type": "command",
+      "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; echo \"--- FILE: $(basename $f) ---\"; cat \"$f\"; echo; done && echo '## Completed' && for f in .kiln/issues/completed/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; echo \"$(basename $f)\"; done",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/read-backlog-issues.txt"
+    },
+    {
+      "id": "read-feature-prds",
+      "type": "command",
+      "command": "for prd in docs/features/*/PRD.md; do [ -f \"$prd\" ] || { echo '(no PRDs)'; break; }; DIR=$(basename $(dirname \"$prd\")); SLUG=$(echo \"$DIR\" | sed 's/^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}-//'); TITLE=$(grep -m1 '^# ' \"$prd\" | sed 's/^# //'); FR_COUNT=$(grep -c 'FR-' \"$prd\" 2>/dev/null || echo 0); NFR_COUNT=$(grep -c 'NFR-' \"$prd\" 2>/dev/null || echo 0); STATUS=$(grep -m1 '^\\*\\*Status\\*\\*' \"$prd\" | sed 's/.*: *//'); echo \"SLUG=$SLUG TITLE=$TITLE FRs=$FR_COUNT NFRs=$NFR_COUNT STATUS=$STATUS PATH=$prd\"; done",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/read-feature-prds.txt"
+    },
+    {
+      "id": "detect-tech-stack",
+      "type": "command",
+      "command": "echo '## Tech Stack Detection' && ls package.json tsconfig.json Cargo.toml pyproject.toml requirements.txt go.mod Gemfile Dockerfile docker-compose.yml docker-compose.yaml compose.yml compose.yaml 2>/dev/null || echo '(no markers)' && if [ -f package.json ]; then echo '---' && echo 'package.json deps:' && cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null; fi && if [ -d .github/workflows ]; then echo '---' && echo 'infra/github-actions'; fi",
+      "context_from": ["create-issue"],
+      "output": ".wheel/outputs/detect-tech-stack.txt"
+    },
+    {
+      "id": "sync-issues-to-obsidian",
+      "type": "agent",
+      "instruction": "Sync GitHub issues and backlog issues to Obsidian as individual issue notes. You have MCP tools: mcp__obsidian-projects__list_files, mcp__obsidian-projects__read_file, mcp__obsidian-projects__create_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config output to get base_path and slug. The vault path pattern is: {base_path}/{slug}/issues/{slug-from-title}.md\n\n1. Read the project dashboard to verify it exists: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" }). If not found, write 'No project in Obsidian — run /shelf-create first' to your output and stop.\n2. List existing issue notes: mcp__obsidian-projects__list_files({ path: \"{base_path}/{slug}/issues\" })\n3. For each existing note, read it and extract last_synced from frontmatter.\n4. Read the GitHub issues JSON and backlog issues from context.\n5. For each issue:\n   - Generate a slug filename: lowercase title, replace non-alphanumeric with hyphens, collapse multiples, trim, max 60 chars, append .md\n   - If note exists and issue updatedAt <= last_synced: skip\n   - Otherwise create/update with this template:\n     ---\n     type: issue\n     status: \"{open|closed}\"\n     severity: \"{high for bugs, medium default}\"\n     source: \"{GitHub #N or backlog:filename}\"\n     github_number: {N or null}\n     project: \"[[{slug}]]\"\n     tags:\n       - \"source/{github|backlog}\"\n       - \"severity/{high|medium|low}\"\n       - \"type/{bug|improvement|feature}\"\n       - \"category/{inferred from content}\"\n     last_synced: \"{ISO 8601 now}\"\n     ---\n     # {title}\n     {body}\n     ---\n     *Synced from {source}*\n6. For backlog issues with source files in .kiln/issues/completed/: mark Obsidian note as status: closed\n7. Track and report counts: created, updated, closed, skipped\n\nWrite a summary of all actions taken to your output file.",
+      "context_from": ["read-shelf-config", "fetch-github-issues", "read-backlog-issues"],
+      "output": ".wheel/outputs/sync-issues-results.md"
+    },
+    {
+      "id": "sync-docs-to-obsidian",
+      "type": "agent",
+      "instruction": "Sync feature PRD summaries to Obsidian as doc notes. You have MCP tools: mcp__obsidian-projects__read_file, mcp__obsidian-projects__create_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config output to get base_path and slug. The vault path pattern is: {base_path}/{slug}/docs/{feature-slug}.md\n\n1. Read the PRD data from context (slug, title, FR count, NFR count, status, path for each PRD).\n2. For each PRD:\n   - Check if doc note already exists: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/docs/{feature-slug}.md\" })\n   - If exists and content unchanged: skip\n   - Read the actual PRD file to extract a 1-2 sentence summary from Problem/Motivation section\n   - Create/update with this template:\n     ---\n     type: doc\n     title: \"{title}\"\n     summary: \"{summary}\"\n     fr_count: {N}\n     nfr_count: {N}\n     status: \"{Draft|Approved|etc}\"\n     project: \"[[{slug}]]\"\n     tags:\n       - \"doc/prd\"\n       - \"status/{open|in-progress|implemented}\"\n       - \"category/{inferred}\"\n     prd_path: \"{path}\"\n     last_synced: \"{ISO 8601 now}\"\n     ---\n     # {title}\n     {summary}\n     ## Requirements\n     - **Functional**: {N} FRs\n     - **Non-functional**: {N} NFRs\n     ## Source\n     [View PRD]({path})\n     ---\n     *Synced from {path}*\n3. Track and report counts: created, updated, skipped\n\nWrite a summary to your output file.",
+      "context_from": ["read-shelf-config", "read-feature-prds"],
+      "output": ".wheel/outputs/sync-docs-results.md"
+    },
+    {
+      "id": "update-dashboard-tags",
+      "type": "agent",
+      "instruction": "Update the Obsidian project dashboard tech stack tags. You have MCP tools: mcp__obsidian-projects__read_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config to get base_path and slug.\n\n1. Read the current dashboard: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })\n2. Parse the tags: field from YAML frontmatter.\n3. Read the tech stack detection output. Map detected files to tags:\n   - package.json -> language/javascript (or language/typescript if tsconfig.json)\n   - tsconfig.json -> language/typescript\n   - Cargo.toml -> language/rust\n   - pyproject.toml or requirements.txt -> language/python\n   - go.mod -> language/go\n   - Gemfile -> language/ruby\n   - Dockerfile or docker-compose.yml -> infra/docker\n   - .github/workflows/ -> infra/github-actions\n   - Check package.json deps for: framework/react, framework/next, framework/vue, framework/express, framework/fastify\n4. Compare detected tags with current tags.\n5. If different: update dashboard frontmatter tags via mcp__obsidian-projects__update_file. Preserve ALL other dashboard content exactly.\n6. Report: tags added, tags removed, or 'unchanged'.\n\nWrite results to your output file.",
+      "context_from": ["read-shelf-config", "detect-tech-stack"],
+      "output": ".wheel/outputs/update-tags-results.md"
+    },
+    {
+      "id": "push-progress-update",
+      "type": "agent",
+      "instruction": "Push a progress update to the Obsidian project dashboard. You have MCP tools: mcp__obsidian-projects__read_file, mcp__obsidian-projects__create_file, mcp__obsidian-projects__update_file.\n\nRead the shelf config to get base_path and slug.\n\n1. Read the current dashboard: mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })\n2. Parse current status, next_step, last_updated from frontmatter.\n3. Read the repo state, issue creation result, and sync results from context. The key event this session is that a new issue was reported — include that in the summary.\n4. Determine current month (YYYY-MM). Check if progress file exists:\n   mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/progress/{YYYY-MM}.md\" })\n   If not found, create it with progress template header.\n5. Append a new entry to the progress file:\n     ## {YYYY-MM-DD}\n     **Summary**: Reported new issue + ran full shelf sync\n     **Key outcomes**:\n     - New issue filed: {issue filename and title}\n     - Shelf sync: {issues created/updated}, {docs created/updated}, tags {status}\n     **Links**: {any relevant commit SHAs or PR links from recent work}\n   Use mcp__obsidian-projects__update_file to append.\n6. Update dashboard frontmatter: set last_updated to today. Preserve ALL other sections exactly.\n7. Include the sync results summary in the progress entry.\n\nWrite a final report to your output file.",
+      "context_from": ["read-shelf-config", "gather-repo-state", "create-issue", "sync-issues-to-obsidian", "sync-docs-to-obsidian", "update-dashboard-tags"],
+      "output": "reports/report-issue-and-sync-report.md",
+      "terminal": true
+    }
+  ]
+}
