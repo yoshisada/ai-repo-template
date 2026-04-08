@@ -166,8 +166,8 @@ dispatch_workflow() {
   step_status=$(state_get_step_status "$state" "$step_index")
 
   case "$hook_type" in
-    stop)
-      # FR-008: On stop hook, if step is pending, activate child workflow
+    stop|post_tool_use)
+      # Activate child workflow when step is pending (stop hook or PostToolUse after cursor advance)
       if [[ "$step_status" == "pending" ]]; then
         state_set_step_status "$state_file" "$step_index" "working"
 
@@ -209,10 +209,6 @@ dispatch_workflow() {
       else
         jq -n '{"decision": "approve"}'
       fi
-      ;;
-    post_tool_use)
-      # No special action needed — fan-in is handled in handle_terminal_step
-      jq -n '{"hookEventName": "PostToolUse"}'
       ;;
     *)
       jq -n '{"decision": "approve"}'

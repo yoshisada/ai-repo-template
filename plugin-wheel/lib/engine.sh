@@ -201,6 +201,11 @@ engine_handle_hook() {
           dispatch_agent "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
           return $?
         fi
+      elif [[ "$step_type" == "workflow" ]]; then
+        # Dispatch workflow steps from PostToolUse — creates child state file
+        # when cursor advances to a workflow step after a previous step completes
+        dispatch_workflow "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
+        return $?
       fi
       jq -n '{"hookEventName": "PostToolUse"}'
       return 0
