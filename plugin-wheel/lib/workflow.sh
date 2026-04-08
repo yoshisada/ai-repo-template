@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # workflow.sh — Workflow definition parser and validator
 # FR-012: Load, validate, and query workflow JSON files
+# FR-029: Discover workflows from installed plugin manifests
 
 # FR-012: Load and validate a workflow JSON file
 # Params: $1 = workflow file path
@@ -258,5 +259,84 @@ workflow_validate_workflow_refs() {
     fi
   done <<< "$workflow_steps"
 
+  return 0
+}
+
+# FR-029: Discover workflows declared in installed plugin manifests
+# Reads ~/.claude/plugins/installed_plugins.json, follows each plugin's installPath,
+# reads .claude-plugin/plugin.json for a "workflows" field, and resolves each entry
+# to an absolute path.
+# Params: none
+# Output (stdout): JSON array of plugin workflow descriptors
+#   [{"name": "workflow-name", "plugin": "plugin-name", "path": "/abs/path/to/workflow.json", "readonly": true}, ...]
+# Exit: 0 on success (empty array if no plugins found), 1 on parse error
+workflow_discover_plugin_workflows() {
+  local installed_plugins_file="${HOME}/.claude/plugins/installed_plugins.json"
+  if [[ ! -f "$installed_plugins_file" ]]; then
+    echo '[]'
+    return 0
+  fi
+
+  local installed_json
+  if ! installed_json=$(jq -c '.' "$installed_plugins_file" 2>/dev/null); then
+    echo "ERROR: invalid JSON in installed_plugins.json" >&2
+    return 1
+  fi
+
+  local result='[]'
+
+  # Extract all installPath values from installed_plugins.json
+  local install_paths
+  install_paths=$(printf '%s\n' "$installed_json" | jq -r '
+    .plugins // {} | to_entries[] | .value[] | .installPath // empty')
+
+  if [[ -z "$install_paths" ]]; then
+    echo '[]'
+    return 0
+  fi
+
+  while IFS= read -r install_path; do
+    [[ -z "$install_path" ]] && continue
+    local manifest="${install_path}/.claude-plugin/plugin.json"
+    [[ ! -f "$manifest" ]] && continue
+
+    local manifest_json
+    if ! manifest_json=$(jq -c '.' "$manifest" 2>/dev/null); then
+      continue
+    fi
+
+    local plugin_name
+    plugin_name=$(printf '%s\n' "$manifest_json" | jq -r '.name // empty')
+    [[ -z "$plugin_name" ]] && continue
+
+    local workflows_field
+    workflows_field=$(printf '%s\n' "$manifest_json" | jq -c '.workflows // empty')
+    [[ -z "$workflows_field" || "$workflows_field" == "null" ]] && continue
+
+    local wf_count
+    wf_count=$(printf '%s\n' "$workflows_field" | jq 'length')
+    [[ "$wf_count" -eq 0 ]] && continue
+
+    # Iterate over each workflow path in the manifest
+    local wf_entries
+    wf_entries=$(printf '%s\n' "$workflows_field" | jq -r '.[]')
+
+    while IFS= read -r wf_rel_path; do
+      [[ -z "$wf_rel_path" ]] && continue
+      local wf_abs_path="${install_path}/${wf_rel_path}"
+      [[ ! -f "$wf_abs_path" ]] && continue
+
+      # Derive workflow name from filename (strip .json extension)
+      local wf_name
+      wf_name=$(basename "$wf_rel_path" .json)
+
+      result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
+        --arg plugin "$plugin_name" \
+        --arg path "$wf_abs_path" \
+        '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
+    done <<< "$wf_entries"
+  done <<< "$install_paths"
+
+  printf '%s\n' "$result"
   return 0
 }

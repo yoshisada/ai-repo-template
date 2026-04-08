@@ -1,0 +1,16 @@
+{
+  "name": "clay",
+  "version": "000.000.000.646",
+  "description": "Idea-to-project pipeline for Claude Code. Market research, naming, PRD creation, and repo scaffolding.",
+  "author": {
+    "name": "yoshisada"
+  },
+  "homepage": "https://github.com/yoshisada/ai-repo-template",
+  "dependencies": [
+    "wheel",
+    "shelf"
+  ],
+  "workflows": [
+    "workflows/clay-sync.json"
+  ]
+}
