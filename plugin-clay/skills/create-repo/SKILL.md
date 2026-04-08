@@ -136,6 +136,30 @@ Source: clay plugin"
 git push -u origin main
 ```
 
+## Step 7.5: Update Clay Config Registry
+
+<!-- FR-009, FR-013: Append repo entry to clay.config after successful creation -->
+After the initial commit and push succeeds (Step 7), record this repo in `clay.config` so `/clay:idea` and `/clay:clay-list` can track it.
+
+```bash
+# Append to clay.config (create if it doesn't exist)
+# Format: <product-slug> <repo-url> <local-path> <created-date>
+echo "<slug> https://github.com/<owner>/<repo-name> <local-path> $(date +%Y-%m-%d)" >> clay.config
+```
+
+- Use `>>` (append) — **never** `>` (overwrite)
+- If `clay.config` does not exist yet, `>>` will create it
+- Only write this entry if Step 7 completed successfully (repo was actually created and pushed)
+- The `<slug>` is the product slug from Step 1 (or the repo name if no product slug)
+- The `<local-path>` is the path from Step 1 (e.g., `../<repo-name>`)
+
+After appending, commit the updated clay.config:
+
+```bash
+git add clay.config
+git commit -m "Track <slug> in clay.config"
+```
+
 ## Step 8: Write Status Marker
 
 Write the repo URL back to the source product directory so `/clay-list` and `clay-sync` can track the status as "repo-created":
