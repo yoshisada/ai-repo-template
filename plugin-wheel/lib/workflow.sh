@@ -205,10 +205,29 @@ workflow_validate_workflow_refs() {
     local child_name="${entry#*:}"
 
     # FR-003: Validate that the referenced workflow file exists
-    local child_file="workflows/${child_name}.json"
-    if [[ ! -f "$child_file" ]]; then
-      echo "ERROR: workflow step '${step_id}' references missing workflow: ${child_name}" >&2
-      return 1
+    local child_file
+    if [[ "$child_name" == *":"* ]]; then
+      # Plugin workflow — resolve via discovery
+      local plugin_name_ref="${child_name%%:*}"
+      local wf_name_ref="${child_name#*:}"
+      # Check for local override first
+      if [[ -f "workflows/${wf_name_ref}.json" ]]; then
+        child_file="workflows/${wf_name_ref}.json"
+      else
+        child_file=$(workflow_discover_plugin_workflows 2>/dev/null | jq -r \
+          --arg plugin "$plugin_name_ref" --arg name "$wf_name_ref" \
+          '.[] | select(.plugin == $plugin and .name == $name) | .path // empty')
+        if [[ -z "$child_file" ]]; then
+          echo "ERROR: workflow step '${step_id}' references missing plugin workflow: ${child_name}" >&2
+          return 1
+        fi
+      fi
+    else
+      child_file="workflows/${child_name}.json"
+      if [[ ! -f "$child_file" ]]; then
+        echo "ERROR: workflow step '${step_id}' references missing workflow: ${child_name}" >&2
+        return 1
+      fi
     fi
 
     # FR-004: Detect circular references via visited set
