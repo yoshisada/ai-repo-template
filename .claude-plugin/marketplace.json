@@ -58,6 +58,23 @@
       "license": "MIT",
       "keywords": ["shelf", "obsidian", "mcp", "project-dashboard", "sync"],
       "category": "productivity"
+    },
+    {
+      "name": "clay",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/yoshisada/ai-repo-template.git",
+        "path": "plugin-clay"
+      },
+      "description": "Idea-to-project pipeline for Claude Code. Market research, naming, PRD creation, and repo scaffolding with Obsidian integration.",
+      "version": "0.1.0",
+      "author": {
+        "name": "yoshisada"
+      },
+      "repository": "https://github.com/yoshisada/ai-repo-template",
+      "license": "MIT",
+      "keywords": ["clay", "ideation", "prd", "naming", "repo-scaffolding", "obsidian"],
+      "category": "productivity"
     }
   ]
 }
