@@ -15,7 +15,7 @@ COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty')
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the command (activate.sh <name>)
   # Strip quotes — bash commands may include escaped quotes: activate.sh \"name\"
-  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
+  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh["'"'"']*[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
   # Read workflow file — check local workflows/ first, then scan plugin workflows/ dirs
   WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
