@@ -18,7 +18,7 @@
     {
       "id": "full-sync",
       "type": "workflow",
-      "workflow": "shelf-full-sync",
+      "workflow": "shelf:shelf-full-sync",
       "terminal": true
     }
   ]

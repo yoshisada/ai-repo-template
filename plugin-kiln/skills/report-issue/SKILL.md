@@ -21,7 +21,7 @@ Otherwise, confirm the issue description is in the conversation context — the 
 
 ## Step 2: Run Workflow
 
-Run `/wheel-run report-issue-and-sync` to execute the workflow. The workflow will:
+Run `/wheel-run kiln:report-issue-and-sync` to execute the workflow. The workflow will:
 
 1. Check existing issues for duplicates
 2. Classify and create the issue file in `.kiln/issues/`

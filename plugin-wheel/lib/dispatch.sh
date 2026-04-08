@@ -174,7 +174,26 @@ dispatch_workflow() {
         # FR-007: Load child workflow and create child state file
         local child_name
         child_name=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
-        local child_file="workflows/${child_name}.json"
+        local child_file
+        if [[ "$child_name" == *":"* ]]; then
+          # Plugin workflow — resolve via plugin discovery
+          local plugin_name="${child_name%%:*}"
+          local wf_name="${child_name#*:}"
+          # Check for local override first
+          if [[ -f "workflows/${wf_name}.json" ]]; then
+            child_file="workflows/${wf_name}.json"
+          else
+            child_file=$(workflow_discover_plugin_workflows 2>/dev/null | jq -r \
+              --arg plugin "$plugin_name" --arg name "$wf_name" \
+              '.[] | select(.plugin == $plugin and .name == $name) | .path // empty')
+            if [[ -z "$child_file" ]]; then
+              echo "ERROR: Plugin workflow not found: $child_name" >&2
+              return 1
+            fi
+          fi
+        else
+          child_file="workflows/${child_name}.json"
+        fi
 
         local child_json
         child_json=$(workflow_load "$child_file") || return 1
