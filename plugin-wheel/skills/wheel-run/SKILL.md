@@ -188,3 +188,13 @@ No race condition: the hook reads the workflow file directly. No shared mutable 
 - If `$ARGUMENTS` is empty, ask the user for a workflow name. List available workflows from `workflows/*.json` and installed plugins.
 - Never create a state file directly — always go through activate.sh + hook.
 - Plugin workflows are read-only (FR-030) — they execute from the plugin's install path. Users can copy to `workflows/` to customize, and the local copy takes precedence.
+
+## Execution Behavior (NON-NEGOTIABLE)
+
+After activation, **all workflow progression happens through hooks**. Do not manually advance the cursor, update step statuses, or modify state files yourself.
+
+- **Do NOT spawn sub-agents** for any workflow step — including `"type": "workflow"` steps. Workflow steps are like function calls: the referenced workflow runs inline in the same conversation, dispatched by the hook system.
+- **Do NOT manually stop workflows.** Use `/wheel-stop` and let the hook handle archival. If the hook doesn't clean up, investigate why — do not bypass it with manual `jq`/`rm`.
+- **Do NOT manually archive or delete state files.** The hook system owns the workflow lifecycle.
+- The purpose of `"type": "workflow"` steps is to **avoid duplication** between workflows — they compose existing workflows as reusable units, not as separate agents.
+- Your only job after activation is to **execute the current step's work** (e.g., run commands, write files for agent steps) and let hooks handle progression to the next step.
