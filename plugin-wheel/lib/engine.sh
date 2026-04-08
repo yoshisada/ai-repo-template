@@ -88,6 +88,8 @@ engine_kickstart() {
       dispatch_step "$first_step" "stop" '{}' "$state_file" "$cursor" >/dev/null 2>&1
       ;;
     agent)
+      # Set step to pending so the Stop hook knows to inject the instruction
+      state_set_step_status "$state_file" "$cursor" "pending"
       # Return the instruction so the skill can display it
       local instruction
       instruction=$(printf '%s\n' "$first_step" | jq -r '.instruction // empty')
