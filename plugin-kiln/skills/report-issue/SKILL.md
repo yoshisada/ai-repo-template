@@ -5,7 +5,7 @@ description: Log a bug, friction point, or improvement idea to the project backl
 
 # Report Issue — Log to Backlog
 
-Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. Each entry lands in `.kiln/issues/` as a standalone file that can be reviewed, prioritized, and eventually bundled into a PRD via `/issue-to-prd`.
+Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. This skill delegates to the `report-issue-and-sync` wheel workflow, which creates the issue file and syncs to Obsidian via shelf.
 
 ## User Input
 
@@ -13,74 +13,23 @@ Quickly capture a bug, friction point, or improvement idea so it doesn't get los
 $ARGUMENTS
 ```
 
-## Step 1: Parse Input
+## Step 1: Validate Input
 
-Determine the source:
+If `$ARGUMENTS` is empty, ask the user: "What's the issue? Describe the bug, friction, or improvement."
 
-- **GitHub issue reference** (e.g., `#42`, `42`, or a URL): Fetch the issue with `gh issue view <number> --json title,body,labels,state` and extract the title, description, and labels.
-- **Inline text** (anything else): Use the text as the issue description. Ask the user for a one-line title if the text is longer than one sentence.
-- **Empty**: Ask the user: "What's the issue? Describe the bug, friction, or improvement."
+Otherwise, confirm the issue description is in the conversation context — the workflow's agent step will reference it.
 
-## Step 2: Classify
+## Step 2: Run Workflow
 
-Determine these fields — infer from context, ask only if ambiguous:
+Run `/wheel-run report-issue-and-sync` to execute the workflow. The workflow will:
 
-1. **Type**: `bug` | `friction` | `improvement` | `feature-request`
-2. **Severity**: `blocking` | `high` | `medium` | `low`
-3. **Category** — which part of the system is affected:
-   - `skills` — skill behavior, prompts, flow
-   - `agents` — agent definitions, team structure
-   - `hooks` — enforcement rules
-   - `templates` — spec/plan/task templates
-   - `scaffold` — init script, project structure
-   - `workflow` — kiln pipeline, build-prd orchestration
-   - `other`
-4. **Source**: `retro` | `manual` | `github-issue` | `pipeline-run`
-   - `retro` — came from a pipeline retrospective
-   - `manual` — user reported it directly
-   - `github-issue` — imported from a GitHub issue
-   - `pipeline-run` — observed during a specific pipeline run
+1. Check existing issues for duplicates
+2. Classify and create the issue file in `.kiln/issues/`
+3. Sync to Obsidian via `shelf-full-sync`
 
-If importing from a GitHub issue, map labels to type/severity where possible. Default to `improvement` / `medium` if unclear.
-
-## Step 3: Create Backlog Entry
-
-Create `.kiln/issues/` directory if it doesn't exist.
-
-Generate a filename: `YYYY-MM-DD-<short-slug>.md` (e.g., `2026-03-30-missing-dockerfile.md`).
-
-**Read the issue template** — FR-018: check for a consumer-customized template first, then fall back to the plugin default:
-1. If `.kiln/templates/issue.md` exists in the project, read it as the template
-2. Otherwise, read `plugin/templates/issue.md` (the plugin default)
-
-Write the file using the template structure, filling in the frontmatter fields and section content based on the classification from Step 2.
-
-## Step 4: Confirm
-
-Report back:
-
-```
-Logged to .kiln/issues/<filename>
-
-  Type: <type> | Severity: <severity> | Category: <category>
-
-Run /issue-to-prd to bundle open backlog items into a PRD.
-```
-
-## Step 5: Archive on Close (FR-024)
-
-When updating an existing issue's status to `closed` or `done`:
-
-1. Create `.kiln/issues/completed/` directory if it doesn't exist
-2. Move the issue file from `.kiln/issues/<filename>` to `.kiln/issues/completed/<filename>`
-3. Report: `Archived to .kiln/issues/completed/<filename>`
-
-This keeps the active backlog clean — only open items remain in the top-level `.kiln/issues/` directory.
+The user's issue description (from `$ARGUMENTS` above) is already in the conversation context — the workflow's agent step will use it.
 
 ## Rules
 
-- One issue per file — don't append to existing files
-- Don't duplicate: before creating, check top-level `.kiln/issues/` (not `completed/` subdirectory) for an entry with the same GitHub issue number or a very similar title (FR-025). If so, tell the user and offer to update the existing entry instead.
-- Don't auto-commit — the user may want to review or edit the entry first
-- Keep descriptions concise but specific — quote error messages, file paths, or command output when relevant
-- If the user reports multiple issues at once (e.g., a retro with 5 findings), create separate files for each one
+- If the user reports multiple issues at once, run the workflow once per issue
+- If `$ARGUMENTS` is empty, ask before starting the workflow — don't start it with no description
