@@ -1,5 +1,5 @@
 {
-  "listed": false,
+  "listed": true,
   "categories": ["ideation", "product-management", "pipeline"],
   "tags": ["idea-research", "naming", "prd", "repo-scaffolding", "obsidian"],
   "repository": "https://github.com/yoshisada/ai-repo-template",
