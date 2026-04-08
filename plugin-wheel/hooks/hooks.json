@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/block-state-write.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/block-state-write.sh\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/post-tool-use.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh\""
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/stop.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh\""
           }
         ]
       }
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/session-start.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\""
           }
         ]
       }
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/subagent-start.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-start.sh\""
           }
         ]
       }
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/subagent-stop.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stop.sh\""
           }
         ]
       }
@@ -72,7 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/node_modules/@yoshisada/wheel/hooks/teammate-idle.sh\""
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/teammate-idle.sh\""
           }
         ]
       }
