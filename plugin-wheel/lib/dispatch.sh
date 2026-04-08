@@ -183,7 +183,7 @@ dispatch_workflow() {
           if [[ -f "workflows/${wf_name}.json" ]]; then
             child_file="workflows/${wf_name}.json"
           else
-            child_file=$(workflow_discover_plugin_workflows 2>/dev/null | jq -r \
+            child_file=$(bash -c "source '${WHEEL_LIB_DIR}/workflow.sh' && workflow_discover_plugin_workflows" 2>/dev/null | jq -r \
               --arg plugin "$plugin_name" --arg name "$wf_name" \
               '.[] | select(.plugin == $plugin and .name == $name) | .path // empty')
             if [[ -z "$child_file" ]]; then

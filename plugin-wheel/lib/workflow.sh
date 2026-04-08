@@ -214,7 +214,7 @@ workflow_validate_workflow_refs() {
       if [[ -f "workflows/${wf_name_ref}.json" ]]; then
         child_file="workflows/${wf_name_ref}.json"
       else
-        child_file=$(workflow_discover_plugin_workflows 2>/dev/null | jq -r \
+        child_file=$(bash -c "source '${WHEEL_LIB_DIR}/workflow.sh' && workflow_discover_plugin_workflows" 2>/dev/null | jq -r \
           --arg plugin "$plugin_name_ref" --arg name "$wf_name_ref" \
           '.[] | select(.plugin == $plugin and .name == $name) | .path // empty')
         if [[ -z "$child_file" ]]; then
