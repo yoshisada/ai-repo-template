@@ -309,32 +309,57 @@ workflow_discover_plugin_workflows() {
     plugin_name=$(printf '%s\n' "$manifest_json" | jq -r '.name // empty')
     [[ -z "$plugin_name" ]] && continue
 
+    # Collect workflow paths from two sources:
+    # 1. Explicit "workflows" field in plugin.json (array of relative paths)
+    # 2. Auto-scan of <plugin>/workflows/*.json directory
+    local seen_names=""
+
     local workflows_field
     workflows_field=$(printf '%s\n' "$manifest_json" | jq -c '.workflows // empty')
-    [[ -z "$workflows_field" || "$workflows_field" == "null" ]] && continue
 
-    local wf_count
-    wf_count=$(printf '%s\n' "$workflows_field" | jq 'length')
-    [[ "$wf_count" -eq 0 ]] && continue
+    # Source 1: Explicit manifest entries
+    if [[ -n "$workflows_field" && "$workflows_field" != "null" ]]; then
+      local wf_entries
+      wf_entries=$(printf '%s\n' "$workflows_field" | jq -r '.[]')
 
-    # Iterate over each workflow path in the manifest
-    local wf_entries
-    wf_entries=$(printf '%s\n' "$workflows_field" | jq -r '.[]')
+      while IFS= read -r wf_rel_path; do
+        [[ -z "$wf_rel_path" ]] && continue
+        local wf_abs_path="${install_path}/${wf_rel_path}"
+        [[ ! -f "$wf_abs_path" ]] && continue
 
-    while IFS= read -r wf_rel_path; do
-      [[ -z "$wf_rel_path" ]] && continue
-      local wf_abs_path="${install_path}/${wf_rel_path}"
-      [[ ! -f "$wf_abs_path" ]] && continue
+        local wf_name
+        wf_name=$(basename "$wf_rel_path" .json)
+        seen_names="${seen_names} ${wf_name} "
 
-      # Derive workflow name from filename (strip .json extension)
-      local wf_name
-      wf_name=$(basename "$wf_rel_path" .json)
+        result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
+          --arg plugin "$plugin_name" \
+          --arg path "$wf_abs_path" \
+          '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
+      done <<< "$wf_entries"
+    fi
 
-      result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
-        --arg plugin "$plugin_name" \
-        --arg path "$wf_abs_path" \
-        '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
-    done <<< "$wf_entries"
+    # Source 2: Auto-scan workflows/ directory
+    local wf_dir="${install_path}/workflows"
+    if [[ -d "$wf_dir" ]]; then
+      for wf_file in "${wf_dir}"/*.json; do
+        [[ ! -f "$wf_file" ]] && continue
+        local wf_name
+        wf_name=$(basename "$wf_file" .json)
+
+        # Skip if already found via manifest
+        if [[ "$seen_names" == *" ${wf_name} "* ]]; then
+          continue
+        fi
+
+        # Validate it's actual workflow JSON (has name and steps fields)
+        if jq -e '.name and .steps' "$wf_file" >/dev/null 2>&1; then
+          result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
+            --arg plugin "$plugin_name" \
+            --arg path "$wf_file" \
+            '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
+        fi
+      done
+    fi
   done <<< "$install_paths"
 
   printf '%s\n' "$result"

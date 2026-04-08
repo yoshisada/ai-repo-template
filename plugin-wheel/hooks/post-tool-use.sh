@@ -17,8 +17,25 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Strip quotes — bash commands may include escaped quotes: activate.sh \"name\"
   WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
-  # Read workflow file directly — no pending.json needed, eliminates race condition
+  # Read workflow file — check local workflows/ first, then scan plugin workflows/ dirs
   WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
+  if [[ -n "$WORKFLOW_NAME" && ! -f "$WORKFLOW_FILE" ]]; then
+    # Not found locally — check if WORKFLOW_NAME is an absolute path (plugin workflow)
+    if [[ -f "$WORKFLOW_NAME" ]]; then
+      WORKFLOW_FILE="$WORKFLOW_NAME"
+    else
+      # Scan installed plugins for a workflows/ dir containing this workflow
+      export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+      source "${PLUGIN_DIR}/lib/workflow.sh"
+      PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows 2>/dev/null || echo '[]')
+      RESOLVED=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r \
+        --arg name "$WORKFLOW_NAME" \
+        '.[] | select(.name == $name) | .path // empty' | head -1)
+      if [[ -n "$RESOLVED" && -f "$RESOLVED" ]]; then
+        WORKFLOW_FILE="$RESOLVED"
+      fi
+    fi
+  fi
   if [[ -n "$WORKFLOW_NAME" && -f "$WORKFLOW_FILE" ]]; then
     # Source engine libs for validation and state creation
     export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
