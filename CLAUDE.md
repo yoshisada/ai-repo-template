@@ -250,6 +250,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based JSON state in `.wheel/state_*.json` (build/wheel-workflow-composition-20260407)
 - Bash 5.x, Markdown (skill definitions) + jq (JSON parsing), existing wheel engine libs (`plugin-wheel/lib/workflow.sh`) (build/developer-tooling-polish-20260407)
 - Filesystem — reads `workflows/*.json`, writes `.kiln/qa/test-audit-report.md` (build/developer-tooling-polish-20260407)
+- Bash 5.x (workflow shell commands), Markdown (skill definitions, status labels config) + Wheel workflow engine (`plugin-wheel/`), Obsidian MCP tools (`mcp__obsidian-projects__*`), `jq` (JSON parsing in command steps), `gh` CLI (GitHub operations) (build/shelf-skills-polish-20260408)
+- File-based JSON workflows in `plugin-shelf/workflows/`, `.wheel/outputs/` for step outputs, `.wheel/state_*.json` for workflow state (build/shelf-skills-polish-20260408)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
