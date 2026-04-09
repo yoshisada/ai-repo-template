@@ -5,7 +5,10 @@ severity: medium
 category: scaffold
 source: manual
 github_issue: null
-status: open
+status: completed
+prd: docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md
+completed_date: 2026-04-09
+pr: "#82"
 date: 2026-04-08
 ---
 

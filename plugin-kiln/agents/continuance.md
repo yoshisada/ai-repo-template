@@ -59,23 +59,34 @@ Priority is derived from category:
 ### Step 4: Map to Kiln Commands
 
 <!-- FR-012: Every recommendation maps to a valid kiln command -->
+<!-- FR-009: Only whitelisted high-level commands in output -->
+<!-- FR-010: Internal pipeline commands must not appear -->
 
-Every finding MUST map to a specific, executable kiln command:
+Every finding MUST map to a specific, executable kiln command from the **allowed commands whitelist**:
+
+**Allowed commands** (whitelist — only these may appear in output):
+`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/create-repo`, `/init`,
+`/analyze-issues`, `/report-issue`, `/ux-evaluate`, `/issue-to-prd`,
+`/next`, `/todo`, `/roadmap`
+
+**Blocked commands** (NEVER show these — they are internal pipeline steps):
+`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`,
+`/debug-diagnose`, `/debug-fix`
 
 | Finding Type | Command | Notes |
 |-------------|---------|-------|
-| Incomplete task | `/implement` | Resume task execution |
+| Incomplete task | `/build-prd` | Runs the full pipeline including implementation |
 | Failing test | `/fix <description>` | Targeted bug fix |
 | QA finding | `/fix <description>` or `/qa-pass` | Fix if specific, re-test if broad |
-| Audit gap | `/implement` or `/fix` | Depends on gap type |
-| Unimplemented FR (no spec) | `/specify` | Needs spec first |
-| Unimplemented FR (spec exists) | `/implement` | Spec exists, implement it |
+| Audit gap | `/build-prd` or `/fix` | Depends on gap type |
+| Unimplemented FR (no spec) | `/build-prd` | Full pipeline from spec to implementation |
+| Unimplemented FR (spec exists) | `/build-prd` | Resume pipeline |
 | Backlog item (bug) | `/fix <description>` | Bug fix workflow |
-| Backlog item (feature) | `/specify` | Needs spec first |
-| Retrospective action | `/specify`, `/fix`, or file edit | Depends on action type |
-| Fresh project (no PRD) | `/create-prd` or `/build-prd` | Start from scratch |
+| Backlog item (feature) | `/build-prd` | Full pipeline |
+| Retrospective action | `/build-prd`, `/fix`, or `/report-issue` | Depends on action type |
+| Fresh project (no PRD) | `/create-prd` | Start from scratch |
 
-Vague suggestions like "review the code" are prohibited. Every recommendation must be actionable.
+Vague suggestions like "review the code" are prohibited. Every recommendation must be actionable and use only whitelisted commands.
 
 ### Step 5: Deduplicate Against Existing Issues
 

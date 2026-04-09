@@ -30,4 +30,5 @@ SLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FR
 0 STATUS=Draft PATH=docs/features/2026-04-07-wheel-workflow-composition/PRD.md
 SLUG=shelf-skills-polish TITLE=Feature PRD: Shelf Skills Polish FRs=20 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-08-shelf-skills-polish/PRD.md
 SLUG=trim-design-lifecycle TITLE=Feature PRD: Trim Design Lifecycle — Edit, Verify, Redesign, Flows FRs=33 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-trim-design-lifecycle/PRD.md
+SLUG=trim-penpot-layout TITLE=Feature PRD: Trim Penpot Layout & Auto-Flows FRs=18 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-trim-penpot-layout/PRD.md
 SLUG=trim TITLE=Feature PRD: Trim — Bidirectional Design-Code Sync Plugin FRs=27 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-09-trim/PRD.md

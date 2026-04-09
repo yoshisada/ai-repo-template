@@ -20,9 +20,7 @@
 2026-04-08-test4.md: test4 [open]
 2026-04-08-wheel-init-failure-auto-setup.md: Wheel activation should detect missing setup and offer auto-install [open]
 2026-04-08-workflow-in-plugin-package.md: report-issue-and-sync workflow must ship with the kiln plugin [open]
-2026-04-09-trim-auto-build-userflows.md: Trim should auto-build user flows in .trim/flows.json during push and other commands [open]
-2026-04-09-trim-component-page-bento-layout.md: Trim should create a bento-style component page in Penpot, not a descending list [open]
-2026-04-09-trim-penpot-designs-overlap.md: Trim designs on Penpot overlap heavily — needs proper spacing and layout [open]
+2026-04-09-trim-push-should-build-full-pages.md: trim-push should build full page compositions, not just isolated components [open]
 ## Completed
-32
+35
  completed issues

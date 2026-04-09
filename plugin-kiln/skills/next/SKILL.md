@@ -216,27 +216,53 @@ Now analyze ALL gathered data and classify each finding. For each item found:
 ### Command Mapping Rules
 
 <!-- FR-012: Every recommendation maps to a valid kiln command -->
+<!-- FR-009: Only whitelisted high-level commands in output -->
+<!-- FR-010: Internal pipeline commands must not appear -->
 
 For each finding, assign the most specific applicable kiln command:
 
 | Finding Type | Command |
 |-------------|---------|
-| Incomplete task | `/implement` |
+| Incomplete task | `/build-prd` |
 | Failing test | `/fix <brief description of the failure>` |
 | QA finding (specific bug) | `/fix <brief description of the issue>` |
 | QA finding (needs re-test) | `/qa-pass` |
-| Audit gap (missing implementation) | `/implement` |
+| Audit gap (missing implementation) | `/build-prd` |
 | Audit gap (missing test) | `/fix <add test for ...>` |
-| Unimplemented FR (no spec exists) | `/specify` |
-| Unimplemented FR (spec exists) | `/implement` |
+| Unimplemented FR (no spec exists) | `/build-prd` |
+| Unimplemented FR (spec exists) | `/build-prd` |
 | Backlog item (bug report) | `/fix <description>` |
-| Backlog item (feature request) | `/specify` |
-| Retrospective action (process) | `/specify` or specific file edit |
+| Backlog item (feature request) | `/build-prd` |
+| Retrospective action (process) | `/build-prd` or `/report-issue` |
 | Retrospective action (bug) | `/fix <description>` |
-| No PRD exists | Start by writing `docs/PRD.md` or run `/create-prd` |
+| No PRD exists | `/create-prd` |
 | No specs exist but PRD exists | `/build-prd` |
 
-**Prohibited**: Vague suggestions like "review the code" or "look into this". Every recommendation MUST include a specific, executable kiln command.
+### Command Filtering (FR-009, FR-010)
+
+After mapping findings to commands, filter ALL recommendations through these rules:
+
+**Allowed commands** (whitelist — only these may appear in output):
+`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/create-repo`, `/init`,
+`/analyze-issues`, `/report-issue`, `/ux-evaluate`, `/issue-to-prd`,
+`/next`, `/todo`, `/roadmap`
+
+**Blocked commands** (NEVER show these in output):
+`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`,
+`/debug-diagnose`, `/debug-fix`
+
+**Replacement rules** — if a blocked command would be recommended, replace it:
+- `/specify` -> `/build-prd`
+- `/plan` -> `/build-prd`
+- `/tasks` -> `/build-prd`
+- `/implement` -> `/build-prd`
+- `/audit` -> `/build-prd`
+- `/debug-diagnose` -> `/fix <description>`
+- `/debug-fix` -> `/fix <description>`
+
+If after filtering a recommendation has no valid command, drop it entirely.
+
+**Prohibited**: Vague suggestions like "review the code" or "look into this". Every recommendation MUST include a specific, executable kiln command from the whitelist above.
 
 ### Priority Ordering
 

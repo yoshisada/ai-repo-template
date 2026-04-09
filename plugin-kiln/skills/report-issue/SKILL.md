@@ -13,11 +13,35 @@ Quickly capture a bug, friction point, or improvement idea so it doesn't get los
 $ARGUMENTS
 ```
 
-## Step 1: Validate Input
+## Step 1: Validate Input and Gather Context
 
 If `$ARGUMENTS` is empty, ask the user: "What's the issue? Describe the bug, friction, or improvement."
 
 Otherwise, confirm the issue description is in the conversation context — the workflow's agent step will reference it.
+
+### Auto-detect repo URL (FR-012)
+
+```bash
+# Detect repo URL — graceful failure if gh unavailable or not authenticated
+REPO_URL=$(gh repo view --json url -q '.url' 2>/dev/null || echo "")
+echo "repo_url=$REPO_URL"
+```
+
+If `REPO_URL` is non-empty, include it in the issue frontmatter as `repo: <URL>`.
+If empty (gh not installed, not authenticated, or no remote), set `repo: null`.
+
+### Extract file paths from description (FR-012)
+
+Scan the issue description text (`$ARGUMENTS`) for file paths — strings containing `/` with common code extensions (`.ts`, `.tsx`, `.js`, `.jsx`, `.md`, `.json`, `.sh`, `.mjs`, `.py`, `.go`, `.rs`) or paths that start with `src/`, `plugin-`, `specs/`, `.kiln/`, etc.
+
+Include any detected paths in the issue frontmatter as:
+```yaml
+files:
+  - path/to/file1.ts
+  - path/to/file2.md
+```
+
+If no file paths are found in the description, omit the `files` field entirely.
 
 ## Step 2: Run Workflow
 

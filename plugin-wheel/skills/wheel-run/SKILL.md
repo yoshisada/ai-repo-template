@@ -13,6 +13,25 @@ Start a named workflow so that wheel hooks begin intercepting Claude Code events
 $ARGUMENTS
 ```
 
+## Step 0: Pre-flight Check (FR-007, FR-008)
+
+Check that wheel infrastructure exists before attempting workflow execution.
+
+```bash
+# FR-007: Verify wheel directory exists
+if [ ! -d ".wheel" ]; then
+  echo "Wheel is not set up for this repo."
+  echo ""
+  echo "Running wheel init to set up..."
+  PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+  node "${PLUGIN_DIR}/bin/init.mjs" init
+  echo ""
+  echo "Setup complete — continuing with workflow."
+fi
+```
+
+If the `.wheel/` directory does not exist, automatically run the init script from the installed plugin path to set up wheel, then continue with the workflow.
+
 ## Step 1: Resolve Workflow File (FR-031)
 
 The workflow name comes from `$ARGUMENTS`. Resolve it to a file path. If the name contains `:`, treat it as a `<plugin>:<workflow-name>` reference and look up the workflow from the plugin's install path.
