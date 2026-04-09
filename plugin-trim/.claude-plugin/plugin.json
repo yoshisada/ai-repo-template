@@ -1,6 +1,6 @@
 {
   "name": "trim",
-  "version": "000.000.000.729",
+  "version": "000.000.000.730",
   "description": "Bidirectional design-code sync via Penpot MCP. Pull designs into code, push code to Penpot, detect drift, manage component libraries, and generate designs from product context.",
   "author": {
     "name": "yoshisada"

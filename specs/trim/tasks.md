@@ -35,7 +35,7 @@
 
 **Independent Test**: Run `/trim-config` in a fresh project, provide Penpot IDs, verify `.trim-config` is created.
 
-- [ ] T006 [US6] Create configuration skill at `plugin-trim/skills/trim-config/SKILL.md` — reads/creates `.trim-config`, prompts for penpot_project_id and penpot_file_id, sets defaults for optional fields, initializes empty `.trim-components.json` if missing. Per FR-025, FR-026, FR-002, FR-003.
+- [X] T006 [US6] Create configuration skill at `plugin-trim/skills/trim-config/SKILL.md` — reads/creates `.trim-config`, prompts for penpot_project_id and penpot_file_id, sets defaults for optional fields, initializes empty `.trim-components.json` if missing. Per FR-025, FR-026, FR-002, FR-003.
 
 **Checkpoint**: `/trim-config` is runnable and creates valid `.trim-config` and `.trim-components.json` files.
 
