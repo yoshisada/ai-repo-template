@@ -4,14 +4,17 @@
 # Also intercepts activate.sh calls to create per-agent state files
 set -euo pipefail
 
-# 1. Read hook input from stdin
-HOOK_INPUT=$(cat)
+# 1. Read hook input from stdin and sanitize control characters for jq
+RAW_INPUT=$(cat)
+# Replace literal control chars (newlines, tabs, etc. inside JSON string values)
+# that Claude Code may include in tool_output — jq rejects unescaped U+0000-U+001F
+HOOK_INPUT=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 
 # 2. Check for activate.sh interception — create state file with full ownership
-COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty')
+COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the command (activate.sh <name>)
   # Strip quotes — bash commands may include escaped quotes: activate.sh \"name\"
@@ -45,8 +48,8 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
     WORKFLOW_JSON=$(workflow_load "$WORKFLOW_FILE" 2>/dev/null)
     if [[ $? -eq 0 && -n "$WORKFLOW_JSON" ]]; then
       # Extract session_id and agent_id from hook input — stored as ownership
-      SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty')
-      AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty')
+      SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+      AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
 
       # Generate unique state filename — ownership is inside the JSON, not the filename
       UNIQUE="${AGENT_ID:-${SESSION_ID}_$(date +%s)_${RANDOM}}"
@@ -73,8 +76,8 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
   # Extract argument from command (deactivate.sh [--all | <target>])
   DEACTIVATE_ARG=$(printf '%s\n' "$COMMAND" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
-  SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty')
-  AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty')
+  SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+  AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
 
   mkdir -p .wheel/history/stopped
 
