@@ -92,8 +92,8 @@ export async function init(targetDir) {
     log("ok .gitignore (.wheel/ entries exist)");
   }
 
-  // Merge hook configuration into .claude/settings.json
-  mergeHookSettings(dir);
+  // Hook registration is handled automatically by hooks/hooks.json
+  // when the plugin is installed — no need to merge into settings.json
 
   // Verify
   verify(dir);
@@ -106,60 +106,13 @@ export async function update(targetDir) {
 
   console.log("\n--- wheel update ---\n");
 
-  // Re-merge hook settings (in case plugin updated hook paths)
-  mergeHookSettings(dir);
+  // Hook registration is handled automatically by hooks/hooks.json
+  // Re-create runtime dirs in case they were cleaned up
+  ensureDir(join(dir, ".wheel"));
+  ensureDir(join(dir, ".wheel", ".locks"));
 
-  log("ok Wheel settings synced to latest.");
+  log("ok Wheel runtime directories verified.");
   console.log("");
-}
-
-function mergeHookSettings(dir) {
-  const settingsDir = join(dir, ".claude");
-  ensureDir(settingsDir);
-
-  const settingsPath = join(settingsDir, "settings.json");
-  let settings = {};
-  if (existsSync(settingsPath)) {
-    try {
-      settings = JSON.parse(readFileSync(settingsPath, "utf8"));
-    } catch {
-      log("!! .claude/settings.json exists but is invalid JSON — backing up and recreating");
-      copyFileSync(settingsPath, settingsPath + ".bak");
-      settings = {};
-    }
-  }
-
-  // Load the hook configuration template
-  const hooksConfig = JSON.parse(
-    readFileSync(join(PLUGIN_ROOT, "scaffold", "settings-hooks.json"), "utf8")
-  );
-
-  // Merge hooks — add wheel hooks without removing existing ones
-  if (!settings.hooks) {
-    settings.hooks = {};
-  }
-
-  for (const [event, entries] of Object.entries(hooksConfig.hooks)) {
-    if (!settings.hooks[event]) {
-      settings.hooks[event] = [];
-    }
-    for (const entry of entries) {
-      // Check if this exact hook command already exists
-      const exists = settings.hooks[event].some(
-        (existing) =>
-          existing.hooks &&
-          existing.hooks.some(
-            (h) => entry.hooks && entry.hooks.some((e) => h.command === e.command)
-          )
-      );
-      if (!exists) {
-        settings.hooks[event].push(entry);
-      }
-    }
-  }
-
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
-  log("+  .claude/settings.json (wheel hooks merged)");
 }
 
 function verify(dir) {
@@ -169,7 +122,6 @@ function verify(dir) {
     [".wheel", "Runtime state directory"],
     ["workflows", "Workflow definitions directory"],
     ["workflows/example.json", "Example workflow"],
-    [".claude/settings.json", "Hook configuration"],
   ];
 
   let passed = 0;
