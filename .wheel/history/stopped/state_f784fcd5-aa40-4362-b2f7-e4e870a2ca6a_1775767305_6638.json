@@ -1,0 +1,133 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 1,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T20:41:45.000Z",
+  "updated_at": "2026-04-09T20:43:06.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T20:41:45.000Z",
+      "completed_at": "2026-04-09T20:41:45.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:41:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "working",
+      "started_at": "2026-04-09T20:41:45.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && if [[ -n \"$STATE_FILE\" && -f \"$STATE_FILE\" ]]; then echo \"State file: $(basename $STATE_FILE)\" && jq -r '\"Owner: session=\\(.owner_session_id) agent=\\(.owner_agent_id // \"none\")\\nCursor: \\(.cursor)\\nWorkflow: \\(.workflow_name)\"' \"$STATE_FILE\"; else echo \"No state file created — hook may not have intercepted\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:41:51.000Z"
+        },
+        {
+          "command": "jq '.' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775767305_21330.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:41:57.000Z"
+        },
+        {
+          "command": "jq '.cursor, .steps[1].status, (.teams // \"no teams key\")' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775767305_21330.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:42:08.000Z"
+        },
+        {
+          "command": "git add plugin-wheel/hooks/hooks.json && git commit -m \"fix: add team tool names to PostToolUse hook matcher\n\nTeamCreate, TaskCreate, TaskList, TaskUpdate, TaskGet, Agent, SendMessage,\nTeamDelete must be matched by the PostToolUse hook for team primitives to\ndetect tool completion and advance the workflow cursor.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:42:59.000Z"
+        },
+        {
+          "command": "git push origin main",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:43:06.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

@@ -260,6 +260,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based — `.trim/flows.json`, `.trim/components.json`, workflow JSON files (build/trim-penpot-layout-20260409)
 - Node.js 18+ (init.mjs), Bash 5.x (hooks, workflows), Markdown (skills/agents) + jq, gh CLI (optional), Penpot MCP tools (for trim), wheel engine (build/plugin-polish-and-skill-ux-20260409)
 - File-based (JSON workflows, markdown skills/templates, `.wheel/` state) (build/plugin-polish-and-skill-ux-20260409)
+- Bash 5.x + jq (JSON parsing), Claude Code agent teams API (TeamCreate, TaskCreate, TaskList, TaskUpdate, TeamDelete, Agent, SendMessage) (build/wheel-team-primitives-20260409)
+- File-based JSON state (`.wheel/state_*.json`) (build/wheel-team-primitives-20260409)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
