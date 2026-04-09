@@ -43,7 +43,8 @@ The workflow executes these steps in order:
 4. **read-mappings** — reads current `.trim/components.json`
 5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
 6. **push-to-penpot** — creates/updates Penpot components via MCP from code analysis
-7. **update-mappings** — writes updated component mappings to `.trim/components.json`
+7. **discover-flows** — auto-discovers user flows from codebase routes and navigation, merges into `.trim/flows.json`
+8. **update-mappings** — writes updated component mappings to `.trim/components.json`
 
 ### 3. Report Results
 
@@ -63,6 +64,8 @@ Push complete.
     - {N} updated
     - {N} newly created
 
+  Components Page: {created | updated} with {N} component groups
+  Flows Discovered: {N} flows with {M} steps written to .trim/flows.json
   Updated: .trim/components.json
 
 Next: Open Penpot to view and edit the pushed components,

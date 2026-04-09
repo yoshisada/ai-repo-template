@@ -42,7 +42,8 @@ The workflow executes these steps in order:
 3. **read-mappings** — reads current `.trim/components.json` to know which components already exist
 4. **resolve-trim-plugin** — resolves the trim plugin install path at runtime
 5. **pull-design** — reads Penpot design via MCP, generates framework-appropriate code, reuses existing components
-6. **update-mappings** — writes updated component mappings to `.trim/components.json`
+6. **discover-flows** — auto-discovers user flows from Penpot page organization, merges into `.trim/flows.json`
+7. **update-mappings** — writes updated component mappings to `.trim/components.json`
 
 ### 3. Report Results
 
@@ -62,6 +63,7 @@ Pull complete.
     - {N} existing (unchanged)
     - {N} new (created)
 
+  Flows Discovered: {N} flows inferred from Penpot pages, written to .trim/flows.json
   Updated: .trim/components.json
 
 Next: Run /trim-diff to verify code matches the design,
