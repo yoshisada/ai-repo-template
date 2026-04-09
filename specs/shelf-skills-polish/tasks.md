@@ -15,7 +15,7 @@
 
 **Purpose**: Create the canonical status labels file — shared dependency for all user stories
 
-- [ ] T001 Create canonical status labels file at `plugin-shelf/status-labels.md` with six statuses (idea, active, paused, blocked, completed, archived), descriptions, and non-canonical equivalent mappings per FR-012
+- [X] T001 Create canonical status labels file at `plugin-shelf/status-labels.md` with six statuses (idea, active, paused, blocked, completed, archived), descriptions, and non-canonical equivalent mappings per FR-012
 
 ---
 
