@@ -17,11 +17,11 @@
 
 **Purpose**: Create the plugin directory structure and package manifests
 
-- [ ] T001 Create plugin manifest at `plugin-trim/.claude-plugin/plugin.json` with name "trim", version "000.000.000.000", and description per contracts/interfaces.md
-- [ ] T002 Create marketplace config at `plugin-trim/.claude-plugin/marketplace.json` with distribution settings
-- [ ] T003 Create npm package at `plugin-trim/package.json` with name "@yoshisada/trim" per contracts/interfaces.md
-- [ ] T004 [P] Create config template at `plugin-trim/templates/trim-config.tpl` with placeholder key-value pairs and comments
-- [ ] T005 [P] Create component mapping template at `plugin-trim/templates/trim-components.tpl` with empty JSON array `[]`
+- [X] T001 Create plugin manifest at `plugin-trim/.claude-plugin/plugin.json` with name "trim", version "000.000.000.000", and description per contracts/interfaces.md
+- [X] T002 Create marketplace config at `plugin-trim/.claude-plugin/marketplace.json` with distribution settings
+- [X] T003 Create npm package at `plugin-trim/package.json` with name "@yoshisada/trim" per contracts/interfaces.md
+- [X] T004 [P] Create config template at `plugin-trim/templates/trim-config.tpl` with placeholder key-value pairs and comments
+- [X] T005 [P] Create component mapping template at `plugin-trim/templates/trim-components.tpl` with empty JSON array `[]`
 
 **Checkpoint**: Plugin scaffold exists with manifest, package.json, and templates. No skills or workflows yet.
 

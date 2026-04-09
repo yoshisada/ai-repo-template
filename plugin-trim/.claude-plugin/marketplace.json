@@ -1,0 +1,7 @@
+{
+  "listed": false,
+  "categories": ["design", "sync", "code-generation"],
+  "tags": ["penpot", "mcp", "design-sync", "component-mapping", "bidirectional"],
+  "repository": "https://github.com/yoshisada/ai-repo-template",
+  "homepage": "https://github.com/yoshisada/ai-repo-template/tree/main/plugin-trim"
+}
