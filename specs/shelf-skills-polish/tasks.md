@@ -35,15 +35,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Create shelf-create workflow JSON at `plugin-shelf/workflows/shelf-create.json` with `read-shelf-config` command step that reads `.shelf-config` or derives defaults from git remote per contracts/interfaces.md
-- [ ] T003 [US1] Add `detect-repo-progress` command step to `plugin-shelf/workflows/shelf-create.json` that inspects repo for progress signals (specs count, code dirs, test files, VERSION, commit count, open issues, .kiln/ artifacts) per FR-005
-- [ ] T004 [US1] Add `detect-tech-stack` command step to `plugin-shelf/workflows/shelf-create.json` that scans for config files and parses package.json dependencies (reuse pattern from shelf-full-sync)
-- [ ] T005 [US1] Add `get-repo-metadata` command step to `plugin-shelf/workflows/shelf-create.json` that extracts git remote URL and package.json description
-- [ ] T006 [US1] Add `resolve-vault-path` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to navigate from vault root via `list_files("/")` and verify/create base_path per FR-003, FR-004. Context from: read-shelf-config
-- [ ] T007 [US1] Add `check-duplicate` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to list files at target project path and abort if project exists. Context from: read-shelf-config, resolve-vault-path
-- [ ] T008 [US1] Add `create-project` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to create dashboard + about + directory structure using templates, setting initial status from progress signals per FR-002, FR-006. Context from: read-shelf-config, detect-repo-progress, detect-tech-stack, get-repo-metadata, resolve-vault-path, check-duplicate. Must reference `plugin-shelf/status-labels.md` for valid status values
-- [ ] T009 [US1] Add `write-shelf-config` terminal command step to `plugin-shelf/workflows/shelf-create.json` that writes `.shelf-config` if it doesn't already exist
-- [ ] T010 [US1] Rewrite `plugin-shelf/skills/shelf-create/SKILL.md` as thin wrapper that validates input and delegates to `/wheel-run shelf:shelf-create` per FR-007
+- [X] T002 [US1] Create shelf-create workflow JSON at `plugin-shelf/workflows/shelf-create.json` with `read-shelf-config` command step that reads `.shelf-config` or derives defaults from git remote per contracts/interfaces.md
+- [X] T003 [US1] Add `detect-repo-progress` command step to `plugin-shelf/workflows/shelf-create.json` that inspects repo for progress signals (specs count, code dirs, test files, VERSION, commit count, open issues, .kiln/ artifacts) per FR-005
+- [X] T004 [US1] Add `detect-tech-stack` command step to `plugin-shelf/workflows/shelf-create.json` that scans for config files and parses package.json dependencies (reuse pattern from shelf-full-sync)
+- [X] T005 [US1] Add `get-repo-metadata` command step to `plugin-shelf/workflows/shelf-create.json` that extracts git remote URL and package.json description
+- [X] T006 [US1] Add `resolve-vault-path` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to navigate from vault root via `list_files("/")` and verify/create base_path per FR-003, FR-004. Context from: read-shelf-config
+- [X] T007 [US1] Add `check-duplicate` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to list files at target project path and abort if project exists. Context from: read-shelf-config, resolve-vault-path
+- [X] T008 [US1] Add `create-project` agent step to `plugin-shelf/workflows/shelf-create.json` with instruction to create dashboard + about + directory structure using templates, setting initial status from progress signals per FR-002, FR-006. Context from: read-shelf-config, detect-repo-progress, detect-tech-stack, get-repo-metadata, resolve-vault-path, check-duplicate. Must reference `plugin-shelf/status-labels.md` for valid status values
+- [X] T009 [US1] Add `write-shelf-config` terminal command step to `plugin-shelf/workflows/shelf-create.json` that writes `.shelf-config` if it doesn't already exist
+- [X] T010 [US1] Rewrite `plugin-shelf/skills/shelf-create/SKILL.md` as thin wrapper that validates input and delegates to `/wheel-run shelf:shelf-create` per FR-007
 
 **Checkpoint**: shelf-create workflow is fully defined and the skill delegates to it
 
