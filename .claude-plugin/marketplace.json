@@ -75,6 +75,23 @@
       "license": "MIT",
       "keywords": ["clay", "ideation", "prd", "naming", "repo-scaffolding", "obsidian"],
       "category": "productivity"
+    },
+    {
+      "name": "trim",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/yoshisada/ai-repo-template.git",
+        "path": "plugin-trim"
+      },
+      "description": "Bidirectional design-code sync via Penpot MCP. Pull designs into code, push code to Penpot, detect drift, manage component libraries, generate designs, edit via natural language, verify visually, redesign, and track user flows.",
+      "version": "0.1.0",
+      "author": {
+        "name": "yoshisada"
+      },
+      "repository": "https://github.com/yoshisada/ai-repo-template",
+      "license": "MIT",
+      "keywords": ["trim", "penpot", "design-sync", "mcp", "visual-verification", "user-flows"],
+      "category": "design"
     }
   ]
 }
