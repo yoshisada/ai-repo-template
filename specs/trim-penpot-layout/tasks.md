@@ -48,8 +48,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add page separation rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 2: append PAGE SEPARATION RULES block to step id="push-to-penpot" instruction)
-- [ ] T008 [P] [US1] Add page separation rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 2: append PAGE SEPARATION RULES block to step id="generate-design" instruction)
+- [X] T007 [US1] Add page separation rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 2: append PAGE SEPARATION RULES block to step id="push-to-penpot" instruction)
+- [X] T008 [P] [US1] Add page separation rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 2: append PAGE SEPARATION RULES block to step id="generate-design" instruction)
 
 **Checkpoint**: Push and design commands now create separate Penpot pages per route and maintain frame spacing. User Story 1 is complete.
 
