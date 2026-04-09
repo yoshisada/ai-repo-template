@@ -82,7 +82,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [US4] Add Step 0 pre-flight check to `plugin-wheel/skills/wheel-run/SKILL.md` before current Step 1 — verify `.wheel/` directory exists, print actionable message if missing, offer to run `/wheel-init` (FR-007, FR-008)
+- [X] T009 [US4] Add Step 0 pre-flight check to `plugin-wheel/skills/wheel-run/SKILL.md` before current Step 1 — verify `.wheel/` directory exists, print actionable message if missing, offer to run `/wheel-init` (FR-007, FR-008)
 
 **Checkpoint**: Wheel failures produce actionable guidance.
 
