@@ -20,15 +20,17 @@ Check that wheel infrastructure exists before attempting workflow execution.
 ```bash
 # FR-007: Verify wheel directory exists
 if [ ! -d ".wheel" ]; then
-  echo "Wheel is not set up for this repo. Run \`/wheel-init\` to configure it."
+  echo "Wheel is not set up for this repo."
   echo ""
-  echo "Would you like to run /wheel-init now? (The workflow will start after setup completes.)"
-  exit 1
+  echo "Running wheel init to set up..."
+  PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+  node "${PLUGIN_DIR}/bin/init.mjs" init
+  echo ""
+  echo "Setup complete — continuing with workflow."
 fi
 ```
 
-If the `.wheel/` directory does not exist, stop and display the message above.
-If the user accepts, run `/wheel-init` then retry the workflow.
+If the `.wheel/` directory does not exist, automatically run the init script from the installed plugin path to set up wheel, then continue with the workflow.
 
 ## Step 1: Resolve Workflow File (FR-031)
 
