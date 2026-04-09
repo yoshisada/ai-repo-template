@@ -225,6 +225,17 @@ engine_handle_hook() {
       jq -n '{"hookEventName": "PostToolUse"}'
       return 0
       ;;
+    teammate_idle)
+      # Handle teammate going idle — if current step is team-wait, mark teammate completed
+      local step_type
+      step_type=$(printf '%s\n' "$current_step" | jq -r '.type')
+      if [[ "$step_type" == "team-wait" ]]; then
+        dispatch_step "$current_step" "teammate_idle" "$hook_input_json" "$STATE_FILE" "$cursor"
+        return $?
+      fi
+      jq -n '{"decision": "approve"}'
+      return 0
+      ;;
     session_start)
       # FR-008: Resume — inject context about where we left off
       local step_id

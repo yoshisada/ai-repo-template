@@ -1469,6 +1469,43 @@ dispatch_team_wait() {
       fi
       jq -n '{"hookEventName": "PostToolUse"}'
       ;;
+    teammate_idle)
+      # A teammate went idle — mark it completed and check if all done
+      local idle_name
+      idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.teammate_name // .name // empty')
+      # Also try extracting from the "from" field of idle notifications
+      if [[ -z "$idle_name" ]]; then
+        idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.from // empty')
+      fi
+
+      if [[ -n "$idle_name" ]]; then
+        # Check if this teammate is registered and not already completed
+        local cur_state
+        cur_state=$(state_read "$state_file") || true
+        local tm_status
+        tm_status=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$idle_name" \
+          '.teams[$tid].teammates[$n].status // empty')
+        if [[ -n "$tm_status" && "$tm_status" != "completed" && "$tm_status" != "failed" ]]; then
+          state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
+        fi
+      fi
+
+      # Check if all teammates are now done
+      state=$(state_read "$state_file") || return 1
+      local teammates_json
+      teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+      local total completed failed done_count
+      total=$(printf '%s\n' "$teammates_json" | jq 'length')
+      completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+      failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+      done_count=$((completed + failed))
+
+      if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
+        _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+        return $?
+      fi
+      jq -n '{"decision": "approve"}'
+      ;;
     *)
       jq -n '{"decision": "approve"}'
       ;;
