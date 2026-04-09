@@ -13,15 +13,15 @@ Compare the current state of Penpot designs against the current code and produce
 $ARGUMENTS
 ```
 
-Optional: component name to diff. If omitted, checks all tracked components in `.trim-components.json`.
+Optional: component name to diff. If omitted, checks all tracked components in `.trim/components.json`.
 
 ## Steps
 
 ### 1. Validate Configuration
 
 ```bash
-if [ ! -f .trim-config ]; then
-  echo "ERROR: No .trim-config found. Run /trim-init first to connect to your Penpot project."
+if [ ! -f .trim/config ]; then
+  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -35,8 +35,8 @@ Delegate to the trim-diff wheel workflow:
 ```
 
 The workflow executes these steps in order:
-1. **read-config** — parses `.trim-config` and validates required fields
-2. **read-mappings** — reads current `.trim-components.json`
+1. **read-config** — parses `.trim/config` and validates required fields
+2. **read-mappings** — reads current `.trim/components.json`
 3. **scan-components** — finds current code component files by framework convention
 4. **resolve-trim-plugin** — resolves trim plugin install path at runtime
 5. **generate-diff** — compares Penpot state vs code for each tracked component, categorizes mismatches, generates report
@@ -61,7 +61,7 @@ Drift Report for {project}
 
 ## Rules
 
-- **Config required** — fail immediately if `.trim-config` is missing (FR-026)
+- **Config required** — fail immediately if `.trim/config` is missing (FR-026)
 - **Categorized mismatches** — every mismatch must be one of: code-only, design-only, style-divergence, layout-difference (FR-018)
 - **Actionable suggestions** — every mismatch must include a pull/push/manual-review suggestion (FR-019)
 - **MCP only** — all Penpot reads go through MCP tools (NFR-003)

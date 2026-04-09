@@ -11,7 +11,7 @@
     {
       "id": "read-design-state",
       "type": "command",
-      "command": "echo '## Design State' && echo '### Components' && if [ -f .trim-components.json ]; then cat .trim-components.json; else echo '(no .trim-components.json)'; fi && echo '' && echo '### Config' && if [ -f .trim-config ]; then cat .trim-config; else echo '(no .trim-config)'; fi",
+      "command": "echo '## Design State' && echo '### Components' && if [ -f .trim/components.json ]; then cat .trim/components.json; else echo '(no .trim/components.json)'; fi && echo '' && echo '### Config' && if [ -f .trim/config ]; then cat .trim/config; else echo '(no .trim/config)'; fi",
       "output": ".wheel/outputs/read-design-state.txt"
     },
     {
@@ -24,7 +24,7 @@
     {
       "id": "log-change",
       "type": "agent",
-      "instruction": "Append a design change entry to .trim-changes.md.\n\n1. Read the apply-edit output to get the details of what was changed.\n2. Read the design state from context for component names.\n3. If .trim-changes.md does not exist, create it with a header:\n   ```\n   # Design Changelog\n   ```\n4. Append a new entry in this format:\n   ```\n   ## [ISO-8601-TIMESTAMP] edit\n\n   **Request**: [the natural language description from the user]\n\n   **Changes**:\n   - [change 1: component/property before → after]\n   - [change 2: ...]\n\n   **Affected Frames**: [comma-separated list of Penpot frame names]\n\n   ---\n   ```\n5. The entry MUST include enough context to understand the change without viewing the Penpot diff.\n\nWrite a confirmation to your output file with the entry that was appended.",
+      "instruction": "Append a design change entry to .trim/changes.md.\n\n1. Read the apply-edit output to get the details of what was changed.\n2. Read the design state from context for component names.\n3. If .trim/changes.md does not exist, create it with a header:\n   ```\n   # Design Changelog\n   ```\n4. Append a new entry in this format:\n   ```\n   ## [ISO-8601-TIMESTAMP] edit\n\n   **Request**: [the natural language description from the user]\n\n   **Changes**:\n   - [change 1: component/property before → after]\n   - [change 2: ...]\n\n   **Affected Frames**: [comma-separated list of Penpot frame names]\n\n   ---\n   ```\n5. The entry MUST include enough context to understand the change without viewing the Penpot diff.\n\nWrite a confirmation to your output file with the entry that was appended.",
       "context_from": ["read-design-state", "apply-edit"],
       "output": ".wheel/outputs/log-change.txt",
       "terminal": true

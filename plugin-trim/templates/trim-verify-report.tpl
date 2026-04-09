@@ -10,7 +10,7 @@
 
 ### Step {step_index}: {step_action} {step_target}
 - **Result**: {pass_or_fail}
-- **Screenshot**: .trim-verify/{flow_slug}-step-{step_index}.png
+- **Screenshot**: .trim/verify/{flow_slug}-step-{step_index}.png
 - **Penpot Frame**: {penpot_frame_id}
 - **Mismatch**: {mismatch_description_or_none}
 

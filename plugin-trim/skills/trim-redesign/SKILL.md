@@ -31,10 +31,10 @@ Delegate to the trim-redesign wheel workflow:
 
 The workflow executes these steps in order:
 1. **resolve-trim-plugin** — finds the trim plugin install path at runtime (FR-026)
-2. **gather-context** — reads PRD, `.trim-components.json`, `.trim-flows.json`, `.trim-config` (FR-014)
+2. **gather-context** — reads PRD, `.trim/components.json`, `.trim/flows.json`, `.trim/config` (FR-014)
 3. **read-current-design** — fetches the entire current Penpot design state via MCP (FR-014)
 4. **generate-redesign** — reimagines the visual design preserving information architecture (pages, navigation, user flows), applies to Penpot via MCP (FR-015)
-5. **log-changes** — appends a comprehensive redesign entry to `.trim-changes.md` with rationale (FR-016)
+5. **log-changes** — appends a comprehensive redesign entry to `.trim/changes.md` with rationale (FR-016)
 
 Pass the user's context/direction (if provided) to the workflow so `generate-redesign` can incorporate it.
 
@@ -48,7 +48,7 @@ UI redesign applied in Penpot.
   Direction:    {user's context or "full redesign"}
   Preserved:    Information architecture, navigation, user flows
   Redesigned:   {summary — layout, colors, typography, component styling}
-  Logged to:    .trim-changes.md
+  Logged to:    .trim/changes.md
 
 Changes are in Penpot only — code has NOT been modified.
 Review the redesign in Penpot, then run /trim-pull when ready to sync to code.

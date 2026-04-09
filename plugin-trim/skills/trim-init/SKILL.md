@@ -1,6 +1,6 @@
 ---
 name: trim-init
-description: Initialize trim for a project. Discovers Penpot files via MCP, creates .trim-config, and scans existing components for initial mappings.
+description: Initialize trim for a project. Discovers Penpot files via MCP, creates .trim/config, and scans existing components for initial mappings.
 ---
 
 # trim-init — Initialize Penpot Connection
@@ -20,9 +20,9 @@ Optional: Penpot file ID to skip discovery (e.g., `trim-init abc123-def456`).
 ### 1. Check Existing Configuration
 
 ```bash
-if [ -f .trim-config ]; then
-  echo "Existing .trim-config found:"
-  cat .trim-config
+if [ -f .trim/config ]; then
+  echo "Existing .trim/config found:"
+  cat .trim/config
   echo ""
   echo "Re-running will update the configuration. Proceed?"
 fi
@@ -83,10 +83,11 @@ Status: Blank file — ready for design-first workflow or /trim-push.
 
 ### 4. Write Configuration
 
-Write `.trim-config` with the discovered values. **No project_id required** — file_id is sufficient for all trim operations.
+Write `.trim/config` with the discovered values. **No project_id required** — file_id is sufficient for all trim operations.
 
 ```bash
-cat > .trim-config << TRIMCFG
+mkdir -p .trim
+cat > .trim/config << TRIMCFG
 # Trim configuration — maps this repo to its Penpot file
 # Run /trim-init to update
 
@@ -97,7 +98,7 @@ penpot_file_id = ${FILE_ID}
 # default_page = Main
 
 # Component mapping file path
-components_file = .trim-components.json
+components_file = .trim/components.json
 
 # Override auto-detected framework (react, vue, svelte, html)
 # framework = react
@@ -106,7 +107,7 @@ TRIMCFG
 
 ### 5. Build Initial Component Mappings
 
-If the Penpot file has existing components, scan them and create initial `.trim-components.json` entries:
+If the Penpot file has existing components, scan them and create initial `.trim/components.json` entries:
 
 For each Penpot component found via MCP:
 - Record: `penpot_component_id`, `penpot_component_name`
@@ -117,7 +118,7 @@ For each Penpot component found via MCP:
 If the file is blank, create an empty `[]` mapping file.
 
 ```bash
-COMP_FILE=.trim-components.json
+COMP_FILE=.trim/components.json
 if [ ! -f "$COMP_FILE" ]; then
   echo '[]' > "$COMP_FILE"
 fi
@@ -133,8 +134,8 @@ Trim initialized.
   Components:      {N existing} ({N mapped}, {N unmapped})
   File Status:     {Blank | Populated}
 
-  Config:          .trim-config
-  Mappings:        .trim-components.json
+  Config:          .trim/config
+  Mappings:        .trim/components.json
 
 Next steps:
   - File is blank?     → /trim-design to generate a design from your PRD

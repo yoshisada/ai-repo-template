@@ -8,7 +8,7 @@ penpot_file_id = REPLACE_ME
 # default_page = Main
 
 # Component mapping file path
-components_file = .trim-components.json
+components_file = .trim/components.json
 
 # Override auto-detected framework (react, vue, svelte, html)
 # framework = react

@@ -23,8 +23,8 @@ Description of what to design, or path to a PRD file. Examples:
 ### 1. Validate Configuration
 
 ```bash
-if [ ! -f .trim-config ]; then
-  echo "ERROR: No .trim-config found. Run /trim-init first to connect to your Penpot project."
+if [ ! -f .trim/config ]; then
+  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -38,8 +38,8 @@ Delegate to the trim-design wheel workflow:
 ```
 
 The workflow executes these steps in order:
-1. **read-config** — parses `.trim-config` and validates required fields
-2. **read-mappings** — reads existing component library from `.trim-components.json`
+1. **read-config** — parses `.trim/config` and validates required fields
+2. **read-mappings** — reads existing component library from `.trim/components.json`
 3. **detect-framework** — detects UI framework and CSS approach for informed design decisions
 4. **read-product-context** — gathers PRDs, project conventions, and existing component names
 5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
@@ -60,7 +60,7 @@ Design generated.
   Visual Conventions Applied:
     - {colors, typography, spacing patterns detected and used}
 
-  Updated: .trim-components.json
+  Updated: .trim/components.json
 
 Next: Open Penpot to review and refine the generated design,
       then run /trim-pull to generate code from the design.
@@ -68,7 +68,7 @@ Next: Open Penpot to review and refine the generated design,
 
 ## Rules
 
-- **Config required** — fail immediately if `.trim-config` is missing (FR-026)
+- **Config required** — fail immediately if `.trim/config` is missing (FR-026)
 - **Reuse library components** — use existing Penpot components from mappings where appropriate (FR-023)
 - **Follow conventions** — apply project's existing visual conventions for colors, typography, spacing (FR-024)
 - **Product context driven** — design decisions should be informed by PRD requirements (FR-022)

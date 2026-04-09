@@ -5,19 +5,19 @@
     {
       "id": "read-config",
       "type": "command",
-      "command": "if [ ! -f .trim-config ]; then echo 'ERROR: .trim-config not found — run /trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim-config",
+      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
       "output": ".wheel/outputs/trim-read-config.txt"
     },
     {
       "id": "read-mappings",
       "type": "command",
-      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
       "output": ".wheel/outputs/trim-read-mappings.txt"
     },
     {
       "id": "scan-components",
       "type": "command",
-      "command": "echo \"## Component Scan\" && FRAMEWORK=\"html\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\"; case \"$FRAMEWORK\" in react) find src/components app/components components -name '*.tsx' -o -name '*.jsx' 2>/dev/null | head -50;; vue) find src/components app/components components -name '*.vue' 2>/dev/null | head -50;; svelte) find src/components src/lib/components src/routes -name '*.svelte' 2>/dev/null | head -50;; *) find src/components components -name '*.html' 2>/dev/null | head -50;; esac",
+      "command": "echo \"## Component Scan\" && FRAMEWORK=\"html\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\"; case \"$FRAMEWORK\" in react) find src/components app/components components -name '*.tsx' -o -name '*.jsx' 2>/dev/null | head -50;; vue) find src/components app/components components -name '*.vue' 2>/dev/null | head -50;; svelte) find src/components src/lib/components src/routes -name '*.svelte' 2>/dev/null | head -50;; *) find src/components components -name '*.html' 2>/dev/null | head -50;; esac",
       "output": ".wheel/outputs/trim-scan-components.txt"
     },
     {

@@ -21,8 +21,8 @@ $ARGUMENTS
 ### 1. Validate Configuration
 
 ```bash
-if [ ! -f .trim-config ]; then
-  echo "ERROR: No .trim-config found. Run /trim-init first to connect to your Penpot project."
+if [ ! -f .trim/config ]; then
+  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -38,8 +38,8 @@ Parse `$ARGUMENTS`:
 Read the component mapping file directly (no wheel workflow needed):
 
 ```bash
-COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' ')
-COMP_FILE=${COMP_FILE:-.trim-components.json}
+COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' ')
+COMP_FILE=${COMP_FILE:-.trim/components.json}
 
 if [ ! -f "$COMP_FILE" ] || [ "$(cat "$COMP_FILE")" = "[]" ]; then
   echo "No components tracked yet. Run /trim-pull or /trim-push to start tracking."
@@ -73,8 +73,8 @@ Delegate to the trim-library-sync wheel workflow:
 ```
 
 The workflow executes these steps in order:
-1. **read-config** — parses `.trim-config`
-2. **read-mappings** — reads current `.trim-components.json`
+1. **read-config** — parses `.trim/config`
+2. **read-mappings** — reads current `.trim/components.json`
 3. **detect-framework** — detects UI framework and CSS approach
 4. **check-git-timestamps** — gets last git modification time for each tracked code path
 5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
@@ -91,12 +91,12 @@ Library sync complete.
   Skipped (already in sync):        {N}
   Flagged (deleted/missing):        {N}
 
-  Updated: .trim-components.json
+  Updated: .trim/components.json
 ```
 
 ## Rules
 
-- **Config required** — fail immediately if `.trim-config` is missing (FR-026)
+- **Config required** — fail immediately if `.trim/config` is missing (FR-026)
 - **List mode is offline** — no MCP calls needed, just read the JSON file (FR-020)
 - **Sync direction by recency** — code wins if git shows modification after last_synced, Penpot wins otherwise (FR-021)
 - **MCP only for sync** — all Penpot interactions during sync go through MCP tools (NFR-003)

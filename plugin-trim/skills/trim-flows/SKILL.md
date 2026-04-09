@@ -5,7 +5,7 @@ description: Manage user flows for verification and QA. Subcommands: add, list, 
 
 # trim-flows — User Flow Management
 
-Define, list, sync, and export user flows stored in `.trim-flows.json`. Flows track the steps a user takes through the application — each step maps to a page, component, and Penpot frame. Flows feed visual verification (`/trim-verify`) and QA test generation.
+Define, list, sync, and export user flows stored in `.trim/flows.json`. Flows track the steps a user takes through the application — each step maps to a page, component, and Penpot frame. Flows feed visual verification (`/trim-verify`) and QA test generation.
 
 ## User Input
 
@@ -40,7 +40,7 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
    - **page**: The route/URL for this step
    - **component**: (optional) Component name involved
 4. Continue collecting steps until the developer says they're done.
-5. Read `.trim-flows.json` if it exists. If not, start with an empty array.
+5. Read `.trim/flows.json` if it exists. If not, start with an empty array.
 6. Build the new flow object following the schema (FR-019):
    ```json
    {
@@ -58,15 +58,15 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
      "last_verified": null
    }
    ```
-7. Append the flow to the array and write `.trim-flows.json`.
+7. Append the flow to the array and write `.trim/flows.json`.
 8. Report: "Flow '{name}' added with {N} steps. Run `/trim-flows sync` to map steps to Penpot frames."
 
 ### Subcommand: `list` (FR-021)
 
-1. Read `.trim-flows.json`. If not found: print "No flows defined. Run `/trim-flows add <name>` to create one." and STOP.
+1. Read `.trim/flows.json`. If not found: print "No flows defined. Run `/trim-flows add <name>` to create one." and STOP.
 2. Display a formatted table:
    ```
-   User Flows (.trim-flows.json)
+   User Flows (.trim/flows.json)
 
    | Flow        | Steps | Last Verified       |
    |-------------|-------|---------------------|
@@ -77,21 +77,21 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
 
 ### Subcommand: `sync` (FR-022)
 
-1. Read `.trim-flows.json`. If not found: print "No flows to sync." and STOP.
+1. Read `.trim/flows.json`. If not found: print "No flows to sync." and STOP.
 2. Check Penpot MCP availability. If unavailable: warn and skip Penpot frame mapping.
 3. For each flow, for each step:
    a. If `penpot_frame_id` is null: attempt to map by matching the page/component to a Penpot frame via MCP.
    b. If the page corresponds to a code route: note the mapping.
-4. Write updated `.trim-flows.json` with any new frame IDs.
+4. Write updated `.trim/flows.json` with any new frame IDs.
 5. Report: "Synced {N} flows. Mapped {M} steps to Penpot frames. {K} steps still unmapped."
 
 ### Subcommand: `export-tests` (FR-023, FR-024)
 
-1. Read `.trim-flows.json`. If not found: print "No flows to export." and STOP.
+1. Read `.trim/flows.json`. If not found: print "No flows to export." and STOP.
 2. Determine the project test directory. Check for: `tests/`, `test/`, `e2e/`, `__tests__/`. Default to `tests/e2e/`.
 3. For each flow, generate a Playwright test file:
    ```typescript
-   // Generated from .trim-flows.json — flow: {name}
+   // Generated from .trim/flows.json — flow: {name}
    // FR-023: One test per flow, one step per assertion
    import { test, expect } from '@playwright/test';
 
@@ -113,7 +113,7 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
 
 ## Rules
 
-- **Human-readable JSON** — `.trim-flows.json` MUST be formatted with 2-space indentation (FR-019, NFR-003)
+- **Human-readable JSON** — `.trim/flows.json` MUST be formatted with 2-space indentation (FR-019, NFR-003)
 - **Schema compliance** — every flow MUST have name, description, steps array, last_verified (FR-019)
 - **Every step has required fields** — action, target, page are required; component and penpot_frame_id are optional (FR-019)
 - **Valid actions only** — action must be one of: navigate, click, fill, select, scroll, wait

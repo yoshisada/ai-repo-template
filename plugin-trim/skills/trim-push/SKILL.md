@@ -19,11 +19,11 @@ Optional: component path or glob to push (e.g., `src/components/Button.tsx`). If
 
 ### 1. Validate Configuration
 
-Check that `.trim-config` exists:
+Check that `.trim/config` exists:
 
 ```bash
-if [ ! -f .trim-config ]; then
-  echo "ERROR: No .trim-config found. Run /trim-init first to connect to your Penpot project."
+if [ ! -f .trim/config ]; then
+  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -37,13 +37,13 @@ Delegate to the trim-push wheel workflow:
 ```
 
 The workflow executes these steps in order:
-1. **read-config** — parses `.trim-config` and validates required fields
+1. **read-config** — parses `.trim/config` and validates required fields
 2. **detect-framework** — detects UI framework and CSS approach
 3. **scan-components** — finds UI component files by framework convention (e.g., `src/components/*.tsx` for React)
-4. **read-mappings** — reads current `.trim-components.json`
+4. **read-mappings** — reads current `.trim/components.json`
 5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
 6. **push-to-penpot** — creates/updates Penpot components via MCP from code analysis
-7. **update-mappings** — writes updated component mappings to `.trim-components.json`
+7. **update-mappings** — writes updated component mappings to `.trim/components.json`
 
 ### 3. Report Results
 
@@ -63,7 +63,7 @@ Push complete.
     - {N} updated
     - {N} newly created
 
-  Updated: .trim-components.json
+  Updated: .trim/components.json
 
 Next: Open Penpot to view and edit the pushed components,
       then run /trim-pull to sync visual changes back to code.
@@ -71,8 +71,8 @@ Next: Open Penpot to view and edit the pushed components,
 
 ## Rules
 
-- **Config required** — fail immediately if `.trim-config` is missing (FR-026)
+- **Config required** — fail immediately if `.trim/config` is missing (FR-026)
 - **Structured components** — Penpot components must be editable, not screenshots (FR-015)
 - **Update, don't duplicate** — if a component already exists in Penpot (per mappings), update it (FR-013)
-- **Update mappings** — all new/updated components must be reflected in `.trim-components.json` (FR-016)
+- **Update mappings** — all new/updated components must be reflected in `.trim/components.json` (FR-016)
 - **MCP only** — all Penpot interactions go through MCP tools (NFR-003)

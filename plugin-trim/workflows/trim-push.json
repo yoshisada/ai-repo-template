@@ -5,13 +5,13 @@
     {
       "id": "read-config",
       "type": "command",
-      "command": "if [ ! -f .trim-config ]; then echo 'ERROR: .trim-config not found — run /trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim-config",
+      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
       "output": ".wheel/outputs/trim-read-config.txt"
     },
     {
       "id": "detect-framework",
       "type": "command",
-      "command": "echo \"## Framework Detection\" && FRAMEWORK=\"html\"; CSS_APPROACH=\"plain-css\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; if echo \"$DEPS\" | grep -q 'tailwindcss'; then CSS_APPROACH=\"tailwind\"; elif echo \"$DEPS\" | grep -q 'styled-components'; then CSS_APPROACH=\"styled-components\"; elif echo \"$DEPS\" | grep -q 'css-modules'; then CSS_APPROACH=\"css-modules\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\" && echo \"css_approach=$CSS_APPROACH\"",
+      "command": "echo \"## Framework Detection\" && FRAMEWORK=\"html\"; CSS_APPROACH=\"plain-css\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; if echo \"$DEPS\" | grep -q 'tailwindcss'; then CSS_APPROACH=\"tailwind\"; elif echo \"$DEPS\" | grep -q 'styled-components'; then CSS_APPROACH=\"styled-components\"; elif echo \"$DEPS\" | grep -q 'css-modules'; then CSS_APPROACH=\"css-modules\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\" && echo \"css_approach=$CSS_APPROACH\"",
       "output": ".wheel/outputs/trim-detect-framework.txt"
     },
     {
@@ -23,7 +23,7 @@
     {
       "id": "read-mappings",
       "type": "command",
-      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
       "output": ".wheel/outputs/trim-read-mappings.txt"
     },
     {
@@ -35,14 +35,14 @@
     {
       "id": "push-to-penpot",
       "type": "agent",
-      "instruction": "Push code components to Penpot as structured, editable design components. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_file_id, and default_page.\n2. Read the framework detection output to understand the project's framework and CSS approach.\n3. Read the scanned components list from context — these are the code component files to push.\n4. Read the current component mappings from context.\n5. For each scanned code component:\n   a. Read the code file to extract its visual properties: layout structure, colors, typography, spacing, sizing.\n   b. Check if it already has a mapping in .trim-components.json:\n      - If mapped: use Penpot MCP tools to UPDATE the existing Penpot component (by penpot_component_id)\n      - If not mapped: use Penpot MCP tools to CREATE a new Penpot component\n   c. Create structured Penpot components (frames, rectangles, text elements) — NOT screenshots. The Penpot components must be editable with correct layout, colors, typography, and spacing.\n6. Build an updated component mappings JSON array that includes:\n   - All existing mappings with updated last_synced for modified components\n   - New entries for newly created components with: code_path, component_name, penpot_component_id, penpot_component_name, last_synced (ISO 8601 now), sync_direction: \"push\"\n7. Include the updated mappings JSON in your output inside a ```json code block.\n\nWrite a summary of all pushed components and mapping updates to your output.",
+      "instruction": "Push code components to Penpot as structured, editable design components. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_file_id, and default_page.\n2. Read the framework detection output to understand the project's framework and CSS approach.\n3. Read the scanned components list from context — these are the code component files to push.\n4. Read the current component mappings from context.\n5. For each scanned code component:\n   a. Read the code file to extract its visual properties: layout structure, colors, typography, spacing, sizing.\n   b. Check if it already has a mapping in .trim/components.json:\n      - If mapped: use Penpot MCP tools to UPDATE the existing Penpot component (by penpot_component_id)\n      - If not mapped: use Penpot MCP tools to CREATE a new Penpot component\n   c. Create structured Penpot components (frames, rectangles, text elements) — NOT screenshots. The Penpot components must be editable with correct layout, colors, typography, and spacing.\n6. Build an updated component mappings JSON array that includes:\n   - All existing mappings with updated last_synced for modified components\n   - New entries for newly created components with: code_path, component_name, penpot_component_id, penpot_component_name, last_synced (ISO 8601 now), sync_direction: \"push\"\n7. Include the updated mappings JSON in your output inside a ```json code block.\n\nWrite a summary of all pushed components and mapping updates to your output.",
       "context_from": ["read-config", "detect-framework", "scan-components", "read-mappings", "resolve-trim-plugin"],
       "output": ".wheel/outputs/trim-push-result.md"
     },
     {
       "id": "update-mappings",
       "type": "command",
-      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \".wheel/outputs/trim-push-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-push-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in push result\"; fi; else echo \"No push result to process\"; fi",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \".wheel/outputs/trim-push-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-push-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in push result\"; fi; else echo \"No push result to process\"; fi",
       "output": ".wheel/outputs/trim-update-mappings-push.txt",
       "terminal": true
     }

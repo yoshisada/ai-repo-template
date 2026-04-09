@@ -11,7 +11,7 @@
     {
       "id": "gather-context",
       "type": "command",
-      "command": "echo '## PRD' && PRD=$(ls docs/features/*/PRD.md 2>/dev/null | head -1); if [ -n \"$PRD\" ]; then head -60 \"$PRD\"; else echo '(no PRD found)'; fi && echo '' && echo '## Components' && if [ -f .trim-components.json ]; then cat .trim-components.json; else echo '(no .trim-components.json)'; fi && echo '' && echo '## Flows' && if [ -f .trim-flows.json ]; then cat .trim-flows.json; else echo '(no .trim-flows.json)'; fi && echo '' && echo '## Config' && if [ -f .trim-config ]; then cat .trim-config; else echo '(no .trim-config)'; fi",
+      "command": "echo '## PRD' && PRD=$(ls docs/features/*/PRD.md 2>/dev/null | head -1); if [ -n \"$PRD\" ]; then head -60 \"$PRD\"; else echo '(no PRD found)'; fi && echo '' && echo '## Components' && if [ -f .trim/components.json ]; then cat .trim/components.json; else echo '(no .trim/components.json)'; fi && echo '' && echo '## Flows' && if [ -f .trim/flows.json ]; then cat .trim/flows.json; else echo '(no .trim/flows.json)'; fi && echo '' && echo '## Config' && if [ -f .trim/config ]; then cat .trim/config; else echo '(no .trim/config)'; fi",
       "output": ".wheel/outputs/gather-context.txt"
     },
     {
@@ -31,7 +31,7 @@
     {
       "id": "log-changes",
       "type": "agent",
-      "instruction": "Append a comprehensive redesign entry to .trim-changes.md.\n\n1. Read the generate-redesign output to get the full list of changes and rationale.\n2. Read the gathered context for component names and structure.\n3. If .trim-changes.md does not exist, create it with a header:\n   ```\n   # Design Changelog\n   ```\n4. Append a new entry in this format:\n   ```\n   ## [ISO-8601-TIMESTAMP] redesign\n\n   **Request**: [user's direction or 'full redesign']\n\n   **Changes**:\n   - [Layout]: [what changed and why]\n   - [Colors]: [new palette and rationale]\n   - [Typography]: [font changes and rationale]\n   - [Components]: [restyled components]\n   - [Other]: [any other visual changes]\n\n   **Affected Frames**: [all modified Penpot frames]\n\n   **Rationale**: [overall design philosophy and why these choices were made]\n\n   ---\n   ```\n5. The entry MUST document enough context that someone reading the changelog can understand every major design decision.\n\nWrite a confirmation to your output file.",
+      "instruction": "Append a comprehensive redesign entry to .trim/changes.md.\n\n1. Read the generate-redesign output to get the full list of changes and rationale.\n2. Read the gathered context for component names and structure.\n3. If .trim/changes.md does not exist, create it with a header:\n   ```\n   # Design Changelog\n   ```\n4. Append a new entry in this format:\n   ```\n   ## [ISO-8601-TIMESTAMP] redesign\n\n   **Request**: [user's direction or 'full redesign']\n\n   **Changes**:\n   - [Layout]: [what changed and why]\n   - [Colors]: [new palette and rationale]\n   - [Typography]: [font changes and rationale]\n   - [Components]: [restyled components]\n   - [Other]: [any other visual changes]\n\n   **Affected Frames**: [all modified Penpot frames]\n\n   **Rationale**: [overall design philosophy and why these choices were made]\n\n   ---\n   ```\n5. The entry MUST document enough context that someone reading the changelog can understand every major design decision.\n\nWrite a confirmation to your output file.",
       "context_from": ["gather-context", "generate-redesign"],
       "output": ".wheel/outputs/log-changes.txt",
       "terminal": true
