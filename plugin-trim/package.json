@@ -1,27 +1,25 @@
 {
-  "name": "@yoshisada/shelf",
+  "name": "@yoshisada/trim",
   "version": "000.000.000.735",
-  "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
+  "description": "Bidirectional design-code sync plugin for Claude Code. Bridges Penpot designs and code via MCP with design lifecycle management: editing, verification, redesign, and user flow tracking.",
   "author": "yoshisada",
   "license": "MIT",
   "homepage": "https://github.com/yoshisada/ai-repo-template",
   "repository": {
     "type": "git",
     "url": "https://github.com/yoshisada/ai-repo-template.git",
-    "directory": "plugin-shelf"
+    "directory": "plugin-trim"
   },
   "keywords": [
     "claude-code-plugin",
-    "obsidian",
+    "penpot",
     "mcp",
-    "project-dashboard"
+    "design-code-sync"
   ],
   "files": [
     ".claude-plugin/",
     "skills/",
     "templates/",
-    "tags.md",
-    "docs/",
     "workflows/"
   ]
 }

@@ -1,0 +1,9 @@
+{
+  "name": "trim",
+  "version": "000.000.000.735",
+  "description": "Bidirectional design-code sync plugin for Claude Code. Bridges Penpot designs and code via MCP with design lifecycle management: editing, verification, redesign, and user flow tracking.",
+  "author": {
+    "name": "yoshisada"
+  },
+  "homepage": "https://github.com/yoshisada/ai-repo-template"
+}

@@ -27,9 +27,9 @@ All deliverables go into `plugin-trim/`:
 
 **Purpose**: Ensure plugin-trim/ directory structure exists with skills/ and workflows/ directories
 
-- [ ] T001 Create directory structure: `plugin-trim/skills/trim-edit/`, `plugin-trim/skills/trim-verify/`, `plugin-trim/skills/trim-redesign/`, `plugin-trim/skills/trim-flows/`, `plugin-trim/workflows/`
-- [ ] T002 Verify `plugin-trim/.claude-plugin/plugin.json` exists and read current skill registrations
-- [ ] T003 Verify `plugin-trim/package.json` exists and read current version
+- [X] T001 Create directory structure: `plugin-trim/skills/trim-edit/`, `plugin-trim/skills/trim-verify/`, `plugin-trim/skills/trim-redesign/`, `plugin-trim/skills/trim-flows/`, `plugin-trim/workflows/`
+- [X] T002 Verify `plugin-trim/.claude-plugin/plugin.json` exists and read current skill registrations
+- [X] T003 Verify `plugin-trim/package.json` exists and read current version
 
 **Checkpoint**: Plugin directory structure ready for skill and workflow creation.
 
@@ -51,8 +51,8 @@ All deliverables go into `plugin-trim/`:
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Create `/trim-edit` skill at `plugin-trim/skills/trim-edit/SKILL.md` — frontmatter (name: trim-edit, description), input validation ($ARGUMENTS required), delegates to `trim-edit` wheel workflow, post-workflow reminder that changes stay in Penpot only. Follow pattern from `plugin-shelf/skills/shelf-sync/SKILL.md`. References FR-001, FR-004.
-- [ ] T005 [US1] Create `trim-edit` workflow at `plugin-trim/workflows/trim-edit.json` — 4 steps: resolve-trim-plugin (command: scan installed_plugins.json, fall back to plugin-trim/), read-design-state (command: read .trim-components.json and .trim-config), apply-edit (agent: interpret description, read Penpot via MCP, apply targeted changes), log-change (agent: append entry to .trim-changes.md with timestamp/request/changes/frames). Follow pattern from `plugin-shelf/workflows/shelf-create.json`. References FR-001 through FR-006, FR-025 through FR-027.
+- [X] T004 [US1] Create `/trim-edit` skill at `plugin-trim/skills/trim-edit/SKILL.md` — frontmatter (name: trim-edit, description), input validation ($ARGUMENTS required), delegates to `trim-edit` wheel workflow, post-workflow reminder that changes stay in Penpot only. Follow pattern from `plugin-shelf/skills/shelf-sync/SKILL.md`. References FR-001, FR-004.
+- [X] T005 [US1] Create `trim-edit` workflow at `plugin-trim/workflows/trim-edit.json` — 4 steps: resolve-trim-plugin (command: scan installed_plugins.json, fall back to plugin-trim/), read-design-state (command: read .trim-components.json and .trim-config), apply-edit (agent: interpret description, read Penpot via MCP, apply targeted changes), log-change (agent: append entry to .trim-changes.md with timestamp/request/changes/frames). Follow pattern from `plugin-shelf/workflows/shelf-create.json`. References FR-001 through FR-006, FR-025 through FR-027.
 
 **Checkpoint**: `/trim-edit` skill and workflow are complete. A developer can make natural language Penpot edits with changelog tracking.
 
@@ -66,7 +66,7 @@ All deliverables go into `plugin-trim/`:
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Create `/trim-flows` skill at `plugin-trim/skills/trim-flows/SKILL.md` — frontmatter (name: trim-flows, description), parse $ARGUMENTS for subcommand (add, list, sync, export-tests), implement each subcommand inline: add (interactive flow definition, write to .trim-flows.json per schema in data-model.md), list (read .trim-flows.json, display formatted table with name/step count/last_verified), sync (map flow steps to Penpot frames via MCP and code routes), export-tests (generate Playwright test stubs, one test per flow, one step per assertion). References FR-018 through FR-024.
+- [X] T006 [US2] Create `/trim-flows` skill at `plugin-trim/skills/trim-flows/SKILL.md` — frontmatter (name: trim-flows, description), parse $ARGUMENTS for subcommand (add, list, sync, export-tests), implement each subcommand inline: add (interactive flow definition, write to .trim-flows.json per schema in data-model.md), list (read .trim-flows.json, display formatted table with name/step count/last_verified), sync (map flow steps to Penpot frames via MCP and code routes), export-tests (generate Playwright test stubs, one test per flow, one step per assertion). References FR-018 through FR-024.
 
 **Checkpoint**: `/trim-flows` skill is complete. Flows can be added, listed, synced to Penpot, and exported as test stubs.
 
@@ -80,8 +80,8 @@ All deliverables go into `plugin-trim/`:
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Create `/trim-verify` skill at `plugin-trim/skills/trim-verify/SKILL.md` — frontmatter (name: trim-verify, description), check .trim-flows.json exists and has flows, optional $ARGUMENTS for specific flow name, delegates to `trim-verify` wheel workflow, reports results. References FR-007, FR-008.
-- [ ] T008 [US3] Create `trim-verify` workflow at `plugin-trim/workflows/trim-verify.json` — 5 steps: resolve-trim-plugin (command), read-flows (command: read .trim-flows.json, validate), capture-screenshots (agent: walk each flow in Playwright headless or /chrome, screenshot each step, fetch Penpot frames via MCP), compare-visuals (agent: Claude vision comparison, identify layout/color/typography/spacing mismatches), write-report (agent: generate .trim-verify-report.md per report schema in data-model.md, update last_verified in .trim-flows.json, store screenshots in .trim-verify/). References FR-007 through FR-012, FR-025 through FR-027.
+- [X] T007 [US3] Create `/trim-verify` skill at `plugin-trim/skills/trim-verify/SKILL.md` — frontmatter (name: trim-verify, description), check .trim-flows.json exists and has flows, optional $ARGUMENTS for specific flow name, delegates to `trim-verify` wheel workflow, reports results. References FR-007, FR-008.
+- [X] T008 [US3] Create `trim-verify` workflow at `plugin-trim/workflows/trim-verify.json` — 5 steps: resolve-trim-plugin (command), read-flows (command: read .trim-flows.json, validate), capture-screenshots (agent: walk each flow in Playwright headless or /chrome, screenshot each step, fetch Penpot frames via MCP), compare-visuals (agent: Claude vision comparison, identify layout/color/typography/spacing mismatches), write-report (agent: generate .trim-verify-report.md per report schema in data-model.md, update last_verified in .trim-flows.json, store screenshots in .trim-verify/). References FR-007 through FR-012, FR-025 through FR-027.
 
 **Checkpoint**: `/trim-verify` skill and workflow are complete. Visual verification walks flows and reports mismatches.
 
@@ -95,8 +95,8 @@ All deliverables go into `plugin-trim/`:
 
 ### Implementation for User Story 4
 
-- [ ] T009 [US4] Create `/trim-redesign` skill at `plugin-trim/skills/trim-redesign/SKILL.md` — frontmatter (name: trim-redesign, description), optional $ARGUMENTS as context/direction, delegates to `trim-redesign` wheel workflow, post-workflow reminder that changes stay in Penpot only. References FR-013, FR-017.
-- [ ] T010 [US4] Create `trim-redesign` workflow at `plugin-trim/workflows/trim-redesign.json` — 5 steps: resolve-trim-plugin (command), gather-context (command: read PRD, .trim-components.json, .trim-flows.json, .trim-config), read-current-design (agent: fetch current Penpot design state via MCP), generate-redesign (agent: reimagine visual design preserving IA — pages/nav/flows, apply to Penpot via MCP), log-changes (agent: append comprehensive redesign entry to .trim-changes.md with rationale). References FR-013 through FR-017, FR-025 through FR-027.
+- [X] T009 [US4] Create `/trim-redesign` skill at `plugin-trim/skills/trim-redesign/SKILL.md` — frontmatter (name: trim-redesign, description), optional $ARGUMENTS as context/direction, delegates to `trim-redesign` wheel workflow, post-workflow reminder that changes stay in Penpot only. References FR-013, FR-017.
+- [X] T010 [US4] Create `trim-redesign` workflow at `plugin-trim/workflows/trim-redesign.json` — 5 steps: resolve-trim-plugin (command), gather-context (command: read PRD, .trim-components.json, .trim-flows.json, .trim-config), read-current-design (agent: fetch current Penpot design state via MCP), generate-redesign (agent: reimagine visual design preserving IA — pages/nav/flows, apply to Penpot via MCP), log-changes (agent: append comprehensive redesign entry to .trim-changes.md with rationale). References FR-013 through FR-017, FR-025 through FR-027.
 
 **Checkpoint**: `/trim-redesign` skill and workflow are complete. Full UI redesign capability with changelog.
 
@@ -120,8 +120,8 @@ No additional tasks — QA integration is fully delivered by the `export-tests` 
 
 **Purpose**: Plugin manifest registration and version bump
 
-- [ ] T011 [P] Update `plugin-trim/.claude-plugin/plugin.json` to register 4 new skills (trim-edit, trim-verify, trim-redesign, trim-flows) with name, description, and path fields per contracts/interfaces.md
-- [ ] T012 [P] Update `plugin-trim/package.json` to bump version reflecting new skills added
+- [X] T011 [P] Update `plugin-trim/.claude-plugin/plugin.json` to register 4 new skills (trim-edit, trim-verify, trim-redesign, trim-flows) with name, description, and path fields per contracts/interfaces.md
+- [X] T012 [P] Update `plugin-trim/package.json` to bump version reflecting new skills added
 
 ---
 
