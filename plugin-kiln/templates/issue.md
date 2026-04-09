@@ -5,6 +5,9 @@ severity: <blocking|high|medium|low>
 category: <skills|agents|hooks|templates|scaffold|workflow|other>
 source: <retro|manual|github-issue|pipeline-run>
 github_issue: <number or null>
+repo: <repo URL or null>
+files:
+  - <file path>
 status: open
 date: YYYY-MM-DD
 ---

@@ -111,9 +111,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T012 [P] [US6] Add `repo` and `files` fields to frontmatter in `plugin-kiln/templates/issue.md` (FR-011)
-- [ ] T013 [P] [US6] Update scaffold copy of issue template — run sync or update `plugin-kiln/scaffold/` if needed to include new frontmatter fields (FR-011)
-- [ ] T014 [US6] Update `plugin-kiln/skills/report-issue/SKILL.md` to instruct the workflow agent to auto-detect repo URL via `gh repo view --json url` and extract file paths from description into frontmatter (FR-012)
+- [X] T012 [P] [US6] Add `repo` and `files` fields to frontmatter in `plugin-kiln/templates/issue.md` (FR-011)
+- [X] T013 [P] [US6] Update scaffold copy of issue template — run sync or update `plugin-kiln/scaffold/` if needed to include new frontmatter fields (FR-011)
+- [X] T014 [US6] Update `plugin-kiln/skills/report-issue/SKILL.md` to instruct the workflow agent to auto-detect repo URL via `gh repo view --json url` and extract file paths from description into frontmatter (FR-012)
 
 **Checkpoint**: New backlog issues include repo URL and relevant file paths.
 
