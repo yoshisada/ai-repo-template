@@ -103,8 +103,8 @@
 
 **Purpose**: Final validation and cleanup.
 
-- [ ] T019 Verify all 6 workflow JSON files are valid JSON after edits (run `jq . plugin-trim/workflows/*.json`)
-- [ ] T020 Review all modified agent instructions for internal consistency (positioning rules don't conflict with Components page rules, flow discovery steps have correct context_from references)
+- [X] T019 Verify all 6 workflow JSON files are valid JSON after edits (run `jq . plugin-trim/workflows/*.json`)
+- [X] T020 Review all modified agent instructions for internal consistency (positioning rules don't conflict with Components page rules, flow discovery steps have correct context_from references)
 
 ---
 
