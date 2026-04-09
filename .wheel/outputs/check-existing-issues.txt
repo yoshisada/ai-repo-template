@@ -14,13 +14,7 @@
 .kiln/issues/2026-04-07-clay-idea-pmf-classification.md
 .kiln/issues/2026-04-07-clay-nested-product-folders.md
 .kiln/issues/2026-04-07-qa-engineer-test-dedup-efficiency.md
-.kiln/issues/2026-04-08-init-no-src-tests-dirs.md
-.kiln/issues/2026-04-08-issue-backlinks-to-repos-files.md
-.kiln/issues/2026-04-08-next-high-level-commands-only.md
 .kiln/issues/2026-04-08-test4.md
-.kiln/issues/2026-04-08-wheel-init-failure-auto-setup.md
-.kiln/issues/2026-04-08-workflow-in-plugin-package.md
-.kiln/issues/2026-04-09-trim-push-should-build-full-pages.md
 ---
 ## Completed Issues
 .kiln/issues/completed/2026-03-31-dot-directory-for-storage.md
@@ -50,11 +44,17 @@
 .kiln/issues/completed/2026-04-03-shelf-config-artifact.md
 .kiln/issues/completed/2026-04-04-wheel-session-agent-detection.md
 .kiln/issues/completed/2026-04-07-test-issue-1.md
+.kiln/issues/completed/2026-04-08-init-no-src-tests-dirs.md
+.kiln/issues/completed/2026-04-08-issue-backlinks-to-repos-files.md
+.kiln/issues/completed/2026-04-08-next-high-level-commands-only.md
 .kiln/issues/completed/2026-04-08-shelf-create-holistic-progress.md
 .kiln/issues/completed/2026-04-08-shelf-create-root-path-lookup.md
 .kiln/issues/completed/2026-04-08-shelf-create-template-compliance.md
 .kiln/issues/completed/2026-04-08-shelf-full-sync-summary-step.md
 .kiln/issues/completed/2026-04-08-unify-project-status-labels.md
+.kiln/issues/completed/2026-04-08-wheel-init-failure-auto-setup.md
+.kiln/issues/completed/2026-04-08-workflow-in-plugin-package.md
 .kiln/issues/completed/2026-04-09-trim-auto-build-userflows.md
 .kiln/issues/completed/2026-04-09-trim-component-page-bento-layout.md
 .kiln/issues/completed/2026-04-09-trim-penpot-designs-overlap.md
+.kiln/issues/completed/2026-04-09-trim-push-should-build-full-pages.md

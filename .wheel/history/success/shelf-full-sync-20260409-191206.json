@@ -1,0 +1,160 @@
+{
+  "workflow_name": "shelf-full-sync",
+  "workflow_version": "3.0.0",
+  "workflow_file": "workflows/shelf-full-sync.json",
+  "status": "running",
+  "cursor": 9,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T19:11:48.000Z",
+  "updated_at": "2026-04-09T19:12:06.000Z",
+  "steps": [
+    {
+      "id": "gather-repo-state",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:48.000Z",
+      "completed_at": "2026-04-09T19:11:48.000Z",
+      "output": "Branch: main\nLast 5 commits:\n4f71c1f fix: handle multi-line commands in activate.sh hook extraction\n8f77cde fix: sanitize hook input to handle unescaped control chars in tool_output\n5fb7ffb fix: isolate workflow discovery in subshell to prevent shell env from leaking to stdout\n4211a5f Merge pull request #82 from yoshisada/build/plugin-polish-and-skill-ux-20260409\n7cd37ba feat: add /wheel-init skill that runs init.mjs from installed plugin\n---\nOpen issues: 46\nBacklog: 16 items\nPRDs: 25\n---\nTask progress:\n  001-kiln-polish: 13/13\n  analyze-issues: 11/11\n  clay-idea-entrypoint: 14/14\n  continuance-agent: 15/15\n  developer-tooling-polish: 16/18\n  kiln-rebrand-and-qa: 39/39\n  kiln-wheel-polish: 11/11\n  pipeline-reliability: 20/20\n  pipeline-workflow-polish: 17/19\n  plugin-clay: 14/18\n  plugin-polish-and-skill-ux: 16/16\n  qa-tooling-templates: 36/38\n  shelf-config-artifact: 10/10\n  shelf-skills-polish: 23/23\n  shelf-sync-v2: 17/17\n  shelf: 12/12\n  trim-design-lifecycle: 12/12\n  trim-penpot-layout: 20/20\n  trim: 19/19\n  wheel-create-workflow: 18/18\n  wheel-per-agent-state: 12/12\n  wheel-session-guard: 11/11\n  wheel-skill-activation: 12/12\n  wheel-workflow-composition: 19/19\n  wheel: 31/31\nVERSION: 000.000.000.788",
+      "command_log": [
+        {
+          "command": "echo \"Branch: $(git branch --show-current)\" && echo \"Last 5 commits:\" && git log --format='%h %s' -5 && echo '---' && echo \"Open issues: $(gh issue list --state open --json number --limit 100 2>/dev/null | jq length)\" && echo \"Backlog: $(ls .kiln/issues/*.md 2>/dev/null | wc -l | tr -d ' ') items\" && echo \"PRDs: $(ls docs/features/*/PRD.md 2>/dev/null | wc -l | tr -d ' ')\" && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL\"; done && echo \"VERSION: $(cat VERSION 2>/dev/null || echo none)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:48.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:48.000Z",
+      "completed_at": "2026-04-09T19:11:49.000Z",
+      "output": "# Shelf configuration — maps this repo to its Obsidian project\nbase_path = @second-brain/projects\nslug = ai-repo-template\ndashboard_path = @second-brain/projects/ai-repo-template/ai-repo-template.md",
+      "command_log": [
+        {
+          "command": "if [ -f .shelf-config ]; then cat .shelf-config; else echo 'No .shelf-config — using defaults'; echo \"slug=$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))\"; echo 'base_path=projects'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:48.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fetch-github-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:49.000Z",
+      "completed_at": "2026-04-09T19:11:49.000Z",
+      "output": "[{\"number\":83,\"state\":\"OPEN\",\"title\":\"Retrospective: plugin-polish-and-skill-ux pipeline\",\"updatedAt\":\"2026-04-09T18:15:42Z\"},{\"number\":81,\"state\":\"OPEN\",\"title\":\"Retrospective: trim-penpot-layout pipeline\",\"updatedAt\":\"2026-04-09T16:59:20Z\"},{\"number\":79,\"state\":\"OPEN\",\"title\":\"Retrospective: trim-design-lifecycle pipeline\",\"updatedAt\":\"2026-04-09T06:17:20Z\"},{\"number\":77,\"state\":\"OPEN\",\"title\":\"Retrospective: trim pipeline (build/trim-20260409)\",\"updatedAt\":\"2026-04-09T05:02:33Z\"},{\"number\":75,\"state\":\"OPEN\",\"title\":\"Retrospective: api-key-reveal pipeline\",\"updatedAt\":\"2026-04-09T01:03:39Z\"},{\"number\":74,\"state\":\"OPEN\",\"title\":\"Retrospective: shelf-skills-polish pipeline\",\"updatedAt\":\"2026-04-09T00:33:11Z\"},{\"number\":72,\"state\":\"OPEN\",\"title\":\"Retrospective: observability-layer pipeline (2026-04-08)\",\"updatedAt\":\"2026-04-08T21:12:27Z\"},{\"number\":71,\"state\":\"OPEN\",\"title\":\"Retrospective: kit-migration pipeline (build/kit-migration-20260408)\",\"updatedAt\":\"2026-04-08T21:05:49Z\"},{\"number\":70,\"state\":\"OPEN\",\"title\":\"Retrospective: takeout-migration-parity pipeline (2026-04-08)\",\"updatedAt\":\"2026-04-08T19:51:04Z\"},{\"number\":69,\"state\":\"OPEN\",\"title\":\"Retrospective: playful-household-redesign pipeline\",\"updatedAt\":\"2026-04-08T00:07:27Z\"},{\"number\":68,\"state\":\"OPEN\",\"title\":\"Retrospective: clay-idea-entrypoint pipeline\",\"updatedAt\":\"2026-04-07T23:55:15Z\"},{\"number\":66,\"state\":\"OPEN\",\"title\":\"Retrospective: plugin-clay pipeline\",\"updatedAt\":\"2026-04-07T23:25:40Z\"},{\"number\":64,\"state\":\"OPEN\",\"title\":\"Retrospective: developer-tooling-polish pipeline\",\"updatedAt\":\"2026-04-07T22:47:16Z\"},{\"number\":62,\"state\":\"OPEN\",\"title\":\"Retrospective: kit-migration pipeline\",\"updatedAt\":\"2026-04-07T22:21:54Z\"},{\"number\":61,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel-workflow-composition pipeline\",\"updatedAt\":\"2026-04-07T21:05:35Z\"},{\"number\":59,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel-create-workflow pipeline (2026-04-06)\",\"updatedAt\":\"2026-04-07T05:41:23Z\"},{\"number\":57,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel-per-agent-state pipeline\",\"updatedAt\":\"2026-04-06T22:46:01Z\"},{\"number\":55,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel-session-guard pipeline\",\"updatedAt\":\"2026-04-05T18:02:04Z\"},{\"number\":53,\"state\":\"OPEN\",\"title\":\"Retrospective: kiln-wheel-polish pipeline (build/kiln-wheel-polish-20260404)\",\"updatedAt\":\"2026-04-04T20:07:03Z\"},{\"number\":51,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel-skill-activation pipeline (build/wheel-skill-activation-20260404)\",\"updatedAt\":\"2026-04-04T08:20:48Z\"},{\"number\":49,\"state\":\"OPEN\",\"title\":\"Retrospective: wheel pipeline (build/wheel-20260403)\",\"updatedAt\":\"2026-04-04T01:05:36Z\"},{\"number\":47,\"state\":\"OPEN\",\"title\":\"Retrospective: shelf-sync-v2 pipeline (build/shelf-sync-v2-20260403)\",\"updatedAt\":\"2026-04-03T23:26:18Z\"},{\"number\":45,\"state\":\"OPEN\",\"title\":\"Retro: Codebase Hardening pipeline (2026-04-03)\",\"updatedAt\":\"2026-04-03T23:22:46Z\"},{\"number\":44,\"state\":\"OPEN\",\"title\":\"Retrospective: shelf-config-artifact pipeline (build/shelf-config-artifact-20260403)\",\"updatedAt\":\"2026-04-03T22:03:33Z\"},{\"number\":42,\"state\":\"OPEN\",\"title\":\"Retrospective: shelf plugin pipeline (build/shelf-20260403)\",\"updatedAt\":\"2026-04-03T21:24:51Z\"},{\"number\":40,\"state\":\"OPEN\",\"title\":\"Retro: MCP Tool Path Discovery pipeline (2026-04-02)\",\"updatedAt\":\"2026-04-03T00:04:31Z\"},{\"number\":39,\"state\":\"OPEN\",\"title\":\"Retrospective: qa-pass-fixes pipeline (build/qa-pass-fixes-20260401)\",\"updatedAt\":\"2026-04-02T04:07:51Z\"},{\"number\":38,\"state\":\"OPEN\",\"title\":\"Retrospective: pipeline-workflow-polish (build/pipeline-workflow-polish-20260401)\",\"updatedAt\":\"2026-04-01T23:18:05Z\"},{\"number\":36,\"state\":\"OPEN\",\"title\":\"Retrospective: qa-performance pipeline (build/qa-performance-20260401)\",\"updatedAt\":\"2026-04-01T22:57:03Z\"},{\"number\":35,\"state\":\"OPEN\",\"title\":\"Retrospective: qa-tooling-templates pipeline (build/qa-tooling-templates-20260401)\",\"updatedAt\":\"2026-04-01T21:56:52Z\"},{\"number\":34,\"state\":\"OPEN\",\"title\":\"Retrospective: traffic-mobile-polish pipeline (build/traffic-mobile-polish-20260401)\",\"updatedAt\":\"2026-04-01T21:54:10Z\"},{\"number\":32,\"state\":\"OPEN\",\"title\":\"Retrospective: pipeline-reliability (build/pipeline-reliability-20260401)\",\"updatedAt\":\"2026-04-01T18:41:49Z\"},{\"number\":30,\"state\":\"OPEN\",\"title\":\"Retrospective: analyze-issues pipeline (build/analyze-issues-20260401)\",\"updatedAt\":\"2026-04-01T18:09:46Z\"},{\"number\":28,\"state\":\"OPEN\",\"title\":\"Retrospective: kiln-polish pipeline (build/kiln-polish-20260401)\",\"updatedAt\":\"2026-04-01T18:09:48Z\"},{\"number\":26,\"state\":\"OPEN\",\"title\":\"Retro: admin-a11y-visual-fixes pipeline (PR #15)\",\"updatedAt\":\"2026-04-01T18:10:06Z\"},{\"number\":25,\"state\":\"OPEN\",\"title\":\"Retrospective: continuance-agent pipeline (build/continuance-agent-20260331)\",\"updatedAt\":\"2026-04-01T18:09:50Z\"},{\"number\":23,\"state\":\"OPEN\",\"title\":\"Retro: headless-settings-page pipeline (PR #14)\",\"updatedAt\":\"2026-04-01T18:09:52Z\"},{\"number\":22,\"state\":\"OPEN\",\"title\":\"Retrospective: kiln-rebrand-and-qa pipeline\",\"updatedAt\":\"2026-04-01T18:09:53Z\"},{\"number\":20,\"state\":\"OPEN\",\"title\":\"Retrospective: signout-button-placement pipeline\",\"updatedAt\":\"2026-04-01T18:10:08Z\"},{\"number\":19,\"state\":\"OPEN\",\"title\":\"Retrospective: admin-a11y-fixes pipeline\",\"updatedAt\":\"2026-04-01T18:09:55Z\"},{\"number\":18,\"state\":\"OPEN\",\"title\":\"Retro: admin-panel-bugfix-polish pipeline (build 028)\",\"updatedAt\":\"2026-04-01T18:09:57Z\"},{\"number\":17,\"state\":\"OPEN\",\"title\":\"Pipeline Retro: speckit-observability (2026-03-31)\",\"updatedAt\":\"2026-04-01T18:09:58Z\"},{\"number\":16,\"state\":\"OPEN\",\"title\":\"Retrospective: VNC Fixes & Dashboard UX pipeline\",\"updatedAt\":\"2026-04-01T18:10:00Z\"},{\"number\":15,\"state\":\"OPEN\",\"title\":\"Pipeline Retro: obsidian-setup\",\"updatedAt\":\"2026-04-01T18:10:02Z\"},{\"number\":14,\"state\":\"CLOSED\",\"title\":\"Pipeline Retro: obsidian-mcp-mvp\",\"updatedAt\":\"2026-03-31T02:19:13Z\"},{\"number\":11,\"state\":\"OPEN\",\"title\":\"Retrospective: 015-tamagui-takeout-starter pipeline run\",\"updatedAt\":\"2026-04-01T18:10:04Z\"},{\"number\":9,\"state\":\"OPEN\",\"title\":\"Retrospective: Tamagui Takeout Starter pipeline (014)\",\"updatedAt\":\"2026-04-01T18:10:09Z\"},{\"number\":6,\"state\":\"CLOSED\",\"title\":\"Retrospective: Tamagui Takeout Starter Kit pipeline\",\"updatedAt\":\"2026-04-01T18:10:56Z\"}]",
+      "command_log": [
+        {
+          "command": "gh issue list --state all --json number,title,state,updatedAt --limit 100 2>/dev/null || echo '[]'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-backlog-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:49.000Z",
+      "completed_at": "2026-04-09T19:11:50.000Z",
+      "output": "## Backlog Issues\n2026-04-02-lobster-workflow-engine-plugin.md: Create lobster — hook-based workflow engine plugin for Claude Code [prd-created]\n2026-04-02-ux-evaluator-nested-screenshot-dir.md: UX evaluator creates nested .kiln/qa/.kiln/qa/screenshots/ due to relative path [prd-created]\n2026-04-03-shelf-note-templates.md: Shelf plugin needs explicit templates for each Obsidian note type [prd-created]\n2026-04-03-shelf-notes-backlinks-tags.md: Shelf notes need backlinks to project dashboard and consistent tags [prd-created]\n2026-04-03-shelf-sync-close-archived-issues.md: shelf-sync should close Obsidian notes for archived backlog issues [prd-created]\n2026-04-03-shelf-sync-docs.md: Add docs sync to shelf-sync — push PRD summaries to Obsidian [prd-created]\n2026-04-03-shelf-sync-update-tech-tags.md: shelf-sync should update project tech stack tags during sync [prd-created]\n2026-04-04-add-todo-skill.md: Add /todo skill to kiln [prd-created]\n2026-04-04-wheel-branch-subroutine-support.md: Wheel engine needs step-level `next` field for branch subroutines [prd-created]\n2026-04-04-wheel-cleanup-in-hook.md: Wheel: Move workflow cleanup into hook — detect terminal step IDs [prd-created]\n2026-04-04-wheel-list-skill.md: Add wheel-list skill to view all available workflows [prd-created]\n2026-04-04-wheel-skill-activation.md: Wheel workflows should activate via skill, not auto-fire on every session [prd-created]\n2026-04-07-clay-idea-pmf-classification.md: Clay idea skill should classify ideas by market intent [open]\n2026-04-07-clay-nested-product-folders.md: Support nested product folders in clay (sub-ideas under parent products) [open]\n2026-04-07-qa-engineer-test-dedup-efficiency.md: QA engineer should audit tests for overlap and efficiency [prd-created]\n2026-04-08-test4.md: test4 [open]\n## Completed\n41\n completed issues",
+      "command_log": [
+        {
+          "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; TITLE=$(grep -m1 '^title:' \"$f\" | sed 's/^title:[[:space:]]*\"\\{0,1\\}//;s/\"$//' 2>/dev/null || echo '?'); STATUS=$(grep -m1 '^status:' \"$f\" | sed 's/^status:[[:space:]]*//' 2>/dev/null || echo '?'); echo \"$(basename $f): $TITLE [$STATUS]\"; done && echo '## Completed' && ls .kiln/issues/completed/*.md 2>/dev/null | wc -l | tr -d ' ' && echo ' completed issues'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-feature-prds",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:50.000Z",
+      "completed_at": "2026-04-09T19:11:50.000Z",
+      "output": "SLUG=continuance-agent TITLE=Feature PRD: Continuance Agent (/next) FRs=7 NFRs=0\n0 STATUS= PATH=docs/features/2026-03-31-continuance-agent/PRD.md\nSLUG=kiln-rebrand-and-qa TITLE=Feature PRD: Kiln Rebrand, Infrastructure & QA Reliability FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md\nSLUG=analyze-issues TITLE=Feature PRD: Analyze Issues Skill FRs=10 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-01-analyze-issues/PRD.md\nSLUG=kiln-polish TITLE=Feature PRD: Kiln Polish — Next Command Suggestion & QA Directory Structure FRs=8 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-01-kiln-polish/PRD.md\nSLUG=pipeline-reliability TITLE=Feature PRD: Pipeline Reliability & Health FRs=10 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-reliability/PRD.md\nSLUG=pipeline-workflow-polish TITLE=Feature PRD: Pipeline Workflow Polish FRs=24 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-workflow-polish/PRD.md\nSLUG=qa-tooling-templates TITLE=Feature PRD: QA Agent Optimization, Kiln Doctor Enhancements & Template Improvements FRs=32 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-qa-tooling-templates/PRD.md\nSLUG=shelf-config-artifact TITLE=Feature PRD: Shelf Config Artifact FRs=11 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-03-shelf-config-artifact/PRD.md\nSLUG=shelf-sync-v2 TITLE=Feature PRD: Shelf Sync v2 — Templates, Tags, Docs & Lifecycle FRs=21 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-shelf-sync-v2/PRD.md\nSLUG=shelf TITLE=Feature PRD: Shelf — Obsidian Project Dashboard Plugin FRs=45 NFRs=5 STATUS= PATH=docs/features/2026-04-03-shelf/PRD.md\nSLUG=wheel TITLE=Feature PRD: Wheel — Hook-based Workflow Engine Plugin FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-wheel/PRD.md\nSLUG=kiln-wheel-polish TITLE=Feature PRD: Kiln & Wheel Polish FRs=24 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-kiln-wheel-polish/PRD.md\nSLUG=wheel-skill-activation TITLE=Feature PRD: Wheel Skill-Based Activation FRs=10 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-wheel-skill-activation/PRD.md\nSLUG=wheel-session-guard TITLE=Feature PRD: Wheel Session Guard FRs=7 NFRs=2 STATUS=Draft PATH=docs/features/2026-04-05-wheel-session-guard/PRD.md\nSLUG=wheel-create-workflow TITLE=Feature PRD: Wheel Create Workflow FRs=24 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-create-workflow/PRD.md\nSLUG=wheel-per-agent-state TITLE=Feature PRD: Wheel Per-Agent State Files FRs=11 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-per-agent-state/PRD.md\nSLUG=clay-idea-entrypoint TITLE=Feature PRD: Clay Idea Entrypoint FRs=14 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-07-clay-idea-entrypoint/PRD.md\nSLUG=developer-tooling-polish TITLE=Feature PRD: Developer Tooling Polish FRs=11 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-07-developer-tooling-polish/PRD.md\nSLUG=plugin-clay TITLE=Feature PRD: Plugin Clay FRs=37 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-07-plugin-clay/PRD.md\nSLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FRs=18 NFRs=0\n0 STATUS=Draft PATH=docs/features/2026-04-07-wheel-workflow-composition/PRD.md\nSLUG=shelf-skills-polish TITLE=Feature PRD: Shelf Skills Polish FRs=20 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-08-shelf-skills-polish/PRD.md\nSLUG=plugin-polish-and-skill-ux TITLE=Feature PRD: Plugin Polish & Skill UX FRs=15 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md\nSLUG=trim-design-lifecycle TITLE=Feature PRD: Trim Design Lifecycle — Edit, Verify, Redesign, Flows FRs=33 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-trim-design-lifecycle/PRD.md\nSLUG=trim-penpot-layout TITLE=Feature PRD: Trim Penpot Layout & Auto-Flows FRs=18 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-trim-penpot-layout/PRD.md\nSLUG=trim TITLE=Feature PRD: Trim — Bidirectional Design-Code Sync Plugin FRs=27 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-09-trim/PRD.md",
+      "command_log": [
+        {
+          "command": "for prd in docs/features/*/PRD.md; do [ -f \"$prd\" ] || { echo '(no PRDs)'; break; }; DIR=$(basename $(dirname \"$prd\")); SLUG=$(echo \"$DIR\" | sed 's/^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}-//'); TITLE=$(grep -m1 '^# ' \"$prd\" | sed 's/^# //'); FR_COUNT=$(grep -c 'FR-' \"$prd\" 2>/dev/null || echo 0); NFR_COUNT=$(grep -c 'NFR-' \"$prd\" 2>/dev/null || echo 0); STATUS=$(grep -m1 '^\\*\\*Status\\*\\*' \"$prd\" | sed 's/.*: *//'); echo \"SLUG=$SLUG TITLE=$TITLE FRs=$FR_COUNT NFRs=$NFR_COUNT STATUS=$STATUS PATH=$prd\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:50.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "detect-tech-stack",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:50.000Z",
+      "completed_at": "2026-04-09T19:11:50.000Z",
+      "output": "## Tech Stack Detection\n(no markers)",
+      "command_log": [
+        {
+          "command": "echo '## Tech Stack Detection' && ls package.json tsconfig.json Cargo.toml pyproject.toml requirements.txt go.mod Gemfile Dockerfile docker-compose.yml docker-compose.yaml compose.yml compose.yaml 2>/dev/null || echo '(no markers)' && if [ -f package.json ]; then echo '---' && echo 'package.json deps:' && cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null; fi && if [ -d .github/workflows ]; then echo '---' && echo 'infra/github-actions'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T19:11:50.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "sync-issues-to-obsidian",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:50.000Z",
+      "completed_at": "2026-04-09T19:11:54.000Z",
+      "output": ".wheel/outputs/sync-issues-results.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "sync-docs-to-obsidian",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:54.000Z",
+      "completed_at": "2026-04-09T19:11:58.000Z",
+      "output": ".wheel/outputs/sync-docs-results.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "update-dashboard-tags",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T19:11:58.000Z",
+      "completed_at": "2026-04-09T19:12:01.000Z",
+      "output": ".wheel/outputs/update-tags-results.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "push-progress-update",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T19:12:01.000Z",
+      "completed_at": "2026-04-09T19:12:06.000Z",
+      "output": "reports/shelf-full-sync-report.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775761764_32730.json"
+}

@@ -1,14 +1,14 @@
 Branch: main
 Last 5 commits:
-8f7622c fix: add AABB overlap detection to trim-verify visual comparison
-bf9df61 Merge build/trim-penpot-layout-20260409: no overlap, bento grid, auto-flows
-7e998d6 chore: mark prd-created issues as completed after PR creation
-51ce1b5 audit: PRD compliance 100% — 15/15 FRs, 3/3 NFRs covered
-9a86b52 docs: add implementer friction notes
+4f71c1f fix: handle multi-line commands in activate.sh hook extraction
+8f77cde fix: sanitize hook input to handle unescaped control chars in tool_output
+5fb7ffb fix: isolate workflow discovery in subshell to prevent shell env from leaking to stdout
+4211a5f Merge pull request #82 from yoshisada/build/plugin-polish-and-skill-ux-20260409
+7cd37ba feat: add /wheel-init skill that runs init.mjs from installed plugin
 ---
-Open issues: 45
-Backlog: 22 items
-PRDs: 24
+Open issues: 46
+Backlog: 16 items
+PRDs: 25
 ---
 Task progress:
   001-kiln-polish: 13/13
@@ -21,6 +21,7 @@ Task progress:
   pipeline-reliability: 20/20
   pipeline-workflow-polish: 17/19
   plugin-clay: 14/18
+  plugin-polish-and-skill-ux: 16/16
   qa-tooling-templates: 36/38
   shelf-config-artifact: 10/10
   shelf-skills-polish: 23/23
@@ -35,4 +36,4 @@ Task progress:
   wheel-skill-activation: 12/12
   wheel-workflow-composition: 19/19
   wheel: 31/31
-VERSION: 000.000.000.759
+VERSION: 000.000.000.788

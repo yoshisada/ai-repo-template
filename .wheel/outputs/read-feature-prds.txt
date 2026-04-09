@@ -29,6 +29,7 @@ SLUG=plugin-clay TITLE=Feature PRD: Plugin Clay FRs=37 NFRs=0
 SLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FRs=18 NFRs=0
 0 STATUS=Draft PATH=docs/features/2026-04-07-wheel-workflow-composition/PRD.md
 SLUG=shelf-skills-polish TITLE=Feature PRD: Shelf Skills Polish FRs=20 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-08-shelf-skills-polish/PRD.md
+SLUG=plugin-polish-and-skill-ux TITLE=Feature PRD: Plugin Polish & Skill UX FRs=15 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md
 SLUG=trim-design-lifecycle TITLE=Feature PRD: Trim Design Lifecycle — Edit, Verify, Redesign, Flows FRs=33 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-trim-design-lifecycle/PRD.md
 SLUG=trim-penpot-layout TITLE=Feature PRD: Trim Penpot Layout & Auto-Flows FRs=18 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-trim-penpot-layout/PRD.md
 SLUG=trim TITLE=Feature PRD: Trim — Bidirectional Design-Code Sync Plugin FRs=27 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-09-trim/PRD.md
