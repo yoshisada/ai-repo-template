@@ -104,8 +104,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T020 [US5] Remove `"terminal": true` from the `push-progress-update` step in `plugin-shelf/workflows/shelf-full-sync.json`
-- [ ] T021 [US5] Add `generate-sync-summary` command step to `plugin-shelf/workflows/shelf-full-sync.json` as the new terminal step. The command must read `.wheel/outputs/sync-issues-results.md`, `.wheel/outputs/sync-docs-results.md`, `.wheel/outputs/update-tags-results.md`, and `reports/shelf-full-sync-report.md`, extract counts using grep/sed, and format a consolidated summary at `.wheel/outputs/shelf-full-sync-summary.md` per FR-014, FR-015
+- [X] T020 [US5] Remove `"terminal": true` from the `push-progress-update` step in `plugin-shelf/workflows/shelf-full-sync.json`
+- [X] T021 [US5] Add `generate-sync-summary` command step to `plugin-shelf/workflows/shelf-full-sync.json` as the new terminal step. The command must read `.wheel/outputs/sync-issues-results.md`, `.wheel/outputs/sync-docs-results.md`, `.wheel/outputs/update-tags-results.md`, and `reports/shelf-full-sync-report.md`, extract counts using grep/sed, and format a consolidated summary at `.wheel/outputs/shelf-full-sync-summary.md` per FR-014, FR-015
 
 **Checkpoint**: shelf-full-sync produces a human-readable summary with action counts
 
