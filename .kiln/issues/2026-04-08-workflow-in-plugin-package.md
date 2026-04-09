@@ -5,7 +5,8 @@ severity: high
 category: scaffold
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md
 date: 2026-04-08
 ---
 
