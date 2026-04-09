@@ -69,9 +69,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-update/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to normalize non-canonical values and warn the user
-- [ ] T012 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-status/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to display canonical status with a note if the stored value was non-canonical
-- [ ] T013 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-sync/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to normalize status values encountered during sync
+- [X] T011 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-update/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to normalize non-canonical values and warn the user
+- [X] T012 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-status/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to display canonical status with a note if the stored value was non-canonical
+- [X] T013 [P] [US3] Add status label validation section to `plugin-shelf/skills/shelf-sync/SKILL.md` referencing `plugin-shelf/status-labels.md` per FR-013. Add instructions to normalize status values encountered during sync
 
 **Checkpoint**: All existing shelf skills reference canonical status labels
 
