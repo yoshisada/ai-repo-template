@@ -1,0 +1,60 @@
+{
+  "name": "team-static-test",
+  "description": "Test static teammate spawning — 3 agents each writing a file",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+      "output": ".wheel/outputs/team-test/setup.txt"
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "team_name": "test-static-team"
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "context_from": ["setup"],
+      "assign": { "worker_id": 1, "task": "Write a haiku about code" }
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "context_from": ["setup"],
+      "assign": { "worker_id": 2, "task": "Write a haiku about bugs" }
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "context_from": ["setup"],
+      "assign": { "worker_id": 3, "task": "Write a haiku about testing" }
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "team": "create-team",
+      "collect_to": ".wheel/outputs/team-test/results/",
+      "output": ".wheel/outputs/team-test/summary.json"
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+      "output": ".wheel/outputs/team-test/report.txt"
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "team": "create-team",
+      "terminal": true
+    }
+  ]
+}
