@@ -44,7 +44,8 @@ The workflow executes these steps in order:
 4. **read-product-context** — gathers PRDs, project conventions, and existing component names
 5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
 6. **generate-design** — creates Penpot design via MCP, reusing existing components, applying project conventions
-7. **update-mappings** — writes updated component mappings for newly created design components
+7. **discover-flows** — auto-discovers user flows from PRD context, merges into `.trim/flows.json`
+8. **update-mappings** — writes updated component mappings for newly created design components
 
 ### 3. Report Results
 
@@ -61,6 +62,7 @@ Design generated.
     - {colors, typography, spacing patterns detected and used}
 
   Components Page: {created | updated} with {N} component groups
+  Flows Discovered: {N} flows from PRD context, written to .trim/flows.json
   Updated: .trim/components.json
 
 Next: Open Penpot to review and refine the generated design,

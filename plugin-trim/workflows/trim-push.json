@@ -40,6 +40,13 @@
       "output": ".wheel/outputs/trim-push-result.md"
     },
     {
+      "id": "discover-flows",
+      "type": "agent",
+      "instruction": "Auto-discover user flows from the codebase and merge into .trim/flows.json.\n\n1. Read the framework detection output to determine the routing approach:\n   - React: scan for react-router Route definitions, Link/NavLink components\n   - Next.js: scan app/ or pages/ directory structure for file-based routes\n   - Vue: scan for vue-router route definitions\n   - Svelte: scan src/routes/ directory structure\n   - HTML: scan for <a href> links between pages\n2. Read the scanned components list from context.\n3. For each discovered route, identify navigation links/calls that connect to other routes.\n4. Build flow objects from connected routes:\n   - Each flow represents a user journey through 2+ connected pages\n   - Flow name: descriptive (e.g., \"main-navigation\", \"auth-flow\", \"checkout-flow\")\n   - Each step: action=\"navigate\", target=route path, page=route path, component=page component name\n5. Read existing .trim/flows.json (or start with empty array if not found).\n6. Merge rules:\n   - If an auto-discovered flow has the same name as an existing flow with \"source\": \"manual\", SKIP IT.\n   - If an auto-discovered flow has the same name as an existing \"auto-discovered\" flow, REPLACE it (re-scan updates).\n   - All new flows get \"source\": \"auto-discovered\".\n7. Write the merged flows array to .trim/flows.json with 2-space indentation.\n8. Report: discovered N flows with M total steps, merged with K existing flows.",
+      "context_from": ["detect-framework", "scan-components", "read-config"],
+      "output": ".wheel/outputs/trim-discover-flows-push.txt"
+    },
+    {
       "id": "update-mappings",
       "type": "command",
       "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \".wheel/outputs/trim-push-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-push-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in push result\"; fi; else echo \"No push result to process\"; fi",

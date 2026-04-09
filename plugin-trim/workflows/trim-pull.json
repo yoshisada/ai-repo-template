@@ -34,6 +34,13 @@
       "output": ".wheel/outputs/trim-pull-result.md"
     },
     {
+      "id": "discover-flows",
+      "type": "agent",
+      "instruction": "Auto-discover user flows from Penpot page organization and merge into .trim/flows.json.\n\n1. Read the config output to get penpot_file_id.\n2. Use Penpot MCP tools to list all pages in the file and their frame structure.\n3. Infer flows from page organization:\n   - Page ordering suggests a primary navigation flow\n   - Pages with related names (e.g., \"Login\", \"Dashboard\", \"Settings\") suggest a user journey\n   - Linked or connected frames within pages suggest sub-flows\n4. Build flow objects:\n   - Flow name: descriptive based on page sequence (e.g., \"main-navigation\", \"onboarding-flow\")\n   - Each step: action=\"navigate\", target=page name, page=inferred route, component=null, penpot_frame_id=frame ID from Penpot\n5. Read existing .trim/flows.json (or start with empty array if not found).\n6. Merge rules:\n   - If an auto-discovered flow has the same name as an existing flow with \"source\": \"manual\", SKIP IT.\n   - If an auto-discovered flow has the same name as an existing \"auto-discovered\" flow, REPLACE it.\n   - All new flows get \"source\": \"auto-discovered\".\n7. Write the merged flows array to .trim/flows.json with 2-space indentation.\n8. Report: discovered N flows, merged with K existing flows.",
+      "context_from": ["read-config", "resolve-trim-plugin"],
+      "output": ".wheel/outputs/trim-discover-flows-pull.txt"
+    },
+    {
       "id": "update-mappings",
       "type": "command",
       "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \".wheel/outputs/trim-pull-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-pull-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in pull result\"; fi; else echo \"No pull result to process\"; fi",

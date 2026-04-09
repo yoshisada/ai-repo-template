@@ -88,12 +88,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T013 [US4] Add discover-flows agent step to plugin-trim/workflows/trim-push.json (Contract 4: insert new step between push-to-penpot and update-mappings with flow discovery instruction for codebase scanning)
-- [ ] T014 [P] [US4] Add discover-flows agent step to plugin-trim/workflows/trim-pull.json (Contract 5: insert new step between pull-design and update-mappings with flow discovery instruction for Penpot page analysis)
-- [ ] T015 [P] [US4] Add discover-flows agent step to plugin-trim/workflows/trim-design.json (Contract 6: insert new step between generate-design and update-mappings with flow discovery instruction for PRD parsing)
-- [ ] T016 [US4] Update trim-push skill report in plugin-trim/skills/trim-push/SKILL.md (Contract 7: add Flows Discovered line to report template)
-- [ ] T017 [P] [US4] Update trim-pull skill report in plugin-trim/skills/trim-pull/SKILL.md (Contract 7: add Flows Discovered line to report template)
-- [ ] T018 [P] [US4] Update trim-design skill report in plugin-trim/skills/trim-design/SKILL.md (Contract 7: add Flows Discovered line to report template)
+- [X] T013 [US4] Add discover-flows agent step to plugin-trim/workflows/trim-push.json (Contract 4: insert new step between push-to-penpot and update-mappings with flow discovery instruction for codebase scanning)
+- [X] T014 [P] [US4] Add discover-flows agent step to plugin-trim/workflows/trim-pull.json (Contract 5: insert new step between pull-design and update-mappings with flow discovery instruction for Penpot page analysis)
+- [X] T015 [P] [US4] Add discover-flows agent step to plugin-trim/workflows/trim-design.json (Contract 6: insert new step between generate-design and update-mappings with flow discovery instruction for PRD parsing)
+- [X] T016 [US4] Update trim-push skill report in plugin-trim/skills/trim-push/SKILL.md (Contract 7: add Flows Discovered line to report template)
+- [X] T017 [P] [US4] Update trim-pull skill report in plugin-trim/skills/trim-pull/SKILL.md (Contract 7: add Flows Discovered line to report template)
+- [X] T018 [P] [US4] Update trim-design skill report in plugin-trim/skills/trim-design/SKILL.md (Contract 7: add Flows Discovered line to report template)
 
 **Checkpoint**: All three commands auto-discover flows and merge them into .trim/flows.json. User Story 4 is complete.
 
