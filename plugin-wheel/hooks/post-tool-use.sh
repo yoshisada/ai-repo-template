@@ -16,9 +16,23 @@ PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 # 2. Check for activate.sh interception — create state file with full ownership
 COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
-  # Extract workflow name from the command (activate.sh <name>)
-  # Strip quotes — bash commands may include escaped quotes: activate.sh \"name\"
-  WORKFLOW_NAME=$(printf '%s\n' "$COMMAND" | sed 's/.*activate\.sh["'"'"']*[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
+  # Extract workflow name from the line containing activate.sh
+  # Claude Code may send multi-line commands with variable assignments before the call,
+  # so isolate the activate.sh line first, then extract the argument after it.
+  ACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'activate\.sh' | tail -1)
+  WORKFLOW_NAME=$(printf '%s\n' "$ACTIVATE_LINE" | sed 's/.*activate\.sh["'"'"']*[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
+
+  # If the extracted name is an unexpanded shell variable (e.g., $WORKFLOW_FILE),
+  # try to resolve it from variable assignments earlier in the command block
+  if [[ "$WORKFLOW_NAME" == \$* ]]; then
+    VAR_NAME="${WORKFLOW_NAME#\$}"
+    VAR_NAME="${VAR_NAME#\{}"
+    VAR_NAME="${VAR_NAME%\}}"
+    RESOLVED_VAL=$(printf '%s\n' "$COMMAND" | grep "^${VAR_NAME}=" | tail -1 | sed "s/^${VAR_NAME}=//" | tr -d "\"'")
+    if [[ -n "$RESOLVED_VAL" ]]; then
+      WORKFLOW_NAME="$RESOLVED_VAL"
+    fi
+  fi
 
   # Read workflow file — check local workflows/ first, then scan plugin workflows/ dirs
   WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
@@ -73,8 +87,9 @@ fi
 
 # 2b. Check for deactivate.sh interception — ownership-aware workflow stop
 if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
-  # Extract argument from command (deactivate.sh [--all | <target>])
-  DEACTIVATE_ARG=$(printf '%s\n' "$COMMAND" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
+  # Extract argument from the line containing deactivate.sh (handles multi-line commands)
+  DEACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'deactivate\.sh' | tail -1)
+  DEACTIVATE_ARG=$(printf '%s\n' "$DEACTIVATE_LINE" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
   SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
   AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")

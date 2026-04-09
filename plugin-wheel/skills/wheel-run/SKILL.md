@@ -146,10 +146,21 @@ For plugin workflows, `WORKFLOW_NAME_FOR_ACTIVATE` is the absolute path to the w
 
 ```bash
 # Run activate.sh — the PostToolUse hook intercepts this call,
-# reads the workflow file, and creates the state file with proper ownership
+# reads the workflow file, and creates the state file with proper ownership.
+# IMPORTANT: Use a single-line command with literal resolved paths — no shell variables.
+# The PostToolUse hook extracts the workflow name from tool_input.command via grep/sed.
+# If you use shell variables across multiple lines, Claude Code sends the full multi-line
+# command block and the hook's extraction breaks.
 mkdir -p .wheel
-"${PLUGIN_DIR}/bin/activate.sh" "$WORKFLOW_NAME_FOR_ACTIVATE"
 ```
+
+Then run activate.sh as a **separate, single-line Bash call** with fully resolved paths:
+
+```bash
+<resolved PLUGIN_DIR>/bin/activate.sh <resolved WORKFLOW_NAME_FOR_ACTIVATE>
+```
+
+Do NOT use `${PLUGIN_DIR}` or `"$WORKFLOW_NAME_FOR_ACTIVATE"` — substitute the actual literal values so the hook sees a clean single-line command.
 
 ## Step 5: Report Success
 
