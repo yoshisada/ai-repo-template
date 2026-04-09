@@ -51,10 +51,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Add `classify-files` command step to `plugin-trim/workflows/trim-push.json` after `scan-components` step — classifies each file as "component" or "page" based on directory conventions (FR-003)
-- [ ] T005 [US2] Update `push-to-penpot` agent instruction in `plugin-trim/workflows/trim-push.json` to read classification output and handle component vs page push: components to "Components" bento grid page, pages to individual Penpot pages as full-screen composed frames (FR-004)
-- [ ] T006 [US2] Add `classify-files` to the `context_from` array of `push-to-penpot` step in `plugin-trim/workflows/trim-push.json` (FR-004)
-- [ ] T007 [US2] Update `plugin-trim/skills/trim-push/SKILL.md` to document component vs page classification behavior and update the report format to show counts for both types (FR-005)
+- [X] T004 [US2] Add `classify-files` command step to `plugin-trim/workflows/trim-push.json` after `scan-components` step — classifies each file as "component" or "page" based on directory conventions (FR-003)
+- [X] T005 [US2] Update `push-to-penpot` agent instruction in `plugin-trim/workflows/trim-push.json` to read classification output and handle component vs page push: components to "Components" bento grid page, pages to individual Penpot pages as full-screen composed frames (FR-004)
+- [X] T006 [US2] Add `classify-files` to the `context_from` array of `push-to-penpot` step in `plugin-trim/workflows/trim-push.json` (FR-004)
+- [X] T007 [US2] Update `plugin-trim/skills/trim-push/SKILL.md` to document component vs page classification behavior and update the report format to show counts for both types (FR-005)
 
 **Checkpoint**: Trim-push creates both component-level and page-level Penpot frames.
 
@@ -123,8 +123,8 @@
 
 **Purpose**: Final validation across all changes.
 
-- [ ] T015 Verify `plugin-kiln/package.json` `files` array still includes all needed directories (`workflows/` is already listed)
-- [ ] T016 Verify backwards compatibility: existing consumer projects with customized workflows, existing issues without new fields, existing wheel setups all continue working
+- [X] T015 Verify `plugin-kiln/package.json` `files` array still includes all needed directories (`workflows/` is already listed)
+- [X] T016 Verify backwards compatibility: existing consumer projects with customized workflows, existing issues without new fields, existing wheel setups all continue working
 
 ---
 
