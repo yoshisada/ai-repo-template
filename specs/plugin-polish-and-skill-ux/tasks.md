@@ -96,8 +96,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T010 [US5] Add command filtering section to Step 4 in `plugin-kiln/skills/next/SKILL.md` with whitelist of allowed commands and blocklist of internal commands, including replacement rules (FR-009, FR-010)
-- [ ] T011 [US5] Update the Command Mapping Rules table in `plugin-kiln/skills/next/SKILL.md` to use only whitelisted commands as outputs — replace `/implement` with `/build-prd`, `/specify` with `/build-prd`, `/debug-diagnose` with `/fix` (FR-009, FR-010)
+- [X] T010 [US5] Add command filtering section to Step 4 in `plugin-kiln/skills/next/SKILL.md` with whitelist of allowed commands and blocklist of internal commands, including replacement rules (FR-009, FR-010)
+- [X] T011 [US5] Update the Command Mapping Rules table in `plugin-kiln/skills/next/SKILL.md` to use only whitelisted commands as outputs — replace `/implement` with `/build-prd`, `/specify` with `/build-prd`, `/debug-diagnose` with `/fix` (FR-009, FR-010)
 
 **Checkpoint**: `/next` only recommends high-level user-facing commands.
 
