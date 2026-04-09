@@ -272,6 +272,22 @@ dispatch_step() {
       # FR-001/FR-002: Dispatch workflow step to child workflow handler
       dispatch_workflow "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
       ;;
+    team-create)
+      # FR-001/FR-004: Dispatch team-create step
+      dispatch_team_create "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
+      ;;
+    teammate)
+      # FR-005/FR-011: Dispatch teammate step (static or dynamic via loop_from)
+      dispatch_teammate "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
+      ;;
+    team-wait)
+      # FR-015/FR-019: Dispatch team-wait step (blocks until all teammates done)
+      dispatch_team_wait "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
+      ;;
+    team-delete)
+      # FR-020/FR-023: Dispatch team-delete step (shutdown + cleanup)
+      dispatch_team_delete "$step_json" "$hook_type" "$hook_input_json" "$state_file" "$step_index"
+      ;;
     *)
       echo "ERROR: unknown step type: $step_type" >&2
       return 1
@@ -902,6 +918,706 @@ dispatch_loop() {
     *)
       echo "ERROR: unsupported substep type: $substep_type" >&2
       return 1
+      ;;
+  esac
+}
+
+# FR-001/FR-002/FR-003/FR-004: Handle a team-create step
+# Creates a Claude Code agent team. On stop hook when pending: injects instruction
+# for orchestrator to call TeamCreate. On post_tool_use: detects TeamCreate completion,
+# records team in state, marks done, advances cursor.
+# Params: $1 = step_json, $2 = hook_type, $3 = hook_input_json, $4 = state_file, $5 = step_index
+# Output (stdout): JSON hook response
+# Exit: 0
+dispatch_team_create() {
+  local step_json="$1"
+  local hook_type="$2"
+  local hook_input_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local step_status
+  step_status=$(state_get_step_status "$state" "$step_index")
+
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id')
+
+  # FR-002: Resolve team name — explicit or auto-generated
+  local team_name
+  team_name=$(printf '%s\n' "$step_json" | jq -r '.team_name // empty')
+  if [[ -z "$team_name" ]]; then
+    local wf_name
+    wf_name=$(printf '%s\n' "$state" | jq -r '.workflow_name // "workflow"')
+    team_name="${wf_name}-${step_id}"
+  fi
+
+  case "$hook_type" in
+    stop)
+      if [[ "$step_status" == "pending" ]]; then
+        # FR-003: Check if team already exists in state (idempotent)
+        local existing_team
+        existing_team=$(printf '%s\n' "$state" | jq -r --arg sid "$step_id" '.teams[$sid].team_name // empty')
+        if [[ -n "$existing_team" ]]; then
+          # Team already recorded — mark done and advance
+          state_set_step_status "$state_file" "$step_index" "done"
+          # Advance cursor
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
+          return 0
+        fi
+        state_set_step_status "$state_file" "$step_index" "working"
+        # Inject instruction for orchestrator to call TeamCreate
+        jq -n --arg team "$team_name" \
+          '{"decision": "block", "reason": ("Create an agent team by calling TeamCreate with team_name: " + $team + ". After creating, proceed with the next tool call so I can detect completion.")}'
+      elif [[ "$step_status" == "working" ]]; then
+        # Waiting for TeamCreate — remind
+        jq -n --arg team "$team_name" \
+          '{"decision": "block", "reason": ("Still waiting for TeamCreate to be called for team: " + $team + ". Call TeamCreate now.")}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
+      ;;
+    post_tool_use)
+      if [[ "$step_status" == "working" ]]; then
+        # Detect TeamCreate completion
+        local tool_name
+        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+        if [[ "$tool_name" == "TeamCreate" ]]; then
+          # FR-004: Record team in state
+          state_set_team "$state_file" "$step_id" "$team_name"
+          state_set_step_status "$state_file" "$step_index" "done"
+          # Handle terminal step
+          if handle_terminal_step "$state_file" "$step_json"; then
+            jq -n '{"hookEventName": "PostToolUse"}'
+            return 0
+          fi
+          # Advance cursor
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          # Chain into auto-executable next steps
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            local next_step_type
+            next_step_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
+            if [[ "$next_step_type" == "command" || "$next_step_type" == "loop" || "$next_step_type" == "branch" ]]; then
+              export WHEEL_HOOK_SCRIPT=""
+              export WHEEL_HOOK_INPUT='{}'
+              dispatch_step "$next_step_json" "stop" '{}' "$state_file" "$next_index" >/dev/null 2>&1
+            fi
+          fi
+        fi
+      fi
+      jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    *)
+      jq -n '{"decision": "approve"}'
+      ;;
+  esac
+}
+
+# FR-005/FR-006/FR-007/FR-008/FR-009/FR-010/FR-011/FR-012/FR-013/FR-014:
+# Handle a teammate step — spawn agent(s) to run sub-workflows in parallel.
+# Static path: spawns a single agent with the step's assign payload.
+# Dynamic path (loop_from): reads JSON array from referenced step, spawns one agent
+# per entry (capped by max_agents, distributed round-robin).
+# Fire-and-forget: marks done immediately after injecting spawn instructions.
+# Params: $1 = step_json, $2 = hook_type, $3 = hook_input_json, $4 = state_file, $5 = step_index
+# Output (stdout): JSON hook response
+# Exit: 0
+dispatch_teammate() {
+  local step_json="$1"
+  local hook_type="$2"
+  local hook_input_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local step_status
+  step_status=$(state_get_step_status "$state" "$step_index")
+
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id')
+
+  case "$hook_type" in
+    stop)
+      if [[ "$step_status" == "pending" ]]; then
+        state_set_step_status "$state_file" "$step_index" "working"
+
+        # Resolve team name from state via team field
+        local team_ref
+        team_ref=$(printf '%s\n' "$step_json" | jq -r '.team // empty')
+        local team_name
+        team_name=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" '.teams[$tid].team_name // empty')
+        if [[ -z "$team_name" ]]; then
+          echo "ERROR: teammate step '$step_id' references unknown team: $team_ref" >&2
+          state_set_step_status "$state_file" "$step_index" "failed"
+          return 1
+        fi
+
+        # Resolve sub-workflow name
+        local sub_workflow
+        sub_workflow=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+
+        # FR-029/FR-030: Read context_from and assign
+        local context_from_json
+        context_from_json=$(printf '%s\n' "$step_json" | jq -c '.context_from // []')
+        local assign_json
+        assign_json=$(printf '%s\n' "$step_json" | jq -c '.assign // {}')
+
+        # Check for loop_from (dynamic spawning)
+        local loop_from
+        loop_from=$(printf '%s\n' "$step_json" | jq -r '.loop_from // empty')
+
+        if [[ -n "$loop_from" ]]; then
+          # FR-011/FR-012/FR-013/FR-014: Dynamic spawning path
+          # Read the referenced step's output
+          local loop_step_index
+          loop_step_index=$(printf '%s\n' "$WORKFLOW" | jq --arg id "$loop_from" '[.steps[].id] | index($id)')
+          if [[ "$loop_step_index" == "null" || -z "$loop_step_index" ]]; then
+            echo "ERROR: teammate step '$step_id': loop_from references unknown step: $loop_from" >&2
+            state_set_step_status "$state_file" "$step_index" "failed"
+            return 1
+          fi
+          local loop_output
+          loop_output=$(printf '%s\n' "$state" | jq -r --argjson idx "$loop_step_index" '.steps[$idx].output // empty')
+
+          # FR-023 edge case: validate loop_from output is a JSON array
+          if [[ -z "$loop_output" ]]; then
+            echo "ERROR: teammate step '$step_id': loop_from step '$loop_from' has no output" >&2
+            state_set_step_status "$state_file" "$step_index" "failed"
+            return 1
+          fi
+          # If output is a file path, read the file
+          if [[ -f "$loop_output" ]]; then
+            loop_output=$(cat "$loop_output")
+          fi
+          local is_array
+          is_array=$(printf '%s\n' "$loop_output" | jq -e 'type == "array"' 2>/dev/null || echo "false")
+          if [[ "$is_array" != "true" ]]; then
+            echo "ERROR: teammate step '$step_id': loop_from output is not a JSON array" >&2
+            state_set_step_status "$state_file" "$step_index" "failed"
+            return 1
+          fi
+
+          local item_count
+          item_count=$(printf '%s\n' "$loop_output" | jq 'length')
+
+          # FR-023 edge case: empty array — spawn 0 agents, mark done immediately
+          if [[ "$item_count" -eq 0 ]]; then
+            state_set_step_status "$state_file" "$step_index" "done"
+            local raw_next
+            raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+            local next_index
+            next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+            state_set_cursor "$state_file" "$next_index"
+            local total_steps
+            total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+            if [[ "$next_index" -lt "$total_steps" ]]; then
+              local next_step_json
+              next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+              dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+            else
+              jq -n '{"decision": "approve"}'
+            fi
+            return 0
+          fi
+
+          # FR-013: Apply max_agents cap (default 5)
+          local max_agents
+          max_agents=$(printf '%s\n' "$step_json" | jq -r '.max_agents // empty')
+          if [[ -z "$max_agents" || "$max_agents" -le 0 ]] 2>/dev/null; then
+            max_agents=5
+          fi
+          local agent_count="$max_agents"
+          if [[ "$item_count" -lt "$agent_count" ]]; then
+            agent_count="$item_count"
+          fi
+
+          # FR-013: Distribute items round-robin across agents
+          local spawn_instructions=""
+          local base_name
+          base_name=$(printf '%s\n' "$step_json" | jq -r '.name // empty')
+          if [[ -z "$base_name" ]]; then
+            base_name="$step_id"
+          fi
+
+          local i
+          for ((i=0; i<agent_count; i++)); do
+            # FR-014: Unique name per agent
+            local agent_name="${base_name}-${i}"
+            local output_dir=".wheel/outputs/team-${team_name}/${agent_name}"
+            mkdir -p "$output_dir"
+
+            # Build round-robin assignment: collect items where (item_index % agent_count == i)
+            local agent_assign
+            agent_assign=$(printf '%s\n' "$loop_output" | jq -c --argjson idx "$i" --argjson cnt "$agent_count" \
+              '[to_entries[] | select(.key % $cnt == $idx) | .value]')
+
+            # Write context and assignment files
+            context_write_teammate_files "$output_dir" "$state" "$WORKFLOW" "$context_from_json" "$agent_assign"
+
+            spawn_instructions="${spawn_instructions}\n- Agent '${agent_name}': run sub-workflow '${sub_workflow}', assignment in ${output_dir}/assignment.json, context in ${output_dir}/context.json, output to ${output_dir}/"
+
+            # Record teammate in state
+            state_add_teammate "$state_file" "$team_ref" "$agent_name" "" "" "$output_dir" "$agent_assign"
+          done
+
+          # FR-008: Fire-and-forget — mark done, advance cursor
+          state_set_step_status "$state_file" "$step_index" "done"
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+
+          # Inject spawn instructions
+          jq -n --arg msg "Spawn ${agent_count} teammate agents for team '${team_name}'. Each runs sub-workflow '${sub_workflow}' with run_in_background: true and mode: bypassPermissions.$(printf '%b' "$spawn_instructions")\n\nFor each agent: call Agent tool with the teammate's name, passing their assignment.json and context.json paths. Create a TaskCreate entry for each so team-wait can track them. After spawning all agents, proceed." \
+            '{"decision": "block", "reason": $msg}'
+        else
+          # Static teammate spawning path (FR-005/FR-006/FR-009)
+          local agent_name
+          agent_name=$(printf '%s\n' "$step_json" | jq -r '.name // empty')
+          if [[ -z "$agent_name" ]]; then
+            agent_name="$step_id"
+          fi
+
+          local output_dir=".wheel/outputs/team-${team_name}/${agent_name}"
+          mkdir -p "$output_dir"
+
+          # Write context and assignment files
+          context_write_teammate_files "$output_dir" "$state" "$WORKFLOW" "$context_from_json" "$assign_json"
+
+          # Record teammate in state
+          state_add_teammate "$state_file" "$team_ref" "$agent_name" "" "" "$output_dir" "$assign_json"
+
+          # FR-008: Fire-and-forget — mark done, advance cursor
+          state_set_step_status "$state_file" "$step_index" "done"
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+
+          # FR-009/FR-010: Inject spawn instruction
+          jq -n --arg team "$team_name" --arg agent "$agent_name" --arg wf "$sub_workflow" \
+            --arg outdir "$output_dir" \
+            '{"decision": "block", "reason": ("Spawn teammate agent '"'"'" + $agent + "'"'"' on team '"'"'" + $team + "'"'"'. Run sub-workflow '"'"'" + $wf + "'"'"' with run_in_background: true and mode: bypassPermissions. Assignment: " + $outdir + "/assignment.json, Context: " + $outdir + "/context.json, Output to: " + $outdir + "/. Create a TaskCreate entry for tracking. After spawning, proceed.")}'
+        fi
+      elif [[ "$step_status" == "working" ]]; then
+        # Already spawning — remind to proceed
+        jq -n '{"decision": "block", "reason": "Teammate spawn in progress. Finish spawning agents and proceed."}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
+      ;;
+    post_tool_use)
+      # FR-008: Fire-and-forget — teammate step does not wait for post_tool_use completion
+      # However, detect Agent tool calls to update teammate task/agent IDs in state
+      if [[ "$step_status" == "done" || "$step_status" == "working" ]]; then
+        local tool_name
+        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+        if [[ "$tool_name" == "TaskCreate" ]]; then
+          # Update teammate task_id in state if we can identify which teammate
+          local task_subject
+          task_subject=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.subject // empty')
+          local team_ref
+          team_ref=$(printf '%s\n' "$step_json" | jq -r '.team // empty')
+          if [[ -n "$task_subject" && -n "$team_ref" ]]; then
+            local task_id
+            task_id=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.taskId // .tool_result.id // empty')
+            if [[ -n "$task_id" ]]; then
+              # Try to match task subject to a teammate name
+              local teammates_json
+              teammates_json=$(state_read "$state_file" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}') 2>/dev/null
+              local matched_name
+              matched_name=$(printf '%s\n' "$teammates_json" | jq -r --arg subj "$task_subject" \
+                'to_entries[] | select(.key == $subj or (.key | contains($subj)) or ($subj | contains(.key))) | .key' | head -1)
+              if [[ -n "$matched_name" ]]; then
+                # Update state with task_id
+                local cur_state
+                cur_state=$(state_read "$state_file") || true
+                local now
+                now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+                local updated
+                updated=$(printf '%s\n' "$cur_state" | jq \
+                  --arg tid "$team_ref" --arg name "$matched_name" --arg taskid "$task_id" --arg now "$now" \
+                  '.teams[$tid].teammates[$name].task_id = $taskid | .updated_at = $now')
+                state_write "$state_file" "$updated"
+              fi
+            fi
+          fi
+        fi
+      fi
+      jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    *)
+      jq -n '{"decision": "approve"}'
+      ;;
+  esac
+}
+
+# FR-015/FR-016/FR-017/FR-018/FR-019/FR-022:
+# Handle a team-wait step — blocks the parent workflow until all teammates complete.
+# On stop hook when pending: marks working. On each stop hook while working: reads
+# teammate statuses from state. If all done/failed: writes summary, copies outputs
+# if collect_to set, marks done, advances cursor. If not all done: returns block
+# with progress status.
+# Params: $1 = step_json, $2 = hook_type, $3 = hook_input_json, $4 = state_file, $5 = step_index
+# Output (stdout): JSON hook response
+# Exit: 0
+dispatch_team_wait() {
+  local step_json="$1"
+  local hook_type="$2"
+  local hook_input_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local step_status
+  step_status=$(state_get_step_status "$state" "$step_index")
+
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id')
+
+  # Resolve team reference
+  local team_ref
+  team_ref=$(printf '%s\n' "$step_json" | jq -r '.team // empty')
+
+  case "$hook_type" in
+    stop)
+      if [[ "$step_status" == "pending" ]]; then
+        state_set_step_status "$state_file" "$step_index" "working"
+        # Re-read state after status update
+        state=$(state_read "$state_file") || return 1
+      fi
+
+      if [[ "$step_status" == "pending" || "$step_status" == "working" ]]; then
+        # FR-017: Check teammate statuses
+        local teammates_json
+        teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+
+        local total completed failed pending_count running_count
+        total=$(printf '%s\n' "$teammates_json" | jq 'length')
+        completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+        failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+        pending_count=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "pending")] | length')
+        running_count=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "running")] | length')
+
+        local done_count=$((completed + failed))
+
+        # FR-022 edge case: 0 teammates — immediately complete
+        if [[ "$total" -eq 0 ]]; then
+          _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+          return $?
+        fi
+
+        if [[ "$done_count" -ge "$total" ]]; then
+          # All teammates done — write summary and advance
+          _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+          return $?
+        fi
+
+        # Not all done — block with progress status
+        # FR-017: Instruct orchestrator to check TaskList for updates
+        jq -n --arg team "$team_ref" \
+          --argjson total "$total" --argjson done "$done_count" \
+          --argjson completed "$completed" --argjson failed "$failed" \
+          --argjson running "$running_count" --argjson pending "$pending_count" \
+          '{"decision": "block", "reason": ("Waiting for team '"'"'" + $team + "'"'"': " + ($done|tostring) + "/" + ($total|tostring) + " done (" + ($completed|tostring) + " completed, " + ($failed|tostring) + " failed, " + ($running|tostring) + " running, " + ($pending|tostring) + " pending). Check TaskList to update teammate statuses, then update state via state_update_teammate_status for any that changed. Poll again in 30 seconds.")}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
+      ;;
+    post_tool_use)
+      # FR-026: On TaskList post_tool_use, update teammate statuses if available
+      if [[ "$step_status" == "working" ]]; then
+        local tool_name
+        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+        if [[ "$tool_name" == "TaskList" || "$tool_name" == "TaskGet" || "$tool_name" == "TaskUpdate" ]]; then
+          # Re-read state and check if all teammates are now done
+          state=$(state_read "$state_file") || return 1
+          local teammates_json
+          teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+          local total done_count
+          total=$(printf '%s\n' "$teammates_json" | jq 'length')
+          local completed failed
+          completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+          failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+          done_count=$((completed + failed))
+
+          if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
+            _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+            return $?
+          fi
+        fi
+      fi
+      jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    *)
+      jq -n '{"decision": "approve"}'
+      ;;
+  esac
+}
+
+# FR-018/FR-019: Internal helper — finalize team-wait step
+# Writes summary, copies outputs if collect_to set, marks done, advances cursor.
+# Params: $1 = step_json, $2 = state_file, $3 = step_index, $4 = team_ref, $5 = hook_input_json
+# Output (stdout): JSON hook response
+# Exit: 0
+_team_wait_complete() {
+  local step_json="$1"
+  local state_file="$2"
+  local step_index="$3"
+  local team_ref="$4"
+  local hook_input_json="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+
+  local team_name
+  team_name=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" '.teams[$tid].team_name // "unknown"')
+  local teammates_json
+  teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+
+  local total completed failed
+  total=$(printf '%s\n' "$teammates_json" | jq 'length')
+  completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+  failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+
+  # FR-018: Build per-teammate details
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local teammate_details
+  teammate_details=$(printf '%s\n' "$teammates_json" | jq --arg now "$now" '[
+    to_entries[] | {
+      name: .key,
+      status: .value.status,
+      output_dir: .value.output_dir,
+      duration_seconds: (
+        if .value.started_at != null and .value.completed_at != null then
+          ((.value.completed_at | fromdateiso8601) - (.value.started_at | fromdateiso8601))
+        elif .value.started_at != null then
+          (($now | fromdateiso8601) - (.value.started_at | fromdateiso8601))
+        else 0 end
+      )
+    }
+  ]')
+
+  # FR-018: Write summary
+  local summary
+  summary=$(jq -n \
+    --arg team "$team_name" \
+    --argjson total "$total" \
+    --argjson completed "$completed" \
+    --argjson failed "$failed" \
+    --argjson teammates "$teammate_details" \
+    '{
+      team_name: $team,
+      total: $total,
+      completed: $completed,
+      failed: $failed,
+      teammates: $teammates
+    }')
+
+  # Write summary to output path
+  local output_key
+  output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
+  if [[ -n "$output_key" ]]; then
+    mkdir -p "$(dirname "$output_key")"
+    printf '%s\n' "$summary" > "$output_key"
+    context_capture_output "$state_file" "$step_index" "$output_key"
+  else
+    # Write to default location
+    local summary_path=".wheel/outputs/team-${team_name}/summary.json"
+    mkdir -p "$(dirname "$summary_path")"
+    printf '%s\n' "$summary" > "$summary_path"
+    context_capture_output "$state_file" "$step_index" "$summary_path"
+  fi
+
+  # FR-016: Copy outputs to collect_to if set
+  local collect_to
+  collect_to=$(printf '%s\n' "$step_json" | jq -r '.collect_to // empty')
+  if [[ -n "$collect_to" ]]; then
+    mkdir -p "$collect_to"
+    # Copy each teammate's output directory
+    printf '%s\n' "$teammates_json" | jq -r '.[] | .output_dir // empty' | while IFS= read -r out_dir; do
+      [[ -z "$out_dir" || ! -d "$out_dir" ]] && continue
+      local agent_dir_name
+      agent_dir_name=$(basename "$out_dir")
+      cp -r "$out_dir" "${collect_to}/${agent_dir_name}" 2>/dev/null || true
+    done
+  fi
+
+  # FR-019: Mark done (never fails, even with partial results)
+  state_set_step_status "$state_file" "$step_index" "done"
+
+  # Handle terminal step
+  if handle_terminal_step "$state_file" "$step_json"; then
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  # Advance cursor
+  local raw_next
+  raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+  local next_index
+  next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+  state_set_cursor "$state_file" "$next_index"
+
+  # Chain into next step
+  local total_steps
+  total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+  if [[ "$next_index" -lt "$total_steps" ]]; then
+    local next_step_json
+    next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+    dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+  else
+    jq -n '{"decision": "approve"}'
+  fi
+}
+
+# FR-020/FR-021/FR-022/FR-023: Handle a team-delete step
+# Gracefully shuts down all agents on a team and cleans up.
+# On stop hook when pending: injects instruction to send shutdown to all teammates
+# and call TeamDelete. On post_tool_use: detects TeamDelete completion, removes
+# team from state, marks done, advances cursor.
+# Params: $1 = step_json, $2 = hook_type, $3 = hook_input_json, $4 = state_file, $5 = step_index
+# Output (stdout): JSON hook response
+# Exit: 0
+dispatch_team_delete() {
+  local step_json="$1"
+  local hook_type="$2"
+  local hook_input_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  local state
+  state=$(state_read "$state_file") || return 1
+  local step_status
+  step_status=$(state_get_step_status "$state" "$step_index")
+
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id')
+
+  # FR-022: Resolve team reference
+  local team_ref
+  team_ref=$(printf '%s\n' "$step_json" | jq -r '.team // empty')
+  local team_name
+  team_name=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" '.teams[$tid].team_name // empty')
+
+  case "$hook_type" in
+    stop)
+      if [[ "$step_status" == "pending" ]]; then
+        # FR-019 idempotency: If team doesn't exist in state, it's already been deleted — no-op
+        if [[ -z "$team_name" ]]; then
+          state_set_step_status "$state_file" "$step_index" "done"
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
+          return 0
+        fi
+
+        state_set_step_status "$state_file" "$step_index" "working"
+
+        # FR-023: Check if any teammates are still running
+        local teammates_json
+        teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+        local running_agents
+        running_agents=$(printf '%s\n' "$teammates_json" | jq -r '[to_entries[] | select(.value.status == "running" or .value.status == "pending") | .key] | join(", ")')
+
+        local force_msg=""
+        if [[ -n "$running_agents" ]]; then
+          force_msg=" WARNING: These teammates are still active and must be force-terminated first: ${running_agents}. Send shutdown requests to them before calling TeamDelete."
+        fi
+
+        # FR-021: Inject instruction to shut down agents and delete team
+        jq -n --arg team "$team_name" --arg force "$force_msg" \
+          '{"decision": "block", "reason": ("Delete team '"'"'" + $team + "'"'"'. Send shutdown to all teammates, then call TeamDelete to remove the team." + $force)}'
+      elif [[ "$step_status" == "working" ]]; then
+        # Waiting for TeamDelete
+        jq -n --arg team "$team_name" \
+          '{"decision": "block", "reason": ("Still waiting for TeamDelete to be called for team: " + $team + ". Complete the deletion.")}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
+      ;;
+    post_tool_use)
+      if [[ "$step_status" == "working" ]]; then
+        local tool_name
+        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+        if [[ "$tool_name" == "TeamDelete" ]]; then
+          # Remove team from state
+          if [[ -n "$team_ref" ]]; then
+            state_remove_team "$state_file" "$team_ref"
+          fi
+          state_set_step_status "$state_file" "$step_index" "done"
+
+          # Handle terminal step
+          if handle_terminal_step "$state_file" "$step_json"; then
+            jq -n '{"hookEventName": "PostToolUse"}'
+            return 0
+          fi
+
+          # Advance cursor
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+
+          # Chain into auto-executable next steps
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            local next_step_type
+            next_step_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
+            if [[ "$next_step_type" == "command" || "$next_step_type" == "loop" || "$next_step_type" == "branch" ]]; then
+              export WHEEL_HOOK_SCRIPT=""
+              export WHEEL_HOOK_INPUT='{}'
+              dispatch_step "$next_step_json" "stop" '{}' "$state_file" "$next_index" >/dev/null 2>&1
+            fi
+          fi
+        fi
+      fi
+      jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    *)
+      jq -n '{"decision": "approve"}'
       ;;
   esac
 }

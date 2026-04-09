@@ -53,18 +53,18 @@
 
 ### US1 — Static Fan-Out (team-create + teammate)
 
-- [ ] T011 [US1] Implement `dispatch_team_create()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: inject instruction for orchestrator to call TeamCreate with team name (auto-generate from workflow name + step ID if omitted), mark working. On post_tool_use: detect TeamCreate completion, call state_set_team, mark done, advance cursor.
-- [ ] T012 [US1] Implement `dispatch_teammate()` static path in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: read team name from state, write context.json and assignment.json to output dir, inject instruction for orchestrator to spawn Agent with run_in_background and TaskCreate. Mark done after spawn instruction injected (fire-and-forget). Advance cursor.
-- [ ] T013 [US1] Add `context_write_teammate_files()` to `plugin-wheel/lib/context.sh` — writes context.json (combined outputs from context_from steps) and assignment.json (assign payload) to the teammate output directory
+- [X] T011 [US1] Implement `dispatch_team_create()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: inject instruction for orchestrator to call TeamCreate with team name (auto-generate from workflow name + step ID if omitted), mark working. On post_tool_use: detect TeamCreate completion, call state_set_team, mark done, advance cursor.
+- [X] T012 [US1] Implement `dispatch_teammate()` static path in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: read team name from state, write context.json and assignment.json to output dir, inject instruction for orchestrator to spawn Agent with run_in_background and TaskCreate. Mark done after spawn instruction injected (fire-and-forget). Advance cursor.
+- [X] T013 [US1] Add `context_write_teammate_files()` to `plugin-wheel/lib/context.sh` — writes context.json (combined outputs from context_from steps) and assignment.json (assign payload) to the teammate output directory
 
 ### US2 — Dynamic Fan-Out (loop_from)
 
-- [ ] T014 [US2] Implement `dispatch_teammate()` dynamic path (loop_from) in `plugin-wheel/lib/dispatch.sh` — when loop_from is present: read referenced step output, parse JSON array, apply max_agents cap (default 5), distribute entries round-robin, spawn one agent per group with unique name `{step-id}-{index}`, each receiving its grouped entries as assign payload
+- [X] T014 [US2] Implement `dispatch_teammate()` dynamic path (loop_from) in `plugin-wheel/lib/dispatch.sh` — when loop_from is present: read referenced step output, parse JSON array, apply max_agents cap (default 5), distribute entries round-robin, spawn one agent per group with unique name `{step-id}-{index}`, each receiving its grouped entries as assign payload
 
 ### US3 — Wait and Collect
 
-- [ ] T015 [US3] Implement `dispatch_team_wait()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: mark working. On each stop hook while working: read teammate statuses from state. If all done/failed: write summary JSON (total, completed, failed, per-teammate details), copy outputs to collect_to if set, mark done, advance cursor. If not all done: return block with progress status.
-- [ ] T016 [US3] Implement team-wait summary writer — generates summary JSON matching data-model.md schema (team_name, total, completed, failed, per-teammate name/status/output_dir/duration_seconds), writes to step output path
+- [X] T015 [US3] Implement `dispatch_team_wait()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: mark working. On each stop hook while working: read teammate statuses from state. If all done/failed: write summary JSON (total, completed, failed, per-teammate details), copy outputs to collect_to if set, mark done, advance cursor. If not all done: return block with progress status.
+- [X] T016 [US3] Implement team-wait summary writer — generates summary JSON matching data-model.md schema (team_name, total, completed, failed, per-teammate name/status/output_dir/duration_seconds), writes to step output path
 
 **Checkpoint**: Static fan-out, dynamic fan-out, and wait-collect all functional. Can run a complete team workflow.
 
@@ -78,14 +78,14 @@
 
 ### US5 — Team Cleanup and Cascade Stop
 
-- [ ] T017 [US5] Implement `dispatch_team_delete()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: inject instruction for orchestrator to send shutdown to all teammates and call TeamDelete. Handle force-termination if teammates still running. On post_tool_use: detect TeamDelete completion, call state_remove_team, mark done, advance cursor.
-- [ ] T018 [US5] Add cascade stop for team agents in deactivate.sh handler in `plugin-wheel/hooks/post-tool-use.sh` — after stopping parent workflows, read teams key from stopped state files, for each team with running teammates log the team for cleanup. Note: actual agent shutdown happens via Claude Code's built-in cascade when the parent agent stops.
-- [ ] T019 [US5] Ensure idempotency — team-create on existing team is no-op, team-delete on deleted team is no-op, re-running team-wait after completion is no-op
+- [X] T017 [US5] Implement `dispatch_team_delete()` in `plugin-wheel/lib/dispatch.sh` — on stop hook when pending: inject instruction for orchestrator to send shutdown to all teammates and call TeamDelete. Handle force-termination if teammates still running. On post_tool_use: detect TeamDelete completion, call state_remove_team, mark done, advance cursor.
+- [X] T018 [US5] Add cascade stop for team agents in deactivate.sh handler in `plugin-wheel/hooks/post-tool-use.sh` — after stopping parent workflows, read teams key from stopped state files, for each team with running teammates log the team for cleanup. Note: actual agent shutdown happens via Claude Code's built-in cascade when the parent agent stops.
+- [X] T019 [US5] Ensure idempotency — team-create on existing team is no-op, team-delete on deleted team is no-op, re-running team-wait after completion is no-op
 
 ### US6 — Sub-Workflow Context Passing
 
-- [ ] T020 [US6] Add `context_resolve_synthetic()` to `plugin-wheel/lib/context.sh` — resolves `_context` and `_assignment` synthetic step IDs by reading context.json and assignment.json from the current agent's output directory
-- [ ] T021 [US6] Modify `context_build()` in `plugin-wheel/lib/context.sh` — when encountering `_context` or `_assignment` in context_from array, delegate to context_resolve_synthetic instead of looking up state step outputs
+- [X] T020 [US6] Add `context_resolve_synthetic()` to `plugin-wheel/lib/context.sh` — resolves `_context` and `_assignment` synthetic step IDs by reading context.json and assignment.json from the current agent's output directory
+- [X] T021 [US6] Modify `context_build()` in `plugin-wheel/lib/context.sh` — when encountering `_context` or `_assignment` in context_from array, delegate to context_resolve_synthetic instead of looking up state step outputs
 
 **Checkpoint**: Full team lifecycle works including cleanup, cascade stop, and context passing.
 
@@ -97,8 +97,8 @@
 
 **Independent Test**: Create a workflow where 1 of 3 teammates is designed to fail. Verify team-wait reports partial results and workflow continues.
 
-- [ ] T022 [US4] Ensure `dispatch_team_wait()` handles mixed success/failure — team-wait MUST NOT fail when some teammates fail. Summary must report accurate completed/failed counts. Downstream steps receive the summary and decide how to handle failures.
-- [ ] T023 [US4] Handle edge cases in `dispatch_teammate()` — empty loop_from array (0 items spawns 0 agents, team-wait immediately completes), invalid JSON in loop_from output (mark step failed with error), max_agents <= 0 (use default 5)
+- [X] T022 [US4] Ensure `dispatch_team_wait()` handles mixed success/failure — team-wait MUST NOT fail when some teammates fail. Summary must report accurate completed/failed counts. Downstream steps receive the summary and decide how to handle failures.
+- [X] T023 [US4] Handle edge cases in `dispatch_teammate()` — empty loop_from array (0 items spawns 0 agents, team-wait immediately completes), invalid JSON in loop_from output (mark step failed with error), max_agents <= 0 (use default 5)
 
 **Checkpoint**: Failure resilience verified. Partial results collected correctly.
 
