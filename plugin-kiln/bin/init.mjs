@@ -16,8 +16,8 @@
  *   npx @yoshisada/kiln update     # re-sync templates to latest
  */
 
-import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync } from "node:fs";
-import { resolve, dirname, join } from "node:path";
+import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync, readFileSync } from "node:fs";
+import { resolve, dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -85,16 +85,6 @@ function scaffoldProject() {
     ".specify/memory/constitution.md"
   );
 
-  // Empty directories
-  for (const dir of ["src", "tests"]) {
-    ensureDir(join(PROJECT_DIR, dir));
-    const gitkeep = join(PROJECT_DIR, dir, ".gitkeep");
-    if (!existsSync(gitkeep)) {
-      writeFileSync(gitkeep, "");
-      log(`+ ${dir}/.gitkeep`);
-    }
-  }
-
   // Version tracking
   const versionFile = join(PROJECT_DIR, "VERSION");
   if (!existsSync(versionFile) || force) {
@@ -155,6 +145,26 @@ function scaffoldProject() {
   );
 }
 
+// ── Sync: plugin workflows to consumer project (FR-002) ──
+
+function syncWorkflows() {
+  const pluginJsonPath = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
+  if (!existsSync(pluginJsonPath)) return;
+
+  const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
+  const workflows = pluginJson.workflows || [];
+  if (workflows.length === 0) return;
+
+  ensureDir(join(PROJECT_DIR, "workflows"));
+  for (const wfPath of workflows) {
+    const src = join(PLUGIN_ROOT, wfPath);
+    const dest = join(PROJECT_DIR, "workflows", basename(wfPath));
+    if (existsSync(src)) {
+      copyIfMissing(src, dest, `workflows/${basename(wfPath)}`);
+    }
+  }
+}
+
 // ── Sync: shared infrastructure (always update to latest) ──
 
 function syncShared() {
@@ -177,6 +187,9 @@ function syncShared() {
       ".specify/scripts/"
     );
   }
+
+  // FR-002: Sync plugin workflows to consumer project
+  syncWorkflows();
 
   // Note: skills, agents, and hooks are auto-discovered by Claude Code
   // from the plugin directory. No need to copy them into the project.

@@ -35,9 +35,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Add `"workflows"` array to `plugin-kiln/.claude-plugin/plugin.json` declaring `"workflows/report-issue-and-sync.json"` (FR-001)
-- [ ] T002 [US1] Add `syncWorkflows()` function to `plugin-kiln/bin/init.mjs` that reads plugin.json workflows array and copies each to consumer `workflows/` directory using `copyIfMissing()` (FR-002)
-- [ ] T003 [US1] Call `syncWorkflows()` from `syncShared()` function in `plugin-kiln/bin/init.mjs` so it runs on both `init` and `update` commands (FR-002)
+- [X] T001 [US1] Add `"workflows"` array to `plugin-kiln/.claude-plugin/plugin.json` declaring `"workflows/report-issue-and-sync.json"` (FR-001)
+- [X] T002 [US1] Add `syncWorkflows()` function to `plugin-kiln/bin/init.mjs` that reads plugin.json workflows array and copies each to consumer `workflows/` directory using `copyIfMissing()` (FR-002)
+- [X] T003 [US1] Call `syncWorkflows()` from `syncShared()` function in `plugin-kiln/bin/init.mjs` so it runs on both `init` and `update` commands (FR-002)
 
 **Checkpoint**: Consumer projects get `report-issue-and-sync.json` automatically on init/update.
 
@@ -68,7 +68,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Remove the `for (const dir of ["src", "tests"])` block (lines 88-96) from `scaffoldProject()` in `plugin-kiln/bin/init.mjs` (FR-006)
+- [X] T008 [US3] Remove the `for (const dir of ["src", "tests"])` block (lines 88-96) from `scaffoldProject()` in `plugin-kiln/bin/init.mjs` (FR-006)
 
 **Checkpoint**: Init scaffold no longer creates opinionated project directories.
 
