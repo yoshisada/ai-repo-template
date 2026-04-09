@@ -13,8 +13,105 @@ HOOK_INPUT=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 
-# 2. Check for activate.sh interception — create state file with full ownership
+# 2. Extract command for interception checks
 COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+
+# 2a. Check for deactivate.sh FIRST — "deactivate.sh" contains "activate.sh" as a substring,
+# so this must be checked before the activate.sh branch to avoid false matches.
+if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
+  # Extract argument from the line containing deactivate.sh (handles multi-line commands)
+  DEACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'deactivate\.sh' | tail -1)
+  DEACTIVATE_ARG=$(printf '%s\n' "$DEACTIVATE_LINE" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
+
+  SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+  AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
+
+  mkdir -p .wheel/history/stopped
+
+  STOPPED=0
+  if [[ "$DEACTIVATE_ARG" == "--all" ]]; then
+    # Stop all workflows regardless of ownership
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+      FNAME=$(basename "$sf" .json)
+      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+      rm -f "$sf"
+      STOPPED=$((STOPPED + 1))
+    done
+  elif [[ -n "$DEACTIVATE_ARG" ]]; then
+    # Stop workflows matching target substring in filename
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      if [[ "$(basename "$sf")" == *"$DEACTIVATE_ARG"* ]]; then
+        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+        FNAME=$(basename "$sf" .json)
+        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+        rm -f "$sf"
+        STOPPED=$((STOPPED + 1))
+      fi
+    done
+  else
+    # Default: stop only the caller's own workflow (content-based ownership match)
+    for sf in .wheel/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      owner_sid=$(jq -r '.owner_session_id // empty' "$sf" 2>/dev/null) || continue
+      owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
+      if [[ "$owner_sid" == "$SESSION_ID" && "$owner_aid" == "$AGENT_ID" ]]; then
+        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+        FNAME=$(basename "$sf" .json)
+        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+        rm -f "$sf"
+        STOPPED=$((STOPPED + 1))
+        break
+      fi
+    done
+  fi
+
+  # FR-018: Cascade stop to active child workflows
+  for sf in .wheel/state_*.json; do
+    [[ -f "$sf" ]] || continue
+    PARENT_PATH=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null) || continue
+    if [[ -n "$PARENT_PATH" && ! -f "$PARENT_PATH" ]]; then
+      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+      FNAME=$(basename "$sf" .json)
+      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
+      rm -f "$sf"
+      STOPPED=$((STOPPED + 1))
+    fi
+  done
+
+  # FR-028: Cascade stop to team agent sub-workflows
+  for sf in .wheel/history/stopped/*.json; do
+    [[ -f "$sf" ]] || continue
+    TEAMS_JSON=$(jq -r '.teams // empty' "$sf" 2>/dev/null) || continue
+    [[ -z "$TEAMS_JSON" || "$TEAMS_JSON" == "null" ]] && continue
+    TEAMMATE_AIDS=$(printf '%s\n' "$TEAMS_JSON" | jq -r '
+      [to_entries[] | .value.teammates // {} | to_entries[] |
+       select(.value.status == "pending" or .value.status == "running") |
+       .value.agent_id] | .[]' 2>/dev/null) || continue
+    [[ -z "$TEAMMATE_AIDS" ]] && continue
+    while IFS= read -r TAID; do
+      [[ -z "$TAID" ]] && continue
+      for tsf in .wheel/state_*.json; do
+        [[ -f "$tsf" ]] || continue
+        TSF_AID=$(jq -r '.owner_agent_id // empty' "$tsf" 2>/dev/null) || continue
+        if [[ "$TSF_AID" == "$TAID" ]]; then
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          TFNAME=$(basename "$tsf" .json)
+          cp "$tsf" ".wheel/history/stopped/${TFNAME}-${TIMESTAMP}.json"
+          rm -f "$tsf"
+          STOPPED=$((STOPPED + 1))
+        fi
+      done
+    done <<< "$TEAMMATE_AIDS"
+  done
+
+  echo '{"hookEventName": "PostToolUse"}'
+  exit 0
+fi
+
+# 2b. Check for activate.sh interception — create state file with full ownership
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
   # Extract workflow name from the line containing activate.sh
   # Claude Code may send multi-line commands with variable assignments before the call,
@@ -80,107 +177,6 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
       rm -f .wheel/pending.json
     fi
   fi
-
-  echo '{"hookEventName": "PostToolUse"}'
-  exit 0
-fi
-
-# 2b. Check for deactivate.sh interception — ownership-aware workflow stop
-if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
-  # Extract argument from the line containing deactivate.sh (handles multi-line commands)
-  DEACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'deactivate\.sh' | tail -1)
-  DEACTIVATE_ARG=$(printf '%s\n' "$DEACTIVATE_LINE" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
-
-  SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
-  AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
-
-  mkdir -p .wheel/history/stopped
-
-  STOPPED=0
-  if [[ "$DEACTIVATE_ARG" == "--all" ]]; then
-    # Stop all workflows regardless of ownership
-    for sf in .wheel/state_*.json; do
-      [[ -f "$sf" ]] || continue
-      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-      FNAME=$(basename "$sf" .json)
-      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
-      rm -f "$sf"
-      STOPPED=$((STOPPED + 1))
-    done
-  elif [[ -n "$DEACTIVATE_ARG" ]]; then
-    # Stop workflows matching target substring in filename
-    for sf in .wheel/state_*.json; do
-      [[ -f "$sf" ]] || continue
-      if [[ "$(basename "$sf")" == *"$DEACTIVATE_ARG"* ]]; then
-        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-        FNAME=$(basename "$sf" .json)
-        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
-        rm -f "$sf"
-        STOPPED=$((STOPPED + 1))
-      fi
-    done
-  else
-    # Default: stop only the caller's own workflow (content-based ownership match)
-    for sf in .wheel/state_*.json; do
-      [[ -f "$sf" ]] || continue
-      local owner_sid="" owner_aid=""
-      owner_sid=$(jq -r '.owner_session_id // empty' "$sf" 2>/dev/null) || continue
-      owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
-      if [[ "$owner_sid" == "$SESSION_ID" && "$owner_aid" == "$AGENT_ID" ]]; then
-        TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-        FNAME=$(basename "$sf" .json)
-        cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
-        rm -f "$sf"
-        STOPPED=$((STOPPED + 1))
-        break
-      fi
-    done
-  fi
-
-  # FR-018: Cascade stop to active child workflows
-  # Scan remaining state files for any with parent_workflow pointing to a stopped file
-  for sf in .wheel/state_*.json; do
-    [[ -f "$sf" ]] || continue
-    PARENT_PATH=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null) || continue
-    if [[ -n "$PARENT_PATH" && ! -f "$PARENT_PATH" ]]; then
-      # Parent was stopped (no longer exists) — stop this child too
-      TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-      FNAME=$(basename "$sf" .json)
-      cp "$sf" ".wheel/history/stopped/${FNAME}-${TIMESTAMP}.json"
-      rm -f "$sf"
-      STOPPED=$((STOPPED + 1))
-    fi
-  done
-
-  # FR-028: Cascade stop to team agent sub-workflows
-  # Check stopped state files (in history/stopped/) for teams with running teammates.
-  # Their sub-workflow state files need to be stopped too.
-  for sf in .wheel/history/stopped/*.json; do
-    [[ -f "$sf" ]] || continue
-    TEAMS_JSON=$(jq -r '.teams // empty' "$sf" 2>/dev/null) || continue
-    [[ -z "$TEAMS_JSON" || "$TEAMS_JSON" == "null" ]] && continue
-    # Extract all teammate agent_ids from all teams
-    TEAMMATE_AIDS=$(printf '%s\n' "$TEAMS_JSON" | jq -r '
-      [to_entries[] | .value.teammates // {} | to_entries[] |
-       select(.value.status == "pending" or .value.status == "running") |
-       .value.agent_id] | .[]' 2>/dev/null) || continue
-    [[ -z "$TEAMMATE_AIDS" ]] && continue
-    # Stop any remaining state files owned by these teammate agents
-    while IFS= read -r TAID; do
-      [[ -z "$TAID" ]] && continue
-      for tsf in .wheel/state_*.json; do
-        [[ -f "$tsf" ]] || continue
-        TSF_AID=$(jq -r '.owner_agent_id // empty' "$tsf" 2>/dev/null) || continue
-        if [[ "$TSF_AID" == "$TAID" ]]; then
-          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
-          TFNAME=$(basename "$tsf" .json)
-          cp "$tsf" ".wheel/history/stopped/${TFNAME}-${TIMESTAMP}.json"
-          rm -f "$tsf"
-          STOPPED=$((STOPPED + 1))
-        fi
-      done
-    done <<< "$TEAMMATE_AIDS"
-  done
 
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
