@@ -1149,6 +1149,7 @@ dispatch_teammate() {
           for ((i=0; i<agent_count; i++)); do
             local agent_name="${base_name}-${i}"
             local output_dir=".wheel/outputs/team-${team_name}/${agent_name}"
+            rm -rf "$output_dir"
             mkdir -p "$output_dir"
 
             local agent_assign
@@ -1173,6 +1174,7 @@ dispatch_teammate() {
           fi
 
           local output_dir=".wheel/outputs/team-${team_name}/${agent_name}"
+          rm -rf "$output_dir"
           mkdir -p "$output_dir"
 
           context_write_teammate_files "$output_dir" "$state" "$WORKFLOW" "$context_from_json" "$assign_json"
