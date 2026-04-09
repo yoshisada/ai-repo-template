@@ -1470,7 +1470,7 @@ dispatch_team_wait() {
       jq -n '{"hookEventName": "PostToolUse"}'
       ;;
     teammate_idle)
-      # A teammate went idle — mark it completed and check if all done
+      # A teammate went idle — mark it completed, stop the teammate, check if all done
       local idle_name
       idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.teammate_name // .name // empty')
       # Also try extracting from the "from" field of idle notifications
@@ -1478,6 +1478,7 @@ dispatch_team_wait() {
         idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.from // empty')
       fi
 
+      local should_stop=false
       if [[ -n "$idle_name" ]]; then
         # Check if this teammate is registered and not already completed
         local cur_state
@@ -1487,6 +1488,10 @@ dispatch_team_wait() {
           '.teams[$tid].teammates[$n].status // empty')
         if [[ -n "$tm_status" && "$tm_status" != "completed" && "$tm_status" != "failed" ]]; then
           state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
+          should_stop=true
+        elif [[ "$tm_status" == "completed" || "$tm_status" == "failed" ]]; then
+          # Already marked done from a previous idle — still stop them
+          should_stop=true
         fi
       fi
 
@@ -1504,7 +1509,14 @@ dispatch_team_wait() {
         _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
         return $?
       fi
-      jq -n '{"decision": "approve"}'
+
+      # Stop the completed teammate so it doesn't linger
+      if [[ "$should_stop" == true ]]; then
+        jq -n --arg reason "Teammate ${idle_name} work complete — stopped by team-wait." \
+          '{"continue": false, "stopReason": $reason}'
+      else
+        jq -n '{"decision": "approve"}'
+      fi
       ;;
     *)
       jq -n '{"decision": "approve"}'
@@ -1606,7 +1618,8 @@ _team_wait_complete() {
 
   # Handle terminal step
   if handle_terminal_step "$state_file" "$step_json"; then
-    jq -n '{"decision": "approve"}'
+    jq -n --arg reason "All teammates done — team-wait complete." \
+      '{"continue": false, "stopReason": $reason}'
     return 0
   fi
 
@@ -1617,16 +1630,22 @@ _team_wait_complete() {
   next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
   state_set_cursor "$state_file" "$next_index"
 
-  # Chain into next step
+  # Chain into next step (for state updates) then stop this teammate
   local total_steps
   total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
   if [[ "$next_index" -lt "$total_steps" ]]; then
     local next_step_json
     next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
-    dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
-  else
-    jq -n '{"decision": "approve"}'
+    local next_step_type
+    next_step_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
+    # Only chain command steps inline (they execute silently).
+    # Other step types (team-delete, agent) are handled by the lead's Stop hook.
+    if [[ "$next_step_type" == "command" ]]; then
+      dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index" >/dev/null 2>&1
+    fi
   fi
+  jq -n --arg reason "All teammates done — team-wait complete." \
+    '{"continue": false, "stopReason": $reason}'
 }
 
 # FR-020/FR-021/FR-022/FR-023: Handle a team-delete step
