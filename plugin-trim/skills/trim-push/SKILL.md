@@ -40,11 +40,12 @@ The workflow executes these steps in order:
 1. **read-config** — parses `.trim/config` and validates required fields
 2. **detect-framework** — detects UI framework and CSS approach
 3. **scan-components** — finds UI component files by framework convention (e.g., `src/components/*.tsx` for React)
-4. **read-mappings** — reads current `.trim/components.json`
-5. **resolve-trim-plugin** — resolves trim plugin install path at runtime
-6. **push-to-penpot** — creates/updates Penpot components via MCP from code analysis
-7. **discover-flows** — auto-discovers user flows from codebase routes and navigation, merges into `.trim/flows.json`
-8. **update-mappings** — writes updated component mappings to `.trim/components.json`
+4. **classify-files** — classifies each scanned file as "component" or "page" based on directory conventions (`components/` vs `pages/`/`app/` routes)
+5. **read-mappings** — reads current `.trim/components.json`
+6. **resolve-trim-plugin** — resolves trim plugin install path at runtime
+7. **push-to-penpot** — creates/updates Penpot elements via MCP: components go to a "Components" bento grid page, pages get their own individual Penpot pages as full-screen composed frames
+8. **discover-flows** — auto-discovers user flows from codebase routes and navigation, merges into `.trim/flows.json`
+9. **update-mappings** — writes updated component mappings to `.trim/components.json`
 
 ### 3. Report Results
 
@@ -54,21 +55,27 @@ After the workflow completes, read the outputs and report:
 Push complete.
 
   Framework:       {detected framework}
-  Components Found: {N from scan}
+  Files Scanned:   {N total}
+  Classification:  {N} components, {M} pages
 
-  Pushed:
+  Components Pushed (to "Components" bento grid page):
     - {component name} — {created | updated} in Penpot
     ...
 
-  Component Mappings:
+  Pages Pushed (individual Penpot pages):
+    - {page name} — {created | updated} as full-screen frame
+    ...
+
+  Mappings:
     - {N} updated
     - {N} newly created
 
   Components Page: {created | updated} with {N} component groups
+  Page Pages: {N} individual Penpot pages created/updated
   Flows Discovered: {N} flows with {M} steps written to .trim/flows.json
   Updated: .trim/components.json
 
-Next: Open Penpot to view and edit the pushed components,
+Next: Open Penpot to view and edit the pushed components and pages,
       then run /trim-pull to sync visual changes back to code.
 ```
 
