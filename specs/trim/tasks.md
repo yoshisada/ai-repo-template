@@ -49,11 +49,11 @@
 
 ### Workflow
 
-- [ ] T007 [US1] Create trim-pull wheel workflow at `plugin-trim/workflows/trim-pull.json` with 6 steps: read-config (command), detect-framework (command), read-mappings (command), resolve-trim-plugin (command), pull-design (agent), update-mappings (command). All command step scripts per contracts/interfaces.md. Agent step instruction: read Penpot design via MCP, generate framework-appropriate code, reuse existing components from mappings. Per FR-004, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012.
+- [X] T007 [US1] Create trim-pull wheel workflow at `plugin-trim/workflows/trim-pull.json` with 6 steps: read-config (command), detect-framework (command), read-mappings (command), resolve-trim-plugin (command), pull-design (agent), update-mappings (command). All command step scripts per contracts/interfaces.md. Agent step instruction: read Penpot design via MCP, generate framework-appropriate code, reuse existing components from mappings. Per FR-004, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012.
 
 ### Skill
 
-- [ ] T008 [US1] Create trim-pull skill at `plugin-trim/skills/trim-pull/SKILL.md` — accepts optional page/component name as argument, delegates to `/wheel-run trim:trim-pull`, reports generated files and updated mappings. Per FR-008.
+- [X] T008 [US1] Create trim-pull skill at `plugin-trim/skills/trim-pull/SKILL.md` — accepts optional page/component name as argument, delegates to `/wheel-run trim:trim-pull`, reports generated files and updated mappings. Per FR-008.
 
 **Checkpoint**: `/trim-pull` runs the wheel workflow, reads Penpot via MCP, generates code, and updates `.trim-components.json`.
 
@@ -67,11 +67,11 @@
 
 ### Workflow
 
-- [ ] T009 [US2] Create trim-push wheel workflow at `plugin-trim/workflows/trim-push.json` with 7 steps: read-config (command), detect-framework (command), scan-components (command), read-mappings (command), resolve-trim-plugin (command), push-to-penpot (agent), update-mappings (command). Scan-components command detects UI component files by framework convention. Agent step creates/updates Penpot components via MCP. Per FR-004, FR-006, FR-007, FR-013, FR-014, FR-015, FR-016.
+- [X] T009 [US2] Create trim-push wheel workflow at `plugin-trim/workflows/trim-push.json` with 7 steps: read-config (command), detect-framework (command), scan-components (command), read-mappings (command), resolve-trim-plugin (command), push-to-penpot (agent), update-mappings (command). Scan-components command detects UI component files by framework convention. Agent step creates/updates Penpot components via MCP. Per FR-004, FR-006, FR-007, FR-013, FR-014, FR-015, FR-016.
 
 ### Skill
 
-- [ ] T010 [US2] Create trim-push skill at `plugin-trim/skills/trim-push/SKILL.md` — accepts optional component path/glob as argument, delegates to `/wheel-run trim:trim-push`, reports pushed components and updated mappings. Per FR-013.
+- [X] T010 [US2] Create trim-push skill at `plugin-trim/skills/trim-push/SKILL.md` — accepts optional component path/glob as argument, delegates to `/wheel-run trim:trim-push`, reports pushed components and updated mappings. Per FR-013.
 
 **Checkpoint**: `/trim-push` scans code components, creates Penpot components via MCP, and updates `.trim-components.json`.
 
@@ -85,11 +85,11 @@
 
 ### Workflow
 
-- [ ] T011 [US3] Create trim-diff wheel workflow at `plugin-trim/workflows/trim-diff.json` with 5 steps: read-config (command), read-mappings (command), scan-components (command), resolve-trim-plugin (command), generate-diff (agent, terminal). Agent step compares Penpot state vs code for each tracked component, categorizes mismatches (code-only, design-only, style-divergence, layout-difference), suggests pull/push/manual-review. Per FR-004, FR-006, FR-007, FR-017, FR-018, FR-019.
+- [X] T011 [US3] Create trim-diff wheel workflow at `plugin-trim/workflows/trim-diff.json` with 5 steps: read-config (command), read-mappings (command), scan-components (command), resolve-trim-plugin (command), generate-diff (agent, terminal). Agent step compares Penpot state vs code for each tracked component, categorizes mismatches (code-only, design-only, style-divergence, layout-difference), suggests pull/push/manual-review. Per FR-004, FR-006, FR-007, FR-017, FR-018, FR-019.
 
 ### Skill
 
-- [ ] T012 [US3] Create trim-diff skill at `plugin-trim/skills/trim-diff/SKILL.md` — accepts optional component name as argument, delegates to `/wheel-run trim:trim-diff`, displays drift report. Per FR-017.
+- [X] T012 [US3] Create trim-diff skill at `plugin-trim/skills/trim-diff/SKILL.md` — accepts optional component name as argument, delegates to `/wheel-run trim:trim-diff`, displays drift report. Per FR-017.
 
 **Checkpoint**: `/trim-diff` compares Penpot and code, produces a categorized drift report with suggestions.
 
@@ -103,11 +103,11 @@
 
 ### Workflow (sync mode only)
 
-- [ ] T013 [US4] Create trim-library-sync wheel workflow at `plugin-trim/workflows/trim-library-sync.json` with 7 steps: read-config (command), read-mappings (command), detect-framework (command), check-git-timestamps (command), resolve-trim-plugin (command), sync-components (agent), update-mappings (command). Check-git-timestamps gets last git modification for each tracked code path. Agent determines sync direction per component and syncs via Penpot MCP. Per FR-004, FR-006, FR-007, FR-021.
+- [X] T013 [US4] Create trim-library-sync wheel workflow at `plugin-trim/workflows/trim-library-sync.json` with 7 steps: read-config (command), read-mappings (command), detect-framework (command), check-git-timestamps (command), resolve-trim-plugin (command), sync-components (agent), update-mappings (command). Check-git-timestamps gets last git modification for each tracked code path. Agent determines sync direction per component and syncs via Penpot MCP. Per FR-004, FR-006, FR-007, FR-021.
 
 ### Skill
 
-- [ ] T014 [US4] Create trim-library skill at `plugin-trim/skills/trim-library/SKILL.md` — list mode (no args): reads `.trim-components.json` inline, displays table with component name, code path, Penpot name, sync status, last synced. Sync mode (`sync` arg): delegates to `/wheel-run trim:trim-library-sync`. Per FR-020, FR-021.
+- [X] T014 [US4] Create trim-library skill at `plugin-trim/skills/trim-library/SKILL.md` — list mode (no args): reads `.trim-components.json` inline, displays table with component name, code path, Penpot name, sync status, last synced. Sync mode (`sync` arg): delegates to `/wheel-run trim:trim-library-sync`. Per FR-020, FR-021.
 
 **Checkpoint**: `/trim-library` lists component status; `/trim-library sync` auto-syncs drifted components.
 
@@ -121,11 +121,11 @@
 
 ### Workflow
 
-- [ ] T015 [US5] Create trim-design wheel workflow at `plugin-trim/workflows/trim-design.json` with 7 steps: read-config (command), read-mappings (command), detect-framework (command), read-product-context (command), resolve-trim-plugin (command), generate-design (agent), update-mappings (command). Read-product-context gathers PRDs, conventions, existing component names. Agent creates Penpot design via MCP reusing existing library components. Per FR-004, FR-006, FR-007, FR-022, FR-023, FR-024.
+- [X] T015 [US5] Create trim-design wheel workflow at `plugin-trim/workflows/trim-design.json` with 7 steps: read-config (command), read-mappings (command), detect-framework (command), read-product-context (command), resolve-trim-plugin (command), generate-design (agent), update-mappings (command). Read-product-context gathers PRDs, conventions, existing component names. Agent creates Penpot design via MCP reusing existing library components. Per FR-004, FR-006, FR-007, FR-022, FR-023, FR-024.
 
 ### Skill
 
-- [ ] T016 [US5] Create trim-design skill at `plugin-trim/skills/trim-design/SKILL.md` — accepts description or PRD path as argument, delegates to `/wheel-run trim:trim-design`, reports created design and new mappings. Per FR-022.
+- [X] T016 [US5] Create trim-design skill at `plugin-trim/skills/trim-design/SKILL.md` — accepts description or PRD path as argument, delegates to `/wheel-run trim:trim-design`, reports created design and new mappings. Per FR-022.
 
 **Checkpoint**: `/trim-design` generates a Penpot design informed by product context and existing components.
 
@@ -135,9 +135,9 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T017 [P] Verify all 6 skills have correct frontmatter (name, description) matching contracts/interfaces.md
-- [ ] T018 [P] Verify all 5 workflows have correct structure (name, version, steps) and all step outputs write to `.wheel/outputs/`
-- [ ] T019 Verify plugin.json version matches package.json version and both match VERSION file pattern
+- [X] T017 [P] Verify all 6 skills have correct frontmatter (name, description) matching contracts/interfaces.md
+- [X] T018 [P] Verify all 5 workflows have correct structure (name, version, steps) and all step outputs write to `.wheel/outputs/`
+- [X] T019 Verify plugin.json version matches package.json version and both match VERSION file pattern
 
 **Checkpoint**: All skills discoverable, all workflows valid, manifests consistent.
 

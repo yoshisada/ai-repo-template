@@ -1,0 +1,50 @@
+{
+  "name": "trim-design",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "read-config",
+      "type": "command",
+      "command": "if [ ! -f .trim-config ]; then echo 'ERROR: .trim-config not found — run /trim-config first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim-config",
+      "output": ".wheel/outputs/trim-read-config.txt"
+    },
+    {
+      "id": "read-mappings",
+      "type": "command",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
+      "output": ".wheel/outputs/trim-read-mappings.txt"
+    },
+    {
+      "id": "detect-framework",
+      "type": "command",
+      "command": "echo \"## Framework Detection\" && FRAMEWORK=\"html\"; CSS_APPROACH=\"plain-css\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; if echo \"$DEPS\" | grep -q 'tailwindcss'; then CSS_APPROACH=\"tailwind\"; elif echo \"$DEPS\" | grep -q 'styled-components'; then CSS_APPROACH=\"styled-components\"; elif echo \"$DEPS\" | grep -q 'css-modules'; then CSS_APPROACH=\"css-modules\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\" && echo \"css_approach=$CSS_APPROACH\"",
+      "output": ".wheel/outputs/trim-detect-framework.txt"
+    },
+    {
+      "id": "read-product-context",
+      "type": "command",
+      "command": "echo \"## Product Context\" && if [ -f docs/PRD.md ]; then echo \"--- PRD ---\" && head -100 docs/PRD.md; fi && for prd in docs/features/*/PRD.md; do [ -f \"$prd\" ] || break; echo \"--- $(basename $(dirname $prd)) ---\" && head -50 \"$prd\"; done && echo \"--- Conventions ---\" && if [ -f .trim-config ]; then cat .trim-config; fi && echo \"--- Existing Components ---\" && COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \"$COMP_FILE\" ]; then jq -r '.[].component_name' \"$COMP_FILE\" 2>/dev/null; else echo '(none)'; fi",
+      "output": ".wheel/outputs/trim-product-context.txt"
+    },
+    {
+      "id": "resolve-trim-plugin",
+      "type": "command",
+      "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
+      "output": ".wheel/outputs/trim-resolve-plugin.txt"
+    },
+    {
+      "id": "generate-design",
+      "type": "agent",
+      "instruction": "Generate an initial Penpot design from product context. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_project_id and penpot_file_id.\n2. Read the framework detection output to understand the project's tech stack.\n3. Read the product context output — this contains PRD content, existing component names, and project conventions.\n4. Read the existing component mappings from context.\n5. Plan the design:\n   - Analyze the PRD requirements to determine what pages/screens are needed.\n   - Identify which existing library components can be reused (from the mappings and component names list).\n   - Determine visual conventions from existing code/components (colors, typography, spacing patterns).\n6. Create the Penpot design using MCP tools:\n   - Create a new page or frame in the Penpot file for the design.\n   - Build the layout using structured Penpot elements (frames, rectangles, text, etc.).\n   - REUSE existing Penpot components from the library where appropriate (reference by penpot_component_id from mappings).\n   - Apply consistent visual conventions: colors, typography, spacing that match the project's existing style.\n   - Organize layers and components with clear naming.\n7. Build an updated component mappings JSON array:\n   - Keep all existing mappings unchanged.\n   - Add new entries for any newly created Penpot components with: code_path (empty string for design-generated), component_name, penpot_component_id, penpot_component_name, last_synced (ISO 8601 now), sync_direction: \"initial\"\n8. Include the updated mappings JSON in your output inside a ```json code block.\n9. Write a summary of what was created:\n   - Page/frame name\n   - Components created vs reused\n   - Visual conventions applied\n   - Suggested next step: run /trim-pull to generate code from the new design\n\nWrite the full summary and updated mappings to your output.",
+      "context_from": ["read-config", "detect-framework", "read-mappings", "read-product-context", "resolve-trim-plugin"],
+      "output": ".wheel/outputs/trim-design-result.md"
+    },
+    {
+      "id": "update-mappings",
+      "type": "command",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \".wheel/outputs/trim-design-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-design-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in design result\"; fi; else echo \"No design result to process\"; fi",
+      "output": ".wheel/outputs/trim-update-mappings-design.txt",
+      "terminal": true
+    }
+  ]
+}
