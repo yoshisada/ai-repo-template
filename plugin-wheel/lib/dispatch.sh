@@ -1366,12 +1366,10 @@ dispatch_team_wait() {
         local teammates_json
         teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
 
-        local total completed failed pending_count running_count
+        local total completed failed
         total=$(printf '%s\n' "$teammates_json" | jq 'length')
         completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
         failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
-        pending_count=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "pending")] | length')
-        running_count=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "running")] | length')
 
         local done_count=$((completed + failed))
 
@@ -1386,8 +1384,8 @@ dispatch_team_wait() {
           return $?
         fi
 
-        # Not all done — approve so the lead goes idle and waits for TeammateIdle events.
-        # TeammateIdle hook handles completion detection and auto-advances when all done.
+        # Not all done — approve so the lead goes idle and waits.
+        # Lead wakes up when teammates send messages back.
         jq -n '{"decision": "approve"}'
       else
         jq -n '{"decision": "approve"}'
@@ -1465,6 +1463,46 @@ dispatch_team_wait() {
         fi
       fi
       jq -n '{"hookEventName": "PostToolUse"}'
+      ;;
+    subagent_stop)
+      # A teammate agent stopped — mark it completed, check if all done
+      local stopped_name
+      stopped_name=$(printf '%s\n' "$hook_input_json" | jq -r '.name // .teammate_name // empty')
+      if [[ -z "$stopped_name" ]]; then
+        stopped_name=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_id // empty')
+        # Try to match agent_id to a teammate name
+        if [[ -n "$stopped_name" ]]; then
+          local match
+          match=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" --arg aid "$stopped_name" \
+            '.teams[$tid].teammates // {} | to_entries[] | select(.value.agent_id == $aid) | .key' | head -1)
+          [[ -n "$match" ]] && stopped_name="$match"
+        fi
+      fi
+
+      if [[ -n "$stopped_name" ]]; then
+        local tm_status
+        tm_status=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" --arg n "$stopped_name" \
+          '.teams[$tid].teammates[$n].status // empty')
+        if [[ -n "$tm_status" && "$tm_status" != "completed" && "$tm_status" != "failed" ]]; then
+          state_update_teammate_status "$state_file" "$team_ref" "$stopped_name" "completed"
+        fi
+      fi
+
+      # Check if all teammates are now done
+      state=$(state_read "$state_file") || return 1
+      local teammates_json
+      teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+      local total completed failed done_count
+      total=$(printf '%s\n' "$teammates_json" | jq 'length')
+      completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+      failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+      done_count=$((completed + failed))
+
+      if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
+        _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+        return $?
+      fi
+      jq -n '{"decision": "approve"}'
       ;;
     teammate_idle)
       # Teammate went idle — don't stop them here. Their sub-workflow Stop hook
