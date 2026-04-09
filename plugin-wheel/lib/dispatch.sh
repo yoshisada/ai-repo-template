@@ -1403,6 +1403,33 @@ dispatch_team_wait() {
       ;;
     post_tool_use)
       if [[ "$step_status" == "working" ]]; then
+        local tool_name
+        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+
+        # Capture agent_id from Agent tool calls — bridges the registration gap
+        if [[ "$tool_name" == "Agent" ]]; then
+          local spawned_name spawned_aid
+          spawned_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.name // empty')
+          spawned_aid=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.agent_id // empty')
+          if [[ -n "$spawned_name" && -n "$spawned_aid" ]]; then
+            # Match spawned agent name to a registered teammate and record its agent_id
+            local cur_state
+            cur_state=$(state_read "$state_file") || true
+            local has_teammate
+            has_teammate=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$spawned_name" \
+              '.teams[$tid].teammates[$n] // empty')
+            if [[ -n "$has_teammate" ]]; then
+              local now
+              now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+              local updated
+              updated=$(printf '%s\n' "$cur_state" | jq \
+                --arg tid "$team_ref" --arg n "$spawned_name" --arg aid "$spawned_aid" --arg now "$now" \
+                '.teams[$tid].teammates[$n].agent_id = $aid | .teams[$tid].teammates[$n].status = "running" | .teams[$tid].teammates[$n].started_at = $now | .updated_at = $now')
+              state_write "$state_file" "$updated"
+            fi
+          fi
+        fi
+
         # Auto-detect teammate completion on every PostToolUse
         _team_wait_auto_detect "$state_file" "$team_ref" >/dev/null 2>&1
         # Re-read and check
@@ -1449,58 +1476,30 @@ _team_wait_auto_detect() {
 
   [[ -z "$names" ]] && return
 
-  local updated=false
   while IFS= read -r name; do
     [[ -z "$name" ]] && continue
 
-    local agent_id output_dir
+    local agent_id
     agent_id=$(printf '%s\n' "$teammates_json" | jq -r --arg n "$name" '.[$n].agent_id // empty')
-    output_dir=$(printf '%s\n' "$teammates_json" | jq -r --arg n "$name" '.[$n].output_dir // empty')
 
-    # Detection method 1: Check if sub-workflow state file is gone
-    # (completed workflows archive their state files to history/)
+    # Need agent_id to detect — captured from Agent PostToolUse in team-wait handler
+    [[ -z "$agent_id" ]] && continue
+
+    # Check if teammate's sub-workflow state file still exists
     local has_active_state=false
-    if [[ -n "$agent_id" ]]; then
-      for sf in "$(dirname "$state_file")"/state_*.json; do
-        [[ -f "$sf" ]] || continue
-        local sf_aid
-        sf_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
-        if [[ "$sf_aid" == "$agent_id" ]]; then
-          has_active_state=true
-          break
-        fi
-      done
-    fi
-
-    # Detection method 2: Check if output files exist in output_dir
-    local has_output=false
-    if [[ -n "$output_dir" && -d "$output_dir" ]]; then
-      # Look for any non-context/assignment files (actual output)
-      local output_files
-      output_files=$(find "$output_dir" -type f -not -name 'context.json' -not -name 'assignment.json' 2>/dev/null | head -1)
-      if [[ -n "$output_files" ]]; then
-        has_output=true
-      fi
-    fi
-
-    # Detection method 3: Check history for completed sub-workflow
-    local has_history=false
-    for hf in "$(dirname "$state_file")"/history/success/*.json "$(dirname "$state_file")"/history/stopped/*.json; do
-      [[ -f "$hf" ]] || continue
-      if [[ -n "$agent_id" ]]; then
-        local hf_aid
-        hf_aid=$(jq -r '.owner_agent_id // empty' "$hf" 2>/dev/null) || continue
-        if [[ "$hf_aid" == "$agent_id" ]]; then
-          has_history=true
-          break
-        fi
+    for sf in "$(dirname "$state_file")"/state_*.json; do
+      [[ -f "$sf" ]] || continue
+      local sf_aid
+      sf_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
+      if [[ "$sf_aid" == "$agent_id" ]]; then
+        has_active_state=true
+        break
       fi
     done
 
-    # If no active state file AND (has output OR has history), mark completed
-    if [[ "$has_active_state" == false && ("$has_output" == true || "$has_history" == true) ]]; then
+    # No active state file = sub-workflow completed (archived to history/)
+    if [[ "$has_active_state" == false ]]; then
       state_update_teammate_status "$state_file" "$team_ref" "$name" "completed"
-      updated=true
     fi
   done <<< "$names"
 }
