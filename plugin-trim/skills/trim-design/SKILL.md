@@ -60,6 +60,7 @@ Design generated.
   Visual Conventions Applied:
     - {colors, typography, spacing patterns detected and used}
 
+  Components Page: {created | updated} with {N} component groups
   Updated: .trim/components.json
 
 Next: Open Penpot to review and refine the generated design,

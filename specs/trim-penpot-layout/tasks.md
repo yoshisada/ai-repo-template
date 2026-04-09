@@ -71,10 +71,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] Add Components page bento grid rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 3: append COMPONENTS PAGE RULES block to step id="push-to-penpot" instruction)
-- [ ] T010 [P] [US3] Add Components page bento grid rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 3: append COMPONENTS PAGE RULES block to step id="generate-design" instruction)
-- [ ] T011 [US3] Update trim-push skill report in plugin-trim/skills/trim-push/SKILL.md (Contract 7: add Components Page line to report template)
-- [ ] T012 [P] [US3] Update trim-design skill report in plugin-trim/skills/trim-design/SKILL.md (Contract 7: add Components Page line to report template)
+- [X] T009 [US3] Add Components page bento grid rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 3: append COMPONENTS PAGE RULES block to step id="push-to-penpot" instruction)
+- [X] T010 [P] [US3] Add Components page bento grid rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 3: append COMPONENTS PAGE RULES block to step id="generate-design" instruction)
+- [X] T011 [US3] Update trim-push skill report in plugin-trim/skills/trim-push/SKILL.md (Contract 7: add Components Page line to report template)
+- [X] T012 [P] [US3] Update trim-design skill report in plugin-trim/skills/trim-design/SKILL.md (Contract 7: add Components Page line to report template)
 
 **Checkpoint**: Components page with bento grid is created by push and design commands. User Story 3 is complete.
 

@@ -63,6 +63,7 @@ Push complete.
     - {N} updated
     - {N} newly created
 
+  Components Page: {created | updated} with {N} component groups
   Updated: .trim/components.json
 
 Next: Open Penpot to view and edit the pushed components,
