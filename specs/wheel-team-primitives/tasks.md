@@ -110,7 +110,7 @@
 
 - [ ] T024 [P] Validate all team operations are idempotent — run team-create twice with same name (no error), run team-delete on already-deleted team (no error), run team-wait when no teammates spawned (immediate completion with 0/0 summary)
 - [ ] T025 [P] Verify existing workflow types unchanged — run a workflow with command, agent, workflow, and branch steps to confirm no regressions from the new case branches
-- [ ] T026 Add team step types to engine_handle_hook stop handler in `plugin-wheel/lib/engine.sh` — ensure stop hook routes team-create, teammate, team-wait, team-delete to dispatch_step (same pattern as agent steps)
+- [X] T026 Add team step types to engine_handle_hook stop handler in `plugin-wheel/lib/engine.sh` — ensure stop hook routes team-create, teammate, team-wait, team-delete to dispatch_step (same pattern as agent steps)
 
 ---
 

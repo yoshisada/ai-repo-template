@@ -28,6 +28,15 @@ context_build() {
     context_parts="${context_parts}\n\n## Context from Previous Steps\n"
     while IFS= read -r dep_id; do
       [[ -z "$dep_id" ]] && continue
+      # FR-031: Handle synthetic step IDs _context and _assignment
+      if [[ "$dep_id" == "_context" || "$dep_id" == "_assignment" ]]; then
+        local synthetic_output
+        synthetic_output=$(context_resolve_synthetic "$dep_id" "$state_json")
+        if [[ -n "$synthetic_output" ]]; then
+          context_parts="${context_parts}\n\n### Output from step: ${dep_id}\n${synthetic_output}"
+        fi
+        continue
+      fi
       local dep_index
       dep_index=$(printf '%s\n' "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
       if [[ "$dep_index" != "null" && -n "$dep_index" ]]; then
@@ -103,4 +112,110 @@ context_subagent_start() {
   else
     printf '%s\n' "$dep_context"
   fi
+}
+
+# FR-029/FR-030: Write context.json and assignment.json for a teammate before spawning
+# Params:
+#   $1 = output_dir (string) — teammate output directory
+#   $2 = state_json (string) — parent workflow state
+#   $3 = workflow_json (string) — parent workflow definition
+#   $4 = context_from_json (string) — JSON array of step IDs (may be "[]")
+#   $5 = assign_json (string) — assignment payload JSON (may be "{}")
+# Output: none (writes files to output_dir)
+# Exit: 0 on success, 1 on failure
+context_write_teammate_files() {
+  local output_dir="$1"
+  local state_json="$2"
+  local workflow_json="$3"
+  local context_from_json="$4"
+  local assign_json="${5:-"{}"}"
+
+  mkdir -p "$output_dir"
+
+  # FR-029: Write context.json — combined outputs from context_from steps
+  local context_data='{}'
+  local dep_ids
+  dep_ids=$(printf '%s\n' "$context_from_json" | jq -r '.[]' 2>/dev/null)
+  if [[ -n "$dep_ids" ]]; then
+    while IFS= read -r dep_id; do
+      [[ -z "$dep_id" ]] && continue
+      local dep_index
+      dep_index=$(printf '%s\n' "$workflow_json" | jq --arg id "$dep_id" '[.steps[].id] | index($id)')
+      if [[ "$dep_index" != "null" && -n "$dep_index" ]]; then
+        local dep_output
+        dep_output=$(printf '%s\n' "$state_json" | jq -r --argjson idx "$dep_index" '.steps[$idx].output // empty')
+        if [[ -n "$dep_output" ]]; then
+          # If the output is a file path and the file exists, read the contents
+          if [[ -f "$dep_output" ]]; then
+            local file_contents
+            file_contents=$(cat "$dep_output" 2>/dev/null || echo "")
+            context_data=$(printf '%s\n' "$context_data" | jq --arg id "$dep_id" --arg val "$file_contents" '.[$id] = $val')
+          else
+            context_data=$(printf '%s\n' "$context_data" | jq --arg id "$dep_id" --arg val "$dep_output" '.[$id] = $val')
+          fi
+        fi
+      fi
+    done <<< "$dep_ids"
+  fi
+  printf '%s\n' "$context_data" > "${output_dir}/context.json"
+
+  # FR-030: Write assignment.json
+  printf '%s\n' "$assign_json" > "${output_dir}/assignment.json"
+}
+
+# FR-031: Resolve synthetic step IDs _context and _assignment for sub-workflows
+# Called by context_build() when it encounters these special IDs in context_from.
+# Reads context.json or assignment.json from the agent's output directory.
+# The output directory is determined from the state file's parent_workflow and
+# teams data, or from the agent_id-based output dir convention.
+#
+# Params:
+#   $1 = synthetic_id (string) — "_context" or "_assignment"
+#   $2 = state_json (string) — sub-workflow state JSON
+# Output (stdout): file contents of the referenced file
+# Exit: 0 if found, 1 if not found
+context_resolve_synthetic() {
+  local synthetic_id="$1"
+  local state_json="$2"
+
+  local filename
+  case "$synthetic_id" in
+    _context)    filename="context.json" ;;
+    _assignment) filename="assignment.json" ;;
+    *)           return 1 ;;
+  esac
+
+  # Determine the agent's output directory from the state file
+  # The agent_id in the state file corresponds to the teammate name
+  local agent_id
+  agent_id=$(printf '%s\n' "$state_json" | jq -r '.owner_agent_id // empty')
+  if [[ -z "$agent_id" ]]; then
+    return 1
+  fi
+
+  # Look for the file in the parent workflow's team output directory
+  local parent_state_path
+  parent_state_path=$(printf '%s\n' "$state_json" | jq -r '.parent_workflow // empty')
+  if [[ -n "$parent_state_path" && -f "$parent_state_path" ]]; then
+    local parent_state
+    parent_state=$(cat "$parent_state_path" 2>/dev/null) || return 1
+    # Search all teams' teammates for this agent_id
+    local output_dir
+    output_dir=$(printf '%s\n' "$parent_state" | jq -r --arg aid "$agent_id" \
+      '[.teams // {} | to_entries[] | .value.teammates // {} | to_entries[] | select(.value.agent_id == $aid) | .value.output_dir] | first // empty')
+    if [[ -n "$output_dir" && -f "${output_dir}/${filename}" ]]; then
+      cat "${output_dir}/${filename}"
+      return 0
+    fi
+  fi
+
+  # Fallback: search .wheel/outputs/ for a directory matching agent_id
+  local search_file
+  search_file=$(find .wheel/outputs/ -path "*/${agent_id}/${filename}" 2>/dev/null | head -1)
+  if [[ -n "$search_file" && -f "$search_file" ]]; then
+    cat "$search_file"
+    return 0
+  fi
+
+  return 1
 }

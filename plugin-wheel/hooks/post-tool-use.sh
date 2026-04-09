@@ -152,6 +152,36 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
     fi
   done
 
+  # FR-028: Cascade stop to team agent sub-workflows
+  # Check stopped state files (in history/stopped/) for teams with running teammates.
+  # Their sub-workflow state files need to be stopped too.
+  for sf in .wheel/history/stopped/*.json; do
+    [[ -f "$sf" ]] || continue
+    TEAMS_JSON=$(jq -r '.teams // empty' "$sf" 2>/dev/null) || continue
+    [[ -z "$TEAMS_JSON" || "$TEAMS_JSON" == "null" ]] && continue
+    # Extract all teammate agent_ids from all teams
+    TEAMMATE_AIDS=$(printf '%s\n' "$TEAMS_JSON" | jq -r '
+      [to_entries[] | .value.teammates // {} | to_entries[] |
+       select(.value.status == "pending" or .value.status == "running") |
+       .value.agent_id] | .[]' 2>/dev/null) || continue
+    [[ -z "$TEAMMATE_AIDS" ]] && continue
+    # Stop any remaining state files owned by these teammate agents
+    while IFS= read -r TAID; do
+      [[ -z "$TAID" ]] && continue
+      for tsf in .wheel/state_*.json; do
+        [[ -f "$tsf" ]] || continue
+        TSF_AID=$(jq -r '.owner_agent_id // empty' "$tsf" 2>/dev/null) || continue
+        if [[ "$TSF_AID" == "$TAID" ]]; then
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+          TFNAME=$(basename "$tsf" .json)
+          cp "$tsf" ".wheel/history/stopped/${TFNAME}-${TIMESTAMP}.json"
+          rm -f "$tsf"
+          STOPPED=$((STOPPED + 1))
+        fi
+      done
+    done <<< "$TEAMMATE_AIDS"
+  done
+
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
