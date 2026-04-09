@@ -1,0 +1,44 @@
+{
+  "name": "trim-pull",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "read-config",
+      "type": "command",
+      "command": "if [ ! -f .trim-config ]; then echo 'ERROR: .trim-config not found — run /trim-config first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim-config",
+      "output": ".wheel/outputs/trim-read-config.txt"
+    },
+    {
+      "id": "detect-framework",
+      "type": "command",
+      "command": "echo \"## Framework Detection\" && FRAMEWORK=\"html\"; CSS_APPROACH=\"plain-css\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; if echo \"$DEPS\" | grep -q 'tailwindcss'; then CSS_APPROACH=\"tailwind\"; elif echo \"$DEPS\" | grep -q 'styled-components'; then CSS_APPROACH=\"styled-components\"; elif echo \"$DEPS\" | grep -q 'css-modules'; then CSS_APPROACH=\"css-modules\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\" && echo \"css_approach=$CSS_APPROACH\"",
+      "output": ".wheel/outputs/trim-detect-framework.txt"
+    },
+    {
+      "id": "read-mappings",
+      "type": "command",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
+      "output": ".wheel/outputs/trim-read-mappings.txt"
+    },
+    {
+      "id": "resolve-trim-plugin",
+      "type": "command",
+      "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
+      "output": ".wheel/outputs/trim-resolve-plugin.txt"
+    },
+    {
+      "id": "pull-design",
+      "type": "agent",
+      "instruction": "Pull a Penpot design into framework-appropriate code. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_project_id, penpot_file_id, and default_page.\n2. Read the framework detection output to know the target framework (react, vue, svelte, html) and CSS approach (tailwind, styled-components, css-modules, plain-css).\n3. Read the current component mappings from context.\n4. Use Penpot MCP tools to read the design:\n   - Read the component tree, layout properties (flex/grid), styles (colors, typography, spacing), and component hierarchy from the Penpot file.\n   - If a specific page or component was requested, focus on that. Otherwise use the default_page from config.\n5. Generate framework-appropriate code:\n   - For React: JSX components with the detected CSS approach\n   - For Vue: Single-file components (.vue)\n   - For Svelte: .svelte components\n   - For HTML: Plain HTML with CSS\n   - Match the Penpot design's layout, spacing, colors, typography, and component hierarchy.\n6. Reuse existing components: Check the component mappings. If a Penpot component matches an existing mapping, import/reference the existing code component instead of regenerating it.\n7. Write the generated code files to the appropriate project directories.\n8. Build an updated component mappings JSON array that includes:\n   - All existing mappings (unchanged)\n   - New entries for any newly created components with: code_path, component_name, penpot_component_id, penpot_component_name, last_synced (ISO 8601 now), sync_direction: \"pull\"\n9. Include the updated mappings JSON in your output inside a ```json code block so the next step can extract it.\n\nWrite a summary of generated files and mapping updates to your output.",
+      "context_from": ["read-config", "detect-framework", "read-mappings", "resolve-trim-plugin"],
+      "output": ".wheel/outputs/trim-pull-result.md"
+    },
+    {
+      "id": "update-mappings",
+      "type": "command",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim-config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim-components.json}; if [ -f \".wheel/outputs/trim-pull-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-pull-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in pull result\"; fi; else echo \"No pull result to process\"; fi",
+      "output": ".wheel/outputs/trim-update-mappings.txt",
+      "terminal": true
+    }
+  ]
+}
