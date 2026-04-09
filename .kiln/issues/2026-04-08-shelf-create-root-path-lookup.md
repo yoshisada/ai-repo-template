@@ -5,7 +5,8 @@ severity: medium
 category: skills
 source: manual
 github_issue: null
-status: open
+status: prd-created
+prd: docs/features/2026-04-08-shelf-skills-polish/PRD.md
 date: 2026-04-08
 ---
 

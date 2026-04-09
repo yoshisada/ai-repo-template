@@ -9,10 +9,22 @@
 2026-04-04-add-todo-skill.md: Add /todo skill to kiln [prd-created]
 2026-04-04-wheel-branch-subroutine-support.md: Wheel engine needs step-level `next` field for branch subroutines [prd-created]
 2026-04-04-wheel-cleanup-in-hook.md: Wheel: Move workflow cleanup into hook — detect terminal step IDs [prd-created]
-2026-04-04-wheel-list-skill.md: Add wheel-list skill to view all available workflows [open]
+2026-04-04-wheel-list-skill.md: Add wheel-list skill to view all available workflows [prd-created]
 2026-04-04-wheel-skill-activation.md: Wheel workflows should activate via skill, not auto-fire on every session [prd-created]
-2026-04-07-qa-engineer-test-dedup-efficiency.md: QA engineer should audit tests for overlap and efficiency [open]
-2026-04-07-test-issue-1.md: test-issue-1 [open]
+2026-04-07-clay-idea-pmf-classification.md: Clay idea skill should classify ideas by market intent [open]
+2026-04-07-clay-nested-product-folders.md: Support nested product folders in clay (sub-ideas under parent products) [open]
+2026-04-07-qa-engineer-test-dedup-efficiency.md: QA engineer should audit tests for overlap and efficiency [prd-created]
+2026-04-08-init-no-src-tests-dirs.md: Init script should not create src/ and tests/ directories [open]
+2026-04-08-issue-backlinks-to-repos-files.md: Backlog issues should backlink to GitHub repos or file locations [open]
+2026-04-08-next-high-level-commands-only.md: /next should only recommend high-level commands, not low-level pipeline steps [open]
+2026-04-08-shelf-create-holistic-progress.md: shelf-create should assess project progress holistically [open]
+2026-04-08-shelf-create-root-path-lookup.md: shelf-create should start at vault root when finding project directory [open]
+2026-04-08-shelf-create-template-compliance.md: shelf-create not following Obsidian template; add repair function [open]
+2026-04-08-shelf-full-sync-summary-step.md: Add summary step to shelf-full-sync workflow [open]
+2026-04-08-test4.md: test4 [open]
+2026-04-08-unify-project-status-labels.md: Unify project status labels across shelf skills [open]
+2026-04-08-wheel-init-failure-auto-setup.md: Wheel activation should detect missing setup and offer auto-install [open]
+2026-04-08-workflow-in-plugin-package.md: report-issue-and-sync workflow must ship with the kiln plugin [open]
 ## Completed
-26
+27
  completed issues

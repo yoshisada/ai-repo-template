@@ -1,9 +1,11 @@
 ## Issue Created
 
-- **Filename**: 2026-04-07-test-issue-1.md
+- **File**: `.kiln/issues/2026-04-08-wheel-init-failure-auto-setup.md`
+- **Title**: Wheel activation should detect missing setup and offer auto-install
 - **Type**: improvement
-- **Severity**: low
+- **Severity**: medium
 - **Category**: workflow
 - **Source**: manual
 - **Status**: open
-- **Duplicates**: none found
+
+No duplicate found.

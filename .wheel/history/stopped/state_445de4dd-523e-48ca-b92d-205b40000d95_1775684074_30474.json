@@ -1,0 +1,63 @@
+{
+  "workflow_name": "report-issue-and-sync",
+  "workflow_version": "2.0.0",
+  "workflow_file": "workflows/report-issue-and-sync.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "445de4dd-523e-48ca-b92d-205b40000d95",
+  "owner_agent_id": "",
+  "started_at": "2026-04-08T21:34:34.000Z",
+  "updated_at": "2026-04-08T21:35:00.000Z",
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-08T21:34:34.000Z",
+      "completed_at": "2026-04-08T21:34:34.000Z",
+      "output": "## Existing Backlog Issues\n.kiln/issues/2026-04-02-lobster-workflow-engine-plugin.md\n.kiln/issues/2026-04-02-ux-evaluator-nested-screenshot-dir.md\n.kiln/issues/2026-04-03-shelf-note-templates.md\n.kiln/issues/2026-04-03-shelf-notes-backlinks-tags.md\n.kiln/issues/2026-04-03-shelf-sync-close-archived-issues.md\n.kiln/issues/2026-04-03-shelf-sync-docs.md\n.kiln/issues/2026-04-03-shelf-sync-update-tech-tags.md\n.kiln/issues/2026-04-04-add-todo-skill.md\n.kiln/issues/2026-04-04-wheel-branch-subroutine-support.md\n.kiln/issues/2026-04-04-wheel-cleanup-in-hook.md\n.kiln/issues/2026-04-04-wheel-list-skill.md\n.kiln/issues/2026-04-04-wheel-skill-activation.md\n.kiln/issues/2026-04-07-clay-idea-pmf-classification.md\n.kiln/issues/2026-04-07-clay-nested-product-folders.md\n.kiln/issues/2026-04-07-qa-engineer-test-dedup-efficiency.md\n.kiln/issues/2026-04-08-init-no-src-tests-dirs.md\n.kiln/issues/2026-04-08-shelf-create-holistic-progress.md\n.kiln/issues/2026-04-08-shelf-create-root-path-lookup.md\n.kiln/issues/2026-04-08-shelf-create-template-compliance.md\n.kiln/issues/2026-04-08-unify-project-status-labels.md\n.kiln/issues/2026-04-08-workflow-in-plugin-package.md\n---\n## Completed Issues\n.kiln/issues/completed/2026-03-31-dot-directory-for-storage.md\n.kiln/issues/completed/2026-03-31-kiln-doctor-manifest.md\n.kiln/issues/completed/2026-03-31-qa-directory-manifest.md\n.kiln/issues/completed/2026-03-31-qa-version-verification.md\n.kiln/issues/completed/2026-03-31-rename-to-kiln.md\n.kiln/issues/completed/2026-04-01-archive-completed-issues.md\n.kiln/issues/completed/2026-04-01-auto-complete-prd-created-issues.md\n.kiln/issues/completed/2026-04-01-better-issue-template.md\n.kiln/issues/completed/2026-04-01-branch-directory-naming-inconsistency.md\n.kiln/issues/completed/2026-04-01-commit-noise-hooks-task-marking.md\n.kiln/issues/completed/2026-04-01-hook-gate-enforcement-broken.md\n.kiln/issues/completed/2026-04-01-kiln-cleanup-qa-command.md\n.kiln/issues/completed/2026-04-01-kiln-doctor-cleanup.md\n.kiln/issues/completed/2026-04-01-kiln-doctor-version-sync.md\n.kiln/issues/completed/2026-04-01-next-suggest-runnable-command.md\n.kiln/issues/completed/2026-04-01-no-validation-gate-non-compiled.md\n.kiln/issues/completed/2026-04-01-pipeline-health-checks-phase-gating.md\n.kiln/issues/completed/2026-04-01-qa-agent-build-after-message.md\n.kiln/issues/completed/2026-04-01-qa-agent-tests-too-broadly.md\n.kiln/issues/completed/2026-04-01-qa-engineer-performance.md\n.kiln/issues/completed/2026-04-01-retrospective-agent-cant-collect-feedback.md\n.kiln/issues/completed/2026-04-01-roadmap-todo-list.md\n.kiln/issues/completed/2026-04-01-spec-prd-templates-miss-common-requirements.md\n.kiln/issues/completed/2026-04-01-stale-docker-containers-waste-qa.md\n.kiln/issues/completed/2026-04-03-shelf-config-artifact.md\n.kiln/issues/completed/2026-04-04-wheel-session-agent-detection.md\n.kiln/issues/completed/2026-04-07-test-issue-1.md",
+      "command_log": [
+        {
+          "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:34:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-08T21:34:34.000Z",
+      "completed_at": "2026-04-08T21:35:00.000Z",
+      "output": ".wheel/outputs/create-issue-result.md",
+      "command_log": [
+        {
+          "command": "SF=$(find .wheel -maxdepth 1 -name 'state_*.json' -type f 2>/dev/null | head -1) && if [[ -n \"$SF\" ]]; then echo \"Workflow 'report-issue-and-sync' started (3 steps).\" && jq -r '\"Cursor: \\(.cursor) | Step 1 status: \\(.steps[1].status)\"' \"$SF\"; else echo \"No state file.\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:34:39.000Z"
+        },
+        {
+          "command": "cat > .wheel/outputs/create-issue-result.md << 'EOF'\n## Issue Created\n**File**: `.kiln/issues/2026-04-08-test3.md`\n**Type**: improvement | **Severity**: low | **Category**: workflow\nEOF\necho \"Output written\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:34:57.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "full-sync",
+      "type": "workflow",
+      "status": "working",
+      "started_at": "2026-04-08T21:35:00.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

@@ -1,23 +1,26 @@
 Branch: main
 Last 5 commits:
-5da990a perf(workflow): slim shelf-full-sync context by ~80%
-70c83dc fix(wheel): stop re-injecting full context on every turn
-a78fb08 refactor(workflow): reduce report-issue-and-sync from 12 to 3 steps
-dfebc1f fix(wheel): fix two composition bugs found during e2e testing
-b69a72f Merge pull request #60 from yoshisada/build/wheel-workflow-composition-20260407
+b098842 fix: dispatch workflow steps from PostToolUse to create child state files
+c8ddb55 feat: add PreToolUse hook to block direct writes to wheel state files
+6de395c fix: kickstart sets agent step status to pending
+343425b fix: activate.sh hook extraction fails when path is quoted
+2580a20 feat: auto-discover plugin workflows from workflows/ directory
 ---
-Open issues: 32
-Backlog: 14 items
-PRDs: 17
+Open issues: 40
+Backlog: 26 items
+PRDs: 20
 ---
 Task progress:
   001-kiln-polish: 13/13
   analyze-issues: 11/11
+  clay-idea-entrypoint: 14/14
   continuance-agent: 15/15
+  developer-tooling-polish: 16/18
   kiln-rebrand-and-qa: 39/39
   kiln-wheel-polish: 11/11
   pipeline-reliability: 20/20
   pipeline-workflow-polish: 17/19
+  plugin-clay: 14/18
   qa-tooling-templates: 36/38
   shelf-config-artifact: 10/10
   shelf-sync-v2: 17/17
@@ -28,4 +31,4 @@ Task progress:
   wheel-skill-activation: 12/12
   wheel-workflow-composition: 19/19
   wheel: 31/31
-VERSION: 000.000.000.617
+VERSION: 000.000.000.703

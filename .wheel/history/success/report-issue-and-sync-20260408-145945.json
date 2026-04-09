@@ -1,0 +1,99 @@
+{
+  "workflow_name": "report-issue-and-sync",
+  "workflow_version": "2.0.0",
+  "workflow_file": "workflows/report-issue-and-sync.json",
+  "status": "stopped",
+  "cursor": 2,
+  "owner_session_id": "b7cba14a-4893-42d2-9aeb-fc59749fdb0e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-08T21:53:39.000Z",
+  "updated_at": 1775685585.583999,
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-08T21:53:39.000Z",
+      "completed_at": "2026-04-08T21:53:39.000Z",
+      "output": "## Existing Backlog Issues\n.kiln/issues/2026-04-02-lobster-workflow-engine-plugin.md\n.kiln/issues/2026-04-02-ux-evaluator-nested-screenshot-dir.md\n.kiln/issues/2026-04-03-shelf-note-templates.md\n.kiln/issues/2026-04-03-shelf-notes-backlinks-tags.md\n.kiln/issues/2026-04-03-shelf-sync-close-archived-issues.md\n.kiln/issues/2026-04-03-shelf-sync-docs.md\n.kiln/issues/2026-04-03-shelf-sync-update-tech-tags.md\n.kiln/issues/2026-04-04-add-todo-skill.md\n.kiln/issues/2026-04-04-wheel-branch-subroutine-support.md\n.kiln/issues/2026-04-04-wheel-cleanup-in-hook.md\n.kiln/issues/2026-04-04-wheel-list-skill.md\n.kiln/issues/2026-04-04-wheel-skill-activation.md\n.kiln/issues/2026-04-07-clay-idea-pmf-classification.md\n.kiln/issues/2026-04-07-clay-nested-product-folders.md\n.kiln/issues/2026-04-07-qa-engineer-test-dedup-efficiency.md\n.kiln/issues/2026-04-08-init-no-src-tests-dirs.md\n.kiln/issues/2026-04-08-shelf-create-holistic-progress.md\n.kiln/issues/2026-04-08-shelf-create-root-path-lookup.md\n.kiln/issues/2026-04-08-shelf-create-template-compliance.md\n.kiln/issues/2026-04-08-test4.md\n.kiln/issues/2026-04-08-unify-project-status-labels.md\n.kiln/issues/2026-04-08-workflow-in-plugin-package.md\n---\n## Completed Issues\n.kiln/issues/completed/2026-03-31-dot-directory-for-storage.md\n.kiln/issues/completed/2026-03-31-kiln-doctor-manifest.md\n.kiln/issues/completed/2026-03-31-qa-directory-manifest.md\n.kiln/issues/completed/2026-03-31-qa-version-verification.md\n.kiln/issues/completed/2026-03-31-rename-to-kiln.md\n.kiln/issues/completed/2026-04-01-archive-completed-issues.md\n.kiln/issues/completed/2026-04-01-auto-complete-prd-created-issues.md\n.kiln/issues/completed/2026-04-01-better-issue-template.md\n.kiln/issues/completed/2026-04-01-branch-directory-naming-inconsistency.md\n.kiln/issues/completed/2026-04-01-commit-noise-hooks-task-marking.md\n.kiln/issues/completed/2026-04-01-hook-gate-enforcement-broken.md\n.kiln/issues/completed/2026-04-01-kiln-cleanup-qa-command.md\n.kiln/issues/completed/2026-04-01-kiln-doctor-cleanup.md\n.kiln/issues/completed/2026-04-01-kiln-doctor-version-sync.md\n.kiln/issues/completed/2026-04-01-next-suggest-runnable-command.md\n.kiln/issues/completed/2026-04-01-no-validation-gate-non-compiled.md\n.kiln/issues/completed/2026-04-01-pipeline-health-checks-phase-gating.md\n.kiln/issues/completed/2026-04-01-qa-agent-build-after-message.md\n.kiln/issues/completed/2026-04-01-qa-agent-tests-too-broadly.md\n.kiln/issues/completed/2026-04-01-qa-engineer-performance.md\n.kiln/issues/completed/2026-04-01-retrospective-agent-cant-collect-feedback.md\n.kiln/issues/completed/2026-04-01-roadmap-todo-list.md\n.kiln/issues/completed/2026-04-01-spec-prd-templates-miss-common-requirements.md\n.kiln/issues/completed/2026-04-01-stale-docker-containers-waste-qa.md\n.kiln/issues/completed/2026-04-03-shelf-config-artifact.md\n.kiln/issues/completed/2026-04-04-wheel-session-agent-detection.md\n.kiln/issues/completed/2026-04-07-test-issue-1.md",
+      "command_log": [
+        {
+          "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:53:39.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-08T21:53:40.000Z",
+      "completed_at": "2026-04-08T21:54:18.000Z",
+      "output": ".wheel/outputs/create-issue-result.md",
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1 || true) && if [[ -n \"$STATE_FILE\" && -f \"$STATE_FILE\" ]]; then echo \"State file: $(basename $STATE_FILE)\"; jq -r '.workflow_name, .cursor' \"$STATE_FILE\" 2>/dev/null || echo \"Could not parse state file\"; cat \"$STATE_FILE\" | head -5; else echo \"No state file found.\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:53:50.000Z"
+        },
+        {
+          "command": "ls .kiln/issues/*.md 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:53:59.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "full-sync",
+      "type": "workflow",
+      "status": "done",
+      "started_at": null,
+      "completed_at": 1775685585.584005,
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && echo \"$STATE_FILE\" && jq '.cursor' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:54:22.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '.' \"$STATE_FILE\" | head -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:54:26.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '.steps[1].status, .steps[2].status' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:54:31.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '.steps[2]' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:54:39.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1 || true) && if [[ -n \"$STATE_FILE\" && -f \"$STATE_FILE\" ]]; then jq '.workflow_name, .status' \"$STATE_FILE\"; else echo \"No active state file — parent may already be cleaned up.\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:59:23.000Z"
+        },
+        {
+          "command": "STATE_FILES=($(ls .wheel/state_*.json 2>/dev/null)) && if [[ ${#STATE_FILES[@]} -eq 0 ]]; then echo \"No workflows are currently running.\"; exit 0; fi && echo \"Found ${#STATE_FILES[@]} active workflow(s):\" && for sf in \"${STATE_FILES[@]}\"; do NAME=$(jq -r '.workflow_name // \"unknown\"' \"$sf\" 2>/dev/null || echo \"unknown\"); OWNER_SID=$(jq -r '.owner_session_id // \"?\"' \"$sf\" 2>/dev/null || echo \"?\"); OWNER_AID=$(jq -r '.owner_agent_id // \"none\"' \"$sf\" 2>/dev/null || echo \"none\"); echo \"  $(basename $sf): $NAME (owner: session=$OWNER_SID agent=$OWNER_AID)\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:59:30.000Z"
+        },
+        {
+          "command": "STATE_FILES=($(ls .wheel/state_*.json 2>/dev/null 2>&1 || true)) && REMAINING=($(ls .wheel/state_*.json 2>/dev/null 2>&1 || true)) && if [[ \"${REMAINING[0]}\" == *\"no matches\"* ]]; then REMAINING=(); fi && echo \"Stopped workflow(s).\" && if [[ ${#REMAINING[@]} -eq 0 || \"${REMAINING[0]}\" == *\"no matches\"* ]]; then echo \"All workflows stopped. Hooks are now dormant.\"; else echo \"${#REMAINING[@]} workflow(s) still running:\"; for sf in \"${REMAINING[@]}\"; do NAME=$(jq -r '.workflow_name // \"unknown\"' \"$sf\" 2>/dev/null || echo \"unknown\"); echo \"  $(basename $sf): $NAME\"; done; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-08T21:59:39.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
