@@ -5,10 +5,11 @@ severity: low
 category: workflow
 source: manual
 github_issue: null
-status: prd-created
+status: completed
 prd: docs/features/2026-04-08-shelf-skills-polish/PRD.md
 date: 2026-04-08
----
+completed_date: 2026-04-09
+pr: "#73"---
 
 ## Description
 

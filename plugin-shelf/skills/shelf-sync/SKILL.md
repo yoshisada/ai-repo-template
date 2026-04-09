@@ -260,6 +260,16 @@ Sources:
   - Docs: {N} PRDs from docs/features/
 ```
 
+## Status Label Validation (FR-013)
+
+Before setting or displaying a project status, read the canonical status list from `plugin-shelf/status-labels.md`.
+
+- If the status is in the canonical list: use it as-is
+- If the status matches a non-canonical equivalent: normalize to the canonical value and warn the user
+- If the status is unrecognized: warn "Unknown status '{value}' — canonical values are: idea, active, paused, blocked, completed, archived"
+
+When encountering status values during sync (e.g., in dashboard frontmatter or issue notes), normalize them to canonical values before writing.
+
 ## Rules
 
 - **All writes go through MCP** — never write directly to the filesystem for Obsidian content (NFR-001, FR-006)

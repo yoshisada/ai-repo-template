@@ -121,6 +121,16 @@ Print the complete status view:
 {if completed items exist: list as "- [x] item"}
 ```
 
+## Status Label Validation (FR-013)
+
+Before setting or displaying a project status, read the canonical status list from `plugin-shelf/status-labels.md`.
+
+- If the status is in the canonical list: use it as-is
+- If the status matches a non-canonical equivalent: normalize to the canonical value and warn the user
+- If the status is unrecognized: warn "Unknown status '{value}' — canonical values are: idea, active, paused, blocked, completed, archived"
+
+When displaying status, if the stored value is a non-canonical equivalent, show the canonical value with a note: "Status: active (normalized from 'in-progress')"
+
 ## Rules
 
 - **Read-only** — this skill NEVER writes or modifies any files in Obsidian
