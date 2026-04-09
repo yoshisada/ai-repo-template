@@ -1402,37 +1402,35 @@ dispatch_team_wait() {
       fi
       ;;
     post_tool_use)
-      if [[ "$step_status" == "working" ]]; then
-        local tool_name
-        tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
+      # Capture agent_id even when pending — Agent spawns happen before Stop transitions to working
+      local tool_name
+      tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
 
-        # Capture agent_id from Agent tool calls — bridges the registration gap
-        if [[ "$tool_name" == "Agent" ]]; then
-          local spawned_name spawned_aid
-          spawned_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.name // empty')
-          spawned_aid=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.agent_id // empty')
-          if [[ -n "$spawned_name" && -n "$spawned_aid" ]]; then
-            # Match spawned agent name to a registered teammate and record its agent_id
-            local cur_state
-            cur_state=$(state_read "$state_file") || true
-            local has_teammate
-            has_teammate=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$spawned_name" \
-              '.teams[$tid].teammates[$n] // empty')
-            if [[ -n "$has_teammate" ]]; then
-              local now
-              now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
-              local updated
-              updated=$(printf '%s\n' "$cur_state" | jq \
-                --arg tid "$team_ref" --arg n "$spawned_name" --arg aid "$spawned_aid" --arg now "$now" \
-                '.teams[$tid].teammates[$n].agent_id = $aid | .teams[$tid].teammates[$n].status = "running" | .teams[$tid].teammates[$n].started_at = $now | .updated_at = $now')
-              state_write "$state_file" "$updated"
-            fi
+      if [[ "$tool_name" == "Agent" ]]; then
+        local spawned_name spawned_aid
+        spawned_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.name // empty')
+        spawned_aid=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.agent_id // empty')
+        if [[ -n "$spawned_name" && -n "$spawned_aid" ]]; then
+          local cur_state
+          cur_state=$(state_read "$state_file") || true
+          local has_teammate
+          has_teammate=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$spawned_name" \
+            '.teams[$tid].teammates[$n] // empty')
+          if [[ -n "$has_teammate" ]]; then
+            local now
+            now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+            local updated
+            updated=$(printf '%s\n' "$cur_state" | jq \
+              --arg tid "$team_ref" --arg n "$spawned_name" --arg aid "$spawned_aid" --arg now "$now" \
+              '.teams[$tid].teammates[$n].agent_id = $aid | .teams[$tid].teammates[$n].status = "running" | .teams[$tid].teammates[$n].started_at = $now | .updated_at = $now')
+            state_write "$state_file" "$updated"
           fi
         fi
+      fi
 
-        # Auto-detect teammate completion on every PostToolUse
+      # Auto-detect and completion check run in both pending and working states
+      if [[ "$step_status" == "pending" || "$step_status" == "working" ]]; then
         _team_wait_auto_detect "$state_file" "$team_ref" >/dev/null 2>&1
-        # Re-read and check
         state=$(state_read "$state_file") || return 1
         local teammates_json
         teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
