@@ -1,7 +1,7 @@
 {
   "name": "@yoshisada/trim",
   "version": "000.000.000.735",
-  "description": "Bidirectional design-code sync via Penpot MCP. Pull designs into code, push code to Penpot, detect drift, manage component libraries, and generate designs from product context.",
+  "description": "Bidirectional design-code sync via Penpot MCP. Pull designs into code, push code to Penpot, detect drift, manage component libraries, generate designs, edit via natural language, verify visually, redesign, and track user flows.",
   "author": "yoshisada",
   "license": "MIT",
   "homepage": "https://github.com/yoshisada/ai-repo-template",
@@ -14,13 +14,13 @@
     "claude-code-plugin",
     "penpot",
     "mcp",
-    "design-sync",
+    "design-code-sync",
     "code-generation"
   ],
   "files": [
     ".claude-plugin/",
     "skills/",
-    "workflows/",
-    "templates/"
+    "templates/",
+    "workflows/"
   ]
 }
