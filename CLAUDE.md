@@ -256,6 +256,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based — `.trim-config` (key-value), `.trim-components.json` (JSON), `.wheel/outputs/` (step outputs) (build/trim-20260409)
 - Markdown (skill definitions), Bash 5.x (inline shell in skills/workflows), JSON (workflow definitions) + Wheel workflow engine (`plugin-wheel/`), Penpot MCP tools, Playwright (headless browser), /chrome MCP (optional fallback) (build/trim-design-lifecycle-20260409)
 - File-based — `.trim-changes.md`, `.trim-flows.json`, `.trim-verify/` (gitignored screenshots), `.wheel/outputs/` (build/trim-design-lifecycle-20260409)
+- Markdown (skill definitions), Bash (inline shell in workflows), JSON (workflow definitions) + Wheel workflow engine, Penpot MCP tools, `jq` for JSON manipulation (build/trim-penpot-layout-20260409)
+- File-based — `.trim/flows.json`, `.trim/components.json`, workflow JSON files (build/trim-penpot-layout-20260409)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)
