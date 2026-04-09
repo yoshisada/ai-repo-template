@@ -19,12 +19,12 @@
 
 **Purpose**: Foundation for all step type handlers — state management functions that all handlers depend on.
 
-- [ ] T001 Add `state_set_team()` function to `plugin-wheel/lib/state.sh` — records team under `teams.{step_id}` with team_name and empty teammates map
-- [ ] T002 Add `state_get_team()` function to `plugin-wheel/lib/state.sh` — reads team metadata from state JSON by step_id
-- [ ] T003 Add `state_add_teammate()` function to `plugin-wheel/lib/state.sh` — adds teammate entry with task_id, agent_id, output_dir, status, assign payload
-- [ ] T004 Add `state_update_teammate_status()` function to `plugin-wheel/lib/state.sh` — updates a teammate's status with timestamp
-- [ ] T005 Add `state_get_teammates()` function to `plugin-wheel/lib/state.sh` — returns all teammate entries for a team
-- [ ] T006 Add `state_remove_team()` function to `plugin-wheel/lib/state.sh` — removes team entry from state (used by team-delete)
+- [X] T001 Add `state_set_team()` function to `plugin-wheel/lib/state.sh` — records team under `teams.{step_id}` with team_name and empty teammates map
+- [X] T002 Add `state_get_team()` function to `plugin-wheel/lib/state.sh` — reads team metadata from state JSON by step_id
+- [X] T003 Add `state_add_teammate()` function to `plugin-wheel/lib/state.sh` — adds teammate entry with task_id, agent_id, output_dir, status, assign payload
+- [X] T004 Add `state_update_teammate_status()` function to `plugin-wheel/lib/state.sh` — updates a teammate's status with timestamp
+- [X] T005 Add `state_get_teammates()` function to `plugin-wheel/lib/state.sh` — returns all teammate entries for a team
+- [X] T006 Add `state_remove_team()` function to `plugin-wheel/lib/state.sh` — removes team entry from state (used by team-delete)
 
 **Checkpoint**: All team state management functions exist. Step type handlers can now be implemented.
 
@@ -36,10 +36,10 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T007 Add `team-create|teammate|team-wait|team-delete` case branches in `dispatch_step()` in `plugin-wheel/lib/dispatch.sh` — each branch calls its corresponding `dispatch_*` function (stub implementations returning `{"decision": "approve"}`)
-- [ ] T008 Add team types to `engine_kickstart()` case statement in `plugin-wheel/lib/engine.sh` — `team-create|teammate|team-delete` set step to pending, `team-wait` is not kickstartable
-- [ ] T009 Add team types to `engine_handle_hook()` post_tool_use handler in `plugin-wheel/lib/engine.sh` — route `team-create`, `teammate`, `team-wait`, `team-delete` steps to dispatch_step
-- [ ] T010 Add team step reference validation in `workflow_validate_references()` in `plugin-wheel/lib/workflow.sh` — validate `team` field on teammate/team-wait/team-delete references a valid team-create step ID, validate `loop_from` references an existing step ID
+- [X] T007 Add `team-create|teammate|team-wait|team-delete` case branches in `dispatch_step()` in `plugin-wheel/lib/dispatch.sh` — each branch calls its corresponding `dispatch_*` function (stub implementations returning `{"decision": "approve"}`)
+- [X] T008 Add team types to `engine_kickstart()` case statement in `plugin-wheel/lib/engine.sh` — `team-create|teammate|team-delete` set step to pending, `team-wait` is not kickstartable
+- [X] T009 Add team types to `engine_handle_hook()` post_tool_use handler in `plugin-wheel/lib/engine.sh` — route `team-create`, `teammate`, `team-wait`, `team-delete` steps to dispatch_step
+- [X] T010 Add team step reference validation in `workflow_validate_references()` in `plugin-wheel/lib/workflow.sh` — validate `team` field on teammate/team-wait/team-delete references a valid team-create step ID, validate `loop_from` references an existing step ID
 
 **Checkpoint**: Engine recognizes all four types, routes hooks correctly, validates workflow JSON. Handlers are stubs.
 

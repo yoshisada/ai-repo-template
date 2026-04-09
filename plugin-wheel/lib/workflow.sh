@@ -163,6 +163,37 @@ workflow_validate_references() {
     printf '%s\n' "$invalid_next" >&2
     return 1
   fi
+
+  # FR-024: Validate team step references
+  # Collect all team-create step IDs
+  local team_create_ids
+  team_create_ids=$(printf '%s\n' "$workflow_json" | jq -r '[.steps[] | select(.type == "team-create") | .id] | @json')
+
+  # Validate teammate/team-wait/team-delete `team` field references a valid team-create step ID
+  local invalid_team_refs
+  invalid_team_refs=$(printf '%s\n' "$workflow_json" | jq --argjson team_ids "$team_create_ids" -r '
+    [.steps[] | select(.type == "teammate" or .type == "team-wait" or .type == "team-delete") |
+      (if .team == null then "step \(.id): missing required team field" else empty end),
+      (if .team != null and (.team | IN($team_ids[])) == false then "step \(.id): team field \(.team) does not reference a team-create step" else empty end)
+    ] | .[]')
+  if [[ -n "$invalid_team_refs" ]]; then
+    echo "ERROR: invalid team step references:" >&2
+    printf '%s\n' "$invalid_team_refs" >&2
+    return 1
+  fi
+
+  # Validate teammate `loop_from` field references an existing step ID
+  local invalid_loop_from
+  invalid_loop_from=$(printf '%s\n' "$workflow_json" | jq --argjson ids "$all_ids" -r '
+    [.steps[] | select(.type == "teammate" and .loop_from != null) |
+      (if (.loop_from | IN($ids[])) == false then "step \(.id): loop_from target \(.loop_from) not found" else empty end)
+    ] | .[]')
+  if [[ -n "$invalid_loop_from" ]]; then
+    echo "ERROR: invalid loop_from references:" >&2
+    printf '%s\n' "$invalid_loop_from" >&2
+    return 1
+  fi
+
   return 0
 }
 

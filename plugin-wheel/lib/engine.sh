@@ -101,6 +101,13 @@ engine_kickstart() {
       # FR-014: Workflow steps are NOT kickstartable — leave in pending for hook to handle
       # FR-015: Child workflow kickstart happens inside dispatch_workflow()
       ;;
+    team-create|teammate|team-delete)
+      # FR-024: Team steps inject instructions via stop hook — set to pending
+      state_set_step_status "$state_file" "$cursor" "pending"
+      ;;
+    team-wait)
+      # FR-026: team-wait is NOT kickstartable — needs polling via hook
+      ;;
   esac
 
   return 0
@@ -205,6 +212,14 @@ engine_handle_hook() {
         # Dispatch workflow steps from PostToolUse — creates child state file
         # when cursor advances to a workflow step after a previous step completes
         dispatch_workflow "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
+        return $?
+      elif [[ "$step_type" == "team-create" || "$step_type" == "teammate" || "$step_type" == "team-delete" ]]; then
+        # FR-024: Route team step types to their dispatch handlers via PostToolUse
+        dispatch_step "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
+        return $?
+      elif [[ "$step_type" == "team-wait" ]]; then
+        # FR-026: team-wait polls teammate status on each PostToolUse invocation
+        dispatch_step "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
         return $?
       fi
       jq -n '{"hookEventName": "PostToolUse"}'

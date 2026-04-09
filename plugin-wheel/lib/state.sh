@@ -283,3 +283,139 @@ state_get_command_log() {
   local step_index="$2"
   printf '%s\n' "$state_json" | jq --argjson idx "$step_index" '.steps[$idx].command_log // []'
 }
+
+# FR-025/FR-004: Record a team in the workflow state under teams.{step_id}
+# Params: $1 = state file path, $2 = step_id (team-create step ID), $3 = team_name
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_set_team() {
+  local state_file="$1"
+  local step_id="$2"
+  local team_name="$3"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --arg sid "$step_id" \
+    --arg name "$team_name" \
+    --arg now "$now" \
+    '.teams[$sid] = {team_name: $name, created_at: $now, teammates: {}} | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
+
+# FR-025: Read team metadata from state by step_id
+# Params: $1 = state JSON (string), $2 = step_id (team-create step ID)
+# Output (stdout): JSON object with team_name, teammates
+# Exit: 0 if found, 1 if not found
+state_get_team() {
+  local state_json="$1"
+  local step_id="$2"
+  local result
+  result=$(printf '%s\n' "$state_json" | jq --arg sid "$step_id" '.teams[$sid] // empty')
+  if [[ -z "$result" || "$result" == "null" ]]; then
+    echo "ERROR: team not found for step: $step_id" >&2
+    return 1
+  fi
+  printf '%s\n' "$result"
+}
+
+# FR-025: Add a teammate entry to a team's teammates map
+# Params: $1 = state file, $2 = team_step_id, $3 = agent_name, $4 = task_id,
+#         $5 = agent_id, $6 = output_dir, $7 = assign_json (may be empty)
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_add_teammate() {
+  local state_file="$1"
+  local team_step_id="$2"
+  local agent_name="$3"
+  local task_id="$4"
+  local agent_id="$5"
+  local output_dir="$6"
+  local assign_json="${7:-"{}"}"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --arg sid "$team_step_id" \
+    --arg name "$agent_name" \
+    --arg tid "$task_id" \
+    --arg aid "$agent_id" \
+    --arg odir "$output_dir" \
+    --argjson assign "$assign_json" \
+    --arg now "$now" \
+    '.teams[$sid].teammates[$name] = {
+      task_id: $tid,
+      status: "pending",
+      agent_id: $aid,
+      output_dir: $odir,
+      started_at: null,
+      completed_at: null,
+      assign: $assign
+    } | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
+
+# FR-025: Update a teammate's status with timestamp
+# Params: $1 = state file, $2 = team_step_id, $3 = agent_name, $4 = new_status
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_update_teammate_status() {
+  local state_file="$1"
+  local team_step_id="$2"
+  local agent_name="$3"
+  local new_status="$4"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --arg sid "$team_step_id" \
+    --arg name "$agent_name" \
+    --arg status "$new_status" \
+    --arg now "$now" \
+    '.teams[$sid].teammates[$name].status = $status | .updated_at = $now |
+     if $status == "running" then .teams[$sid].teammates[$name].started_at = $now
+     elif ($status == "completed" or $status == "failed") then .teams[$sid].teammates[$name].completed_at = $now
+     else . end')
+  state_write "$state_file" "$updated"
+}
+
+# FR-025: Return all teammate entries for a team
+# Params: $1 = state JSON (string), $2 = team_step_id
+# Output (stdout): JSON object of teammates map
+# Exit: 0 if found, 1 if not found
+state_get_teammates() {
+  local state_json="$1"
+  local team_step_id="$2"
+  local result
+  result=$(printf '%s\n' "$state_json" | jq --arg sid "$team_step_id" '.teams[$sid].teammates // empty')
+  if [[ -z "$result" || "$result" == "null" ]]; then
+    echo "ERROR: teammates not found for team step: $team_step_id" >&2
+    return 1
+  fi
+  printf '%s\n' "$result"
+}
+
+# FR-025: Remove a team from the state file (called by team-delete)
+# Params: $1 = state file, $2 = step_id (team-create step ID)
+# Output: none (updates state file)
+# Exit: 0 on success, 1 on failure
+state_remove_team() {
+  local state_file="$1"
+  local step_id="$2"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --arg sid "$step_id" \
+    --arg now "$now" \
+    'del(.teams[$sid]) | .updated_at = $now')
+  state_write "$state_file" "$updated"
+}
