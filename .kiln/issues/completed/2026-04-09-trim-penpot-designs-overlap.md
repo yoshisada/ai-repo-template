@@ -5,10 +5,11 @@ severity: high
 category: skills
 source: manual
 github_issue: null
-status: prd-created
+status: completed
 prd: docs/features/2026-04-09-trim-penpot-layout/PRD.md
 date: 2026-04-09
----
+completed_date: 2026-04-09
+pr: "#80"---
 
 ## Description
 
