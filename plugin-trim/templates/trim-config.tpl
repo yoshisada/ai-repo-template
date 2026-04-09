@@ -1,17 +1,14 @@
-# Trim configuration — maps this repo to its Penpot project
-# Run /trim-config to update these values interactively
+# Trim configuration — maps this repo to its Penpot file
+# Run /trim-init to update
 
-# Required: Penpot project UUID
-penpot_project_id = REPLACE_ME
-
-# Required: Penpot file UUID
+# Penpot file UUID (required)
 penpot_file_id = REPLACE_ME
 
-# Optional: Default Penpot page name to sync (omit to sync all pages)
-# default_page = main
+# Default page to sync (omit to sync all pages)
+# default_page = Main
 
-# Optional: Path to component mapping file (default: .trim-components.json)
-# components_file = .trim-components.json
+# Component mapping file path
+components_file = .trim-components.json
 
-# Optional: Override auto-detected framework (react, vue, svelte, html)
+# Override auto-detected framework (react, vue, svelte, html)
 # framework = react

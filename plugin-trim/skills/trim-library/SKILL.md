@@ -22,7 +22,7 @@ $ARGUMENTS
 
 ```bash
 if [ ! -f .trim-config ]; then
-  echo "ERROR: No .trim-config found. Run /trim-config first to connect to your Penpot project."
+  echo "ERROR: No .trim-config found. Run /trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
