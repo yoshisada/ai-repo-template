@@ -17,14 +17,12 @@
 2026-04-08-init-no-src-tests-dirs.md: Init script should not create src/ and tests/ directories [open]
 2026-04-08-issue-backlinks-to-repos-files.md: Backlog issues should backlink to GitHub repos or file locations [open]
 2026-04-08-next-high-level-commands-only.md: /next should only recommend high-level commands, not low-level pipeline steps [open]
-2026-04-08-shelf-create-holistic-progress.md: shelf-create should assess project progress holistically [open]
-2026-04-08-shelf-create-root-path-lookup.md: shelf-create should start at vault root when finding project directory [open]
-2026-04-08-shelf-create-template-compliance.md: shelf-create not following Obsidian template; add repair function [open]
-2026-04-08-shelf-full-sync-summary-step.md: Add summary step to shelf-full-sync workflow [open]
 2026-04-08-test4.md: test4 [open]
-2026-04-08-unify-project-status-labels.md: Unify project status labels across shelf skills [open]
 2026-04-08-wheel-init-failure-auto-setup.md: Wheel activation should detect missing setup and offer auto-install [open]
 2026-04-08-workflow-in-plugin-package.md: report-issue-and-sync workflow must ship with the kiln plugin [open]
+2026-04-09-trim-auto-build-userflows.md: Trim should auto-build user flows in .trim/flows.json during push and other commands [open]
+2026-04-09-trim-component-page-bento-layout.md: Trim should create a bento-style component page in Penpot, not a descending list [open]
+2026-04-09-trim-penpot-designs-overlap.md: Trim designs on Penpot overlap heavily — needs proper spacing and layout [open]
 ## Completed
-27
+32
  completed issues

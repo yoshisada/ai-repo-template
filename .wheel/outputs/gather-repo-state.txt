@@ -1,14 +1,14 @@
 Branch: main
 Last 5 commits:
-b098842 fix: dispatch workflow steps from PostToolUse to create child state files
-c8ddb55 feat: add PreToolUse hook to block direct writes to wheel state files
-6de395c fix: kickstart sets agent step status to pending
-343425b fix: activate.sh hook extraction fails when path is quoted
-2580a20 feat: auto-discover plugin workflows from workflows/ directory
+685aa12 refactor: move trim config files into .trim/ directory
+ef8cf2d refactor: rename trim-config to trim-init, add MCP discovery, remove project_id
+42282d6 feat: add trim plugin to marketplace.json
+d19f586 Merge build/trim-design-lifecycle-20260409: edit, verify, redesign, flows
+c525ba7 Merge build/trim-20260409: trim plugin — bidirectional design-code sync via Penpot MCP
 ---
-Open issues: 40
-Backlog: 26 items
-PRDs: 20
+Open issues: 44
+Backlog: 24 items
+PRDs: 23
 ---
 Task progress:
   001-kiln-polish: 13/13
@@ -23,12 +23,15 @@ Task progress:
   plugin-clay: 14/18
   qa-tooling-templates: 36/38
   shelf-config-artifact: 10/10
+  shelf-skills-polish: 23/23
   shelf-sync-v2: 17/17
   shelf: 12/12
+  trim-design-lifecycle: 12/12
+  trim: 19/19
   wheel-create-workflow: 18/18
   wheel-per-agent-state: 12/12
   wheel-session-guard: 11/11
   wheel-skill-activation: 12/12
   wheel-workflow-composition: 19/19
   wheel: 31/31
-VERSION: 000.000.000.703
+VERSION: 000.000.000.747
