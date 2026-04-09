@@ -29,12 +29,12 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T001 Add positioning rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="push-to-penpot")
-- [ ] T002 [P] Add positioning rules to pull-design agent instruction in plugin-trim/workflows/trim-pull.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="pull-design")
-- [ ] T003 [P] Add positioning rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="generate-design")
-- [ ] T004 [P] Add positioning rules to generate-redesign agent instruction in plugin-trim/workflows/trim-redesign.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="generate-redesign")
-- [ ] T005 [P] Add positioning rules to apply-edit agent instruction in plugin-trim/workflows/trim-edit.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="apply-edit")
-- [ ] T006 [P] Add positioning rules to sync-components agent instruction in plugin-trim/workflows/trim-library-sync.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="sync-components")
+- [X] T001 Add positioning rules to push-to-penpot agent instruction in plugin-trim/workflows/trim-push.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="push-to-penpot")
+- [X] T002 [P] Add positioning rules to pull-design agent instruction in plugin-trim/workflows/trim-pull.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="pull-design")
+- [X] T003 [P] Add positioning rules to generate-design agent instruction in plugin-trim/workflows/trim-design.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="generate-design")
+- [X] T004 [P] Add positioning rules to generate-redesign agent instruction in plugin-trim/workflows/trim-redesign.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="generate-redesign")
+- [X] T005 [P] Add positioning rules to apply-edit agent instruction in plugin-trim/workflows/trim-edit.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="apply-edit")
+- [X] T006 [P] Add positioning rules to sync-components agent instruction in plugin-trim/workflows/trim-library-sync.json (Contract 1: prepend POSITIONING RULES block to the "instruction" field of step id="sync-components")
 
 **Checkpoint**: All Penpot-creating agent steps now include explicit positioning rules. Frames will have 40px minimum spacing.
 
