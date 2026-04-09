@@ -105,7 +105,7 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
     # Default: stop only the caller's own workflow (content-based ownership match)
     for sf in .wheel/state_*.json; do
       [[ -f "$sf" ]] || continue
-      local owner_sid owner_aid
+      local owner_sid="" owner_aid=""
       owner_sid=$(jq -r '.owner_session_id // empty' "$sf" 2>/dev/null) || continue
       owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
       if [[ "$owner_sid" == "$SESSION_ID" && "$owner_aid" == "$AGENT_ID" ]]; then

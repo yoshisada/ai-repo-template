@@ -290,97 +290,96 @@ workflow_validate_workflow_refs() {
 #   [{"name": "workflow-name", "plugin": "plugin-name", "path": "/abs/path/to/workflow.json", "readonly": true}, ...]
 # Exit: 0 on success (empty array if no plugins found), 1 on parse error
 workflow_discover_plugin_workflows() {
-  local installed_plugins_file="${HOME}/.claude/plugins/installed_plugins.json"
-  if [[ ! -f "$installed_plugins_file" ]]; then
-    echo '[]'
-    return 0
-  fi
+  # Run in a subshell with tracing disabled to prevent shell environment
+  # from leaking variable assignments to stdout (breaks jq parsing)
+  (
+    set +x 2>/dev/null
 
-  local installed_json
-  if ! installed_json=$(jq -c '.' "$installed_plugins_file" 2>/dev/null); then
-    echo "ERROR: invalid JSON in installed_plugins.json" >&2
-    return 1
-  fi
-
-  local result='[]'
-
-  # Extract all installPath values from installed_plugins.json
-  local install_paths
-  install_paths=$(printf '%s\n' "$installed_json" | jq -r '
-    .plugins // {} | to_entries[] | .value[] | .installPath // empty')
-
-  if [[ -z "$install_paths" ]]; then
-    echo '[]'
-    return 0
-  fi
-
-  while IFS= read -r install_path; do
-    [[ -z "$install_path" ]] && continue
-    local manifest="${install_path}/.claude-plugin/plugin.json"
-    [[ ! -f "$manifest" ]] && continue
-
-    local manifest_json
-    if ! manifest_json=$(jq -c '.' "$manifest" 2>/dev/null); then
-      continue
+    local installed_plugins_file="${HOME}/.claude/plugins/installed_plugins.json"
+    if [[ ! -f "$installed_plugins_file" ]]; then
+      echo '[]'
+      return 0
     fi
 
-    local plugin_name
-    plugin_name=$(printf '%s\n' "$manifest_json" | jq -r '.name // empty')
-    [[ -z "$plugin_name" ]] && continue
-
-    # Collect workflow paths from two sources:
-    # 1. Explicit "workflows" field in plugin.json (array of relative paths)
-    # 2. Auto-scan of <plugin>/workflows/*.json directory
-    local seen_names=""
-
-    local workflows_field
-    workflows_field=$(printf '%s\n' "$manifest_json" | jq -c '.workflows // empty')
-
-    # Source 1: Explicit manifest entries
-    if [[ -n "$workflows_field" && "$workflows_field" != "null" ]]; then
-      local wf_entries
-      wf_entries=$(printf '%s\n' "$workflows_field" | jq -r '.[]')
-
-      while IFS= read -r wf_rel_path; do
-        [[ -z "$wf_rel_path" ]] && continue
-        local wf_abs_path="${install_path}/${wf_rel_path}"
-        [[ ! -f "$wf_abs_path" ]] && continue
-
-        local wf_name
-        wf_name=$(basename "$wf_rel_path" .json)
-        seen_names="${seen_names} ${wf_name} "
-
-        result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
-          --arg plugin "$plugin_name" \
-          --arg path "$wf_abs_path" \
-          '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
-      done <<< "$wf_entries"
+    local installed_json
+    if ! installed_json=$(jq -c '.' "$installed_plugins_file" 2>/dev/null); then
+      echo '[]'
+      return 0
     fi
 
-    # Source 2: Auto-scan workflows/ directory
-    local wf_dir="${install_path}/workflows"
-    if [[ -d "$wf_dir" ]]; then
-      for wf_file in "${wf_dir}"/*.json; do
-        [[ ! -f "$wf_file" ]] && continue
-        local wf_name
-        wf_name=$(basename "$wf_file" .json)
+    local result='[]'
 
-        # Skip if already found via manifest
-        if [[ "$seen_names" == *" ${wf_name} "* ]]; then
-          continue
-        fi
+    local install_paths
+    install_paths=$(printf '%s\n' "$installed_json" | jq -r '
+      .plugins // {} | to_entries[] | .value[] | .installPath // empty')
 
-        # Validate it's actual workflow JSON (has name and steps fields)
-        if jq -e '.name and .steps' "$wf_file" >/dev/null 2>&1; then
+    if [[ -z "$install_paths" ]]; then
+      echo '[]'
+      return 0
+    fi
+
+    while IFS= read -r install_path; do
+      [[ -z "$install_path" ]] && continue
+      local manifest="${install_path}/.claude-plugin/plugin.json"
+      [[ ! -f "$manifest" ]] && continue
+
+      local manifest_json
+      if ! manifest_json=$(jq -c '.' "$manifest" 2>/dev/null); then
+        continue
+      fi
+
+      local plugin_name
+      plugin_name=$(printf '%s\n' "$manifest_json" | jq -r '.name // empty')
+      [[ -z "$plugin_name" ]] && continue
+
+      local seen_names=""
+
+      local workflows_field
+      workflows_field=$(printf '%s\n' "$manifest_json" | jq -c '.workflows // empty')
+
+      # Source 1: Explicit manifest entries
+      if [[ -n "$workflows_field" && "$workflows_field" != "null" ]]; then
+        local wf_entries
+        wf_entries=$(printf '%s\n' "$workflows_field" | jq -r '.[]')
+
+        while IFS= read -r wf_rel_path; do
+          [[ -z "$wf_rel_path" ]] && continue
+          local wf_abs_path="${install_path}/${wf_rel_path}"
+          [[ ! -f "$wf_abs_path" ]] && continue
+
+          local wf_name
+          wf_name=$(basename "$wf_rel_path" .json)
+          seen_names="${seen_names} ${wf_name} "
+
           result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
             --arg plugin "$plugin_name" \
-            --arg path "$wf_file" \
+            --arg path "$wf_abs_path" \
             '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
-        fi
-      done
-    fi
-  done <<< "$install_paths"
+        done <<< "$wf_entries"
+      fi
 
-  printf '%s\n' "$result"
-  return 0
+      # Source 2: Auto-scan workflows/ directory
+      local wf_dir="${install_path}/workflows"
+      if [[ -d "$wf_dir" ]]; then
+        for wf_file in "${wf_dir}"/*.json; do
+          [[ ! -f "$wf_file" ]] && continue
+          local wf_name
+          wf_name=$(basename "$wf_file" .json)
+
+          if [[ "$seen_names" == *" ${wf_name} "* ]]; then
+            continue
+          fi
+
+          if jq -e '.name and .steps' "$wf_file" >/dev/null 2>&1; then
+            result=$(printf '%s\n' "$result" | jq --arg name "$wf_name" \
+              --arg plugin "$plugin_name" \
+              --arg path "$wf_file" \
+              '. + [{"name": $name, "plugin": $plugin, "path": $path, "readonly": true}]')
+          fi
+        done
+      fi
+    done <<< "$install_paths"
+
+    printf '%s\n' "$result"
+  )
 }
