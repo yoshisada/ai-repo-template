@@ -1467,53 +1467,10 @@ dispatch_team_wait() {
       jq -n '{"hookEventName": "PostToolUse"}'
       ;;
     teammate_idle)
-      # A teammate went idle — mark it completed, stop the teammate, check if all done
-      local idle_name
-      idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.teammate_name // .name // empty')
-      # Also try extracting from the "from" field of idle notifications
-      if [[ -z "$idle_name" ]]; then
-        idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.from // empty')
-      fi
-
-      local should_stop=false
-      if [[ -n "$idle_name" ]]; then
-        # Check if this teammate is registered and not already completed
-        local cur_state
-        cur_state=$(state_read "$state_file") || true
-        local tm_status
-        tm_status=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$idle_name" \
-          '.teams[$tid].teammates[$n].status // empty')
-        if [[ -n "$tm_status" && "$tm_status" != "completed" && "$tm_status" != "failed" ]]; then
-          state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
-          should_stop=true
-        elif [[ "$tm_status" == "completed" || "$tm_status" == "failed" ]]; then
-          # Already marked done from a previous idle — still stop them
-          should_stop=true
-        fi
-      fi
-
-      # Check if all teammates are now done
-      state=$(state_read "$state_file") || return 1
-      local teammates_json
-      teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
-      local total completed failed done_count
-      total=$(printf '%s\n' "$teammates_json" | jq 'length')
-      completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
-      failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
-      done_count=$((completed + failed))
-
-      if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
-        _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
-        return $?
-      fi
-
-      # Stop the completed teammate so it doesn't linger
-      if [[ "$should_stop" == true ]]; then
-        jq -n --arg reason "Teammate ${idle_name} work complete — stopped by team-wait." \
-          '{"continue": false, "stopReason": $reason}'
-      else
-        jq -n '{"decision": "approve"}'
-      fi
+      # Teammate went idle — don't stop them here. Their sub-workflow Stop hook
+      # handles completion detection and returns continue:false when done.
+      # The team lead shutdown cascades to stop all remaining teammates.
+      jq -n '{"decision": "approve"}'
       ;;
     *)
       jq -n '{"decision": "approve"}'
