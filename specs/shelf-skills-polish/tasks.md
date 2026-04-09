@@ -115,8 +115,8 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T022 Verify all workflow JSON files pass validation by checking they have valid `name`, `steps` with `id` and `type` fields, and all `context_from` references point to existing step IDs
-- [ ] T023 Run quickstart.md validation — confirm all file paths mentioned in quickstart.md exist after implementation
+- [X] T022 Verify all workflow JSON files pass validation by checking they have valid `name`, `steps` with `id` and `type` fields, and all `context_from` references point to existing step IDs
+- [X] T023 Run quickstart.md validation — confirm all file paths mentioned in quickstart.md exist after implementation
 
 ---
 
