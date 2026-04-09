@@ -1362,11 +1362,6 @@ dispatch_team_wait() {
       fi
 
       if [[ "$step_status" == "pending" || "$step_status" == "working" ]]; then
-        # Auto-detect teammate completion before checking statuses
-        _team_wait_auto_detect "$state_file" "$team_ref" >/dev/null 2>&1
-        # Re-read state after auto-detection may have updated statuses
-        state=$(state_read "$state_file") || return 1
-
         # FR-017: Check teammate statuses
         local teammates_json
         teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
@@ -1391,12 +1386,12 @@ dispatch_team_wait() {
           return $?
         fi
 
-        # Not all done — block with progress status and let orchestrator poll
+        # Not all done — block and tell orchestrator to wait for idle notifications
         jq -n --arg team "$team_ref" \
           --argjson total "$total" --argjson done "$done_count" \
           --argjson completed "$completed" --argjson failed "$failed" \
           --argjson running "$running_count" --argjson pending "$pending_count" \
-          '{"decision": "block", "reason": ("Waiting for team '"'"'" + $team + "'"'"': " + ($done|tostring) + "/" + ($total|tostring) + " done (" + ($completed|tostring) + " completed, " + ($failed|tostring) + " failed, " + ($running|tostring) + " running, " + ($pending|tostring) + " pending). Check TaskList for updates — teammates that completed their tasks should be reflected. Keep polling until all are done.")}'
+          '{"decision": "block", "reason": ("Waiting for team '"'"'" + $team + "'"'"': " + ($done|tostring) + "/" + ($total|tostring) + " done (" + ($completed|tostring) + " completed, " + ($failed|tostring) + " failed, " + ($running|tostring) + " running, " + ($pending|tostring) + " pending). Wait for teammates to go idle (you will receive idle notifications automatically). Once a teammate is idle, mark its task completed with TaskUpdate. When all tasks are completed, this step will advance automatically.")}'
       else
         jq -n '{"decision": "approve"}'
       fi
@@ -1428,9 +1423,35 @@ dispatch_team_wait() {
         fi
       fi
 
-      # Auto-detect and completion check run in both pending and working states
+      # Detect TaskUpdate marking a teammate's task completed
+      if [[ "$tool_name" == "TaskUpdate" ]]; then
+        local task_status
+        task_status=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.status // empty')
+        if [[ "$task_status" == "completed" ]]; then
+          local task_subject
+          task_subject=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.subject // empty')
+          # Also try to get the task subject from tool_result if not in input
+          if [[ -z "$task_subject" ]]; then
+            task_subject=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.subject // empty')
+          fi
+          # Match task subject/id to a teammate name
+          local cur_state
+          cur_state=$(state_read "$state_file") || true
+          local teammate_names
+          teammate_names=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" '.teams[$tid].teammates // {} | keys[]')
+          while IFS= read -r tname; do
+            [[ -z "$tname" ]] && continue
+            # Match by name appearing in subject, or exact match
+            if [[ "$task_subject" == *"$tname"* || "$tname" == *"$task_subject"* ]]; then
+              state_update_teammate_status "$state_file" "$team_ref" "$tname" "completed"
+              break
+            fi
+          done <<< "$teammate_names"
+        fi
+      fi
+
+      # Check if all teammates are now done
       if [[ "$step_status" == "pending" || "$step_status" == "working" ]]; then
-        _team_wait_auto_detect "$state_file" "$team_ref" >/dev/null 2>&1
         state=$(state_read "$state_file") || return 1
         local teammates_json
         teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
@@ -1452,54 +1473,6 @@ dispatch_team_wait() {
       jq -n '{"decision": "approve"}'
       ;;
   esac
-}
-
-# Internal helper: Auto-detect teammate completion by checking if their
-# sub-workflow state files have been cleaned up (completed/stopped) or if
-# their output files exist. Updates teammate statuses in state automatically.
-# Params: $1 = state_file, $2 = team_ref
-_team_wait_auto_detect() {
-  local state_file="$1"
-  local team_ref="$2"
-
-  local state
-  state=$(state_read "$state_file") || return
-
-  local teammates_json
-  teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
-
-  # Check each non-completed teammate
-  local names
-  names=$(printf '%s\n' "$teammates_json" | jq -r 'to_entries[] | select(.value.status != "completed" and .value.status != "failed") | .key')
-
-  [[ -z "$names" ]] && return
-
-  while IFS= read -r name; do
-    [[ -z "$name" ]] && continue
-
-    local agent_id
-    agent_id=$(printf '%s\n' "$teammates_json" | jq -r --arg n "$name" '.[$n].agent_id // empty')
-
-    # Need agent_id to detect — captured from Agent PostToolUse in team-wait handler
-    [[ -z "$agent_id" ]] && continue
-
-    # Check if teammate's sub-workflow state file still exists
-    local has_active_state=false
-    for sf in "$(dirname "$state_file")"/state_*.json; do
-      [[ -f "$sf" ]] || continue
-      local sf_aid
-      sf_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
-      if [[ "$sf_aid" == "$agent_id" ]]; then
-        has_active_state=true
-        break
-      fi
-    done
-
-    # No active state file = sub-workflow completed (archived to history/)
-    if [[ "$has_active_state" == false ]]; then
-      state_update_teammate_status "$state_file" "$team_ref" "$name" "completed"
-    fi
-  done <<< "$names"
 }
 
 # FR-018/FR-019: Internal helper — finalize team-wait step
