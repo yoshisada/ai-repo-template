@@ -1192,7 +1192,7 @@ dispatch_teammate() {
           state_set_cursor "$state_file" "$next_index"
 
           # Inject spawn instructions
-          jq -n --arg msg "Spawn ${agent_count} teammate agents for team '${team_name}'. Each runs sub-workflow '${sub_workflow}' with run_in_background: true and mode: bypassPermissions.$(printf '%b' "$spawn_instructions")\n\nFor each agent: call Agent tool with the teammate's name, passing their assignment.json and context.json paths. Create a TaskCreate entry for each so team-wait can track them. After spawning all agents, proceed." \
+          jq -n --arg msg "Spawn ${agent_count} teammate agents for team '${team_name}'. Each MUST run /wheel-run ${sub_workflow} to activate its sub-workflow (this gives each agent its own state file for hook-driven execution).$(printf '%b' "$spawn_instructions")\n\nFor each agent: call Agent tool with the teammate's name. The agent prompt MUST include: 'Run /wheel-run ${sub_workflow} to start your workflow.' Pass assignment.json and context.json paths. Create a TaskCreate entry for each so team-wait can track them. After spawning all agents, proceed." \
             '{"decision": "block", "reason": $msg}'
         else
           # Static teammate spawning path (FR-005/FR-006/FR-009)
@@ -1219,10 +1219,10 @@ dispatch_teammate() {
           next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
           state_set_cursor "$state_file" "$next_index"
 
-          # FR-009/FR-010: Inject spawn instruction
+          # FR-009/FR-010: Inject spawn instruction — agent must run /wheel-run to get its own state file
           jq -n --arg team "$team_name" --arg agent "$agent_name" --arg wf "$sub_workflow" \
             --arg outdir "$output_dir" \
-            '{"decision": "block", "reason": ("Spawn teammate agent '"'"'" + $agent + "'"'"' on team '"'"'" + $team + "'"'"'. Run sub-workflow '"'"'" + $wf + "'"'"' with run_in_background: true and mode: bypassPermissions. Assignment: " + $outdir + "/assignment.json, Context: " + $outdir + "/context.json, Output to: " + $outdir + "/. Create a TaskCreate entry for tracking. After spawning, proceed.")}'
+            '{"decision": "block", "reason": ("Spawn teammate agent '"'"'" + $agent + "'"'"' on team '"'"'" + $team + "'"'"' with run_in_background: true and mode: bypassPermissions. The agent MUST run /wheel-run " + $wf + " to activate its sub-workflow (this gives it its own state file for hook-driven execution). Assignment: " + $outdir + "/assignment.json, Context: " + $outdir + "/context.json, Output to: " + $outdir + "/. Create a TaskCreate entry for tracking. After spawning, proceed.")}'
         fi
       elif [[ "$step_status" == "working" ]]; then
         # Already spawning — remind to proceed
