@@ -7,9 +7,6 @@ set -euo pipefail
 # 1. Read hook input from stdin
 HOOK_INPUT=$(cat)
 
-# DEBUG: Capture Stop hook input for teammate debugging
-echo "$HOOK_INPUT" > /tmp/wheel-stop-debug.json 2>/dev/null || true
-
 # 2. Resolve state file from hook input (FR-004)
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"

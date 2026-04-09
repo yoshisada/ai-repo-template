@@ -1386,12 +1386,9 @@ dispatch_team_wait() {
           return $?
         fi
 
-        # Not all done — block and tell orchestrator to wait for idle notifications
-        jq -n --arg team "$team_ref" \
-          --argjson total "$total" --argjson done "$done_count" \
-          --argjson completed "$completed" --argjson failed "$failed" \
-          --argjson running "$running_count" --argjson pending "$pending_count" \
-          '{"decision": "block", "reason": ("Waiting for team '"'"'" + $team + "'"'"': " + ($done|tostring) + "/" + ($total|tostring) + " done (" + ($completed|tostring) + " completed, " + ($failed|tostring) + " failed, " + ($running|tostring) + " running, " + ($pending|tostring) + " pending). Wait for teammates to go idle (you will receive idle notifications automatically). Once a teammate is idle, mark its task completed with TaskUpdate. When all tasks are completed, this step will advance automatically.")}'
+        # Not all done — approve so the lead goes idle and waits for TeammateIdle events.
+        # TeammateIdle hook handles completion detection and auto-advances when all done.
+        jq -n '{"decision": "approve"}'
       else
         jq -n '{"decision": "approve"}'
       fi
