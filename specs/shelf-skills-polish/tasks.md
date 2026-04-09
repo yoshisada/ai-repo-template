@@ -85,12 +85,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T014 [US4] Create shelf-repair workflow JSON at `plugin-shelf/workflows/shelf-repair.json` with `read-shelf-config` command step and `read-current-template` command step per contracts/interfaces.md
-- [ ] T015 [US4] Add `read-existing-dashboard` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to read current dashboard from Obsidian via MCP and extract all sections. Context from: read-shelf-config
-- [ ] T016 [US4] Add `generate-diff-report` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to compare dashboard to template and report structural differences, flagging non-canonical status per FR-010. Context from: read-shelf-config, read-current-template, read-existing-dashboard
-- [ ] T017 [US4] Add `apply-repairs` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to apply template structure while preserving user content (Feedback, Human Needed, Feedback Log, progress entries) and normalizing status labels per FR-009, FR-011. Context from: read-shelf-config, read-current-template, read-existing-dashboard, generate-diff-report. Must reference `plugin-shelf/status-labels.md`
-- [ ] T018 [US4] Add `verify-repair` terminal agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to re-read dashboard and confirm it matches template structure. Context from: read-shelf-config, apply-repairs
-- [ ] T019 [US4] Create `plugin-shelf/skills/shelf-repair/SKILL.md` as thin wrapper that validates project exists and delegates to `/wheel-run shelf:shelf-repair` per contracts/interfaces.md
+- [X] T014 [US4] Create shelf-repair workflow JSON at `plugin-shelf/workflows/shelf-repair.json` with `read-shelf-config` command step and `read-current-template` command step per contracts/interfaces.md
+- [X] T015 [US4] Add `read-existing-dashboard` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to read current dashboard from Obsidian via MCP and extract all sections. Context from: read-shelf-config
+- [X] T016 [US4] Add `generate-diff-report` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to compare dashboard to template and report structural differences, flagging non-canonical status per FR-010. Context from: read-shelf-config, read-current-template, read-existing-dashboard
+- [X] T017 [US4] Add `apply-repairs` agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to apply template structure while preserving user content (Feedback, Human Needed, Feedback Log, progress entries) and normalizing status labels per FR-009, FR-011. Context from: read-shelf-config, read-current-template, read-existing-dashboard, generate-diff-report. Must reference `plugin-shelf/status-labels.md`
+- [X] T018 [US4] Add `verify-repair` terminal agent step to `plugin-shelf/workflows/shelf-repair.json` with instruction to re-read dashboard and confirm it matches template structure. Context from: read-shelf-config, apply-repairs
+- [X] T019 [US4] Create `plugin-shelf/skills/shelf-repair/SKILL.md` as thin wrapper that validates project exists and delegates to `/wheel-run shelf:shelf-repair` per contracts/interfaces.md
 
 **Checkpoint**: shelf-repair workflow and skill are fully defined
 
