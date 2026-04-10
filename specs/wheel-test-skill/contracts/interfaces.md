@@ -94,16 +94,40 @@ wt_wait_for_archive()    # $1 = workflow basename, $2 = timeout seconds; stdout 
 # Returns 0 always; caller decides whether orphans count as failure.
 wt_detect_orphans()      # no args; stdout = newline-separated orphan paths (empty if none)
 
-# FR-003: Run all Phase 1 workflows back-to-back and wait for all to archive.
-# Args are absolute paths to Phase 1 workflows (zero or more).
-# Writes per-workflow result rows by calling wt_record_result. Returns 0 always.
-wt_run_phase1()          # "$@" = absolute paths
+# IMPLEMENTATION NOTE (updated during /implement):
+# The wheel PostToolUse hook scans the literal Bash tool command text for an
+# `activate.sh` invocation and picks the LAST match via `tail -1`
+# (post-tool-use.sh ~line 132). This means any shell function that loops
+# activate.sh calls from within one Bash tool invocation silently drops all
+# but the last activation — and worse, if activate.sh is called through a
+# quoted shell variable (`"$WT_ACTIVATE_SH"`), the hook's anchor regex does
+# not match at all and the call becomes a no-op.
+#
+# Therefore the originally contracted `wt_run_phase1` and `wt_run_serial_phase`
+# runners cannot own the activate.sh call. They are REPLACED with waiter/
+# bookkeeping helpers; activation itself is issued by the SKILL.md invoker as
+# separate Bash tool calls with literal absolute paths.
 
-# FR-004: Run a list of Phase 2/3/4 workflows serially. Phase argument controls the timeout.
-# $1 = phase number (2|3|4), subsequent args = absolute paths.
-# Phase 4 follows the stop-hook ceremony documented in SKILL.md (FR-006).
-# Writes per-workflow result rows by calling wt_record_result. Returns 0 always.
-wt_run_serial_phase()    # $1 = phase, "$@" (shifted) = absolute paths
+# FR-009 — Re-seed WT_RUN_TIMESTAMP / WT_LOG_BASELINE / WT_START_EPOCH from the
+# classification env snapshot so new Bash tool calls (which get fresh shells)
+# can re-join the same run. No-op if the snapshot is missing. Returns 0.
+wt_load_run_env()        # no args; reads .wheel/logs/.wheel-test-phases-*.env
+
+# Record the start epoch of a Phase 1 workflow to a TSV so the later waiter
+# can compute duration. Appends a `<basename>\t<epoch>` row. Returns 0.
+wt_record_phase1_start() # $1 = absolute workflow path
+
+# FR-003/FR-008/FR-010/FR-015 — Phase 1 waiter. Reads the phases env snapshot
+# and the phase1-starts TSV, waits for each Phase 1 workflow to archive with
+# a 60s timeout, sweeps for orphans after all workflows complete, and records
+# result rows via wt_record_result. Returns 0 always.
+wt_phase1_wait_all()     # no args; reads phases env snapshot and phase1-starts TSV
+
+# FR-004/FR-008/FR-010/FR-015/FR-018 — Serial-phase waiter. Waits for a single
+# workflow to archive within the phase's timeout (60s for phase 2/3, 120s for
+# phase 4), records the result via wt_record_result, and sweeps for orphans.
+# Returns 0 always (result status is recorded in the TSV, not the exit code).
+wt_wait_and_record_serial()  # $1 = phase (2|3|4), $2 = absolute workflow path, $3 = start_epoch
 ```
 
 ### Results & Reporting
