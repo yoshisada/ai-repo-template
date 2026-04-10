@@ -23,25 +23,25 @@ Mark each task `[X]` immediately after it is done. Commit after each phase.
 - [X] **T006** — Implement `plugin-shelf/scripts/obsidian-snapshot-diff.sh` per contracts §8.2. Reads two JSONs, prints human-readable diff, exit 0/1/2.
 - [X] **T007** — Sanity-check the harness: run capture against the fixture twice in a row, diff the two outputs, verify exit 0 (identical). Then perturb one file, re-run diff, verify exit 1 with the expected file flagged.
 - [X] **T008** — Re-capture v3 snapshot using the harness (replaces T003 manual capture if applicable) and overwrite `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`.
-- [ ] **T009** — Commit Phase 2: `git add plugin-shelf/scripts/ specs/shelf-sync-efficiency/baseline/ && git commit -m "harness: obsidian snapshot capture + diff"`.
+- [X] **T009** — Commit Phase 2: `git add plugin-shelf/scripts/ specs/shelf-sync-efficiency/baseline/ && git commit -m "harness: obsidian snapshot capture + diff"`.
 
 ---
 
 ## Phase 3 — v4 workflow rewrite
 
-- [ ] **T010** — Back up v3 by copying `plugin-shelf/workflows/shelf-full-sync.json` to `specs/shelf-sync-efficiency/baseline/shelf-full-sync-v3.json` for reference during implementation.
-- [ ] **T011** — Rewrite `plugin-shelf/workflows/shelf-full-sync.json` to v4. Match contracts §1 exactly: `version: "4.0.0"`, ten steps in the order from §2, step IDs and types from the table. Leave agent instructions and command bodies as placeholders for T012–T015.
-- [ ] **T012** — Implement `obsidian-discover` agent instruction per contracts §4.2. Ensure `context_from` is exactly `["read-shelf-config"]`. Verify the output JSON matches §4.3 on a manual test run.
-- [ ] **T013** — Implement the `compute-work-list` command (Bash + `jq`) per contracts §5.1. This is the largest task — careful jq pipelines that:
+- [X] **T010** — Back up v3 by copying `plugin-shelf/workflows/shelf-full-sync.json` to `specs/shelf-sync-efficiency/baseline/shelf-full-sync-v3.json` for reference during implementation.
+- [X] **T011** — Rewrite `plugin-shelf/workflows/shelf-full-sync.json` to v4. Match contracts §1 exactly: `version: "4.0.0"`, ten steps in the order from §2, step IDs and types from the table. Leave agent instructions and command bodies as placeholders for T012–T015.
+- [X] **T012** — Implement `obsidian-discover` agent instruction per contracts §4.2. Ensure `context_from` is exactly `["read-shelf-config"]`. Verify the output JSON matches §4.3 on a manual test run.
+- [X] **T013** — Implement the `compute-work-list` command (Bash + `jq`) per contracts §5.1. This is the largest task — careful jq pipelines that:
   - Parse all upstream outputs
   - Compute issue/doc actions (create/update/close/skip)
   - Compute dashboard tag delta
   - Compute progress entry from `gather-repo-state.txt`
   - Emit the JSON schema in §5.2
   Validate by running it manually against the fixture and inspecting the output against a hand-computed expected work list.
-- [ ] **T014** — Implement `obsidian-apply` agent instruction per contracts §6.2. Explicit: no `list_files` calls, no templating, consume work list verbatim. Preserve dashboard `preserve_sections` byte-for-byte. Capture errors into `errors[]`, do not abort on first error.
-- [ ] **T015** — Rewrite `generate-sync-summary` command per contracts §7.1. Must read `compute-work-list.json` and `obsidian-apply-results.json` and emit the five sections in exactly the required order. Keep `terminal: true`.
-- [ ] **T016** — Validate the JSON: `jq . plugin-shelf/workflows/shelf-full-sync.json` must succeed. Run `wheel-run shelf-full-sync` in dry-mode if available; otherwise execute on the fixture and catch any step-shape errors.
+- [X] **T014** — Implement `obsidian-apply` agent instruction per contracts §6.2. Explicit: no `list_files` calls, no templating, consume work list verbatim. Preserve dashboard `preserve_sections` byte-for-byte. Capture errors into `errors[]`, do not abort on first error.
+- [X] **T015** — Rewrite `generate-sync-summary` command per contracts §7.1. Must read `compute-work-list.json` and `obsidian-apply-results.json` and emit the five sections in exactly the required order. Keep `terminal: true`.
+- [X] **T016** — Validate the JSON: `jq . plugin-shelf/workflows/shelf-full-sync.json` must succeed. Run `wheel-run shelf-full-sync` in dry-mode if available; otherwise execute on the fixture and catch any step-shape errors.
 - [ ] **T017** — Commit Phase 3: `git add plugin-shelf/workflows/shelf-full-sync.json specs/shelf-sync-efficiency/baseline/shelf-full-sync-v3.json && git commit -m "refactor(shelf): shelf-full-sync v4 — 2 agents, command-side diff"`.
 
 ---
