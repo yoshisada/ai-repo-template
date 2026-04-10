@@ -10,9 +10,9 @@ Mark each task `[X]` immediately after it is done. Commit after each phase.
 
 ## Phase 1 — Baseline capture
 
-- [ ] **T001** — Pin the benchmark reference repo identity. Create `specs/shelf-sync-efficiency/baseline/benchmark-repo.md` documenting: repo URL, branch, commit SHA at which measurement is taken, the Obsidian project slug used as the target vault, and the date. (FR-012, SC-001)
-- [ ] **T002** — Capture v3 token cost on the benchmark repo. Run `shelf-full-sync` (v3) via wheel, record token cost from wheel-runner telemetry, and save to `specs/shelf-sync-efficiency/baseline/v3-token-cost.md`. Expected: ~64.5k tokens. This anchors the SC-001 comparison.
-- [ ] **T003** — Capture v3 Obsidian snapshot on the frozen fixture. Identify or create a minimal fixture repo that exercises all sync paths (issues, docs, tags, progress). Run v3 against it. Capture the resulting Obsidian state as `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`. (Uses the harness from Phase 2, so this task may be re-run after Phase 2; first-pass capture can be manual.) (FR-003, SC-003)
+- [X] **T001** — Pin the benchmark reference repo identity. Create `specs/shelf-sync-efficiency/baseline/benchmark-repo.md` documenting: repo URL, branch, commit SHA at which measurement is taken, the Obsidian project slug used as the target vault, and the date. (FR-012, SC-001)
+- [X] **T002** — Capture v3 token cost on the benchmark repo. Run `shelf-full-sync` (v3) via wheel, record token cost from wheel-runner telemetry, and save to `specs/shelf-sync-efficiency/baseline/v3-token-cost.md`. Expected: ~64.5k tokens. This anchors the SC-001 comparison.
+- [X] **T003** — Capture v3 Obsidian snapshot on the frozen fixture. Identify or create a minimal fixture repo that exercises all sync paths (issues, docs, tags, progress). Run v3 against it. Capture the resulting Obsidian state as `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`. (Uses the harness from Phase 2, so this task may be re-run after Phase 2; first-pass capture can be manual.) (FR-003, SC-003)
 - [ ] **T004** — Commit Phase 1 artifacts: `git add specs/shelf-sync-efficiency/baseline/ && git commit -m "baseline: shelf-sync-efficiency v3 token cost + snapshot"`.
 
 ---
