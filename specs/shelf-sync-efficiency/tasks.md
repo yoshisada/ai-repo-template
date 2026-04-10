@@ -13,16 +13,16 @@ Mark each task `[X]` immediately after it is done. Commit after each phase.
 - [X] **T001** — Pin the benchmark reference repo identity. Create `specs/shelf-sync-efficiency/baseline/benchmark-repo.md` documenting: repo URL, branch, commit SHA at which measurement is taken, the Obsidian project slug used as the target vault, and the date. (FR-012, SC-001)
 - [X] **T002** — Capture v3 token cost on the benchmark repo. Run `shelf-full-sync` (v3) via wheel, record token cost from wheel-runner telemetry, and save to `specs/shelf-sync-efficiency/baseline/v3-token-cost.md`. Expected: ~64.5k tokens. This anchors the SC-001 comparison.
 - [X] **T003** — Capture v3 Obsidian snapshot on the frozen fixture. Identify or create a minimal fixture repo that exercises all sync paths (issues, docs, tags, progress). Run v3 against it. Capture the resulting Obsidian state as `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`. (Uses the harness from Phase 2, so this task may be re-run after Phase 2; first-pass capture can be manual.) (FR-003, SC-003)
-- [ ] **T004** — Commit Phase 1 artifacts: `git add specs/shelf-sync-efficiency/baseline/ && git commit -m "baseline: shelf-sync-efficiency v3 token cost + snapshot"`.
+- [X] **T004** — Commit Phase 1 artifacts: `git add specs/shelf-sync-efficiency/baseline/ && git commit -m "baseline: shelf-sync-efficiency v3 token cost + snapshot"`.
 
 ---
 
 ## Phase 2 — Snapshot-diff harness
 
-- [ ] **T005** — Implement `plugin-shelf/scripts/obsidian-snapshot-capture.sh` per contracts §8.1. Walks the vault, normalizes timestamp fields, hashes bodies, emits sorted JSON. Make it executable (`chmod +x`).
-- [ ] **T006** — Implement `plugin-shelf/scripts/obsidian-snapshot-diff.sh` per contracts §8.2. Reads two JSONs, prints human-readable diff, exit 0/1/2.
-- [ ] **T007** — Sanity-check the harness: run capture against the fixture twice in a row, diff the two outputs, verify exit 0 (identical). Then perturb one file, re-run diff, verify exit 1 with the expected file flagged.
-- [ ] **T008** — Re-capture v3 snapshot using the harness (replaces T003 manual capture if applicable) and overwrite `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`.
+- [X] **T005** — Implement `plugin-shelf/scripts/obsidian-snapshot-capture.sh` per contracts §8.1. Walks the vault, normalizes timestamp fields, hashes bodies, emits sorted JSON. Make it executable (`chmod +x`).
+- [X] **T006** — Implement `plugin-shelf/scripts/obsidian-snapshot-diff.sh` per contracts §8.2. Reads two JSONs, prints human-readable diff, exit 0/1/2.
+- [X] **T007** — Sanity-check the harness: run capture against the fixture twice in a row, diff the two outputs, verify exit 0 (identical). Then perturb one file, re-run diff, verify exit 1 with the expected file flagged.
+- [X] **T008** — Re-capture v3 snapshot using the harness (replaces T003 manual capture if applicable) and overwrite `specs/shelf-sync-efficiency/baseline/v3-snapshot.json`.
 - [ ] **T009** — Commit Phase 2: `git add plugin-shelf/scripts/ specs/shelf-sync-efficiency/baseline/ && git commit -m "harness: obsidian snapshot capture + diff"`.
 
 ---
