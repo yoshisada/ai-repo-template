@@ -128,14 +128,18 @@ wt_classify_workflow() {
   printf '1\n'
 }
 
-# FR-005 — expected outcome from basename glob. Prints "success" or "failure".
+# FR-005 — expected outcome from basename. Prints "success" or "failure".
+# Only workflows whose basename ends with "-fail" (or equals "fail") are
+# expected-failure fixtures. Names like "team-partial-failure" describe
+# workflows that HANDLE a failing child but are themselves expected to succeed,
+# so they must not match.
 wt_expected_outcome() {
   local wf="$1"
   local base
   base="$(basename "$wf" .json)"
   case "$base" in
-    *-fail*) printf 'failure\n' ;;
-    *)       printf 'success\n' ;;
+    *-fail|fail) printf 'failure\n' ;;
+    *)           printf 'success\n' ;;
   esac
 }
 
@@ -159,26 +163,49 @@ wt_activate() {
 # Args: $1 = workflow basename, $2 = timeout seconds.
 # Prints absolute archive path on success; prints "TIMEOUT" and returns 2 on timeout;
 # prints "MISSING" and returns 3 if the state file vanished without an archive.
+# Portable file mtime as epoch seconds (macOS stat -f, Linux stat -c).
+_wt_mtime() {
+  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null
+}
+
+# Pick the newest archive whose mtime is >= min_epoch. Prevents matching
+# stale archives from earlier sessions that share the same workflow name.
+_wt_newest_archive_since() {
+  local base="$1"
+  local min_epoch="$2"
+  shopt -s nullglob
+  local candidates=(
+    "$WT_HISTORY_SUCCESS/${base}-"*-*.json
+    "$WT_HISTORY_FAILURE/${base}-"*-*.json
+    "$WT_HISTORY_STOPPED/${base}-"*-*.json
+  )
+  shopt -u nullglob
+  (( ${#candidates[@]} == 0 )) && return 1
+  local best="" best_mt=0 f mt
+  for f in "${candidates[@]}"; do
+    mt="$(_wt_mtime "$f")"
+    [[ -z "$mt" ]] && continue
+    (( mt < min_epoch )) && continue
+    if (( mt > best_mt )); then
+      best="$f"
+      best_mt="$mt"
+    fi
+  done
+  [[ -n "$best" ]] || return 1
+  printf '%s\n' "$best"
+  return 0
+}
+
 wt_wait_for_archive() {
   local base="$1"
   local timeout="$2"
+  local min_epoch="${3:-$WT_START_EPOCH}"
   local deadline=$(( $(date +%s) + timeout ))
   local found=""
   while (( $(date +%s) < deadline )); do
-    shopt -s nullglob
-    local candidates=(
-      "$WT_HISTORY_SUCCESS/${base}-"*-*.json
-      "$WT_HISTORY_FAILURE/${base}-"*-*.json
-      "$WT_HISTORY_STOPPED/${base}-"*-*.json
-    )
-    shopt -u nullglob
-    if (( ${#candidates[@]} > 0 )); then
-      # Pick the newest matching archive.
-      found="$(ls -1t "${candidates[@]}" 2>/dev/null | head -n1)"
-      if [[ -n "$found" ]]; then
-        printf '%s\n' "$found"
-        return 0
-      fi
+    if found="$(_wt_newest_archive_since "$base" "$min_epoch")"; then
+      printf '%s\n' "$found"
+      return 0
     fi
     # If there is no in-flight state file AND no archive, mark MISSING.
     shopt -s nullglob
@@ -187,19 +214,9 @@ wt_wait_for_archive() {
     if (( ${#inflight[@]} == 0 )); then
       # No state, no archive — give the hook one more grace second.
       sleep 1
-      shopt -s nullglob
-      candidates=(
-        "$WT_HISTORY_SUCCESS/${base}-"*-*.json
-        "$WT_HISTORY_FAILURE/${base}-"*-*.json
-        "$WT_HISTORY_STOPPED/${base}-"*-*.json
-      )
-      shopt -u nullglob
-      if (( ${#candidates[@]} > 0 )); then
-        found="$(ls -1t "${candidates[@]}" 2>/dev/null | head -n1)"
-        if [[ -n "$found" ]]; then
-          printf '%s\n' "$found"
-          return 0
-        fi
+      if found="$(_wt_newest_archive_since "$base" "$min_epoch")"; then
+        printf '%s\n' "$found"
+        return 0
       fi
       printf 'MISSING\n'
       return 3
@@ -308,7 +325,7 @@ wt_phase1_wait_all() {
     base="$(basename "$wf" .json)"
     expected="$(wt_expected_outcome "$wf")"
     start_epoch="${starts_map[$base]:-$WT_START_EPOCH}"
-    archive="$(wt_wait_for_archive "$base" 60)"
+    archive="$(wt_wait_for_archive "$base" 60 "$start_epoch")"
     rc=$?
     now="$(date +%s)"
     duration=$(( now - start_epoch ))
@@ -354,7 +371,7 @@ wt_wait_and_record_serial() {
   (( phase == 4 )) && timeout=120
   base="$(basename "$wf" .json)"
   expected="$(wt_expected_outcome "$wf")"
-  archive="$(wt_wait_for_archive "$base" "$timeout")"
+  archive="$(wt_wait_for_archive "$base" "$timeout" "$start_epoch")"
   rc=$?
   duration=$(( $(date +%s) - start_epoch ))
   notes=""
@@ -421,30 +438,43 @@ wt_reconcile_expected_failures() {
   [[ -f "$tsv" ]] || return 0
   local tmp
   tmp="$(mktemp)"
-  local workflow phase expected status duration archive notes new_status new_notes
+  local workflow phase expected status duration archive notes new_status new_notes actual
   while IFS=$'\t' read -r workflow phase expected status duration archive notes; do
     new_status="$status"
     new_notes="$notes"
-    case "$status" in
-      pass)
-        if [[ "$expected" == "failure" ]]; then
-          # expected-failure workflow archived to success/ — regression
-          new_status="fail"
-          new_notes="expected failure but archived to success/${new_notes:+ — $new_notes}"
-        fi
-        ;;
-      fail)
-        if [[ "$expected" == "failure" ]]; then
-          # expected-failure workflow archived to failure/ — this is a pass
-          new_status="pass"
-          new_notes="expected failure archived correctly${new_notes:+ — $new_notes}"
-        fi
-        ;;
-      stopped)
+    # Only reconcile rows with a real archive path. Timeout / missing-archive /
+    # orphan rows have no archive and should not be rewritten. Deriving the
+    # rewrite from (expected, archive) rather than (expected, status) makes
+    # this function idempotent — running it twice produces the same output.
+    if [[ -n "$archive" ]]; then
+      case "$archive" in
+        */history/success/*) actual="success" ;;
+        */history/failure/*) actual="failure" ;;
+        */history/stopped/*) actual="stopped" ;;
+        *)                   actual="unknown" ;;
+      esac
+      if [[ "$actual" == "stopped" ]]; then
         new_status="fail"
-        new_notes="stopped unexpectedly${new_notes:+ — $new_notes}"
-        ;;
-    esac
+        new_notes="stopped unexpectedly"
+      elif [[ "$actual" == "unknown" ]]; then
+        new_status="fail"
+        new_notes="unknown archive location"
+      elif [[ "$actual" == "$expected" ]]; then
+        new_status="pass"
+        if [[ "$expected" == "failure" ]]; then
+          new_notes="expected failure archived correctly"
+        else
+          new_notes=""
+        fi
+      else
+        new_status="fail"
+        if [[ "$expected" == "failure" ]]; then
+          new_notes="expected failure but archived to success/"
+        else
+          new_notes="expected success but archived to failure/"
+        fi
+      fi
+    fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
       "$workflow" "$phase" "$expected" "$new_status" "$duration" "$archive" "$new_notes" >>"$tmp"
   done <"$tsv"

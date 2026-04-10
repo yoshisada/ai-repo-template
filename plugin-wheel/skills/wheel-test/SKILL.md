@@ -19,8 +19,8 @@ Run every JSON workflow under `workflows/tests/` through the real `plugin-wheel/
 | Phase | Step-type rule                                      | Execution                                 | Timeout |
 |-------|-----------------------------------------------------|-------------------------------------------|---------|
 | 1     | Only `command` / `branch` / `loop` steps            | Back-to-back activations, wait on all     | 60s ea  |
-| 2     | Has `agent` step; no `workflow`/`team-*`/`teammate` | Serial                                    | 60s     |
-| 3     | Has `workflow` step; no `team-*`/`teammate`         | Serial                                    | 60s     |
+| 2     | Has `agent` step; no `workflow`/`team-*`/`teammate` | Serial, **lead drives agent steps** (Step 4) | 60s   |
+| 3     | Has `workflow` step; no `team-*`/`teammate`         | Serial, **lead drives agent steps in the composition tree** (Step 5) | 60s |
 | 4     | Has any `team-*` or `teammate` step                 | Serial, stop-hook ceremony (see Step 6)   | 120s    |
 
 ### Absolute Musts (violating any is a bug)
@@ -140,38 +140,114 @@ wt_phase1_wait_all
 
 ## Step 4 — Phase 2 (serial, agent-step workflows)
 
-For **each** `PHASE2 <absolute-path>` line from Step 1, do this sequence — one workflow at a time. The whole sequence for one workflow fits in two Bash calls: the literal activate.sh call, then the wait+record call.
+**Phase 2 workflows are NOT autonomous.** `command`, `branch`, and `loop` steps execute inside the wheel hook, but `agent` steps require **you (the skill invoker)** to read the step's instruction and produce its declared `output` file. The post-tool-use hook watches for file writes under declared output paths and advances the cursor when it sees the expected file appear. Without your manual Write/Edit, the workflow will sit at `status: working` until the phase timeout and fail with orphans.
 
-### Call 4a (per workflow): literal activate.sh
+For **each** `PHASE2 <absolute-path>` line from Step 1, do this sequence — one workflow at a time.
+
+### 4a — Capture start + activate (two Bash calls)
+
+```bash
+date +%s > /tmp/wt-start
+```
+
+Then, as a separate Bash tool call:
 
 ```bash
 /<absolute-repo-root>/plugin-wheel/bin/activate.sh /<absolute-repo-root>/workflows/tests/<workflow>.json
 ```
 
-### Call 4b (per workflow): wait and record
+The hook auto-executes any leading `command`/`branch`/`loop` steps and stops at the first `agent` step. A single state file appears at `.wheel/state_*.json` with `cursor` pointing at the working `agent` step.
+
+### 4b — Drive `agent` steps until the workflow archives
+
+Loop the following until the state file is gone:
+
+1. **Inspect the state file.** Always re-read after every Write — the hook may have advanced the cursor.
+   ```bash
+   for sf in .wheel/state_*.json; do
+     jq '{workflow_name, cursor, step: .steps[.cursor]}' "$sf"
+   done
+   ```
+   If no state file exists, the workflow has archived — proceed to 4c.
+
+2. **Look up the current step in the workflow JSON.**
+   ```bash
+   CURSOR=$(jq -r '.cursor' .wheel/state_*.json)
+   jq --argjson i "$CURSOR" '.steps[$i] | {id, type, instruction, context_from, output}' workflows/tests/<workflow>.json
+   ```
+   If `type` is not `agent` (e.g. a post-branch `command` that just hasn't auto-advanced yet), wait ~1s and re-check.
+
+3. **Read the `context_from` outputs.** Each entry is an earlier step `id`; look up that step's `output` path in the workflow JSON and read the file (usually under `.wheel/outputs/`).
+
+4. **Write the declared `output` file** using the Write or Edit tool. Follow the step's `instruction` to produce a plausible, coherent artifact — content quality isn't tested, only the file's existence is. If the target file already exists from a prior run, use Edit (stale content will be overwritten); if not, Write.
+
+5. **Return to step 1.** Do not issue any unrelated tool calls between the inspect and the write — the state file may be overwritten by the hook at any Bash turn boundary.
+
+### 4c — Record result
+
+Once there is no state file left (workflow archived):
 
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
 source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
-wt_wait_and_record_serial 2 "/<absolute-repo-root>/workflows/tests/<workflow>.json" <start-epoch>
+wt_wait_and_record_serial 2 "/<absolute-repo-root>/workflows/tests/<workflow>.json" "$(cat /tmp/wt-start)"
 ```
 
-Where `<start-epoch>` is the output of `date +%s` captured just before Call 4a. If you forget to capture it, pass `0` and the duration column will just be inaccurate — the pass/fail is still correct.
+The wait call sees the archive immediately and records pass/fail in the TSV.
 
-Do NOT begin a new workflow until the previous workflow's wait+record call has returned.
+### 4d — Guardrails
+
+- **Stale pre-existing output files** — if the declared output already exists from a prior run, you MUST still Write or Edit it this turn. The hook fires on the tool call, not on file mtime. A no-op Edit is sufficient.
+- **Drive one workflow at a time.** Do not activate the next Phase 2 workflow until the previous one's state file is gone AND 4c has returned.
+- **Never write to `.wheel/state_*.json` directly.** Only advance the workflow by writing declared `output` paths.
 
 ---
 
 ## Step 5 — Phase 3 (serial, nested-workflow composition)
 
-Identical to Phase 2, but pass `3` as the phase number to `wt_wait_and_record_serial`:
+Phase 3 workflows have `workflow` (composition) step types. When the parent's cursor reaches a `workflow` step, the post-tool-use hook dispatches the child workflow inline — a new state file appears for the child. When the child archives, the parent resumes. If any workflow in the tree (parent or child) contains `agent` steps, drive them with the exact same procedure as Step 4b.
 
-For **each** `PHASE3 <absolute-path>` line:
+For **each** `PHASE3 <absolute-path>` line from Step 1:
 
-1. Literal activate.sh call.
-2. `... wt_wait_and_record_serial 3 "<abs-path>" <start-epoch>`.
+### 5a — Activate
+
+```bash
+date +%s > /tmp/wt-start
+```
+
+```bash
+/<absolute-repo-root>/plugin-wheel/bin/activate.sh /<absolute-repo-root>/workflows/tests/<workflow>.json
+```
+
+### 5b — Drive until no state file remains
+
+Note: **multiple state files may exist simultaneously** (parent + one or more active children). Inspect every state file each pass:
+
+```bash
+for sf in .wheel/state_*.json; do
+  jq '{workflow_name, cursor, step: .steps[.cursor]}' "$sf"
+done
+```
+
+For each state file whose current step is `agent` with `status: working`, look up the corresponding workflow JSON (the state file records its source workflow path in `.workflow_file`):
+
+```bash
+jq -r '.workflow_file' .wheel/state_<matching>.json
+```
+
+Then drive that step exactly like Step 4b (read `context_from` outputs, write `output`). Repeat until no state files remain.
+
+### 5c — Record result
+
+```bash
+set -euo pipefail
+WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
+wt_load_run_env
+wt_wait_and_record_serial 3 "/<absolute-repo-root>/workflows/tests/<workflow>.json" "$(cat /tmp/wt-start)"
+```
 
 ---
 
@@ -182,8 +258,12 @@ Phase 4 workflows spawn real Claude Code teammates via `TeamCreate` + `Agent`. T
 For **each** `PHASE4 <absolute-path>` line from Step 1, follow these 10 steps one workflow at a time:
 
 1. **Activate**: issue a literal-path Bash tool call of the form `/<abs>/activate.sh /<abs>/workflows/tests/<workflow>.json`. Capture `date +%s` immediately before as the start epoch.
-2. **Wait for TeamCreate instruction from the stop hook.** Do NOT proactively call `TeamCreate`. The hook will deliver a system-reminder / tool-result block with the exact `team_id` and teammate roster.
-3. **Call `TeamCreate`** exactly as instructed — no inferred fields, no renaming.
+2. **Wait until the `team-create` step is `status: working`** before calling TeamCreate. Issue a Bash tool call:
+   ```bash
+   for sf in .wheel/state_*.json; do jq '.steps[.cursor]|{id,type,status}' "$sf"; done
+   ```
+   The active step must have `type: team-create` AND `status: working`. If you see `status: pending`, do NOT proceed — the stop hook hasn't transitioned the step yet. Re-check state or yield one turn so the stop hook can fire. Calling TeamCreate on a `pending` step is a race: the engine transitions it to `working` instead of advancing, and you cannot recover without deactivating (TeamCreate refuses "already leading team" on retry).
+3. **Call `TeamCreate`** with the exact `team_name` from the step definition — no inferred fields, no renaming.
 4. **Wait for spawn instructions** — the hook then sends a follow-up listing each teammate to spawn.
 5. **Spawn each teammate** via the `Agent` tool with `run_in_background: true`. Use the exact `agent_id` and prompt given by the hook. Never spawn a teammate the hook did not name.
 6. **Wait for teammate results.** Teammates work in background; you will receive notifications when they send messages or complete. Do not poll, do not sleep.
@@ -198,6 +278,8 @@ For **each** `PHASE4 <absolute-path>` line from Step 1, follow these 10 steps on
     wt_load_run_env
     wt_wait_and_record_serial 4 "/<abs-path>/workflows/tests/<workflow>.json" <start-epoch>
     ```
+
+If the team workflow also contains inline `agent` steps between team primitives (rare but legal), drive them with the exact same procedure as Step 4b (read instruction + context_from, Write the declared output file) at the point the cursor lands on them.
 
 Once every Phase 4 workflow has been run through steps 1–10, proceed to Step 7.
 
