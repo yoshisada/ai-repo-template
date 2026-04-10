@@ -41,34 +41,26 @@ resolve_state_file() {
     owner_sid=$(jq -r '.owner_session_id // empty' "$sf" 2>/dev/null) || continue
     owner_aid=$(jq -r '.owner_agent_id // empty' "$sf" 2>/dev/null) || continue
 
+    # Match by owner_agent_id or alternate_agent_id (for teammate agents
+    # where the hook receives a team-format ID like "worker-1@team" but the
+    # state file stores the raw Claude agent ID).
+    local id_match=false
     if [[ "$owner_sid" == "$hook_session_id" && "$owner_aid" == "$hook_agent_id" ]]; then
+      id_match=true
+    elif [[ "$owner_sid" == "$hook_session_id" && "$hook_agent_id" == *"@"* ]]; then
+      local alt_aid
+      alt_aid=$(jq -r '.alternate_agent_id // empty' "$sf" 2>/dev/null) || true
+      [[ -n "$alt_aid" && "$alt_aid" == "$hook_agent_id" ]] && id_match=true
+    fi
+
+    if [[ "$id_match" == true ]]; then
       local has_parent
       has_parent=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null)
       if [[ -n "$has_parent" ]]; then
-        # Child state file — always prefer over parent
         matched_file="$sf"
         matched_is_child=true
       elif [[ "$matched_is_child" == false ]]; then
-        # Parent state file — only use if no child found yet
         matched_file="$sf"
-      fi
-    fi
-
-    # Fallback: For teammate agents, the hook receives a team-format ID
-    # (e.g., "worker-1@test-static-team") but the state file stores the raw
-    # Claude agent ID. Check the alternate_agent_id field for a match.
-    if [[ -z "$matched_file" || "$matched_is_child" == false ]]; then
-      local alt_aid
-      alt_aid=$(jq -r '.alternate_agent_id // empty' "$sf" 2>/dev/null) || true
-      if [[ -n "$alt_aid" && "$owner_sid" == "$hook_session_id" && "$alt_aid" == "$hook_agent_id" ]]; then
-        local has_parent
-        has_parent=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null)
-        if [[ -n "$has_parent" ]]; then
-          matched_file="$sf"
-          matched_is_child=true
-        elif [[ "$matched_is_child" == false ]]; then
-          matched_file="$sf"
-        fi
       fi
     fi
   done

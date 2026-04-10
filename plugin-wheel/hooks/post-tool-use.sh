@@ -169,15 +169,15 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
       # Create state and run kickstart
       state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
 
-      # For teammate agents: write a mapping file so hooks receiving the
-      # team-format ID (e.g., "worker-1@team") can find this state file.
-      # The hook input has the raw agent ID; the team-format ID comes from
-      # the hook's teammate_name or team_name fields if available.
+      # For teammate agents: store the team-format ID so hooks receiving
+      # "worker-1@team" can find this state file (which stores the raw agent ID).
       HOOK_TEAM_NAME=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.team_name // empty' 2>/dev/null || true)
       HOOK_TM_NAME=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.teammate_name // .name // empty' 2>/dev/null || true)
       if [[ -n "$HOOK_TEAM_NAME" && -n "$HOOK_TM_NAME" ]]; then
         TEAM_FORMAT_ID="${HOOK_TM_NAME}@${HOOK_TEAM_NAME}"
-        jq --arg alt "$TEAM_FORMAT_ID" '.alternate_agent_id = $alt' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+        local _st
+        _st=$(state_read "$STATE_FILE")
+        state_write "$STATE_FILE" "$(printf '%s\n' "$_st" | jq --arg alt "$TEAM_FORMAT_ID" '.alternate_agent_id = $alt')"
       fi
 
       WORKFLOW="$WORKFLOW_JSON"
