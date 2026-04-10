@@ -122,12 +122,17 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
 fi
 
 # 2b. Check for activate.sh interception — create state file with full ownership
+ACTIVATE_LINE=""
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
+  # Extract the line containing activate.sh, but only if it looks like an
+  # actual invocation — not prose. Valid invocations start (after optional
+  # leading whitespace) with `bash /path/activate.sh`, `/path/activate.sh`,
+  # or `./activate.sh`. Prose like `(e.g. activate.sh tests/foo ...)` inside
+  # a git commit heredoc must NOT trigger activation.
+  ACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep -E '^[[:space:]]*(bash[[:space:]]+)?("|'"'"')?(\./|/)?[^[:space:]()"'"'"']*activate\.sh([[:space:]]|$)' | tail -1)
+fi
+if [[ -n "$ACTIVATE_LINE" ]]; then
   wheel_log "branch" "path=activate"
-  # Extract workflow name from the line containing activate.sh
-  # Claude Code may send multi-line commands with variable assignments before the call,
-  # so isolate the activate.sh line first, then extract the argument after it.
-  ACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'activate\.sh' | tail -1)
   WORKFLOW_NAME=$(printf '%s\n' "$ACTIVATE_LINE" | sed 's/.*activate\.sh["'"'"']*[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
 
   # Teammate activation: the `--as <tid>` flag carries the team-format ID
