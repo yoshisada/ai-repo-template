@@ -882,10 +882,15 @@ dispatch_command() {
   local output_key
   output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
   if [[ -n "$output_key" ]]; then
-    context_capture_output "$state_file" "$step_index" "$truncated_output"
-    # Write output to the file path so branch conditions and other steps can read it
-    mkdir -p "$(dirname "$output_key")"
-    printf '%s\n' "$truncated_output" > "$output_key"
+    # If the command produced the file itself, don't clobber it.
+    # Otherwise, write captured stdout to the declared path for downstream readers.
+    if [[ ! -f "$output_key" ]]; then
+      mkdir -p "$(dirname "$output_key")"
+      printf '%s\n' "$truncated_output" > "$output_key"
+    fi
+    # State's .steps[$idx].output stores the file path (consistent with other step types),
+    # so loop_from and downstream readers can locate the file.
+    context_capture_output "$state_file" "$step_index" "$output_key"
   fi
 
   # Mark step done (or failed if non-zero exit)
