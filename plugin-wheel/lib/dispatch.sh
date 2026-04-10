@@ -241,13 +241,18 @@ handle_terminal_step() {
     archive_dir=".wheel/history/failure"
   fi
 
-  # Archive state.json
+  # Archive state.json. Filename is <workflow>-<timestamp>-<state_id> so
+  # ls-sort stays chronological AND concurrent workers archiving in the same
+  # wall-clock second can't collide — the state id is unique by construction.
   mkdir -p "$archive_dir"
   local workflow_name
   workflow_name=$(jq -r '.workflow_name // "workflow"' "$state_file" 2>/dev/null || echo "workflow")
   local timestamp
   timestamp=$(date -u +%Y%m%d-%H%M%S)
-  if ! cp "$state_file" "${archive_dir}/${workflow_name}-${timestamp}.json"; then
+  local state_basename
+  state_basename=$(basename "$state_file" .json)
+  local state_id="${state_basename#state_}"
+  if ! cp "$state_file" "${archive_dir}/${workflow_name}-${timestamp}-${state_id}.json"; then
     echo "ERROR: failed to archive state.json" >&2
     return 1
   fi
