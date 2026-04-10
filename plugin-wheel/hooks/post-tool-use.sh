@@ -169,15 +169,42 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
       # Create state and run kickstart
       state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
 
-      # For teammate agents: store the team-format ID so hooks receiving
-      # "worker-1@team" can find this state file (which stores the raw agent ID).
-      HOOK_TEAM_NAME=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.team_name // empty' 2>/dev/null || true)
-      HOOK_TM_NAME=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.teammate_name // .name // empty' 2>/dev/null || true)
-      if [[ -n "$HOOK_TEAM_NAME" && -n "$HOOK_TM_NAME" ]]; then
-        TEAM_FORMAT_ID="${HOOK_TM_NAME}@${HOOK_TEAM_NAME}"
-        local _st
-        _st=$(state_read "$STATE_FILE")
-        state_write "$STATE_FILE" "$(printf '%s\n' "$_st" | jq --arg alt "$TEAM_FORMAT_ID" '.alternate_agent_id = $alt')"
+      # For teammate agents: the hook input has the raw agent ID but Stop hooks
+      # receive the team-format ID (worker-1@team). Find the parent state file
+      # and look up which teammate entry maps to this agent, then store the
+      # team-format ID as alternate_agent_id.
+      # For teammate agents: map the raw agent ID to the team-format ID.
+      # Use a lock file per team-format ID to prevent race conditions when
+      # multiple teammates activate simultaneously.
+      # For teammate agents: map the raw agent ID to the team-format ID.
+      # Find the parent state file, get running teammate IDs, and atomically
+      # claim one via mkdir lock.
+      if [[ -n "$AGENT_ID" && -n "$SESSION_ID" ]]; then
+        _parent_sf=""
+        for _psf in .wheel/state_*.json; do
+          [[ -f "$_psf" && "$_psf" != "$STATE_FILE" ]] || continue
+          _psid=$(jq -r '.owner_session_id // empty' "$_psf" 2>/dev/null) || continue
+          _paid=$(jq -r '.owner_agent_id // empty' "$_psf" 2>/dev/null) || continue
+          if [[ "$_psid" == "$SESSION_ID" && -z "$_paid" ]]; then
+            _parent_sf="$_psf"
+            break
+          fi
+        done
+        if [[ -n "$_parent_sf" ]]; then
+          _tids=$(jq -r '
+            [.teams // {} | to_entries[] | .value.teammates // {} | to_entries[] |
+             select(.value.status == "running") | .value.agent_id // empty] | .[]
+          ' "$_parent_sf" 2>/dev/null) || true
+          while IFS= read -r _tid; do
+            [[ -z "$_tid" ]] && continue
+            _lock=".wheel/.locks/agent_map_${_tid//[@\/]/_}"
+            if mkdir "$_lock" 2>/dev/null; then
+              _st=$(state_read "$STATE_FILE")
+              state_write "$STATE_FILE" "$(printf '%s\n' "$_st" | jq --arg alt "$_tid" '.alternate_agent_id = $alt')"
+              break
+            fi
+          done <<< "$_tids"
+        fi
       fi
 
       WORKFLOW="$WORKFLOW_JSON"
