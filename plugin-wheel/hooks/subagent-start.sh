@@ -9,12 +9,22 @@ HOOK_INPUT=$(cat)
 # 2. Resolve state file from hook input (FR-004)
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+source "${PLUGIN_DIR}/lib/log.sh"
+_SID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+wheel_log_init "subagent-start" "$_SID"
+_AT=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_type // empty' 2>/dev/null || echo "")
+wheel_log "enter" "agent_type=${_AT}"
+
 source "${PLUGIN_DIR}/lib/guard.sh"
 STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT") || true
 if [[ -z "$STATE_FILE" ]]; then
+  wheel_log "exit" "result=no-state"
   echo '{"decision": "approve"}'
   exit 0
 fi
+wheel_log_set_state "$STATE_FILE"
+wheel_log "resolved" "state=$STATE_FILE"
 
 # 3. Read workflow file from resolved state (FR-005)
 WORKFLOW_FILE=$(jq -r '.workflow_file // empty' "$STATE_FILE")

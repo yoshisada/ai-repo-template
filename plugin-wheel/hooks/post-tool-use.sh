@@ -13,12 +13,21 @@ HOOK_INPUT=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
 
+# Initialize logging
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+source "${PLUGIN_DIR}/lib/log.sh"
+_SID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+wheel_log_init "post-tool-use" "$_SID"
+_TOOL=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+wheel_log "enter" "tool=${_TOOL}"
+
 # 2. Extract command for interception checks
 COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
 
 # 2a. Check for deactivate.sh FIRST — "deactivate.sh" contains "activate.sh" as a substring,
 # so this must be checked before the activate.sh branch to avoid false matches.
 if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
+  wheel_log "branch" "path=deactivate"
   # Extract argument from the line containing deactivate.sh (handles multi-line commands)
   DEACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'deactivate\.sh' | tail -1)
   DEACTIVATE_ARG=$(printf '%s\n' "$DEACTIVATE_LINE" | sed 's/.*deactivate\.sh[[:space:]]*//' | awk '{print $1}' | tr -d "\"'")
@@ -107,12 +116,14 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
     done <<< "$TEAMMATE_AIDS"
   done
 
+  wheel_log "exit" "result=deactivate stopped=${STOPPED}"
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
 
 # 2b. Check for activate.sh interception — create state file with full ownership
 if [[ "$COMMAND" == *"activate.sh"* ]]; then
+  wheel_log "branch" "path=activate"
   # Extract workflow name from the line containing activate.sh
   # Claude Code may send multi-line commands with variable assignments before the call,
   # so isolate the activate.sh line first, then extract the argument after it.
@@ -195,6 +206,7 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
             [.teams // {} | to_entries[] | .value.teammates // {} | to_entries[] |
              select(.value.status == "running") | .value.agent_id // empty] | .[]
           ' "$_parent_sf" 2>/dev/null) || true
+          mkdir -p .wheel/.locks
           while IFS= read -r _tid; do
             [[ -z "$_tid" ]] && continue
             _lock=".wheel/.locks/agent_map_${_tid//[@\/]/_}"
@@ -207,6 +219,8 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
         fi
       fi
 
+      wheel_log_set_state "$STATE_FILE"
+      wheel_log "activate" "workflow=${WORKFLOW_NAME} file=${WORKFLOW_FILE}"
       WORKFLOW="$WORKFLOW_JSON"
       export WHEEL_HOOK_SCRIPT=""
       export WHEEL_HOOK_INPUT='{}'
@@ -217,32 +231,44 @@ if [[ "$COMMAND" == *"activate.sh"* ]]; then
     fi
   fi
 
+  wheel_log "exit" "result=activate workflow=${WORKFLOW_NAME}"
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
 
 # 3. Resolve state file from hook input (FR-004) — normal hook path
+wheel_log "branch" "path=normal"
 source "${PLUGIN_DIR}/lib/guard.sh"
 STATE_FILE=$(resolve_state_file ".wheel" "$HOOK_INPUT") || true
 if [[ -z "$STATE_FILE" ]]; then
+  wheel_log "exit" "result=no-state reason=unresolved"
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
+wheel_log_set_state "$STATE_FILE"
+wheel_log "resolved" "state=$STATE_FILE"
 
 # 4. Read workflow file from resolved state (FR-005)
 WORKFLOW_FILE=$(jq -r '.workflow_file // empty' "$STATE_FILE")
 if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then
+  wheel_log "exit" "result=no-workflow reason=missing_workflow_file"
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
 
 # 5. Source engine, init with resolved state file (FR-010)
-export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
 source "${PLUGIN_DIR}/lib/engine.sh"
 if ! engine_init "$WORKFLOW_FILE" "$STATE_FILE"; then
+  wheel_log "exit" "result=engine-init-failed"
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
 
 # 6. Proceed with hook-specific logic
-engine_handle_hook "post_tool_use" "$HOOK_INPUT"
+_CURSOR=$(jq -r '.cursor // 0' "$STATE_FILE" 2>/dev/null || echo "?")
+_STYPE=$(jq -r ".steps[${_CURSOR}].type // empty" "$STATE_FILE" 2>/dev/null || echo "?")
+_SSTAT=$(jq -r ".steps[${_CURSOR}].status // empty" "$STATE_FILE" 2>/dev/null || echo "?")
+wheel_log "handle" "cursor=${_CURSOR} step_type=${_STYPE} step_status=${_SSTAT}"
+_RESULT=$(engine_handle_hook "post_tool_use" "$HOOK_INPUT")
+wheel_log "exit" "result=$(printf '%s' "$_RESULT" | tr -d '\n' | head -c 200)"
+printf '%s\n' "$_RESULT"

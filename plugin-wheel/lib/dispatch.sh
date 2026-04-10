@@ -62,6 +62,105 @@ resolve_next_index() {
 # Params: $1 = state file path, $2 = step JSON (string)
 # Output: none
 # Exit: 0 on success, 1 on archive failure
+# Chain to the parent workflow's new current step after a child archives.
+# Called immediately after handle_terminal_step returns success, when we know
+# the child has been archived and the parent cursor has advanced. This keeps
+# the parent's next step dispatched in the SAME hook call so the workflow
+# doesn't stall waiting for an unrelated hook event to fire.
+#
+# Params:
+#   $1 = parent_state_file  (captured BEFORE handle_terminal_step)
+#   $2 = hook_type          (stop | post_tool_use | teammate_idle | subagent_stop)
+#   $3 = hook_input_json    (raw JSON from hook stdin)
+#
+# Output (stdout): JSON hook response
+# Exit: 0 on success
+#
+# Preconditions: $1 must be a captured snapshot — once handle_terminal_step
+# archives the child, the child's state_file is gone so we cannot read its
+# parent_workflow field anymore.
+_chain_parent_after_archive() {
+  local parent_state_path="$1"
+  local _orig_hook_type="$2"
+  local hook_input_json="$3"
+  # Always dispatch the parent's next step with "stop" semantics so that
+  # agent steps transition pending→working and return a block with their
+  # instruction. Other hook_types (post_tool_use, teammate_idle) would skip
+  # that transition and leave the parent orphaned.
+  local hook_type="stop"
+
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "chain_parent_enter" "parent_snap=${parent_state_path} orig_hook=${_orig_hook_type}"
+
+  if [[ -z "$parent_state_path" ]]; then
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=no_parent_snap"
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+  if [[ ! -f "$parent_state_path" ]]; then
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=parent_file_missing path=${parent_state_path}"
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  local parent_wf_file
+  parent_wf_file=$(jq -r '.workflow_file // empty' "$parent_state_path" 2>/dev/null)
+  if [[ -z "$parent_wf_file" || ! -f "$parent_wf_file" ]]; then
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=no_wf_file parent_wf_file=${parent_wf_file}"
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  local parent_wf_json
+  parent_wf_json=$(workflow_load "$parent_wf_file" 2>/dev/null) || {
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=workflow_load_failed file=${parent_wf_file}"
+    jq -n '{"decision": "approve"}'
+    return 0
+  }
+  if [[ -z "$parent_wf_json" ]]; then
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=empty_wf_json file=${parent_wf_file}"
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  local parent_cursor parent_total
+  parent_cursor=$(jq -r '.cursor // 0' "$parent_state_path")
+  parent_total=$(printf '%s\n' "$parent_wf_json" | jq '.steps | length')
+
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "chain_parent_loaded" "cursor=${parent_cursor} total=${parent_total} wf_file=${parent_wf_file}"
+
+  if [[ "$parent_cursor" -ge "$parent_total" ]]; then
+    declare -f wheel_log >/dev/null 2>&1 && \
+      wheel_log "chain_parent_exit" "reason=cursor_past_end cursor=${parent_cursor} total=${parent_total}"
+    jq -n '{"decision": "approve"}'
+    return 0
+  fi
+
+  local parent_step_json
+  parent_step_json=$(printf '%s\n' "$parent_wf_json" | jq -c --argjson idx "$parent_cursor" '.steps[$idx]')
+  local _parsed_id
+  _parsed_id=$(printf '%s\n' "$parent_step_json" | jq -r '.id // "?"')
+
+  # Swap WORKFLOW/STATE_FILE context to parent for the nested dispatch
+  local _saved_wf="${WORKFLOW:-}"
+  local _saved_sf="${STATE_FILE:-}"
+  WORKFLOW="$parent_wf_json"
+  STATE_FILE="$parent_state_path"
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "chain_parent_dispatch" "parent=${parent_state_path} parent_cursor=${parent_cursor}/${parent_total} step_id=${_parsed_id}"
+  dispatch_step "$parent_step_json" "$hook_type" "$hook_input_json" "$parent_state_path" "$parent_cursor"
+  local rc=$?
+  WORKFLOW="$_saved_wf"
+  STATE_FILE="$_saved_sf"
+  return $rc
+}
+
 handle_terminal_step() {
   local state_file="$1"
   local step_json="$2"
@@ -71,6 +170,10 @@ handle_terminal_step() {
   if [[ "$is_terminal" != "true" ]]; then
     return 1
   fi
+  local _sid
+  _sid=$(printf '%s\n' "$step_json" | jq -r '.id // "unknown"')
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "handle_terminal_step" "state=${state_file} step_id=${_sid}"
 
   # FR-009/FR-012: Before archiving, check if this is a child workflow with a parent
   local parent_state_path
@@ -87,6 +190,8 @@ handle_terminal_step() {
       if [[ -n "$parent_step_index" ]]; then
         # Mark parent's workflow step as done
         state_set_step_status "$parent_state_path" "$parent_step_index" "done"
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "handle_terminal_step" "advance_parent parent=${parent_state_path} parent_idx=${parent_step_index}"
 
         # Resolve next index and advance parent cursor
         local parent_wf_file
@@ -117,11 +222,22 @@ handle_terminal_step() {
     fi
   fi
 
-  # FR-009: Determine archive subdirectory based on step ID
+  # FR-009: Determine archive subdirectory based on actual execution outcome.
+  # Primary signal: state.status == "failed", or the terminal step's own
+  # status == "failed" (command exited non-zero, loop exhausted with
+  # on_exhaustion=fail, etc.). Fallback to step-id substring match for
+  # legacy workflows that use "failure" in the id to indicate a failure path.
   local step_id
   step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "unknown"')
   local archive_dir=".wheel/history/success"
-  if [[ "$step_id" == *"failure"* ]]; then
+  local _wf_status _step_status
+  _wf_status=$(jq -r '.status // empty' "$state_file" 2>/dev/null || echo "")
+  _step_status=$(jq -r --arg id "$step_id" \
+    '[.steps[]? | select(.id == $id) | .status // empty] | .[0] // empty' \
+    "$state_file" 2>/dev/null || echo "")
+  if [[ "$_wf_status" == "failed" || "$_step_status" == "failed" ]]; then
+    archive_dir=".wheel/history/failure"
+  elif [[ "$step_id" == *"failure"* ]]; then
     archive_dir=".wheel/history/failure"
   fi
 
@@ -164,11 +280,58 @@ dispatch_workflow() {
   state=$(state_read "$state_file") || return 1
   local step_status
   step_status=$(state_get_step_status "$state" "$step_index")
+  local _cn
+  _cn=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "dispatch_workflow" "hook=${hook_type} idx=${step_index} status=${step_status} child=${_cn}"
 
   case "$hook_type" in
     stop|post_tool_use)
       # Activate child workflow when step is pending (stop hook or PostToolUse after cursor advance)
       if [[ "$step_status" == "pending" ]]; then
+        # Atomic check-and-set: prevent concurrent hook invocations from both
+        # seeing "pending" and each creating a child state file (double dispatch).
+        # mkdir-based lock per (state_file, step_index). The lock is held for the
+        # lifetime of this child creation and NOT released — if the step is done,
+        # working, or failed, later invocations will see that status and skip.
+        local dispatch_lock_base="${STATE_DIR:-.wheel}/.locks"
+        local state_basename
+        state_basename="$(basename "$state_file" .json)"
+        local dispatch_lock_name="workflow-dispatch-${state_basename}-${step_index}"
+        if ! lock_acquire "$dispatch_lock_base" "$dispatch_lock_name"; then
+          # Another invocation is already creating the child — re-read status
+          # (it may have transitioned to working by now) and return a wait.
+          local child_name
+          child_name=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+          declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "dispatch_workflow" "lock_contended child=${child_name} idx=${step_index}"
+          jq -n --arg reason "Waiting for child workflow to activate: ${child_name}" \
+            '{"decision": "block", "reason": $reason}'
+          return 0
+        fi
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "dispatch_workflow" "lock_acquired child=${_cn} idx=${step_index}"
+        # Re-read status under the lock in case another caller won the race
+        # before us and already transitioned the step.
+        state=$(state_read "$state_file") || return 1
+        step_status=$(state_get_step_status "$state" "$step_index")
+        if [[ "$step_status" != "pending" ]]; then
+          # Status already changed — step is working/done/failed elsewhere.
+          # Fall through to the working/done branches below.
+          case "$step_status" in
+            working)
+              local child_name
+              child_name=$(printf '%s\n' "$step_json" | jq -r '.workflow // empty')
+              jq -n --arg reason "Waiting for child workflow to complete: ${child_name}" \
+                '{"decision": "block", "reason": $reason}'
+              return 0
+              ;;
+            *)
+              jq -n '{"decision": "approve"}'
+              return 0
+              ;;
+          esac
+        fi
         state_set_step_status "$state_file" "$step_index" "working"
 
         # FR-007: Load child workflow and create child state file
@@ -210,12 +373,48 @@ dispatch_workflow() {
         local child_state_file=".wheel/state_${child_unique}.json"
 
         state_init "$child_state_file" "$child_json" "$session_id" "$agent_id" "$child_file" "$state_file"
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "dispatch_workflow" "created_child state=${child_state_file} wf=${child_file}"
 
         # FR-015: Kickstart child workflow
         local saved_workflow="$WORKFLOW"
         WORKFLOW="$child_json"
         engine_kickstart "$child_state_file" >/dev/null 2>&1
         WORKFLOW="$saved_workflow"
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "dispatch_workflow" "post_kickstart child=${child_state_file}"
+
+        # If child completed inline (command-only child), handle_terminal_step
+        # already marked this parent's workflow step "done" and advanced the
+        # parent cursor. Chain-dispatch the next parent step inline instead of
+        # blocking — otherwise the turn ends and the next child requires a new
+        # Claude turn to activate.
+        if [[ ! -f "$state_file" ]]; then
+          # Parent archived too (child was parent's terminal step)
+          jq -n '{"decision": "approve"}'
+          return 0
+        fi
+        local post_state post_status
+        post_state=$(state_read "$state_file") || { jq -n '{"decision": "approve"}'; return 0; }
+        post_status=$(state_get_step_status "$post_state" "$step_index")
+        if [[ "$post_status" == "done" ]]; then
+          local post_cursor total_parent_steps
+          post_cursor=$(state_get_cursor "$post_state")
+          total_parent_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "dispatch_workflow" "inline_chain parent_cursor=${post_cursor}/${total_parent_steps}"
+          if [[ "$post_cursor" -ge "$total_parent_steps" ]]; then
+            jq -n '{"decision": "approve"}'
+            return 0
+          fi
+          local next_parent_step
+          next_parent_step=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$post_cursor" '.steps[$idx]')
+          # Recursively dispatch the next parent step in the same hook call.
+          dispatch_step "$next_parent_step" "$hook_type" "$hook_input_json" "$state_file" "$post_cursor"
+          return $?
+        fi
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "dispatch_workflow" "return_block reason=activated_child child=${_cn}"
 
         jq -n --arg reason "Workflow step activated child: ${child_name}" \
           '{"decision": "block", "reason": $reason}'
@@ -248,6 +447,10 @@ dispatch_step() {
 
   local step_type
   step_type=$(printf '%s\n' "$step_json" | jq -r '.type')
+  local _sid
+  _sid=$(printf '%s\n' "$step_json" | jq -r '.id // "unknown"')
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "dispatch_step" "hook=${hook_type} idx=${step_index} id=${_sid} type=${step_type}"
 
   case "$step_type" in
     agent)
@@ -311,10 +514,25 @@ dispatch_agent() {
   local step_status
   step_status=$(state_get_step_status "$state" "$step_index")
 
+  declare -f wheel_log >/dev/null 2>&1 && \
+    wheel_log "dispatch_agent" "hook=${hook_type} idx=${step_index} status=${step_status}"
+
   case "$hook_type" in
     stop)
       # Gate the orchestrator — inject step instruction
       if [[ "$step_status" == "pending" ]]; then
+        # Delete any stale output file from a prior run. Without this, the
+        # working→done transition below would auto-complete the step based
+        # on a leftover file the current agent never touched.
+        local _out_clear
+        _out_clear=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
+        declare -f wheel_log >/dev/null 2>&1 && \
+          wheel_log "agent_pending" "step=$(printf '%s' "$step_json" | jq -r '.id // "?"') output_key=${_out_clear} exists=$([[ -f "$_out_clear" ]] && echo yes || echo no)"
+        if [[ -n "$_out_clear" && -f "$_out_clear" ]]; then
+          rm -f "$_out_clear"
+          declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "agent_pending" "removed_stale_output=${_out_clear}"
+        fi
         state_set_step_status "$state_file" "$step_index" "working"
         local context
         context=$(context_build "$step_json" "$state" "$WORKFLOW")
@@ -328,9 +546,11 @@ dispatch_agent() {
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
           # FR-008: Check for terminal step — archive and end workflow
+          local _parent_snap
+          _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
           if handle_terminal_step "$state_file" "$step_json"; then
-            jq -n '{"decision": "approve"}'
-            return 0
+            _chain_parent_after_archive "$_parent_snap" "stop" "$hook_input_json"
+            return $?
           fi
           # FR-005: Resolve next index via next field or default to step_index + 1
           local raw_next
@@ -348,13 +568,34 @@ dispatch_agent() {
           else
             jq -n '{"decision": "approve"}'
           fi
+        elif [[ -z "$output_key" ]]; then
+          # No output file expected — agent step auto-completes on second stop
+          state_set_step_status "$state_file" "$step_index" "done"
+          local _parent_snap
+          _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+          if handle_terminal_step "$state_file" "$step_json"; then
+            _chain_parent_after_archive "$_parent_snap" "stop" "$hook_input_json"
+            return $?
+          fi
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "stop" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
         else
-          # Output not yet produced — short reminder instead of re-injecting full context
+          # Output file expected but not yet produced — short reminder
           local step_id
           step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
-          local output_key_hint
-          output_key_hint=$(printf '%s\n' "$step_json" | jq -r '.output // "the output file"')
-          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key_hint}" \
+          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key}" \
             '{"decision": "block", "reason": $msg}'
         fi
       else
@@ -362,14 +603,69 @@ dispatch_agent() {
       fi
       ;;
     teammate_idle)
-      # Gate agent with short reminder (full context already injected on first stop)
-      if [[ "$step_status" == "working" ]]; then
-        local step_id
-        step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
-        local output_key_hint
-        output_key_hint=$(printf '%s\n' "$step_json" | jq -r '.output // "the output file"')
-        jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key_hint}" \
-          '{"decision": "block", "reason": $msg}'
+      # Teammates go idle between turns instead of firing Stop hooks.
+      # Handle pending → working transition here (mirrors stop handler).
+      if [[ "$step_status" == "pending" ]]; then
+        state_set_step_status "$state_file" "$step_index" "working"
+        local context
+        context=$(context_build "$step_json" "$state" "$WORKFLOW")
+        jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+      elif [[ "$step_status" == "working" ]]; then
+        # Check if agent completed (output file exists) — same logic as stop handler
+        local output_key
+        output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
+        if [[ -n "$output_key" && -f "$output_key" ]]; then
+          state_set_step_status "$state_file" "$step_index" "done"
+          context_capture_output "$state_file" "$step_index" "$output_key"
+          local _parent_snap
+          _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+          if handle_terminal_step "$state_file" "$step_json"; then
+            _chain_parent_after_archive "$_parent_snap" "teammate_idle" "$hook_input_json"
+            return $?
+          fi
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
+        elif [[ -z "$output_key" ]]; then
+          # No output file expected — agent step completes when agent goes idle after working
+          state_set_step_status "$state_file" "$step_index" "done"
+          local _parent_snap
+          _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+          if handle_terminal_step "$state_file" "$step_json"; then
+            _chain_parent_after_archive "$_parent_snap" "teammate_idle" "$hook_input_json"
+            return $?
+          fi
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
+          else
+            jq -n '{"decision": "approve"}'
+          fi
+        else
+          local step_id
+          step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
+          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key}" \
+            '{"decision": "block", "reason": $msg}'
+        fi
       else
         jq -n '{"decision": "approve"}'
       fi
@@ -381,6 +677,36 @@ dispatch_agent() {
       local output_key
       output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
       if [[ -z "$output_key" ]]; then
+        # No output expected. If already "working", auto-complete — the agent
+        # has been acting on the instruction and there's no file to wait for.
+        if [[ "$step_status" == "working" ]]; then
+          state_set_step_status "$state_file" "$step_index" "done"
+          local _parent_snap
+          _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+          if handle_terminal_step "$state_file" "$step_json"; then
+            _chain_parent_after_archive "$_parent_snap" "post_tool_use" "$hook_input_json"
+            return $?
+          fi
+          local raw_next
+          raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+          local next_index
+          next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+          state_set_cursor "$state_file" "$next_index"
+          # Chain to command steps
+          local total_steps
+          total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
+          if [[ "$next_index" -lt "$total_steps" ]]; then
+            local next_step_json
+            next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
+            local next_step_type
+            next_step_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
+            if [[ "$next_step_type" == "command" || "$next_step_type" == "loop" || "$next_step_type" == "branch" ]]; then
+              export WHEEL_HOOK_SCRIPT=""
+              export WHEEL_HOOK_INPUT='{}'
+              dispatch_step "$next_step_json" "stop" '{}' "$state_file" "$next_index" >/dev/null 2>&1
+            fi
+          fi
+        fi
         jq -n '{"hookEventName": "PostToolUse"}'
         return 0
       fi
@@ -413,9 +739,13 @@ dispatch_agent() {
       context_capture_output "$state_file" "$step_index" "$output_key"
 
       # FR-008: Check for terminal step — archive and end workflow
+      local _parent_snap
+      _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
       if handle_terminal_step "$state_file" "$step_json"; then
-        jq -n '{"hookEventName": "PostToolUse"}'
-        return 0
+        # Chain into the parent's new current step inline so the next step's
+        # instruction is injected in this same hook call.
+        _chain_parent_after_archive "$_parent_snap" "post_tool_use" "$hook_input_json"
+        return $?
       fi
 
       # FR-005: Resolve next index and advance cursor
@@ -425,7 +755,9 @@ dispatch_agent() {
       next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
       state_set_cursor "$state_file" "$next_index"
 
-      # Chain into auto-executable steps (command/loop/branch) so workflow doesn't stall
+      # Chain into auto-executable steps so workflow doesn't stall.
+      # Includes command/loop/branch (always auto-exec) and agent steps without
+      # output files (auto-complete — the agent acts on them naturally from context).
       local total_steps
       total_steps=$(printf '%s\n' "$WORKFLOW" | jq '.steps | length')
       if [[ "$next_index" -lt "$total_steps" ]]; then
@@ -437,6 +769,33 @@ dispatch_agent() {
           export WHEEL_HOOK_SCRIPT=""
           export WHEEL_HOOK_INPUT='{}'
           dispatch_step "$next_step_json" "stop" '{}' "$state_file" "$next_index" >/dev/null 2>&1
+        elif [[ "$next_step_type" == "agent" ]]; then
+          local next_output
+          next_output=$(printf '%s\n' "$next_step_json" | jq -r '.output // empty')
+          if [[ -z "$next_output" ]]; then
+            # Agent step with no output — auto-complete and chain further
+            state_set_step_status "$state_file" "$next_index" "done"
+            if ! handle_terminal_step "$state_file" "$next_step_json"; then
+              local raw_next2
+              raw_next2=$(resolve_next_index "$next_step_json" "$next_index" "$WORKFLOW") || true
+              if [[ -n "$raw_next2" ]]; then
+                local next_index2
+                next_index2=$(advance_past_skipped "$state_file" "$raw_next2" "$WORKFLOW")
+                state_set_cursor "$state_file" "$next_index2"
+                if [[ "$next_index2" -lt "$total_steps" ]]; then
+                  local next_step_json2
+                  next_step_json2=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index2" '.steps[$idx]')
+                  local next_type2
+                  next_type2=$(printf '%s\n' "$next_step_json2" | jq -r '.type')
+                  if [[ "$next_type2" == "command" || "$next_type2" == "loop" || "$next_type2" == "branch" ]]; then
+                    export WHEEL_HOOK_SCRIPT=""
+                    export WHEEL_HOOK_INPUT='{}'
+                    dispatch_step "$next_step_json2" "stop" '{}' "$state_file" "$next_index2" >/dev/null 2>&1
+                  fi
+                fi
+              fi
+            fi
+          fi
         fi
       fi
 
@@ -444,25 +803,29 @@ dispatch_agent() {
       return 0
       ;;
     subagent_stop)
-      # Agent finished — mark step done, advance
-      state_set_step_status "$state_file" "$step_index" "done"
-      # Capture output if step defines an output key
+      # SubagentStop fires when the enclosing Task subagent exits or transitions
+      # between turns. It does NOT mean "this agent step is done" — the current
+      # agent step may or may not have produced its output yet. Only advance if
+      # the step's declared output file exists (same gate as the stop/working
+      # branch). Otherwise this is a no-op so the workflow can be resumed on
+      # the next hook event.
       local output_key
       output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
-      if [[ -n "$output_key" ]]; then
+      if [[ -n "$output_key" && -f "$output_key" ]]; then
+        state_set_step_status "$state_file" "$step_index" "done"
         context_capture_output "$state_file" "$step_index" "$output_key"
+        local _parent_snap
+        _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
+        if handle_terminal_step "$state_file" "$step_json"; then
+          _chain_parent_after_archive "$_parent_snap" "subagent_stop" "$hook_input_json"
+          return $?
+        fi
+        local raw_next
+        raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
+        local next_index
+        next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
+        state_set_cursor "$state_file" "$next_index"
       fi
-      # FR-008: Check for terminal step — archive and end workflow
-      if handle_terminal_step "$state_file" "$step_json"; then
-        jq -n '{"decision": "approve"}'
-        return 0
-      fi
-      # FR-005: Resolve next index via next field or default to step_index + 1
-      local raw_next
-      raw_next=$(resolve_next_index "$step_json" "$step_index" "$WORKFLOW") || return 1
-      local next_index
-      next_index=$(advance_past_skipped "$state_file" "$raw_next" "$WORKFLOW")
-      state_set_cursor "$state_file" "$next_index"
       jq -n '{"decision": "approve"}'
       ;;
     *)
@@ -1397,16 +1760,20 @@ dispatch_team_wait() {
       tool_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_name // empty')
 
       if [[ "$tool_name" == "Agent" ]]; then
-        local spawned_name spawned_aid
+        local spawned_name
         spawned_name=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_input.name // empty')
-        spawned_aid=$(printf '%s\n' "$hook_input_json" | jq -r '.tool_result.agent_id // empty')
-        if [[ -n "$spawned_name" && -n "$spawned_aid" ]]; then
+        if [[ -n "$spawned_name" ]]; then
           local cur_state
           cur_state=$(state_read "$state_file") || true
           local has_teammate
           has_teammate=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" --arg n "$spawned_name" \
             '.teams[$tid].teammates[$n] // empty')
           if [[ -n "$has_teammate" ]]; then
+            # Construct agent_id from name@team_name — don't rely on tool_result
+            # which may not be a structured JSON object in PostToolUse hook input
+            local team_name_resolved
+            team_name_resolved=$(printf '%s\n' "$cur_state" | jq -r --arg tid "$team_ref" '.teams[$tid].team_name // empty')
+            local spawned_aid="${spawned_name}@${team_name_resolved}"
             local now
             now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
             local updated
@@ -1505,9 +1872,60 @@ dispatch_team_wait() {
       jq -n '{"decision": "approve"}'
       ;;
     teammate_idle)
-      # Teammate went idle — don't stop them here. Their sub-workflow Stop hook
-      # handles completion detection and returns continue:false when done.
-      # The team lead shutdown cascades to stop all remaining teammates.
+      # Teammate went idle. Check if their sub-workflow state file was archived
+      # (terminal step completed) — if so, mark them completed in the parent.
+      # TeammateIdle hook input has teammate_name (not agent_id).
+      local idle_name
+      idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.teammate_name // empty')
+      local idle_agent_id
+      idle_agent_id=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_id // empty')
+
+      if [[ -n "$idle_name" ]]; then
+        # Check if this teammate's sub-workflow state file still exists
+        # Construct team-format ID if not already in hook input
+        if [[ -z "$idle_agent_id" || "$idle_agent_id" != *"@"* ]]; then
+          local _tname
+          _tname=$(printf '%s\n' "$hook_input_json" | jq -r '.team_name // empty')
+          [[ -n "$_tname" ]] && idle_agent_id="${idle_name}@${_tname}"
+        fi
+
+        local _found_state=false
+        if [[ -n "$idle_agent_id" ]]; then
+          local _sf
+          for _sf in .wheel/state_*.json; do
+            [[ -f "$_sf" ]] || continue
+            local _alt
+            _alt=$(jq -r '.alternate_agent_id // empty' "$_sf" 2>/dev/null) || continue
+            if [[ "$_alt" == "$idle_agent_id" ]]; then
+              _found_state=true
+              break
+            fi
+          done
+        fi
+
+        if [[ "$_found_state" == false ]]; then
+          # Sub-workflow state archived — teammate is done
+          local tm_st
+          tm_st=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" --arg n "$idle_name" \
+            '.teams[$tid].teammates[$n].status // empty')
+          if [[ -n "$tm_st" && "$tm_st" != "completed" && "$tm_st" != "failed" ]]; then
+            state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
+          fi
+          # Check if all teammates done
+          state=$(state_read "$state_file") || return 1
+          local teammates_json
+          teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+          local total completed failed done_count
+          total=$(printf '%s\n' "$teammates_json" | jq 'length')
+          completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+          failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+          done_count=$((completed + failed))
+          if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
+            _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+            return $?
+          fi
+        fi
+      fi
       jq -n '{"decision": "approve"}'
       ;;
     *)
@@ -1552,9 +1970,9 @@ _team_wait_complete() {
       output_dir: .value.output_dir,
       duration_seconds: (
         if .value.started_at != null and .value.completed_at != null then
-          ((.value.completed_at | fromdateiso8601) - (.value.started_at | fromdateiso8601))
+          ((.value.completed_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) - (.value.started_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601))
         elif .value.started_at != null then
-          (($now | fromdateiso8601) - (.value.started_at | fromdateiso8601))
+          (($now | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) - (.value.started_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601))
         else 0 end
       )
     }

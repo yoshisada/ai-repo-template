@@ -35,3 +35,8 @@ npm-debug.log*
 
 .wheel/state.json
 .wheel/.locks/
+
+# Workflow outputs — generated, never commit
+reports/
+.wheel/outputs/
+.wheel/logs/

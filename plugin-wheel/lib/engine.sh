@@ -221,15 +221,23 @@ engine_handle_hook() {
         # FR-026: team-wait polls teammate status on each PostToolUse invocation
         dispatch_step "$current_step" "post_tool_use" "$hook_input_json" "$STATE_FILE" "$cursor"
         return $?
+      elif [[ "$step_type" == "command" || "$step_type" == "loop" || "$step_type" == "branch" ]]; then
+        # Command steps reached via cursor advancement (e.g., after agent step
+        # auto-complete) — execute inline so the workflow doesn't stall.
+        local step_status
+        step_status=$(state_get_step_status "$state" "$cursor")
+        if [[ "$step_status" == "pending" ]]; then
+          dispatch_step "$current_step" "stop" "$hook_input_json" "$STATE_FILE" "$cursor" >/dev/null 2>&1
+        fi
       fi
       jq -n '{"hookEventName": "PostToolUse"}'
       return 0
       ;;
     teammate_idle)
-      # Handle teammate going idle — if current step is team-wait, mark teammate completed
+      # Handle teammate going idle — route to appropriate step handler
       local step_type
       step_type=$(printf '%s\n' "$current_step" | jq -r '.type')
-      if [[ "$step_type" == "team-wait" ]]; then
+      if [[ "$step_type" == "team-wait" || "$step_type" == "agent" ]]; then
         dispatch_step "$current_step" "teammate_idle" "$hook_input_json" "$STATE_FILE" "$cursor"
         return $?
       fi
