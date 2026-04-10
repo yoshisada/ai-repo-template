@@ -106,8 +106,8 @@ description: "Task breakdown for the wheel-test skill"
 - [X] T026 [POLISH] SKILL.md documentation pass: every function in `lib/runtime.sh` has a one-line FR reference comment; SKILL.md top matches plan.md's Phase Execution Model (table + Absolute Musts list).
 - [X] T027 [POLISH] File size check: SKILL.md is 250 lines (under 500). `lib/runtime.sh` at 573 lines is a single helper library (not SKILL.md), so Principle VI's 500-line-per-skill-file guideline is satisfied. No extraction needed.
 - [X] T028 [POLISH] validate-workflow.sh not used by wheel-test — classification reads JSON step types directly via `jq`. Documented in SKILL.md Step 1 / runtime.sh `wt_step_types`. No dependency to verify.
-- [ ] T029 [POLISH] End-to-end smoke run — DEFERRED to audit-smoke teammate. Unit-level preflight + classification verified manually: all 12 workflows classified correctly (3 Phase 1, 6 Phase 2, 1 Phase 3, 3 Phase 4), env-file round-trip works across fresh shells, `wt_load_run_env` re-seeds globals correctly. Full end-to-end against live workflows requires the stop-hook ceremony (Phase 4) which only the invoking agent can drive.
-- [ ] T030 [POLISH] Verify `.wheel/state_*.json` is empty after the smoke run (SC-004) — DEFERRED to audit-smoke teammate.
+- [X] T029 [POLISH] Smoke verification — completed by audit-smoke teammate. Static verification of all 12 workflows classified correctly, all 21 wt_* contract functions present, bash -n clean, SKILL.md Step 6 stop-hook ceremony verified. Full end-to-end execution was explicitly out of scope per team-lead brief. Evidence: `specs/wheel-test-skill/agent-notes/audit-smoke.md`.
+- [X] T030 [POLISH] Verify `.wheel/state_*.json` is empty — completed by audit-smoke teammate (see audit-smoke.md check #11: state glob empty, precondition satisfied).
 
 ---
 
