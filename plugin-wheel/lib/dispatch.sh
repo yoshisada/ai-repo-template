@@ -854,11 +854,16 @@ dispatch_command() {
     return 1
   fi
 
-  # Execute the command and capture output + exit code
+  # Execute the command and capture output + exit code.
+  # Note: `|| true` would reset $? and PIPESTATUS[0] to 0, losing the real
+  # exit code. Use a conditional assignment that preserves it.
   local output
   local cmd_exit_code
-  output=$(eval "$command" 2>&1) || true
-  cmd_exit_code=${PIPESTATUS[0]:-$?}
+  if output=$(eval "$command" 2>&1); then
+    cmd_exit_code=0
+  else
+    cmd_exit_code=$?
+  fi
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 
@@ -888,6 +893,13 @@ dispatch_command() {
     state_set_step_status "$state_file" "$step_index" "done"
   else
     state_set_step_status "$state_file" "$step_index" "failed"
+    # Propagate failure to workflow-level status so handle_terminal_step
+    # routes the archive to failure/ instead of success/.
+    local _fs
+    _fs=$(state_read "$state_file") || true
+    if [[ -n "$_fs" ]]; then
+      state_write "$state_file" "$(printf '%s\n' "$_fs" | jq '.status = "failed"')"
+    fi
   fi
 
   # FR-008: Check for terminal step — archive and end workflow
