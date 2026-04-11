@@ -1,0 +1,10 @@
+{
+  "_status": "deferred",
+  "_reason": "This placeholder exists to satisfy the file-path dependency. Actual capture requires running v3 against a frozen fixture vault AND the snapshot-capture harness (Phase 2, T005). Per tasks.md T003 note: 'first-pass capture can be manual; may be re-run after Phase 2'. The real capture happens in T008 once the harness exists, replacing this placeholder.",
+  "_capture_plan": {
+    "fixture": "ai-repo-template @ 2973dedb4a0b3cfa8f8235bc30b369830af73e07 with the ai-repo-template Obsidian vault project",
+    "method": "run plugin-shelf/scripts/obsidian-snapshot-capture.sh projects ai-repo-template specs/shelf-sync-efficiency/baseline/v3-snapshot.json AFTER a full v3 shelf-full-sync run",
+    "blocking": "T008 (re-capture using harness) supersedes this placeholder"
+  },
+  "files": []
+}
