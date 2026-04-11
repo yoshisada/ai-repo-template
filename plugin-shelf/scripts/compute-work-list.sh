@@ -25,8 +25,8 @@ mkdir -p .wheel/outputs
 
 # ---------- shelf config ----------
 cfg=".wheel/outputs/read-shelf-config.txt"
-base_path=$(grep '^base_path=' "$cfg" 2>/dev/null | head -1 | cut -d= -f2- | tr -d ' "' || true)
-slug=$(grep '^slug=' "$cfg" 2>/dev/null | head -1 | cut -d= -f2- | tr -d ' "' || true)
+base_path=$(grep -E '^base_path[[:space:]]*=' "$cfg" 2>/dev/null | head -1 | sed -E 's/^base_path[[:space:]]*=[[:space:]]*//' | tr -d '"' | sed -E 's/[[:space:]]+$//' || true)
+slug=$(grep -E '^slug[[:space:]]*=' "$cfg" 2>/dev/null | head -1 | sed -E 's/^slug[[:space:]]*=[[:space:]]*//' | tr -d '"' | sed -E 's/[[:space:]]+$//' || true)
 base_path=${base_path:-projects}
 slug=${slug:-unknown}
 
