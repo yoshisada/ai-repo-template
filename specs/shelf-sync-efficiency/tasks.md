@@ -42,17 +42,17 @@ Mark each task `[X]` immediately after it is done. Commit after each phase.
 - [X] **T014** — Implement `obsidian-apply` agent instruction per contracts §6.2. Explicit: no `list_files` calls, no templating, consume work list verbatim. Preserve dashboard `preserve_sections` byte-for-byte. Capture errors into `errors[]`, do not abort on first error.
 - [X] **T015** — Rewrite `generate-sync-summary` command per contracts §7.1. Must read `compute-work-list.json` and `obsidian-apply-results.json` and emit the five sections in exactly the required order. Keep `terminal: true`.
 - [X] **T016** — Validate the JSON: `jq . plugin-shelf/workflows/shelf-full-sync.json` must succeed. Run `wheel-run shelf-full-sync` in dry-mode if available; otherwise execute on the fixture and catch any step-shape errors.
-- [ ] **T017** — Commit Phase 3: `git add plugin-shelf/workflows/shelf-full-sync.json specs/shelf-sync-efficiency/baseline/shelf-full-sync-v3.json && git commit -m "refactor(shelf): shelf-full-sync v4 — 2 agents, command-side diff"`.
+- [X] **T017** — Commit Phase 3: `git add plugin-shelf/workflows/shelf-full-sync.json specs/shelf-sync-efficiency/baseline/shelf-full-sync-v3.json && git commit -m "refactor(shelf): shelf-full-sync v4 — 2 agents, command-side diff"`.
 
 ---
 
 ## Phase 4 — Benchmark + parity verification
 
-- [ ] **T018** — Run v4 on the pinned benchmark repo (from T001). Record token cost via wheel-runner telemetry. Write results to `specs/shelf-sync-efficiency/benchmark/v4-token-cost.md`. Verify ≤30k tokens (SC-001). If >30k, stop, diagnose, return to Phase 3.
-- [ ] **T019** — Run v4 on the frozen fixture. Capture the Obsidian snapshot using the harness (`obsidian-snapshot-capture.sh`). Save as `specs/shelf-sync-efficiency/benchmark/v4-snapshot.json`.
-- [ ] **T020** — Diff v3 vs v4 snapshots using `obsidian-snapshot-diff.sh baseline/v3-snapshot.json benchmark/v4-snapshot.json`. Must exit 0 (identical). Record result in `specs/shelf-sync-efficiency/benchmark/parity-result.md` (SC-003). If diff is non-empty, fix in Phase 3 and re-run.
-- [ ] **T021** — Large-vault test: identify or synthesize a fixture with ≥50 GitHub issues and ≥20 PRDs under `docs/features/`. Run v4 against it. Verify no agent step hits its context ceiling. Record results in `specs/shelf-sync-efficiency/benchmark/large-vault-result.md` (SC-004). If a ceiling is hit, shrink the `obsidian-discover` index payload (e.g., drop fields) and re-run — DO NOT add a third agent (FR-001).
-- [ ] **T022** — Caller-smoke: invoke `/shelf-sync` (which calls `shelf-full-sync` by name) and the `report-issue-and-sync` composed workflow on the benchmark repo. Verify zero caller-side changes were required and both complete successfully (SC-005).
-- [ ] **T023** — Final terminal-summary check: verify `.wheel/outputs/shelf-full-sync-summary.md` contains `## Issues`, `## Docs`, `## Tags`, `## Progress`, `## Errors` in that order on a representative run (SC-006).
-- [ ] **T024** — Write `specs/shelf-sync-efficiency/benchmark/v4-results.md` — one-page summary linking all benchmark artifacts, hard-gate pass/fail table, comparison to v3 baseline.
-- [ ] **T025** — Commit Phase 4: `git add specs/shelf-sync-efficiency/benchmark/ && git commit -m "benchmark: shelf-full-sync v4 meets token + parity + large-vault gates"`.
+- [X] **T018** — Run v4 on the pinned benchmark repo (from T001). Record token cost via wheel-runner telemetry. Write results to `specs/shelf-sync-efficiency/benchmark/v4-token-cost.md`. Verify ≤30k tokens (SC-001). If >30k, stop, diagnose, return to Phase 3.
+- [X] **T019** — Run v4 on the frozen fixture. Capture the Obsidian snapshot using the harness (`obsidian-snapshot-capture.sh`). Save as `specs/shelf-sync-efficiency/benchmark/v4-snapshot.json`.
+- [X] **T020** — Diff v3 vs v4 snapshots using `obsidian-snapshot-diff.sh baseline/v3-snapshot.json benchmark/v4-snapshot.json`. Must exit 0 (identical). Record result in `specs/shelf-sync-efficiency/benchmark/parity-result.md` (SC-003). If diff is non-empty, fix in Phase 3 and re-run.
+- [X] **T021** — Large-vault test: identify or synthesize a fixture with ≥50 GitHub issues and ≥20 PRDs under `docs/features/`. Run v4 against it. Verify no agent step hits its context ceiling. Record results in `specs/shelf-sync-efficiency/benchmark/large-vault-result.md` (SC-004). If a ceiling is hit, shrink the `obsidian-discover` index payload (e.g., drop fields) and re-run — DO NOT add a third agent (FR-001).
+- [X] **T022** — Caller-smoke: invoke `/shelf-sync` (which calls `shelf-full-sync` by name) and the `report-issue-and-sync` composed workflow on the benchmark repo. Verify zero caller-side changes were required and both complete successfully (SC-005).
+- [X] **T023** — Final terminal-summary check: verify `.wheel/outputs/shelf-full-sync-summary.md` contains `## Issues`, `## Docs`, `## Tags`, `## Progress`, `## Errors` in that order on a representative run (SC-006).
+- [X] **T024** — Write `specs/shelf-sync-efficiency/benchmark/v4-results.md` — one-page summary linking all benchmark artifacts, hard-gate pass/fail table, comparison to v3 baseline.
+- [X] **T025** — Commit Phase 4: `git add specs/shelf-sync-efficiency/benchmark/ && git commit -m "benchmark: shelf-full-sync v4 meets token + parity + large-vault gates"`.
