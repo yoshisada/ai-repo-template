@@ -69,4 +69,4 @@ Mark each task `[X]` immediately after it is done. Commit after each phase.
 - [X] **T031** — Update obsidian-apply agent instructions in workflow — CREATE uses `create_file` + LLM inference of summary/status/tags/category from `source_data`. UPDATE uses `patch_file` with programmatic fields only. Document field classification (programmatic vs inferred) in the instruction text.
 - [X] **T032** — Validate JSON: `jq . plugin-shelf/workflows/shelf-full-sync.json` must succeed. Run basic smoke test of `compute-work-list.sh` with sample inputs to verify hash-based diff logic.
 - [X] **T033** — Update `blockers.md` — mark B-002 and B-005 as RESOLVED by v5 `patch_file` architecture. Update summary table.
-- [ ] **T034** — Commit Phase 5 implementation: `git add plugin-shelf/ specs/shelf-sync-efficiency/ .shelf-sync.json && git commit -m "refactor(shelf): shelf-full-sync v5 — manifest-based sync, CREATE vs UPDATE semantics"`.
+- [X] **T034** — Commit Phase 5 implementation: `git add plugin-shelf/ specs/shelf-sync-efficiency/ .shelf-sync.json && git commit -m "refactor(shelf): shelf-full-sync v5 — manifest-based sync, CREATE vs UPDATE semantics"`.
