@@ -42,45 +42,40 @@ total lands under 30k.
 
 ---
 
-## B-002 — SC-003 (Obsidian byte-parity) not run against a live vault
+## B-002 — SC-003 (Obsidian behavioral parity) — CONFIRMED REGRESSION on docs
 
 **Requirement**: FR-003 / SC-003 — v4 run must produce a byte-identical
 Obsidian snapshot to v3 on a frozen fixture.
 
-**Status**: HARNESS VERIFIED, LIVE DIFF DEFERRED.
+**Status**: CONFIRMED REGRESSION (live run 2026-04-11). Workflow stopped
+before obsidian-apply executed; vault was NOT written.
 
-**Why blocked**: No live Obsidian vault is wired into this session and no
-frozen fixture vault exists on disk. The snapshot-capture script requires
-`OBSIDIAN_VAULT_ROOT` to be set (verified during audit smoke test — it exits
-2 with a clear error when unset).
+**What happened**: A post-pipeline live run on the real vault revealed that
+`compute-work-list.sh` generates doc entries with:
+- `summary = title` (copy of doc title, not a meaningful summary)
+- `status = "Draft"` (hardcoded, ignores actual implementation state)
+- `tags` missing `status/*` and `category/*` entries present in existing vault
 
-**Current evidence**: The harness itself works —
-`plugin-shelf/scripts/obsidian-snapshot-capture.sh` +
-`obsidian-snapshot-diff.sh` exit 0 on identical, 1 on differences, 2 on
-error, verified by the auditor on a synthetic fixture at `/tmp/snap-test/`.
+All 24 doc update actions would have regressed existing vault content.
 
-**Important semantic caveat** (flagged by implementer in benchmark-results.md
-risk #3): v3 rendered issue/doc bodies using LLM judgment for
-severity/category/body text; v4 uses deterministic defaults (severity=medium,
-body="Synced from GitHub issue #N."). A strict body-hash parity check against
-a v3 snapshot captured from the real (LLM-rendered) run will almost certainly
-flag differences on those fields. Before declaring SC-003 pass/fail, the team
-must decide whether parity means:
+**Root cause**: bash cannot infer what v3 LLM agents derived from reading PRD
+content. The v4 architecture works for issues (content comes from GitHub JSON
+verbatim) but fails for docs (content requires reading and summarizing PRDs).
 
-- **Strict body-hash equality** -> v4 will fail and must add LLM-rendered
-  fields back to agent work (which risks re-inflating token cost), OR
-- **Structural parity** (path + type + status + frontmatter schema match) ->
-  v4 passes once the harness is run live and only the expected deterministic
-  fields differ.
+**Scope**: Issue sync is likely correct. Doc sync is the broken surface.
 
-**Path to resolution**: (a) team-lead decides strict vs structural parity;
-(b) after decision, run v3 and v4 against the same fixture vault, capture
-snapshots, diff, and record in
-`specs/shelf-sync-efficiency/benchmark/parity-result.md` — that file
-currently exists but holds placeholder data.
+**Path to resolution**: Choose between:
+- **Road A (vault schema split)**: Separate vault frontmatter into programmatic
+  fields (synced deterministically) and inferred fields (set on create only,
+  never overwritten on update). Requires vault migration script.
+- **Road B (merge-aware apply)**: obsidian-apply reads existing note before
+  writing, merging computed fields over preserved LLM-inferred fields. No vault
+  migration needed; obsidian-apply makes more MCP read calls.
 
-**Risk level**: MEDIUM-HIGH. Parity is the precondition for shipping per the
-spec. If the team chooses strict parity, v4 likely needs rework.
+See backlog issue `2026-04-11-shelf-vault-programmatic-interactions.md` for
+architectural detail. Both roads require spec update before code changes.
+
+**Risk level**: CRITICAL. This is a correctness regression that blocks merge.
 
 ---
 
@@ -112,13 +107,62 @@ empirical confirmation, not architectural.
 
 ---
 
+---
+
+## B-004 — compute-work-list.sh failed to parse .shelf-config whitespace format — RESOLVED
+
+**Requirement**: FR-002 — deterministic diff computation must produce correct
+paths from `.shelf-config` fields.
+
+**Status**: RESOLVED (fix committed 2026-04-11, commit `41b3a88`).
+
+**What happened**: `grep '^base_path='` didn't match the `.shelf-config`
+format `base_path = value` (spaces around `=`). Result: `base_path` fell
+back to `"projects"` and `slug` to `"unknown"`, producing paths like
+`projects/unknown/issues/...` that would have corrupted the vault.
+
+**Fix**: Switched to `grep -E '^base_path[[:space:]]*='` with `sed` to strip
+whitespace and quotes. Verified by re-running against real `.shelf-config`.
+
+---
+
+## B-005 — Doc sync produces regressed content (summary, status, tags)
+
+**Requirement**: FR-003 / SC-003 — v4 output must match v3 on a reference
+repo.
+
+**Status**: CONFIRMED REGRESSION (live run 2026-04-11). Root cause of B-002.
+Vault not written — workflow stopped before obsidian-apply executed.
+
+**What happened**: `compute-work-list.sh` cannot derive the LLM-inferred
+fields that v3 agents computed by reading PRD files:
+
+| Field | v3 (LLM-inferred) | v4 (deterministic) | Regresses? |
+|---|---|---|---|
+| `summary` | Meaningful summary from PRD | Copy of `title` | YES |
+| `status` | Reflects implementation state | Hardcoded `"Draft"` | YES |
+| `tags` | Includes `status/*`, `category/*` | Only `doc/prd` | YES |
+
+**Scope**: Issue sync is unaffected (content from GitHub JSON verbatim).
+Doc sync (24 updates on this vault) would regress all three fields.
+
+**Path to resolution**: See backlog issue
+`2026-04-11-shelf-vault-programmatic-interactions.md`. Road A or Road B
+must be chosen and specced before this branch can merge.
+
+**Risk level**: CRITICAL. Merge-blocking.
+
+---
+
 ## Summary table
 
 | ID | Requirement | Status | Risk |
 |---|---|---|---|
-| B-001 | SC-001 <=30k tokens | Structural estimate only (~37k +/-10k) | MEDIUM |
-| B-002 | SC-003 byte parity | Harness built, live diff deferred + semantic caveat | MEDIUM-HIGH |
+| B-001 | SC-001 ≤30k tokens | Structural estimate only (~37k ±10k); gate likely unreachable on large vault | MEDIUM |
+| B-002 | SC-003 behavioral parity | CONFIRMED REGRESSION (doc sync) — root cause is B-005 | CRITICAL |
 | B-003 | SC-004 large vault | Not exercised, structural mitigation in place | LOW-MEDIUM |
+| B-004 | FR-002 correct path parsing | RESOLVED — commit 41b3a88 | — |
+| B-005 | FR-003 doc content parity | CONFIRMED REGRESSION — LLM-inferred fields cannot be reproduced in bash | CRITICAL |
 
 **Gates that pass cleanly**: SC-002 (agent count = 2), SC-005 (drop-in by
 construction), SC-006 (summary shape verified by smoke test), FR-002/FR-013
@@ -126,6 +170,5 @@ construction), SC-006 (summary shape verified by smoke test), FR-002/FR-013
 (path/name unchanged), FR-008 (command steps preserved verbatim), FR-009
 (no new deps), FR-011 (harness exists), FR-012 (benchmark repo pinned).
 
-**Recommendation**: Team-lead should decide whether to ship this PR as-is
-(accepting B-001/B-002/B-003 for follow-up) or to block merge on a clean
-live-run confirmation of B-001 and B-002 before the branch lands.
+**Merge status**: BLOCKED on B-002/B-005. Requires architectural decision
+(Road A or Road B) and re-implementation before merge.

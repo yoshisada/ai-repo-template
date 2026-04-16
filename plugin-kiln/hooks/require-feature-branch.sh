@@ -46,8 +46,8 @@ if [[ -n "${SPECIFY_FEATURE:-}" ]]; then
   BRANCH="$SPECIFY_FEATURE"
 fi
 
-# Enforce naming convention: ###-name or YYYYMMDD-HHMMSS-name
-if [[ "$BRANCH" =~ ^[0-9]{3}- ]] || [[ "$BRANCH" =~ ^[0-9]{8}-[0-9]{6}- ]]; then
+# Enforce naming convention: ###-name, YYYYMMDD-HHMMSS-name, or build/* (build-prd pipeline branches)
+if [[ "$BRANCH" =~ ^[0-9]{3}- ]] || [[ "$BRANCH" =~ ^[0-9]{8}-[0-9]{6}- ]] || [[ "$BRANCH" == build/* ]]; then
   exit 0
 fi
 
