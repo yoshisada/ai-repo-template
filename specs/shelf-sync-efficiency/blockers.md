@@ -42,40 +42,35 @@ total lands under 30k.
 
 ---
 
-## B-002 — SC-003 (Obsidian behavioral parity) — CONFIRMED REGRESSION on docs
+## B-002 — SC-003 (Obsidian behavioral parity) — RESOLVED in v5
 
 **Requirement**: FR-003 / SC-003 — v4 run must produce a byte-identical
 Obsidian snapshot to v3 on a frozen fixture.
 
-**Status**: CONFIRMED REGRESSION (live run 2026-04-11). Workflow stopped
-before obsidian-apply executed; vault was NOT written.
+**Status**: RESOLVED (v5 implementation, 2026-04-16).
 
-**What happened**: A post-pipeline live run on the real vault revealed that
-`compute-work-list.sh` generates doc entries with:
-- `summary = title` (copy of doc title, not a meaningful summary)
-- `status = "Draft"` (hardcoded, ignores actual implementation state)
-- `tags` missing `status/*` and `category/*` entries present in existing vault
+**What happened (v4)**: `compute-work-list.sh` generated doc entries with
+hardcoded `summary = title`, `status = "Draft"`, and incomplete `tags` — all
+of which would have regressed existing vault content on UPDATE.
 
-All 24 doc update actions would have regressed existing vault content.
+**How v5 resolves this**: v5 splits fields into two classifications:
+- **Programmatic fields** (source, github_number, prd_path, project,
+  last_synced, status for issues): always patched on UPDATE via
+  `mcp__obsidian-projects__patch_file`.
+- **Inferred fields** (summary, tags, category, severity, status for docs):
+  set ONLY on CREATE by the LLM agent reading source_data; NEVER touched on
+  UPDATE.
 
-**Root cause**: bash cannot infer what v3 LLM agents derived from reading PRD
-content. The v4 architecture works for issues (content comes from GitHub JSON
-verbatim) but fails for docs (content requires reading and summarizing PRDs).
+On UPDATE, `obsidian-apply` calls `patch_file` with only programmatic fields,
+preserving all LLM-inferred content from the original CREATE. On CREATE, the
+agent reads the full `source_data` (issue body or PRD content) and generates
+meaningful inferred fields — matching v3 behavior.
 
-**Scope**: Issue sync is likely correct. Doc sync is the broken surface.
+This is Road A from the original analysis (vault schema split into
+programmatic vs inferred), implemented without a migration script because
+`patch_file` naturally preserves unmentioned fields.
 
-**Path to resolution**: Choose between:
-- **Road A (vault schema split)**: Separate vault frontmatter into programmatic
-  fields (synced deterministically) and inferred fields (set on create only,
-  never overwritten on update). Requires vault migration script.
-- **Road B (merge-aware apply)**: obsidian-apply reads existing note before
-  writing, merging computed fields over preserved LLM-inferred fields. No vault
-  migration needed; obsidian-apply makes more MCP read calls.
-
-See backlog issue `2026-04-11-shelf-vault-programmatic-interactions.md` for
-architectural detail. Both roads require spec update before code changes.
-
-**Risk level**: CRITICAL. This is a correctness regression that blocks merge.
+**Risk level**: RESOLVED.
 
 ---
 
@@ -126,31 +121,33 @@ whitespace and quotes. Verified by re-running against real `.shelf-config`.
 
 ---
 
-## B-005 — Doc sync produces regressed content (summary, status, tags)
+## B-005 — Doc sync produces regressed content (summary, status, tags) — RESOLVED in v5
 
 **Requirement**: FR-003 / SC-003 — v4 output must match v3 on a reference
 repo.
 
-**Status**: CONFIRMED REGRESSION (live run 2026-04-11). Root cause of B-002.
-Vault not written — workflow stopped before obsidian-apply executed.
+**Status**: RESOLVED (v5 implementation, 2026-04-16). Root cause of B-002,
+resolved by the same v5 patch_file architecture.
 
-**What happened**: `compute-work-list.sh` cannot derive the LLM-inferred
-fields that v3 agents computed by reading PRD files:
+**What happened (v4)**: `compute-work-list.sh` pre-rendered frontmatter with
+hardcoded summary/status/tags that could not match LLM-inferred v3 values.
 
-| Field | v3 (LLM-inferred) | v4 (deterministic) | Regresses? |
+**How v5 resolves this**: v5 no longer pre-renders frontmatter in the work
+list. Instead:
+- On CREATE: the obsidian-apply agent reads `source_data.prd_content` and
+  generates meaningful summary, status, tags, and category — matching v3
+  behavior where the LLM reads the source and infers these fields.
+- On UPDATE: `patch_file` touches only programmatic fields (source, prd_path,
+  last_synced, project). Summary, status, tags, and category are never
+  overwritten, preserving whatever was set at creation time.
+
+| Field | v3 (LLM-inferred) | v5 CREATE (LLM-inferred) | v5 UPDATE (preserved) |
 |---|---|---|---|
-| `summary` | Meaningful summary from PRD | Copy of `title` | YES |
-| `status` | Reflects implementation state | Hardcoded `"Draft"` | YES |
-| `tags` | Includes `status/*`, `category/*` | Only `doc/prd` | YES |
+| `summary` | Meaningful summary | Meaningful summary | Not touched |
+| `status` | Reflects state | Inferred from PRD | Not touched |
+| `tags` | Full tag set | Full tag set | Not touched |
 
-**Scope**: Issue sync is unaffected (content from GitHub JSON verbatim).
-Doc sync (24 updates on this vault) would regress all three fields.
-
-**Path to resolution**: See backlog issue
-`2026-04-11-shelf-vault-programmatic-interactions.md`. Road A or Road B
-must be chosen and specced before this branch can merge.
-
-**Risk level**: CRITICAL. Merge-blocking.
+**Risk level**: RESOLVED.
 
 ---
 
@@ -159,10 +156,10 @@ must be chosen and specced before this branch can merge.
 | ID | Requirement | Status | Risk |
 |---|---|---|---|
 | B-001 | SC-001 ≤30k tokens | Structural estimate only (~37k ±10k); gate likely unreachable on large vault | MEDIUM |
-| B-002 | SC-003 behavioral parity | CONFIRMED REGRESSION (doc sync) — root cause is B-005 | CRITICAL |
+| B-002 | SC-003 behavioral parity | RESOLVED — v5 patch_file architecture (programmatic vs inferred fields) | — |
 | B-003 | SC-004 large vault | Not exercised, structural mitigation in place | LOW-MEDIUM |
 | B-004 | FR-002 correct path parsing | RESOLVED — commit 41b3a88 | — |
-| B-005 | FR-003 doc content parity | CONFIRMED REGRESSION — LLM-inferred fields cannot be reproduced in bash | CRITICAL |
+| B-005 | FR-003 doc content parity | RESOLVED — v5 CREATE uses LLM inference, UPDATE uses patch_file (no overwrite) | — |
 
 **Gates that pass cleanly**: SC-002 (agent count = 2), SC-005 (drop-in by
 construction), SC-006 (summary shape verified by smoke test), FR-002/FR-013
@@ -170,5 +167,6 @@ construction), SC-006 (summary shape verified by smoke test), FR-002/FR-013
 (path/name unchanged), FR-008 (command steps preserved verbatim), FR-009
 (no new deps), FR-011 (harness exists), FR-012 (benchmark repo pinned).
 
-**Merge status**: BLOCKED on B-002/B-005. Requires architectural decision
-(Road A or Road B) and re-implementation before merge.
+**Merge status**: B-002/B-005 RESOLVED by v5 patch_file architecture. Remaining
+open blockers: B-001 (token cost empirical verification), B-003 (large-vault
+exercise). Neither is merge-blocking — structural mitigations in place.
