@@ -306,16 +306,32 @@ dashboard_block=$(jq -n \
   }')
 
 # ---------- progress ----------
+progress_path="$base_path/$slug/progress/$yyyymm.md"
+# Determine if progress file is new (not yet recorded in sync manifest)
+known_progress_paths=$(jq -r '.progress_paths // [] | .[]' "$manifest_file" 2>/dev/null || true)
+is_new_progress_file=true
+while IFS= read -r known_path; do
+  if [ "$known_path" = "$progress_path" ]; then
+    is_new_progress_file=false
+    break
+  fi
+done <<< "$known_progress_paths"
+
 progress_block=$(jq -n \
-  --arg path "$base_path/$slug/progress/$yyyymm.md" \
+  --arg path "$progress_path" \
   --arg date "$today" \
+  --arg yyyymm "$yyyymm" \
+  --arg slug "$slug" \
   --arg summary "$progress_summary" \
   --argjson outcomes "$progress_outcomes" \
   --argjson links "$progress_links" \
+  --argjson is_new "$is_new_progress_file" \
   '{
     needs_update: true,
     path: $path,
-    create_if_missing: true,
+    is_new_file: $is_new,
+    yyyymm: $yyyymm,
+    slug: $slug,
     append_entry: {
       date: $date,
       summary: $summary,

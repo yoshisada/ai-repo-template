@@ -111,11 +111,20 @@ updated_manifest=$(jq -n \
     )
   ) as $updated_docs |
 
+  # Update progress_paths: add the progress file path if newly created
+  ($work_list.progress.path // null) as $prog_path |
+  ($current_manifest.progress_paths // []) as $cur_prog_paths |
+  (if $prog_path != null and ($cur_prog_paths | index($prog_path) == null)
+   then $cur_prog_paths + [$prog_path]
+   else $cur_prog_paths
+   end) as $updated_prog_paths |
+
   {
     version: ($current_manifest.version // "1.0"),
     last_synced: $now,
     issues: ($updated_issues | to_entries | map(.value)),
-    docs: ($updated_docs | to_entries | map(.value))
+    docs: ($updated_docs | to_entries | map(.value)),
+    progress_paths: $updated_prog_paths
   }
   ' \
   --argjson current_manifest "$current_manifest" \

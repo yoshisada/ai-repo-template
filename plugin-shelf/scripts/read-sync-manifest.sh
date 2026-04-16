@@ -27,7 +27,8 @@ else
     version: "1.0",
     last_synced: null,
     issues: [],
-    docs: []
+    docs: [],
+    progress_paths: []
   }' > "$OUT"
 fi
 
