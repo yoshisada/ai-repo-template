@@ -84,18 +84,19 @@ programmatic vs inferred), implemented without a migration script because
 **Why blocked**: No large-vault fixture exists. Synthesizing one was out of
 scope for both implementer and auditor sessions.
 
-**Mitigation in place**: `obsidian-discover` emits only
-`{path, last_synced, status, github_number, source}` per note (no body) per
-contracts section 4.3. `obsidian-apply` receives only the pre-filtered work
-list, never the raw index or raw upstream JSONs. Per-agent payload is
-structurally bounded by (# of notes actually changing * per-entry size),
+**Mitigation in place**: v5 eliminated `obsidian-discover` entirely — no vault
+reads for diffing. `compute-work-list` uses hash-based diff against the local
+`.shelf-sync.json` manifest. `obsidian-apply` receives only the pre-filtered
+work list via `context_from`, never the raw upstream JSONs. Per-agent payload
+is structurally bounded by (# of notes actually changing * per-entry size),
 not (# of notes in the vault * full body).
 
 **Path to resolution**: Create a fixture with 50+ issues and 20+ PRDs under
-`docs/features/`, run v4, capture per-agent token telemetry, record in
+`docs/features/`, run v5, capture per-agent token telemetry, record in
 `specs/shelf-sync-efficiency/benchmark/large-vault-result.md` (currently
-placeholder). If a ceiling is hit, the documented lever is shrinking the
-discovery index payload further — do NOT add a third agent (FR-001 ceiling).
+placeholder). If a ceiling is hit, the lever is trimming `source_data` from
+the work list for UPDATE items (they only need programmatic fields) — do NOT
+add a second agent (FR-001 ceiling of 1).
 
 **Risk level**: LOW-MEDIUM. The structural mitigation is sound; the risk is
 empirical confirmation, not architectural.
@@ -161,11 +162,13 @@ list. Instead:
 | B-004 | FR-002 correct path parsing | RESOLVED — commit 41b3a88 | — |
 | B-005 | FR-003 doc content parity | RESOLVED — v5 CREATE uses LLM inference, UPDATE uses patch_file (no overwrite) | — |
 
-**Gates that pass cleanly**: SC-002 (agent count = 2), SC-005 (drop-in by
+**Gates that pass cleanly**: SC-002 (agent count = 1, v5), SC-005 (drop-in by
 construction), SC-006 (summary shape verified by smoke test), FR-002/FR-013
 (command-side diff + context_from scoping verified in the JSON), FR-004
 (path/name unchanged), FR-008 (command steps preserved verbatim), FR-009
-(no new deps), FR-011 (harness exists), FR-012 (benchmark repo pinned).
+(no new deps), FR-011 (harness exists), FR-012 (benchmark repo pinned),
+FR-014 (manifest read/write steps present), FR-015 (patch_file for UPDATE),
+FR-016 (create_file + LLM inference for CREATE).
 
 **Merge status**: B-002/B-005 RESOLVED by v5 patch_file architecture. Remaining
 open blockers: B-001 (token cost empirical verification), B-003 (large-vault
