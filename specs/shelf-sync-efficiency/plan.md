@@ -1,13 +1,14 @@
 # Implementation Plan: Shelf Full Sync — Efficiency Pass
 
-**Branch**: `build/shelf-sync-efficiency-20260410`
+**Branch**: `build/shelf-sync-efficiency-20260416`
 **Spec**: `specs/shelf-sync-efficiency/spec.md`
 **PRD**: `docs/features/2026-04-10-shelf-sync-efficiency/PRD.md`
 **Date**: 2026-04-10
+**Updated**: 2026-04-16 (v5 manifest-based architecture)
 
 ## Summary
 
-Rewrite `plugin-shelf/workflows/shelf-full-sync.json` as v4. Consolidate four wheel-runner agent steps (`sync-issues-to-obsidian`, `sync-docs-to-obsidian`, `update-dashboard-tags`, `push-progress-update`) into two: one agent that lists the current Obsidian state and another that performs all writes from a pre-computed work list. Move all diff logic into command steps powered by Bash + `jq`. Hit ≤30k tokens on the benchmark repo, ≤2 agent steps, parity with v3 verified by a snapshot-diff harness, drop-in replacement at the same path and workflow name.
+Rewrite `plugin-shelf/workflows/shelf-full-sync.json` as v5. v4 consolidated four agent steps into two but had a confirmed regression (B-002/B-005) where doc updates overwrote LLM-inferred fields. v5 eliminates the vault-reading discovery agent entirely by introducing a local `.shelf-sync.json` manifest for hash-based diffing, and adds CREATE vs UPDATE semantics to obsidian-apply so inferred fields are generated on first sync and never touched on subsequent updates. Target: 1 agent step, manifest-based diff, no vault reads for diffing, drop-in replacement.
 
 ## Technical Context
 
@@ -17,8 +18,8 @@ Rewrite `plugin-shelf/workflows/shelf-full-sync.json` as v4. Consolidate four wh
 **Primary target**: `plugin-shelf/workflows/shelf-full-sync.json` — rewritten in place.
 **Performance targets**:
 - Token cost: ≤30k per run on the pinned benchmark repo (SC-001)
-- Agent count: ≤2 agent steps (SC-002)
-- Parity: byte-identical Obsidian snapshot vs v3 on the fixture (SC-003)
+- Agent count: ≤1 agent step (SC-002, tightened from ≤2 in v4)
+- Parity: inferred fields preserved on UPDATE, full generation on CREATE (SC-003, redefined for v5)
 - Large vault: ≥50 issues + ≥20 PRDs without context-ceiling failure (SC-004)
 
 **Scale/scope**: One workflow file rewrite + one snapshot-diff harness + baseline/benchmark artifacts. No consumer-project changes. No wheel engine changes.
@@ -56,9 +57,13 @@ generate-sync-summary      (command, terminal)
 
 Cost drivers: four separate agent spawns, each paying startup + MCP registration + `context_from` injection. The two dashboard agents each do a full read-modify-write of the same file.
 
-### v4 layout (target)
+### v4 layout (shipped, regression confirmed)
 
-Target: ≤2 agent steps. The cheapest structure is **two agents**: one for "discovery" (list + read what currently exists in Obsidian — the thing commands can't easily do without MCP access), and one for "writes" (apply a pre-computed work list of creates/updates to Obsidian).
+Two agents: `obsidian-discover` + `obsidian-apply`. The discovery agent reads the vault and emits an index. `compute-work-list` diffs repo state vs index. Regression: bash cannot infer LLM-derived fields (summary, status, tags) for doc updates, so it hardcoded defaults that would overwrite existing vault content.
+
+### v5 layout (target — manifest-based)
+
+Target: 1 agent step. The discovery agent is eliminated entirely. Instead, a local `.shelf-sync.json` manifest records what has been synced and its source hash. Diffing is hash-based: no vault reads needed.
 
 ```
 gather-repo-state             (command)  [unchanged]
@@ -67,30 +72,32 @@ fetch-github-issues           (command)  [unchanged]
 read-backlog-issues           (command)  [unchanged]
 read-feature-prds             (command)  [unchanged]
 detect-tech-stack             (command)  [unchanged]
-obsidian-discover             (AGENT #1) ← list existing issue/doc notes + read dashboard, emit compact JSON index
-compute-work-list             (command)  ← jq joins repo state ∪ Obsidian index → work list JSON
-obsidian-apply                (AGENT #2) ← consume work list, apply creates/updates, emit results JSON
-generate-sync-summary         (command, terminal)  [shape preserved, reads new inputs]
+read-sync-manifest            (command)  [NEW] — read .shelf-sync.json → .wheel/outputs/sync-manifest.json
+compute-work-list             (command)  [MODIFIED] — hash diff vs manifest → work list JSON with source_data
+obsidian-apply                (AGENT)    [MODIFIED] — CREATE (create_file + LLM inference) vs UPDATE (patch_file programmatic only)
+update-sync-manifest          (command)  [NEW] — update .shelf-sync.json with new hashes from apply results
+generate-sync-summary         (command, terminal)  [unchanged shape, reads new inputs]
 ```
 
-Why two agents, not one: MCP tools are agent-only, so we need at least one agent to call `mcp__obsidian-projects__list_files` / `read_file` and another (or the same) to call the write tools. Putting them in one agent re-introduces v3's problem — the agent would need the raw issues JSON, the existing notes list, and the write logic all in one context, defeating FR-002. Splitting discovery from apply keeps each agent's payload small: discovery only needs the `base_path` + `slug`, apply only needs the work list + `base_path` + `slug`.
+Why one agent works now: v4 needed a discovery agent because commands can't call MCP tools to read the vault. v5 eliminates the need to read the vault for diffing — the manifest provides the same information (what's been synced, what hash it had). The single remaining agent (`obsidian-apply`) only needs MCP tools for writes. On CREATE, it receives `source_data` in the work list and generates inferred fields via LLM. On UPDATE, it calls `patch_file` with only programmatic fields — no vault read needed, no inferred fields touched.
 
-Alternative fallback (if even this overshoots on large vaults): split obsidian-apply into two parallel agents, one for issue/doc notes and one for dashboard/progress. Leaves us at exactly 3 agents which would violate FR-001. So if we hit that wall, we must shrink payload further (pagination, selective frontmatter), not add agents.
+Why this fixes B-002/B-005: The root cause was v4 trying to regenerate inferred fields on every sync. v5 never touches inferred fields after creation. `patch_file` on UPDATE writes only `last_synced` + programmatic identifiers. The vault's existing `summary`, `status` (for docs), `tags`, `category` are preserved as-is.
 
 ### Dashboard read-modify-write consolidation
 
-v3 has two agents that each read-modify-write `{base_path}/{slug}/{slug}.md`: `update-dashboard-tags` and `push-progress-update`. In v4 the `obsidian-discover` agent reads the dashboard once and emits its current frontmatter + section markers in the Obsidian index. `compute-work-list` computes the tag delta (from `detect-tech-stack` output) and the progress entry (from `gather-repo-state` output) deterministically. `obsidian-apply` then does a single read-modify-write on the dashboard: merging the new tag set AND appending the progress entry AND updating `status`/`next_step`/`last_updated` frontmatter — all in one MCP `update_file` call, preserving `Human Needed`, `Feedback`, `Feedback Log`, and `About` sections exactly.
+v3 has two agents that each read-modify-write `{base_path}/{slug}/{slug}.md`: `update-dashboard-tags` and `push-progress-update`. In v5, `compute-work-list` computes the tag delta (from `detect-tech-stack` output) and the progress entry (from `gather-repo-state` output) deterministically. `obsidian-apply` then does a single read-modify-write on the dashboard: merging the new tag set AND appending the progress entry AND updating `status`/`next_step`/`last_updated` frontmatter — all in one MCP `update_file` call, preserving `Human Needed`, `Feedback`, `Feedback Log`, and `About` sections exactly.
 
 ### `context_from` scoping (FR-013)
 
 | step | context_from | why |
 |---|---|---|
-| obsidian-discover | read-shelf-config | only needs base_path + slug |
-| compute-work-list | read-shelf-config, fetch-github-issues, read-backlog-issues, read-feature-prds, detect-tech-stack, gather-repo-state, obsidian-discover | command step — context_from here is just file reads, no token cost |
+| read-sync-manifest | (none) | reads .shelf-sync.json directly |
+| compute-work-list | read-shelf-config, fetch-github-issues, read-backlog-issues, read-feature-prds, detect-tech-stack, gather-repo-state, read-sync-manifest | command step — context_from here is just file reads, no token cost |
 | obsidian-apply | read-shelf-config, compute-work-list | only the pre-filtered work list + base_path/slug |
+| update-sync-manifest | compute-work-list, obsidian-apply | needs work list (for hashes) + apply results (for success/fail) |
 | generate-sync-summary | compute-work-list, obsidian-apply | for counts and error listing |
 
-Agent steps (`obsidian-discover`, `obsidian-apply`) deliberately avoid pulling the raw GitHub issues JSON or the raw PRD list into context.
+The single agent step (`obsidian-apply`) deliberately avoids pulling the raw GitHub issues JSON, the raw PRD list, or the sync manifest into context.
 
 ### Work-list shape (source of truth: contracts/interfaces.md)
 
@@ -110,19 +117,27 @@ Rewrite `plugin-shelf/workflows/shelf-full-sync.json` to match the architecture 
 ### Phase 4 — Benchmark + parity verification
 Run v4 on the benchmark repo, measure token cost, verify ≤30k. Run v4 on the frozen fixture, capture snapshot, diff against v3 baseline, verify identical. Run v4 on a large-vault fixture (≥50 issues + ≥20 PRDs), verify no context-ceiling failure. Record results in `specs/shelf-sync-efficiency/benchmark/v4-results.md`. If any gate fails, loop back to Phase 3.
 
+### Phase 5 — v5 manifest-based rewrite (fixes B-002/B-005)
+
+Update `contracts/interfaces.md` to v5. Create `read-sync-manifest.sh` and `update-sync-manifest.sh` command scripts. Modify `compute-work-list.sh` to diff against manifest hashes instead of `obsidian-index.json`. Rewrite `shelf-full-sync.json` workflow to remove `obsidian-discover`, add `read-sync-manifest` + `update-sync-manifest` steps, update `obsidian-apply` agent instructions with CREATE vs UPDATE semantics. Validate JSON, smoke test, update blockers. See tasks T026-T034.
+
 ## Open questions resolved
 
-- **"How do we list existing Obsidian notes from a command step?"** — we don't. A dedicated `obsidian-discover` agent emits a compact index; `compute-work-list` reads that index from its output file.
-- **"One agent or two?"** — two. Discovery agent and apply agent, split to keep per-agent payloads small.
+- **"How do we list existing Obsidian notes from a command step?"** — v4 used a discovery agent. v5 eliminates the need: a local `.shelf-sync.json` manifest tracks what has been synced. No vault reads for diffing.
+- **"One agent or two?"** — v5: one. The manifest eliminates the discovery agent. Only the apply agent remains, using MCP write tools.
+- **"How do we avoid regressing inferred fields on update?"** — v5 splits fields into programmatic (patched on every update) and inferred (set on create, never modified). `patch_file` targets only programmatic fields. This is the fix for B-002/B-005.
+- **"What happens on cold start?"** — empty manifest means all items are CREATE. Full inferred fields generated. `update-sync-manifest` creates the manifest with all hashes. Subsequent runs are fast (mostly skips).
 - **"What's the benchmark reference repo?"** — `yoshisada/ai-repo-template` @ branch `main` at the tip commit recorded in Phase 1, with the `ai-repo-template` Obsidian project as the target vault project. Pinned in `specs/shelf-sync-efficiency/baseline/benchmark-repo.md`.
 - **"Do we need a snapshot-diff harness?"** — yes, built in Phase 2.
 
 ## Risks & mitigations
 
-- **Single discovery agent payload on large vaults** — listing 50+ issue notes + reading 20+ doc notes could bloat the discovery agent's context. Mitigation: discovery agent only emits `{path, last_synced, content_hash}` per note (not full body); the work-list comparison is hash-based.
+- **Cold start cost** — first run creates everything with full LLM inference, which is expensive. Mitigation: this is a one-time cost; subsequent runs are mostly SKIPs with occasional patches. Users who already have v3 vaults will see a large CREATE run on first v5 sync.
+- **Manifest corruption** — if `.shelf-sync.json` is corrupted or deleted, all items become CREATE again. Mitigation: atomic write (temp file + mv). If manifest is deleted, it's equivalent to a cold start — safe but expensive.
 - **Dashboard frontmatter preservation regression** — the consolidated read-modify-write is the subtle part. Mitigation: apply agent instructions explicitly enumerate fields to preserve; parity snapshot catches regressions.
 - **Snapshot non-determinism** — MCP writes might change timestamps in frontmatter (`last_synced`). Mitigation: snapshot-capture normalizes `last_synced` to `<timestamp>` before hashing.
-- **`context_from` raw-output leakage** — easy to accidentally feed an agent a raw upstream JSON. Mitigation: contract specifies exactly which files each agent sees; audit catches violations.
+- **`context_from` raw-output leakage** — easy to accidentally feed the agent a raw upstream JSON. Mitigation: contract specifies exactly which files the agent sees; audit catches violations.
+- **`source_data` bloat on CREATE for large repos** — if many items are CREATE (cold start or large batch), the work list could be large. Mitigation: `source_data` is only included for CREATE/UPDATE items, not SKIPs. On steady state, most items are SKIP.
 
 ## Follow-ups (out of scope)
 

@@ -1,9 +1,10 @@
 # Feature Specification: Shelf Full Sync — Efficiency Pass
 
-**Feature Branch**: `build/shelf-sync-efficiency-20260410`
+**Feature Branch**: `build/shelf-sync-efficiency-20260416`
 **Created**: 2026-04-10
-**Status**: Draft
-**Input**: Refactor `plugin-shelf/workflows/shelf-full-sync.json` for efficiency. Consolidate four wheel-runner agent steps into ≤2, move deterministic diff logic into command steps, preserve behavioral parity with v3, hit ≤30k tokens on the benchmark repo, no new dependencies, drop-in replacement.
+**Updated**: 2026-04-16 (v5 manifest-based architecture)
+**Status**: In Progress
+**Input**: Refactor `plugin-shelf/workflows/shelf-full-sync.json` for efficiency. v4 consolidated four agent steps into 2 but had a confirmed regression (B-002/B-005) where doc updates overwrote LLM-inferred fields with hardcoded defaults. v5 replaces the vault-reading discovery agent with a local manifest (`.shelf-sync.json`) and introduces CREATE vs UPDATE semantics that preserve inferred fields. Target: ≤1 agent step, manifest-based diff, no vault reads for diffing, drop-in replacement.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -66,7 +67,7 @@ A shelf user with a mature project (≥50 GitHub issues, ≥20 PRDs) runs `/shel
 
 ### Functional Requirements
 
-- **FR-001**: The `shelf-full-sync` workflow MUST contain no more than 2 steps of type `agent` (wheel-runner agent spawns). All agent-driven work from v3 — issue sync, doc sync, dashboard tag update, progress update — MUST be accomplished within that limit.
+- **FR-001**: The `shelf-full-sync` workflow MUST contain no more than 1 step of type `agent` (wheel-runner agent spawn). All agent-driven work from v3 — issue sync, doc sync, dashboard tag update, progress update — MUST be accomplished within that limit. (Tightened from <=2 in v4; the discovery agent is eliminated by the manifest approach.)
 - **FR-002**: Deterministic diff computation — determining which Obsidian notes need to be created or updated — MUST be performed in `command` steps (Bash + `jq`), not in agent steps. Agent steps MUST receive a pre-filtered work list, not the raw GitHub issues JSON plus the full list of existing notes.
 - **FR-003**: The workflow MUST produce behavioral parity with v3 on a frozen reference fixture. A snapshot of all Obsidian file creates and updates (file path, final frontmatter, final body) from a v4 run MUST be identical to the v3 snapshot on the same fixture.
 - **FR-004**: The workflow file path and workflow name MUST remain `plugin-shelf/workflows/shelf-full-sync.json` and `shelf-full-sync`. No caller code — `/shelf-sync`, `report-issue-and-sync`, any documentation, any other workflow composing it — MAY require a change to accommodate v4.
@@ -78,13 +79,19 @@ A shelf user with a mature project (≥50 GitHub issues, ≥20 PRDs) runs `/shel
 - **FR-010**: The v3 behavior of merging `update-dashboard-tags` and `push-progress-update` into one read-modify-write cycle on the dashboard file MUST preserve every frontmatter field v3 wrote or preserved, including `Human Needed`, `Feedback`, `Feedback Log`, and `About` sections.
 - **FR-011**: The feature MUST include a snapshot-diff harness — a script that captures Obsidian write snapshots from a workflow run and diffs two snapshots — so parity verification (FR-003) can be re-run mechanically rather than by manual inspection.
 - **FR-012**: The benchmark reference repo used to measure FR-007 MUST be pinned and documented in the plan artifacts so future measurements are comparable.
-- **FR-013**: `context_from` injections in v4 MUST be scoped to only the upstream outputs each step actually consumes. No downstream step may receive full raw upstream output when a pre-filtered work list is available.
+- **FR-013**: `context_from` injections in v5 MUST be scoped to only the upstream outputs each step actually consumes. No downstream step may receive full raw upstream output when a pre-filtered work list is available.
+- **FR-014**: The workflow MUST maintain a local `.shelf-sync.json` manifest at the repo root recording the `source_hash` of each synced item. The manifest MUST be updated atomically (write-to-temp then move) after obsidian-apply completes. On cold start (manifest missing), all items are treated as CREATE.
+- **FR-015**: On UPDATE, obsidian-apply MUST use `patch_file` for programmatic fields only (`source`, `github_number`/`prd_path`, `last_synced`, `project`, `status` for issues). Inferred fields (`summary`, `status` for docs, `category`, `tags` taxonomy, `severity`) MUST NOT be modified on update.
+- **FR-016**: On CREATE, obsidian-apply MUST generate inferred fields (`summary`, `status`, `tags`, `category`, `severity`) by reading the source content provided in `source_data` (PRD file content for docs, issue title+body+labels for issues).
 
 ### Key Entities
 
 - **Workflow definition** (`plugin-shelf/workflows/shelf-full-sync.json`): Ordered list of wheel steps. Each step has an `id`, a `type` (`command` or `agent`), inputs, and outputs consumed via `context_from`. The terminal step writes the summary file.
-- **Work list**: Pre-filtered JSON payload produced by a command step, describing exactly which Obsidian notes need to be created or updated, with the minimum fields each agent needs to perform the write. The shape is defined in `contracts/interfaces.md` during `/plan`.
-- **Obsidian snapshot**: A deterministic serialization of all Obsidian files written by a workflow run (path → frontmatter + body), used for parity verification.
+- **Sync manifest** (`.shelf-sync.json`): Local JSON file at repo root recording the `source_hash` and vault path of every item synced. Used by `compute-work-list` to determine CREATE vs UPDATE vs SKIP without reading the vault.
+- **Work list**: Pre-filtered JSON payload produced by a command step, describing exactly which Obsidian notes need to be created or updated. On CREATE, includes `source_data` for the agent to generate inferred fields. On UPDATE, the agent patches only programmatic fields. The shape is defined in `contracts/interfaces.md`.
+- **Programmatic fields**: Frontmatter fields that are deterministically derived and updated on every sync: `source`, `github_number`/`prd_path`, `last_synced`, `project`, `status` (issues only).
+- **Inferred fields**: Frontmatter fields set by LLM on CREATE and never modified on UPDATE: `summary`, `tags`, `category`, `severity`, `status` (docs only).
+- **Obsidian snapshot**: A deterministic serialization of all Obsidian files written by a workflow run (path -> frontmatter + body), used for parity verification.
 - **Benchmark reference repo**: A pinned repo/vault pair used to measure token cost and to anchor the FR-007 gate.
 
 ## Success Criteria *(mandatory)*
@@ -92,11 +99,28 @@ A shelf user with a mature project (≥50 GitHub issues, ≥20 PRDs) runs `/shel
 ### Measurable Outcomes
 
 - **SC-001**: One `shelf-full-sync` run on the benchmark reference repo costs ≤30k tokens, measured via wheel-runner telemetry (down from the 64.5k v3 baseline).
-- **SC-002**: The `shelf-full-sync.json` workflow definition contains no more than 2 steps of type `agent`.
+- **SC-002**: The `shelf-full-sync.json` workflow definition contains no more than 1 step of type `agent` (tightened from <=2 in v4).
 - **SC-003**: A v4 run on the frozen reference fixture produces an Obsidian snapshot identical to the v3 snapshot on the same fixture, as reported by the snapshot-diff harness.
 - **SC-004**: A `shelf-full-sync` run completes successfully on a vault with ≥50 issues and ≥20 PRDs without any agent step hitting its context ceiling.
 - **SC-005**: All existing callers (`/shelf-sync`, `report-issue-and-sync`) continue to invoke `shelf-full-sync` unchanged — zero caller-side diffs required.
 - **SC-006**: The terminal summary file at `.wheel/outputs/shelf-full-sync-summary.md` contains the five sections `Issues`, `Docs`, `Tags`, `Progress`, `Errors` in that order on every run.
+
+## Architecture: v4 -> v5 Evolution
+
+### v4 (shipped, regression confirmed)
+Two agents: `obsidian-discover` (reads vault, emits index JSON) + `obsidian-apply` (writes from work list). `compute-work-list.sh` diffs repo state vs the index. Regression: for doc updates, bash hardcodes `summary = title` and `status = "Draft"` because it cannot infer these from PRD content. All 24 doc updates would regress the existing vault.
+
+### v5 (manifest-based, fixes B-002/B-005)
+One agent: `obsidian-apply` only. The `obsidian-discover` agent is eliminated entirely. Instead, a local `.shelf-sync.json` manifest records `source_hash` for each synced item. `compute-work-list` diffs hashes to determine CREATE/UPDATE/SKIP without reading the vault.
+
+Key insight: we don't need to read the vault at all if we maintain a local manifest of what we've already synced. Context does NOT grow with vault size. No agent reads for diffing.
+
+**CREATE vs UPDATE semantics** (the fix for B-002/B-005):
+- On CREATE (item not in manifest): the agent reads `source_data`, generates inferred fields (summary, status, tags, category) via LLM, writes full frontmatter via `create_file`.
+- On UPDATE (item in manifest, hash changed): the agent patches ONLY programmatic fields via `patch_file`. Inferred fields are never touched after creation.
+- On SKIP (hash unchanged): do nothing.
+
+**Cold start**: When `.shelf-sync.json` doesn't exist, `read-sync-manifest` outputs an empty manifest, `compute-work-list` treats everything as CREATE, obsidian-apply creates with full inferred frontmatter, `update-sync-manifest` creates the manifest with all hashes.
 
 ## Assumptions
 
