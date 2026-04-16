@@ -95,6 +95,17 @@ plugin-kiln/
   → Creates PR with build-prd label
 ```
 
+### Plugin workflow portability (NON-NEGOTIABLE)
+
+Wheel workflows shipped inside a plugin (`plugin-<name>/workflows/*.json`) must be runnable from any consumer repo — not just from the plugin's source repo. That means command-step scripts **must not** be referenced via repo-relative paths like `plugin-shelf/scripts/foo.sh`, because that directory only exists inside this source repo. When a consumer installs the plugin, the scripts live under the plugin's install path (e.g. `~/.claude/plugins/cache/<org>-<mp>/<plugin>/<version>/scripts/`).
+
+Rules for authoring plugin workflows:
+- **Do not** hardcode `plugin-<name>/scripts/...` in workflow command steps. It silently works in the source repo and silently breaks everywhere else (the command emits "No such file or directory" and the workflow advances with empty step outputs).
+- Workflow scripts invoked from command steps must be resolvable via a plugin-dir-aware variable (e.g. `${WORKFLOW_PLUGIN_DIR}/scripts/foo.sh`) that wheel exports before dispatching commands. If that variable isn't yet available from wheel, treat this as a pre-req gap and fix wheel first — don't paper over it with a repo-relative path.
+- If you see `plugin-<name>/scripts/...` in an existing workflow JSON, that is a portability bug regardless of whether it currently "works" in this repo.
+
+The symptom when this is violated: a consumer runs the plugin workflow, command steps fail silently with `No such file or directory`, and downstream agent/apply steps continue with empty input — producing plausible-looking but wrong output.
+
 ## Mandatory Workflow (NON-NEGOTIABLE)
 
 Every code change in a consumer project MUST follow this order. No exceptions.

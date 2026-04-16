@@ -1,6 +1,6 @@
 {
   "name": "shelf",
-  "version": "000.000.000.1140",
+  "version": "000.000.000.1143",
   "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
   "author": {
     "name": "yoshisada"

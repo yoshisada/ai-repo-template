@@ -859,12 +859,26 @@ dispatch_command() {
     return 1
   fi
 
+  # WORKFLOW_PLUGIN_DIR — absolute path to the directory that owns the workflow.
+  # Plugin workflows live at <plugin_dir>/workflows/<name>.json, so the plugin
+  # root is two levels up. Local workflows at workflows/<name>.json resolve to
+  # the current working directory. Command steps shipped inside a plugin MUST
+  # reference plugin-local files via ${WORKFLOW_PLUGIN_DIR}/... so they work
+  # when the plugin is installed into any consumer repo.
+  local wf_file wf_plugin_dir
+  wf_file=$(jq -r '.workflow_file // empty' "$state_file" 2>/dev/null)
+  if [[ -n "$wf_file" ]]; then
+    wf_plugin_dir=$(cd "$(dirname "$(dirname "$wf_file")")" 2>/dev/null && pwd) || wf_plugin_dir=""
+  else
+    wf_plugin_dir=""
+  fi
+
   # Execute the command and capture output + exit code.
   # Note: `|| true` would reset $? and PIPESTATUS[0] to 0, losing the real
   # exit code. Use a conditional assignment that preserves it.
   local output
   local cmd_exit_code
-  if output=$(eval "$command" 2>&1); then
+  if output=$(export WORKFLOW_PLUGIN_DIR="$wf_plugin_dir"; eval "$command" 2>&1); then
     cmd_exit_code=0
   else
     cmd_exit_code=$?
@@ -1279,7 +1293,16 @@ dispatch_loop() {
       command=$(printf '%s\n' "$substep" | jq -r '.command // empty')
       local output
       local cmd_exit_code
-      output=$(eval "$command" 2>&1) || true
+      # Derive WORKFLOW_PLUGIN_DIR so plugin-shipped loop substeps can reference
+      # plugin-local files portably (see dispatch_command for rationale).
+      local wf_file wf_plugin_dir
+      wf_file=$(jq -r '.workflow_file // empty' "$state_file" 2>/dev/null)
+      if [[ -n "$wf_file" ]]; then
+        wf_plugin_dir=$(cd "$(dirname "$(dirname "$wf_file")")" 2>/dev/null && pwd) || wf_plugin_dir=""
+      else
+        wf_plugin_dir=""
+      fi
+      output=$(export WORKFLOW_PLUGIN_DIR="$wf_plugin_dir"; eval "$command" 2>&1) || true
       cmd_exit_code=${PIPESTATUS[0]:-$?}
       local now
       now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)

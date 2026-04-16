@@ -41,13 +41,13 @@
     {
       "id": "read-sync-manifest",
       "type": "command",
-      "command": "bash plugin-shelf/scripts/read-sync-manifest.sh",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/read-sync-manifest.sh\"",
       "output": ".wheel/outputs/sync-manifest.json"
     },
     {
       "id": "compute-work-list",
       "type": "command",
-      "command": "bash plugin-shelf/scripts/compute-work-list.sh",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/compute-work-list.sh\"",
       "output": ".wheel/outputs/compute-work-list.json"
     },
     {
@@ -60,13 +60,13 @@
     {
       "id": "update-sync-manifest",
       "type": "command",
-      "command": "bash plugin-shelf/scripts/update-sync-manifest.sh",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/update-sync-manifest.sh\"",
       "output": ".wheel/outputs/update-sync-manifest.txt"
     },
     {
       "id": "generate-sync-summary",
       "type": "command",
-      "command": "bash plugin-shelf/scripts/generate-sync-summary.sh",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/generate-sync-summary.sh\"",
       "output": ".wheel/outputs/shelf-full-sync-summary.md"
     },
     {
