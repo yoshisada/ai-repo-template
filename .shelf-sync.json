@@ -1,0 +1,522 @@
+{
+  "version": "1.0",
+  "last_synced": "2026-04-16T23:15:28Z",
+  "issues": [
+    {
+      "github_number": 83,
+      "filename_slug": "retrospective-plugin-polish-and-skill-ux-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-plugin-polish-and-skill-ux-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjgzLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDE4OjE1OjQyWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 81,
+      "filename_slug": "retrospective-trim-penpot-layout-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-penpot-layout-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjgxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDE2OjU5OjIwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 79,
+      "filename_slug": "retrospective-trim-design-lifecycle-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-design-lifecycle-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjc5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDA2OjE3OjIwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 77,
+      "filename_slug": "retrospective-trim-pipeline-build-trim-20260409",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-pipeline-build-trim-20260409.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjc3LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDA1OjAyOjMzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 75,
+      "filename_slug": "retrospective-api-key-reveal-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-api-key-reveal-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjc1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDAxOjAzOjM5WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 74,
+      "filename_slug": "retrospective-shelf-skills-polish-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-shelf-skills-polish-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjc0LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDAwOjMzOjExWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 72,
+      "filename_slug": "retrospective-observability-layer-pipeline-2026-04-08",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-observability-layer-pipeline-2026-04-08.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjcyLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA4VDIxOjEyOjI3WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 71,
+      "filename_slug": "retrospective-kit-migration-pipeline-build-kit-migration-202",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kit-migration-pipeline-build-kit-migration-202.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjcxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA4VDIxOjA1OjQ5WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 70,
+      "filename_slug": "retrospective-takeout-migration-parity-pipeline-2026-04-08",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-takeout-migration-parity-pipeline-2026-04-08.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjcwLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA4VDE5OjUxOjA0WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 69,
+      "filename_slug": "retrospective-playful-household-redesign-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-playful-household-redesign-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjY5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA4VDAwOjA3OjI3WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 68,
+      "filename_slug": "retrospective-clay-idea-entrypoint-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-clay-idea-entrypoint-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjY4LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDIzOjU1OjE1WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 66,
+      "filename_slug": "retrospective-plugin-clay-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-plugin-clay-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjY2LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDIzOjI1OjQwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 64,
+      "filename_slug": "retrospective-developer-tooling-polish-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-developer-tooling-polish-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjY0LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDIyOjQ3OjE2WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 62,
+      "filename_slug": "retrospective-kit-migration-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kit-migration-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjYyLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDIyOjIxOjU0WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 61,
+      "filename_slug": "retrospective-wheel-workflow-composition-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-workflow-composition-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjYxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDIxOjA1OjM1WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 59,
+      "filename_slug": "retrospective-wheel-create-workflow-pipeline-2026-04-06",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-create-workflow-pipeline-2026-04-06.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjU5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA3VDA1OjQxOjIzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 57,
+      "filename_slug": "retrospective-wheel-per-agent-state-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-per-agent-state-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjU3LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA2VDIyOjQ2OjAxWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 55,
+      "filename_slug": "retrospective-wheel-session-guard-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-session-guard-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjU1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA1VDE4OjAyOjA0WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 53,
+      "filename_slug": "retrospective-kiln-wheel-polish-pipeline-build-kiln-wheel-po",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kiln-wheel-polish-pipeline-build-kiln-wheel-po.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjUzLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA0VDIwOjA3OjAzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 51,
+      "filename_slug": "retrospective-wheel-skill-activation-pipeline-build-wheel-sk",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-skill-activation-pipeline-build-wheel-sk.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjUxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA0VDA4OjIwOjQ4WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 49,
+      "filename_slug": "retrospective-wheel-pipeline-build-wheel-20260403",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-pipeline-build-wheel-20260403.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQ5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA0VDAxOjA1OjM2WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 47,
+      "filename_slug": "retrospective-shelf-sync-v2-pipeline-build-shelf-sync-v2-202",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-shelf-sync-v2-pipeline-build-shelf-sync-v2-202.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQ3LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAzVDIzOjI2OjE4WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 45,
+      "filename_slug": "retro-codebase-hardening-pipeline-2026-04-03",
+      "path": "@second-brain/projects/ai-repo-template/issues/retro-codebase-hardening-pipeline-2026-04-03.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQ1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAzVDIzOjIyOjQ2WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 44,
+      "filename_slug": "retrospective-shelf-config-artifact-pipeline-build-shelf-con",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-shelf-config-artifact-pipeline-build-shelf-con.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQ0LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAzVDIyOjAzOjMzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 42,
+      "filename_slug": "retrospective-shelf-plugin-pipeline-build-shelf-20260403",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-shelf-plugin-pipeline-build-shelf-20260403.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQyLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAzVDIxOjI0OjUxWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 40,
+      "filename_slug": "retro-mcp-tool-path-discovery-pipeline-2026-04-02",
+      "path": "@second-brain/projects/ai-repo-template/issues/retro-mcp-tool-path-discovery-pipeline-2026-04-02.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjQwLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAzVDAwOjA0OjMxWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 39,
+      "filename_slug": "retrospective-qa-pass-fixes-pipeline-build-qa-pass-fixes-202",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-qa-pass-fixes-pipeline-build-qa-pass-fixes-202.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjM5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAyVDA0OjA3OjUxWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 38,
+      "filename_slug": "retrospective-pipeline-workflow-polish-build-pipeline-workfl",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-pipeline-workflow-polish-build-pipeline-workfl.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjM4LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDIzOjE4OjA1WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 36,
+      "filename_slug": "retrospective-qa-performance-pipeline-build-qa-performance-2",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-qa-performance-pipeline-build-qa-performance-2.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjM2LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDIyOjU3OjAzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 35,
+      "filename_slug": "retrospective-qa-tooling-templates-pipeline-build-qa-tooling",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-qa-tooling-templates-pipeline-build-qa-tooling.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjM1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDIxOjU2OjUyWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 34,
+      "filename_slug": "retrospective-traffic-mobile-polish-pipeline-build-traffic-m",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-traffic-mobile-polish-pipeline-build-traffic-m.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjM0LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDIxOjU0OjEwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 32,
+      "filename_slug": "retrospective-pipeline-reliability-build-pipeline-reliabilit",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-pipeline-reliability-build-pipeline-reliabilit.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjMyLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjQxOjQ5WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 30,
+      "filename_slug": "retrospective-analyze-issues-pipeline-build-analyze-issues-2",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-analyze-issues-pipeline-build-analyze-issues-2.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjMwLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjQ2WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 28,
+      "filename_slug": "retrospective-kiln-polish-pipeline-build-kiln-polish-2026040",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kiln-polish-pipeline-build-kiln-polish-2026040.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjI4LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjQ4WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 26,
+      "filename_slug": "retro-admin-a11y-visual-fixes-pipeline-pr-15",
+      "path": "@second-brain/projects/ai-repo-template/issues/retro-admin-a11y-visual-fixes-pipeline-pr-15.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjI2LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjEwOjA2WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 25,
+      "filename_slug": "retrospective-continuance-agent-pipeline-build-continuance-a",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-continuance-agent-pipeline-build-continuance-a.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjI1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjUwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 23,
+      "filename_slug": "retro-headless-settings-page-pipeline-pr-14",
+      "path": "@second-brain/projects/ai-repo-template/issues/retro-headless-settings-page-pipeline-pr-14.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjIzLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjUyWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 22,
+      "filename_slug": "retrospective-kiln-rebrand-and-qa-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kiln-rebrand-and-qa-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjIyLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjUzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 20,
+      "filename_slug": "retrospective-signout-button-placement-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-signout-button-placement-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjIwLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjEwOjA4WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 19,
+      "filename_slug": "retrospective-admin-a11y-fixes-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-admin-a11y-fixes-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjU1WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 18,
+      "filename_slug": "retro-admin-panel-bugfix-polish-pipeline-build-028",
+      "path": "@second-brain/projects/ai-repo-template/issues/retro-admin-panel-bugfix-polish-pipeline-build-028.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE4LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjU3WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 17,
+      "filename_slug": "pipeline-retro-speckit-observability-2026-03-31",
+      "path": "@second-brain/projects/ai-repo-template/issues/pipeline-retro-speckit-observability-2026-03-31.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE3LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjA5OjU4WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 16,
+      "filename_slug": "retrospective-vnc-fixes-dashboard-ux-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-vnc-fixes-dashboard-ux-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE2LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjEwOjAwWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 15,
+      "filename_slug": "pipeline-retro-obsidian-setup",
+      "path": "@second-brain/projects/ai-repo-template/issues/pipeline-retro-obsidian-setup.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjEwOjAyWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 14,
+      "filename_slug": "pipeline-retro-obsidian-mcp-mvp",
+      "path": "@second-brain/projects/ai-repo-template/issues/pipeline-retro-obsidian-mcp-mvp.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjE0LCJ1cGRhdGVkQXQiOiIyMDI2LTAzLTMxVDAyOjE5OjEzWiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 11,
+      "filename_slug": "retrospective-015-tamagui-takeout-starter-pipeline-run",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-015-tamagui-takeout-starter-pipeline-run.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjExLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTAxVDE4OjEwOjA0WiJ9",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 9,
+      "filename_slug": "retrospective-tamagui-takeout-starter-pipeline-014",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-tamagui-takeout-starter-pipeline-014.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjksInVwZGF0ZWRBdCI6IjIwMjYtMDQtMDFUMTg6MTA6MDlaIn0=",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "github_number": 6,
+      "filename_slug": "retrospective-tamagui-takeout-starter-kit-pipeline",
+      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-tamagui-takeout-starter-kit-pipeline.md",
+      "source_hash": "sha256:eyJudW1iZXIiOjYsInVwZGF0ZWRBdCI6IjIwMjYtMDQtMDFUMTg6MTA6NTZaIn0=",
+      "last_synced": "2026-04-16T22:59:41Z"
+    }
+  ],
+  "docs": [
+    {
+      "slug": "continuance-agent",
+      "path": "@second-brain/projects/ai-repo-template/docs/continuance-agent.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=continuance-agent TITLE=Feature PRD: Continuance Agent (/next) FRs=7 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "kiln-rebrand-and-qa",
+      "path": "@second-brain/projects/ai-repo-template/docs/kiln-rebrand-and-qa.md",
+      "source_hash": "sha256:d4b89f768892443b14eca2ee42093f913ff8aa888198e5f492c0cf6636ebd799",
+      "prd_path": "docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "analyze-issues",
+      "path": "@second-brain/projects/ai-repo-template/docs/analyze-issues.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=analyze-issues TITLE=Feature PRD: Analyze Issues Skill FRs=10 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "kiln-polish",
+      "path": "@second-brain/projects/ai-repo-template/docs/kiln-polish.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=kiln-polish TITLE=Feature PRD: Kiln Polish — Next Command Suggestion & QA Directory Structure FRs=8 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "pipeline-reliability",
+      "path": "@second-brain/projects/ai-repo-template/docs/pipeline-reliability.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=pipeline-reliability TITLE=Feature PRD: Pipeline Reliability & Health FRs=10 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "pipeline-workflow-polish",
+      "path": "@second-brain/projects/ai-repo-template/docs/pipeline-workflow-polish.md",
+      "source_hash": "sha256:16a3ca78e1626ea553cb20e5dd0bb72fe1dfd2385d278295e0569b474965e35a",
+      "prd_path": "docs/features/2026-04-01-pipeline-workflow-polish/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "qa-tooling-templates",
+      "path": "@second-brain/projects/ai-repo-template/docs/qa-tooling-templates.md",
+      "source_hash": "sha256:6e99399431499340f24f4ba7ca1c042eeeb11694b0b4bd02d47b4e762c8979cf",
+      "prd_path": "docs/features/2026-04-01-qa-tooling-templates/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "shelf-config-artifact",
+      "path": "@second-brain/projects/ai-repo-template/docs/shelf-config-artifact.md",
+      "source_hash": "sha256:4c05db635f09e4347dcb40f0b34876eeeb22d3350ab45222547b61f66071c5bb",
+      "prd_path": "docs/features/2026-04-03-shelf-config-artifact/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "shelf-sync-v2",
+      "path": "@second-brain/projects/ai-repo-template/docs/shelf-sync-v2.md",
+      "source_hash": "sha256:c3980204e1cbb3fc8c6af805813114651122f64f0059c4123063a8eb16861ced",
+      "prd_path": "docs/features/2026-04-03-shelf-sync-v2/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "shelf",
+      "path": "@second-brain/projects/ai-repo-template/docs/shelf.md",
+      "source_hash": "sha256:ee6cd82e6a3abb6b0033da66b40580d47e272cdf2d2816e55ab86d12eb020b8d",
+      "prd_path": "docs/features/2026-04-03-shelf/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel.md",
+      "source_hash": "sha256:5ba8dc6a2f50c961db537e289df1af590c4666d8eb632e5e8794e69f421d8c6f",
+      "prd_path": "docs/features/2026-04-03-wheel/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "kiln-wheel-polish",
+      "path": "@second-brain/projects/ai-repo-template/docs/kiln-wheel-polish.md",
+      "source_hash": "sha256:f8e02fce0feaaef1f3f07fcd833917f8ac7c2d46106d4c0412c347ee602ec0ed",
+      "prd_path": "docs/features/2026-04-04-kiln-wheel-polish/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel-skill-activation",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel-skill-activation.md",
+      "source_hash": "sha256:d68d04355e0c6ca805f76af12e453b76243caefde2520a390c12e6e96d77e5d6",
+      "prd_path": "docs/features/2026-04-04-wheel-skill-activation/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel-session-guard",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel-session-guard.md",
+      "source_hash": "sha256:f85e71c9d091cf377f154ee72804773b0610e8a8169833f91edeeea3045321b9",
+      "prd_path": "docs/features/2026-04-05-wheel-session-guard/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel-create-workflow",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel-create-workflow.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=wheel-create-workflow TITLE=Feature PRD: Wheel Create Workflow FRs=24 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel-per-agent-state",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel-per-agent-state.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=wheel-per-agent-state TITLE=Feature PRD: Wheel Per-Agent State Files FRs=11 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "clay-idea-entrypoint",
+      "path": "@second-brain/projects/ai-repo-template/docs/clay-idea-entrypoint.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=clay-idea-entrypoint TITLE=Feature PRD: Clay Idea Entrypoint FRs=14 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "developer-tooling-polish",
+      "path": "@second-brain/projects/ai-repo-template/docs/developer-tooling-polish.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=developer-tooling-polish TITLE=Feature PRD: Developer Tooling Polish FRs=11 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "plugin-clay",
+      "path": "@second-brain/projects/ai-repo-template/docs/plugin-clay.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=plugin-clay TITLE=Feature PRD: Plugin Clay FRs=37 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "wheel-workflow-composition",
+      "path": "@second-brain/projects/ai-repo-template/docs/wheel-workflow-composition.md",
+      "source_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "prd_path": "SLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FRs=18 NFRs=0",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "shelf-skills-polish",
+      "path": "@second-brain/projects/ai-repo-template/docs/shelf-skills-polish.md",
+      "source_hash": "sha256:dfe3b5a55edebf7f410dbf40ccda2cae6afc69bd019ef136c7f8cba71ab5b75a",
+      "prd_path": "docs/features/2026-04-08-shelf-skills-polish/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "plugin-polish-and-skill-ux",
+      "path": "@second-brain/projects/ai-repo-template/docs/plugin-polish-and-skill-ux.md",
+      "source_hash": "sha256:8c952693d42e01bee344269e686bfc779869c741db4803fda048f0e595534edc",
+      "prd_path": "docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "trim-design-lifecycle",
+      "path": "@second-brain/projects/ai-repo-template/docs/trim-design-lifecycle.md",
+      "source_hash": "sha256:0bc0205598d63149e869fb64fde226cbb8c027d2b3a3cf3af902beead565095d",
+      "prd_path": "docs/features/2026-04-09-trim-design-lifecycle/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "trim-penpot-layout",
+      "path": "@second-brain/projects/ai-repo-template/docs/trim-penpot-layout.md",
+      "source_hash": "sha256:5788764fa52ed4b3141751d6c1239c7b843a562b70177e61196da2f916cc451a",
+      "prd_path": "docs/features/2026-04-09-trim-penpot-layout/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    },
+    {
+      "slug": "trim",
+      "path": "@second-brain/projects/ai-repo-template/docs/trim.md",
+      "source_hash": "sha256:0c37cd97b50b09e66b4609e05e743ce1f10aca4541aef87d90e95293e7a06dad",
+      "prd_path": "docs/features/2026-04-09-trim/PRD.md",
+      "last_synced": "2026-04-16T22:59:41Z"
+    }
+  ],
+  "progress_paths": [
+    "@second-brain/projects/ai-repo-template/progress/2026-04.md"
+  ]
+}
