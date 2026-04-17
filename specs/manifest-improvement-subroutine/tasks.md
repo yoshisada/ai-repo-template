@@ -61,13 +61,13 @@ description: "Task list for manifest-improvement-subroutine feature implementati
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] [FR-001 FR-002] Create `plugin-shelf/workflows/propose-manifest-improvement.json` with the 3-step shape defined in `contracts/interfaces.md` §Workflow shape. All command steps reference `${WORKFLOW_PLUGIN_DIR}`. Mark `write-proposal-mcp` as `terminal: true`.
-- [ ] T013 [US1] [FR-007 FR-018 FR-020] In the `write-proposal-mcp` agent step's instruction, handle `action: "skip"` by producing NO output and calling no MCP tool. Write the instruction per `contracts/interfaces.md` §write-proposal-mcp. The step's output file MUST remain empty on skip.
-- [ ] T014 [US1] [FR-003] In the `reflect` agent step's instruction, include the gate-aware directives from `contracts/interfaces.md` §Agent instruction contract for reflect — explicitly default to `{"skip": true}` when in doubt.
+- [X] T012 [US1] [FR-001 FR-002] Create `plugin-shelf/workflows/propose-manifest-improvement.json` with the 3-step shape defined in `contracts/interfaces.md` §Workflow shape. All command steps reference `${WORKFLOW_PLUGIN_DIR}`. Mark `write-proposal-mcp` as `terminal: true`.
+- [X] T013 [US1] [FR-007 FR-018 FR-020] In the `write-proposal-mcp` agent step's instruction, handle `action: "skip"` by producing NO output and calling no MCP tool. Write the instruction per `contracts/interfaces.md` §write-proposal-mcp. The step's output file MUST remain empty on skip.
+- [X] T014 [US1] [FR-003] In the `reflect` agent step's instruction, include the gate-aware directives from `contracts/interfaces.md` §Agent instruction contract for reflect — explicitly default to `{"skip": true}` when in doubt.
 
 ### Tests for User Story 1
 
-- [ ] T015 [US1] [FR-007 FR-020] Write integration test `tests/integration/silent-skip.sh` that seeds a skip reflect output, invokes the workflow, and asserts: exit 0; `@inbox/open/` unchanged; `write-proposal-mcp.txt` empty; dispatch envelope == `{"action":"skip"}`; no stderr emitted by the dispatch command step.
+- [X] T015 [US1] [FR-007 FR-020] Write integration test `tests/integration/silent-skip.sh` that seeds a skip reflect output, invokes the workflow, and asserts: exit 0; `@inbox/open/` unchanged; `write-proposal-mcp.txt` empty; dispatch envelope == `{"action":"skip"}`; no stderr emitted by the dispatch command step.
 
 **Checkpoint**: User Story 1 complete — silent-skip invariant holds end-to-end.
 
@@ -81,14 +81,14 @@ description: "Task list for manifest-improvement-subroutine feature implementati
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] [FR-008 FR-009 FR-015 FR-019] In the `write-proposal-mcp` agent step, implement the MCP write per `contracts/interfaces.md` §write-proposal-mcp: compose markdown with exact frontmatter + four H2 sections, call `mcp__claude_ai_obsidian-manifest__create_file`, handle "file already exists" with `-2..-9` suffix retry, exit 0 on success emitting nothing. (This is the same step as T013 — add the write-path branch to the same instruction.)
-- [ ] T017 [US2] [FR-009] In the agent instruction, enforce the exact four-H2-sections layout (`## Target`, `## Current`, `## Proposed`, `## Why` in this exact order). No additional sections above or between them. Optional `# Manifest Improvement Proposal` H1 is permitted before the first H2.
+- [X] T016 [US2] [FR-008 FR-009 FR-015 FR-019] In the `write-proposal-mcp` agent step, implement the MCP write per `contracts/interfaces.md` §write-proposal-mcp: compose markdown with exact frontmatter + four H2 sections, call `mcp__claude_ai_obsidian-manifest__create_file`, handle "file already exists" with `-2..-9` suffix retry, exit 0 on success emitting nothing. (This is the same step as T013 — add the write-path branch to the same instruction.)
+- [X] T017 [US2] [FR-009] In the agent instruction, enforce the exact four-H2-sections layout (`## Target`, `## Current`, `## Proposed`, `## Why` in this exact order). No additional sections above or between them. Optional `# Manifest Improvement Proposal` H1 is permitted before the first H2.
 
 ### Tests for User Story 2
 
-- [ ] T018 [US2] [FR-008 FR-009 FR-010] Write integration test `tests/integration/write-proposal.sh` that: seeds a propose reflect output where `current` is the first line of a real file under `@manifest/types/`; invokes the workflow; asserts a single `.md` file appears in `@inbox/open/` with filename pattern `<YYYY-MM-DD>-manifest-improvement-<slug>.md`; validates frontmatter keys (`type: proposal`, `target`, `date`); validates the four H2 section headings appear in order.
-- [ ] T019 [US2] [FR-005] Write integration test `tests/integration/hallucinated-current.sh`: seeds a propose output where `current` does NOT appear in the target file; asserts force-skip (no file written).
-- [ ] T020 [US2] [FR-006] Write integration test `tests/integration/ungrounded-why.sh`: seeds a propose output where `why` is a generic opinion with no run-evidence token; asserts force-skip.
+- [X] T018 [US2] [FR-008 FR-009 FR-010] Write integration test `tests/integration/write-proposal.sh` that: seeds a propose reflect output where `current` is the first line of a real file under `@manifest/types/`; invokes the workflow; asserts a single `.md` file appears in `@inbox/open/` with filename pattern `<YYYY-MM-DD>-manifest-improvement-<slug>.md`; validates frontmatter keys (`type: proposal`, `target`, `date`); validates the four H2 section headings appear in order.
+- [X] T019 [US2] [FR-005] Write integration test `tests/integration/hallucinated-current.sh`: seeds a propose output where `current` does NOT appear in the target file; asserts force-skip (no file written).
+- [X] T020 [US2] [FR-006] Write integration test `tests/integration/ungrounded-why.sh`: seeds a propose output where `why` is a generic opinion with no run-evidence token; asserts force-skip.
 
 **Checkpoint**: US1 + US2 together deliver the MVP. The sub-workflow silences on empty runs and produces well-formed proposals on actionable runs.
 
@@ -102,11 +102,11 @@ description: "Task list for manifest-improvement-subroutine feature implementati
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] [FR-004] The gate in `validate-reflect-output.sh` (T004) enforces the regex `^@manifest/(types|templates)/[A-Za-z0-9_.-]+\.md$`. Add this regex check to `validate-reflect-output.sh` if not already present from T004 and ensure test coverage of the reason code `out-of-scope`.
+- [X] T021 [US3] [FR-004] The gate in `validate-reflect-output.sh` (T004) enforces the regex `^@manifest/(types|templates)/[A-Za-z0-9_.-]+\.md$`. Add this regex check to `validate-reflect-output.sh` if not already present from T004 and ensure test coverage of the reason code `out-of-scope`.
 
 ### Tests for User Story 3
 
-- [ ] T022 [US3] [FR-004] Write integration test `tests/integration/out-of-scope.sh`: covers three targets — (a) a shelf skill file (outside vault), (b) `@manifest/systems/projects.md` (in vault, wrong subdir), (c) `@manifest/types/mistake.md` (valid). Assert: (a) force-skip, (b) force-skip, (c) proposal written.
+- [X] T022 [US3] [FR-004] Write integration test `tests/integration/out-of-scope.sh`: covers three targets — (a) a shelf skill file (outside vault), (b) `@manifest/systems/projects.md` (in vault, wrong subdir), (c) `@manifest/types/mistake.md` (valid). Assert: (a) force-skip, (b) force-skip, (c) proposal written.
 
 **Checkpoint**: US1 + US2 + US3 = the MVP. The sub-workflow is runnable standalone, silent on skip, produces well-formed proposals on the happy path, and bounds its scope.
 
