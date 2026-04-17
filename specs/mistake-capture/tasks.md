@@ -131,7 +131,7 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 - [X] T033 [shelf] Friction note written at `specs/mistake-capture/agent-notes/impl-shelf.md`. Covers clarity, ambiguities (MCP scope, command-vs-agent reconciliation ownership, prior-state projection), assumptions (frontmatter parsing, mistake_class selection), wishes (MCP access matrix, scope ownership at plan time), upstream-bug awareness, and retrospective signals.
 - [X] T034 [shelf] Fixture deleted. Manifest is unchanged (the earlier reconciliation tests were run against `/tmp/shelf-sync-backup.json` and restored after each probe — `.shelf-sync.json` has no mistake-capture entries). Obsidian-side cleanup: proposal moved out of `@inbox/open/` (to `@ai/`) so the inbox is clean for reviewers.
-- [ ] T035 [shelf] Commit all plugin-shelf changes in one conventional commit: `feat(shelf): discover .kiln/mistakes/ and propose @inbox/open/ drafts`. Files: `plugin-shelf/scripts/compute-work-list.sh`, `plugin-shelf/workflows/shelf-full-sync.json`, `plugin-shelf/scripts/update-sync-manifest.sh`, `specs/mistake-capture/agent-notes/impl-shelf.md`. Do NOT stage plugin-kiln changes; those are Phase 3's commit.
+- [X] T035 [shelf] Committed at `026ef7c` with message `feat(shelf): discover .kiln/mistakes/ and propose @inbox/open/ drafts`. Files: `plugin-shelf/scripts/compute-work-list.sh`, `plugin-shelf/scripts/update-sync-manifest.sh`, `plugin-shelf/workflows/shelf-full-sync.json`, `plugin-shelf/.claude-plugin/plugin.json` (version bump), `plugin-shelf/package.json` (version bump), `specs/mistake-capture/contracts/interfaces.md`, `specs/mistake-capture/tasks.md`, `specs/mistake-capture/agent-notes/impl-shelf.md`, `specs/mistake-capture/agent-notes/contract-edits.md`. No plugin-kiln files staged.
 
 **Checkpoint**: Shelf extensions are functional end-to-end. `shelf:shelf-full-sync` handles mistakes as first-class work-list entries.
 
@@ -141,9 +141,9 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 **Purpose**: Prove the full `/kiln:mistake` → wheel activation → artifact write → sub-workflow → `@inbox/open/` proposal round-trip works on a real invocation, matching quickstart.md exit criteria.
 
-- [ ] T036 [both] Complete every step of `specs/mistake-capture/quickstart.md` steps 1–6 end-to-end. Check each exit-criterion checkbox in the quickstart. Any failure stops the phase and routes a fix back to whichever owner's scope the failure lives in.
-- [ ] T037 [both] Portability smoke: run `/wheel-run kiln:report-mistake-and-sync` from a consumer-only install (plugin cache path present, source `plugin-kiln/` and `plugin-shelf/` trees NOT in cwd). If testing from this source repo is the only option, at minimum grep the installed-cache copy: `grep -R -E 'plugin-(kiln|shelf)/scripts/' ~/.claude/plugins/cache/yoshisada-speckit/kiln/*/workflows/report-mistake-and-sync.json ~/.claude/plugins/cache/yoshisada-speckit/shelf/*/workflows/shelf-full-sync.json` — must print nothing.
-- [ ] T038 [both] State-file hygiene check (SC-004): after 3 successful end-to-end runs, confirm `.wheel/history/success/` contains exactly one archived state file per run for `report-mistake-and-sync` AND one for the nested `shelf-full-sync`; confirm `.wheel/state_*.json` is empty after the runs complete.
+- [~] T036 [both] **DEFERRED post-merge** (see `blockers.md` Blocker 1). Cannot run end-to-end from source repo — `workflow_discover_plugin_workflows` reads from `~/.claude/plugins/cache/...` which does not yet contain `report-mistake-and-sync.json`. Auditor performed surrogate smoke: shelf work-list path exercised with real fixture (`.kiln/mistakes/2026-04-16-assumed-audit-fixture-cleanup-autonomous.md`) → `counts.mistakes.create: 1`, all `source_data` fields populated, fixture cleaned. Full `/wheel-run` walk-through scheduled for first post-merge session.
+- [~] T037 [both] **DEFERRED post-merge** (see `blockers.md` Blocker 1). Portability grep on branch JSON is CLEAN: `grep -E 'plugin-(kiln|shelf)/scripts/' plugin-kiln/workflows/report-mistake-and-sync.json plugin-shelf/workflows/shelf-full-sync.json` → no matches. Consumer-install portability smoke requires new cache version and runs post-merge.
+- [~] T038 [both] **DEFERRED post-merge** (see `blockers.md` Blocker 1). State-file hygiene validation needs 3 real `/wheel-run` invocations; blocked by same cache-staleness reason as T036/T037.
 
 ---
 
@@ -151,9 +151,9 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 **Note**: The PRD-audit and PR-creation tasks are owned by a separate downstream teammate (task #4 in the parent team's TaskList). This section lists what they will expect:
 
-- [ ] T039 [both] Produce `specs/mistake-capture/agent-notes/auditor.md` (will be written by the auditor during their phase, listed here for traceability).
-- [ ] T040 [both] PRD audit passes 100% or documents every unfixable gap in `specs/mistake-capture/blockers.md`.
-- [ ] T041 [both] PR opened with `build-prd` label, title `feat(kiln,shelf): add /kiln:mistake skill + @inbox/open/ proposal flow`, body summarizing the wheel workflow + shelf extension + portability guarantees.
+- [X] T039 [both] Produce `specs/mistake-capture/agent-notes/auditor.md`. Auditor wrote it during Phase 6; see the file for the retrospective friction note.
+- [X] T040 [both] PRD audit: 16/16 FRs mapped to code + surrogate smoke evidence in `specs/mistake-capture/blockers.md`. Single deferred item (Phase 5 end-to-end `/wheel-run` smoke) documented as Blocker 1 with resolution path.
+- [X] T041 [both] PR opened with `build-prd` label. Title bumped to `feat(kiln,shelf): add /kiln:mistake capture workflow` per team-lead dispatch. URL captured in the task-completion SendMessage.
 
 ---
 
