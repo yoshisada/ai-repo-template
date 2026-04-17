@@ -1,0 +1,100 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "a8baba72335786906",
+  "started_at": "2026-04-09T22:59:58.000Z",
+  "updated_at": "2026-04-09T23:01:11.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T22:59:58.000Z",
+      "completed_at": "2026-04-09T22:59:58.000Z",
+      "output": "## Worker Assignment\n{\"worker_id\": 3, \"task\": \"Write a haiku about testing\"}",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:59:58.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T22:59:58.000Z",
+      "completed_at": "2026-04-09T23:00:32.000Z",
+      "output": ".wheel/outputs/worker-result.md",
+      "command_log": [
+        {
+          "command": "ls -t /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:03.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a8baba72335786906.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:05.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/worker-result.md 2>/dev/null || echo \"File does not exist yet\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:21.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report-back",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T23:00:39.000Z",
+      "completed_at": "2026-04-09T23:01:11.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "jq '.cursor, .steps[2].status' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a8baba72335786906.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:39.000Z"
+        },
+        {
+          "command": "jq '.cursor, .status' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a8baba72335786906.json 2>/dev/null || echo \"State file archived (workflow complete)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:53.000Z"
+        },
+        {
+          "command": "jq '.steps[2]' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a8baba72335786906.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:00:59.000Z"
+        },
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a8baba72335786906.json 2>/dev/null && echo \"Still active\" || echo \"Archived\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:01:05.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

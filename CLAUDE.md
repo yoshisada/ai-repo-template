@@ -217,6 +217,7 @@ If a hook blocks you, either:
 - `/analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
 - `/report-issue` — Quick capture bugs/friction to `.kiln/issues/`
+- `/mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
 
 ## Versioning
 
@@ -273,6 +274,8 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based (JSON workflows, markdown skills/templates, `.wheel/` state) (build/plugin-polish-and-skill-ux-20260409)
 - Bash 5.x + jq (JSON parsing), Claude Code agent teams API (TeamCreate, TaskCreate, TaskList, TaskUpdate, TeamDelete, Agent, SendMessage) (build/wheel-team-primitives-20260409)
 - File-based JSON state (`.wheel/state_*.json`) (build/wheel-team-primitives-20260409)
+- Bash 5.x (command step scripts); Markdown + JSON (workflow + skill definitions). + wheel engine (`plugin-wheel/`), Obsidian MCP (`mcp__claude_ai_obsidian-manifest__*` for `@inbox/`), `jq` for JSON parsing, standard POSIX utilities (`grep -F` for verbatim match, `date` for ISO dates, `sed`/`tr` for slug derivation). (build/manifest-improvement-subroutine-20260416)
+- File-based — reflect output at `.wheel/outputs/propose-manifest-improvement.json` (internal, not user-visible); proposal file at `@inbox/open/<YYYY-MM-DD>-manifest-improvement-<slug>.md` written via MCP. (build/manifest-improvement-subroutine-20260416)
 
 ## Recent Changes
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)

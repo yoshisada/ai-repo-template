@@ -1,0 +1,109 @@
+{
+  "workflow_name": "team-partial-failure-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/team-partial-failure.json",
+  "status": "running",
+  "cursor": 5,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T21:22:11.000Z",
+  "updated_at": "2026-04-10T21:23:23.000Z",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-10T21:22:18.000Z",
+      "completed_at": "2026-04-10T21:22:28.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '.steps[.cursor]|{id,type,status}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:22:14.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '.steps[.cursor]|{id,type,status}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:22:22.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "good-worker",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T21:22:35.000Z",
+      "completed_at": "2026-04-10T21:22:35.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:22:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "bad-worker",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T21:22:35.000Z",
+      "completed_at": "2026-04-10T21:22:35.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-10T21:22:48.000Z",
+      "completed_at": "2026-04-10T21:23:03.000Z",
+      "output": ".wheel/outputs/failure-test-summary.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T21:23:03.000Z",
+      "completed_at": "2026-04-10T21:23:04.000Z",
+      "output": ".wheel/outputs/failure-test-result.txt",
+      "command_log": [
+        {
+          "command": "echo '## Partial Failure Test' && echo '' && SUMMARY=$(cat .wheel/outputs/failure-test-summary.json 2>/dev/null) && COMPLETED=$(echo \"$SUMMARY\" | jq -r '.completed_count // 0') && FAILED=$(echo \"$SUMMARY\" | jq -r '.failed_count // 0') && echo \"Completed: $COMPLETED\" && echo \"Failed: $FAILED\" && if [ \"$COMPLETED\" -ge 1 ] && [ \"$FAILED\" -ge 1 ]; then echo 'PASS: team-wait correctly reported partial results'; else echo 'FAIL: expected 1 completed + 1 failed'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:23:04.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-10T21:23:04.000Z",
+      "completed_at": "2026-04-10T21:23:23.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:23:20.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

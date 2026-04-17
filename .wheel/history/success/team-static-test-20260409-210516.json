@@ -1,0 +1,275 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 7,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T20:58:30.000Z",
+  "updated_at": "2026-04-09T21:05:16.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T20:58:30.000Z",
+      "completed_at": "2026-04-09T20:58:30.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:58:30.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-09T20:58:30.000Z",
+      "completed_at": "2026-04-09T20:58:58.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && if [[ -n \"$STATE_FILE\" && -f \"$STATE_FILE\" ]]; then echo \"State file: $(basename $STATE_FILE)\" && jq '{workflow_name: .workflow_name, cursor: .cursor, owner_session_id: .owner_session_id, owner_agent_id: .owner_agent_id, steps: [.steps[] | {id: .id, status: .status}]}' \"$STATE_FILE\"; else echo \"No state file found\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:58:35.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:00:20.000Z",
+      "completed_at": "2026-04-09T21:00:20.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '{cursor: .cursor, steps: [.steps[] | {id, status}], teams: .teams}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:59:03.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/team-test-static-team/ 2>/dev/null && echo \"---\" && for d in .wheel/outputs/team-test-static-team/*/; do echo \"=== $d ===\" && cat \"$d/assignment.json\" 2>/dev/null && echo \"\" && cat \"$d/context.json\" 2>/dev/null && echo \"\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:59:23.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '{cursor: .cursor, steps: [.steps[] | {id, status}]}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:59:27.000Z"
+        },
+        {
+          "command": "echo \"=== State files ===\" && ls -la .wheel/state_*.json 2>/dev/null && echo \"\" && echo \"=== Main workflow state ===\" && STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '{cursor: .cursor, steps: [.steps[] | {id, status}], teams: .teams}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:59:54.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do echo \"=== $(basename $sf) ===\" && jq '{workflow_name: .workflow_name, cursor: .cursor, owner_agent_id: .owner_agent_id, steps: [.steps[] | {id, status}]}' \"$sf\" && echo \"\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:59:59.000Z"
+        },
+        {
+          "command": "mkdir -p .wheel/history/stopped && STALE=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_1470.json\" && if [[ -f \"$STALE\" ]]; then cp \"$STALE\" \".wheel/history/stopped/$(basename \"$STALE\" .json)-stale-$(date -u +%Y%m%d-%H%M%S).json\" && rm -f \"$STALE\" && echo \"Cleaned up stale state file\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:00:17.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:03:44.000Z",
+      "completed_at": "2026-04-09T21:03:44.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && echo \"=== $STATE_FILE ===\" && jq '{cursor: .cursor, steps: [.steps[] | {id, status}], teammates: .teams.[\"create-team\"].teammates}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:00:46.000Z"
+        },
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null | wc -l && echo \"state files\" && for sf in .wheel/state_*.json; do [[ -f \"$sf\" ]] && echo \"$(basename $sf): $(jq -r '.workflow_name' \"$sf\") cursor=$(jq -r '.cursor' \"$sf\") owner=$(jq -r '.owner_agent_id' \"$sf\")\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:00:48.000Z"
+        },
+        {
+          "command": "jq '.teams[\"create-team\"].teammates' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:00:53.000Z"
+        },
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"=== $w ===\" && ls .wheel/outputs/team-test-static-team/$w/ 2>/dev/null && echo \"\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:00:58.000Z"
+        },
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"=== $w ===\" && cat \".wheel/outputs/team-test-static-team/$w/result.md\" 2>/dev/null && echo \"\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:02.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do [[ -f \"$sf\" ]] && echo \"$(basename $sf):\" && jq '{wf: .workflow_name, cursor: .cursor, owner: .owner_agent_id, steps: [.steps[] | \"\\(.id):\\(.status)\"]}' \"$sf\" && echo \"\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:08.000Z"
+        },
+        {
+          "command": "echo \"Proceeding — all workers already spawned and completed their tasks\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:15.000Z"
+        },
+        {
+          "command": "STATE_FILE=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json\" && jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"], teammates: .teams[\"create-team\"].teammates | keys}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:19.000Z"
+        },
+        {
+          "command": "jq '.cursor' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:26.000Z"
+        },
+        {
+          "command": "echo \"Trigger stop hook to process worker-2\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:43.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"]}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:01:46.000Z"
+        },
+        {
+          "command": "echo \"advance worker-2\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:02:04.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"], teammate_count: (.teams[\"create-team\"].teammates | length)}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:02:08.000Z"
+        },
+        {
+          "command": "echo \"The workers are already spawned. Worker-2 is already running.\" && echo \"Worker-3 is already running.\" && echo \"All workers have completed their haiku tasks.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:09.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"], teammate_count: (.teams[\"create-team\"].teammates | length)}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:03:55.000Z",
+      "completed_at": "2026-04-09T21:03:55.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.815\" && export WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${WHEEL_LIB_DIR}/state.sh\" && source \"${WHEEL_LIB_DIR}/workflow.sh\" && source \"${WHEEL_LIB_DIR}/dispatch.sh\" && source \"${WHEEL_LIB_DIR}/lock.sh\" && source \"${WHEEL_LIB_DIR}/context.sh\" && source \"${WHEEL_LIB_DIR}/guard.sh\" && source \"${WHEEL_LIB_DIR}/engine.sh\" && STATE_FILE=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json\" && WORKFLOW_FILE=$(jq -r '.workflow_file' \"$STATE_FILE\") && echo \"WORKFLOW_FILE=$WORKFLOW_FILE\" && engine_init \"$WORKFLOW_FILE\" \"$STATE_FILE\" && echo \"--- engine init OK ---\" && FAKE_HOOK_INPUT='{\"session_id\":\"f784fcd5-aa40-4362-b2f7-e4e870a2ca6a\",\"agent_id\":\"\"}' && engine_handle_hook \"stop\" \"$FAKE_HOOK_INPUT\" 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:44.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"], teammate_count: (.teams[\"create-team\"].teammates | length)}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-09T21:04:49.000Z",
+      "completed_at": "2026-04-09T21:04:49.000Z",
+      "output": ".wheel/outputs/team-test/summary.json",
+      "command_log": [
+        {
+          "command": "PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.815\" && export WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${WHEEL_LIB_DIR}/state.sh\" && source \"${WHEEL_LIB_DIR}/workflow.sh\" && source \"${WHEEL_LIB_DIR}/dispatch.sh\" && source \"${WHEEL_LIB_DIR}/lock.sh\" && source \"${WHEEL_LIB_DIR}/context.sh\" && source \"${WHEEL_LIB_DIR}/guard.sh\" && source \"${WHEEL_LIB_DIR}/engine.sh\" && STATE_FILE=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json\" && WORKFLOW_FILE=$(jq -r '.workflow_file' \"$STATE_FILE\") && engine_init \"$WORKFLOW_FILE\" \"$STATE_FILE\" && FAKE_HOOK_INPUT='{\"session_id\":\"f784fcd5-aa40-4362-b2f7-e4e870a2ca6a\",\"agent_id\":\"\"}' && engine_handle_hook \"stop\" \"$FAKE_HOOK_INPUT\" 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:55.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"], teammate_count: (.teams[\"create-team\"].teammates | length)}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:03:58.000Z"
+        },
+        {
+          "command": "jq '.teams[\"create-team\"].teammates' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:12.000Z"
+        },
+        {
+          "command": "PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.815\" && export WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${WHEEL_LIB_DIR}/state.sh\" && SF=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json\" && state_update_teammate_status \"$SF\" \"create-team\" \"worker-1\" \"completed\" && state_update_teammate_status \"$SF\" \"create-team\" \"worker-2\" \"completed\" && state_update_teammate_status \"$SF\" \"create-team\" \"worker-3\" \"completed\" && echo \"All teammates marked completed\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:42.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:04:49.000Z",
+      "completed_at": "2026-04-09T21:04:49.000Z",
+      "output": "## Static Team Test Results\n\nSummary:\nnull\nnull\n\nCollected outputs:\n.wheel/outputs/team-test/results/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/result.md\n.wheel/outputs/team-test/results/worker-1/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/worker-1/result.md\n.wheel/outputs/team-test/results/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/result.md\n.wheel/outputs/team-test/results/worker-2/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/worker-2/result.md\n.wheel/outputs/team-test/results/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/result.md\n.wheel/outputs/team-test/results/worker-3/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/worker-3/result.md",
+      "command_log": [
+        {
+          "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-09T21:04:49.000Z",
+      "completed_at": "2026-04-09T21:05:16.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.815\" && export WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\" && source \"${WHEEL_LIB_DIR}/state.sh\" && source \"${WHEEL_LIB_DIR}/workflow.sh\" && source \"${WHEEL_LIB_DIR}/dispatch.sh\" && source \"${WHEEL_LIB_DIR}/lock.sh\" && source \"${WHEEL_LIB_DIR}/context.sh\" && source \"${WHEEL_LIB_DIR}/guard.sh\" && source \"${WHEEL_LIB_DIR}/engine.sh\" && STATE_FILE=\".wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json\" && WORKFLOW_FILE=$(jq -r '.workflow_file' \"$STATE_FILE\") && engine_init \"$WORKFLOW_FILE\" \"$STATE_FILE\" && FAKE_HOOK_INPUT='{\"session_id\":\"f784fcd5-aa40-4362-b2f7-e4e870a2ca6a\",\"agent_id\":\"\"}' && engine_handle_hook \"stop\" \"$FAKE_HOOK_INPUT\" 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:49.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"]}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775768310_21184.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:53.000Z"
+        },
+        {
+          "command": "echo \"=== Summary ===\" && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq '.' && echo \"\" && echo \"=== Collected Results ===\" && ls .wheel/outputs/team-test/results/ 2>/dev/null && echo \"\" && echo \"=== Report ===\" && cat .wheel/outputs/team-test/report.txt 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:04:59.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

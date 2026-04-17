@@ -1,0 +1,74 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "aa3b9733f4753b2a7",
+  "started_at": "2026-04-09T21:30:03.000Z",
+  "updated_at": "2026-04-09T21:30:32.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:30:03.000Z",
+      "completed_at": "2026-04-09T21:30:03.000Z",
+      "output": "## Worker Assignment\n{\"task\": \"default task\"}",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:30:03.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T21:30:03.000Z",
+      "completed_at": "2026-04-09T21:30:32.000Z",
+      "output": ".wheel/outputs/worker-result.md",
+      "command_log": [
+        {
+          "command": "ls -t /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:30:06.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_aa3b9733f4753b2a7.json 2>/dev/null || cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a9021be72cfba299d.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:30:10.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/team-test-static-team/worker-3/assignment.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:30:15.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:30:32.000Z",
+      "completed_at": "2026-04-09T21:30:32.000Z",
+      "output": "Worker complete\n2026-04-09T21:30:32Z",
+      "command_log": [
+        {
+          "command": "echo 'Worker complete' && date -u +%Y-%m-%dT%H:%M:%SZ",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:30:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

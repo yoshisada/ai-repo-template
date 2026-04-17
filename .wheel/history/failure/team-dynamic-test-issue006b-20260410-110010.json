@@ -1,0 +1,114 @@
+{
+  "workflow_name": "team-dynamic-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-dynamic.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T17:58:22.000Z",
+  "updated_at": "2026-04-10T17:59:42.000Z",
+  "steps": [
+    {
+      "id": "generate-work",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T17:58:22.000Z",
+      "completed_at": "2026-04-10T17:58:22.000Z",
+      "output": ".wheel/outputs/work-items.json",
+      "command_log": [
+        {
+          "command": "echo '[{\"page\": \"home\", \"route\": \"/\"}, {\"page\": \"about\", \"route\": \"/about\"}, {\"page\": \"settings\", \"route\": \"/settings\"}, {\"page\": \"profile\", \"route\": \"/profile\"}, {\"page\": \"dashboard\", \"route\": \"/dashboard\"}]' > .wheel/outputs/work-items.json && cat .wheel/outputs/work-items.json | jq length && echo 'items generated'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T17:58:22.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-10T17:58:23.000Z",
+      "completed_at": "2026-04-10T17:58:36.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null; echo \"---\"; tail -15 .wheel/logs/wheel.log",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T17:58:26.000Z"
+        },
+        {
+          "command": "jq '.steps[0] | {id, output, status}' .wheel/state_a38f8f03-472d-4275-87c2-7ebd5789d35e_1775843902_30975.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T17:58:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "spawn-workers",
+      "type": "teammate",
+      "status": "failed",
+      "started_at": "2026-04-10T17:58:39.000Z",
+      "completed_at": "2026-04-10T17:58:39.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null; echo \"---\"; cat .wheel/state_a38f8f03-472d-4275-87c2-7ebd5789d35e_1775843902_30975.json 2>/dev/null | jq '{cursor, steps: [.steps[] | {id, status, output}]}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T17:59:33.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/work-items.json 2>&1; echo \"---\"; cat .wheel/outputs/work-items.json 2>&1 | head -5; echo \"---\"; grep -n \"loop_step_index\\|loop_output\" plugin-wheel/lib/dispatch.sh | head",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T17:59:42.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {
+    "create-team": {
+      "team_name": "test-dynamic-team",
+      "created_at": "2026-04-10T17:58:36.000Z",
+      "teammates": {}
+    }
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 5,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T23:15:07.000Z",
+  "updated_at": "2026-04-09T23:20:25.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T23:15:07.000Z",
+      "completed_at": "2026-04-09T23:15:07.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:15:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-09T23:15:07.000Z",
+      "completed_at": "2026-04-09T23:15:15.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\" && echo \"Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:15:09.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:15:17.000Z",
+      "completed_at": "2026-04-09T23:15:17.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:15:17.000Z",
+      "completed_at": "2026-04-09T23:15:17.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:15:17.000Z",
+      "completed_at": "2026-04-09T23:15:18.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "working",
+      "started_at": "2026-04-09T23:15:34.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null | while read sf; do NAME=$(jq -r '.workflow_name // \"unknown\"' \"$sf\" 2>/dev/null); echo \"  $(basename $sf): $NAME\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:19:22.000Z"
+        },
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null || echo \"All clear\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:19:29.000Z"
+        },
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null | wc -l",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:19:36.000Z"
+        },
+        {
+          "command": "# Simulate what the hook would see — does the glob fail under set -euo pipefail when no state files match?\n# The --all branch does: for sf in .wheel/state_*.json\n# With set -euo pipefail + nounset, if glob has no matches in zsh it errors\n# But this runs under bash... let me check\nbash -euo pipefail -c 'for sf in /tmp/nonexistent_*.json; do [[ -f \"$sf\" ]] || continue; echo \"$sf\"; done; echo \"survived\"'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:20:18.000Z"
+        },
+        {
+          "command": "# The issue might be the block-state-write PreToolUse hook blocking the rm -f\n# Let's check what it does\ncat /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.920/hooks/block-state-write.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:20:25.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {
+    "create-team": {
+      "team_name": "test-static-team",
+      "created_at": "2026-04-09T23:15:15.000Z",
+      "teammates": {
+        "worker-1": {
+          "task_id": "",
+          "status": "completed",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-1",
+          "started_at": null,
+          "completed_at": "2026-04-09T23:15:49.000Z",
+          "assign": {
+            "worker_id": 1,
+            "task": "Write a haiku about code"
+          }
+        },
+        "worker-2": {
+          "task_id": "",
+          "status": "completed",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-2",
+          "started_at": null,
+          "completed_at": "2026-04-09T23:15:51.000Z",
+          "assign": {
+            "worker_id": 2,
+            "task": "Write a haiku about bugs"
+          }
+        },
+        "worker-3": {
+          "task_id": "",
+          "status": "pending",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-3",
+          "started_at": null,
+          "completed_at": null,
+          "assign": {
+            "worker_id": 3,
+            "task": "Write a haiku about testing"
+          }
+        }
+      }
+    }
+  }
+}
