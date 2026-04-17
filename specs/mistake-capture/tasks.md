@@ -27,9 +27,9 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 **Purpose**: Ensure the feature branch, spec artifacts, and `.kiln/mistakes/` directory convention are in place before either implementer starts.
 
-- [ ] T001 [both] Verify branch `build/mistake-capture-20260416` is checked out and `specs/mistake-capture/` contains spec.md, plan.md, contracts/interfaces.md, research.md, data-model.md, quickstart.md. If any are missing, stop and fix before proceeding.
-- [ ] T002 [P] [kiln] Add `.kiln/mistakes/` to the "active work surfaces" note in `CLAUDE.md` ("Recent Changes" or equivalent section) so the directory convention is documented alongside `.kiln/issues/`, `.kiln/logs/`, `.kiln/qa/`. Reference: research.md §Open Questions — Resolved (#2).
-- [ ] T003 [P] [both] Confirm wheel post-`005e259` is on `main` via `git log --oneline main -- plugin-wheel/lib/dispatch.sh | head -5`. If the `WORKFLOW_PLUGIN_DIR` export is absent, this feature is blocked — stop and raise.
+- [X] T001 [both] Verify branch `build/mistake-capture-20260416` is checked out and `specs/mistake-capture/` contains spec.md, plan.md, contracts/interfaces.md, research.md, data-model.md, quickstart.md. If any are missing, stop and fix before proceeding.
+- [X] T002 [P] [kiln] Add `.kiln/mistakes/` to the "active work surfaces" note in `CLAUDE.md` ("Recent Changes" or equivalent section) so the directory convention is documented alongside `.kiln/issues/`, `.kiln/logs/`, `.kiln/qa/`. Reference: research.md §Open Questions — Resolved (#2).
+- [X] T003 [P] [both] Confirm wheel post-`005e259` is on `main` via `git log --oneline main -- plugin-wheel/lib/dispatch.sh | head -5`. If the `WORKFLOW_PLUGIN_DIR` export is absent, this feature is blocked — stop and raise.
 
 **Checkpoint**: Spec artifacts present, branch checked out, wheel portability fix confirmed.
 
@@ -39,7 +39,7 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 **Purpose**: Items that MUST land before either implementer's Phase 3 tasks can run to completion. Kept minimal because the feature has few upfront shared dependencies.
 
-- [ ] T004 [both] Review `contracts/interfaces.md` end-to-end. Both owners confirm they can meet every contract in their scope. If any contract is ambiguous, update `contracts/interfaces.md` FIRST (per constitution VII) before implementation. Paste any edits into `specs/mistake-capture/agent-notes/contract-edits.md`.
+- [X] T004 [both] Review `contracts/interfaces.md` end-to-end. Both owners confirm they can meet every contract in their scope. If any contract is ambiguous, update `contracts/interfaces.md` FIRST (per constitution VII) before implementation. Paste any edits into `specs/mistake-capture/agent-notes/contract-edits.md`.
 
 **Checkpoint**: Contracts are final. Phase 3 (impl-kiln) and Phase 4 (impl-shelf) may now start in parallel.
 
@@ -53,37 +53,30 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 ### 3a. Command-step script (prerequisite for the workflow)
 
-- [ ] T005 [kiln] Create `plugin-kiln/scripts/` directory if it does not exist. Reference: contracts/interfaces.md §3.
-- [ ] T006 [kiln] Write `plugin-kiln/scripts/check-existing-mistakes.sh` per contracts/interfaces.md §3 — shebang `#!/usr/bin/env bash`, `set -euo pipefail`, no args, emits two H2 blocks (`## Existing Local Mistakes` / `## Recent Session Mistakes`) to stdout, exit 0 on "no files found". Must NOT exceed 80 lines. Do not reference `plugin-kiln/scripts/...` internally (use `$0`-relative or absolute `$WORKFLOW_PLUGIN_DIR` only).
-- [ ] T007 [kiln] `chmod +x plugin-kiln/scripts/check-existing-mistakes.sh` and verify executable by running it directly from the repo root: `bash plugin-kiln/scripts/check-existing-mistakes.sh` — expect well-formed output even when `.kiln/mistakes/` does not exist.
+- [X] T005 [kiln] Create `plugin-kiln/scripts/` directory if it does not exist. Reference: contracts/interfaces.md §3.
+- [X] T006 [kiln] Write `plugin-kiln/scripts/check-existing-mistakes.sh` per contracts/interfaces.md §3 — shebang `#!/usr/bin/env bash`, `set -euo pipefail`, no args, emits two H2 blocks (`## Existing Local Mistakes` / `## Recent Session Mistakes`) to stdout, exit 0 on "no files found". Must NOT exceed 80 lines. Do not reference `plugin-kiln/scripts/...` internally (use `$0`-relative or absolute `$WORKFLOW_PLUGIN_DIR` only).
+- [X] T007 [kiln] `chmod +x plugin-kiln/scripts/check-existing-mistakes.sh` and verify executable by running it directly from the repo root: `bash plugin-kiln/scripts/check-existing-mistakes.sh` — expect well-formed output even when `.kiln/mistakes/` does not exist.
 
 ### 3b. Workflow JSON
 
-- [ ] T008 [kiln] Create `plugin-kiln/workflows/report-mistake-and-sync.json` per contracts/interfaces.md §2 exactly: `name: "report-mistake-and-sync"`, `version: "1.0.0"`, three steps with IDs `check-existing-mistakes` (command), `create-mistake` (agent), `full-sync` (workflow, `terminal: true`). Use `bash "${WORKFLOW_PLUGIN_DIR}/scripts/check-existing-mistakes.sh"` — NOT `plugin-kiln/scripts/check-existing-mistakes.sh`.
-- [ ] T009 [kiln] Author the `create-mistake.instruction` string in the workflow JSON per contracts/interfaces.md §2.1 — 9 numbered steps, honesty lint per §2.2, three-axis tag lint per §2.3, slug derivation per §2.4. Include the exact `.wheel/outputs/create-mistake-result.md` markdown shape (contracts §2.1 step 9). The five required body sections (`## What happened`, `## The assumption`, `## The correction`, `## Recovery`, `## Prevention for future agents`) must be enumerated explicitly.
-- [ ] T010 [kiln] Validate the workflow JSON with `jq '.' plugin-kiln/workflows/report-mistake-and-sync.json > /dev/null` (syntax) and a grep check: `grep -E 'plugin-(kiln|shelf)/scripts/' plugin-kiln/workflows/report-mistake-and-sync.json && echo PORTABILITY_BUG || echo OK`. Must print `OK`.
+- [X] T008 [kiln] Create `plugin-kiln/workflows/report-mistake-and-sync.json` per contracts/interfaces.md §2 exactly: `name: "report-mistake-and-sync"`, `version: "1.0.0"`, three steps with IDs `check-existing-mistakes` (command), `create-mistake` (agent), `full-sync` (workflow, `terminal: true`). Use `bash "${WORKFLOW_PLUGIN_DIR}/scripts/check-existing-mistakes.sh"` — NOT `plugin-kiln/scripts/check-existing-mistakes.sh`.
+- [X] T009 [kiln] Author the `create-mistake.instruction` string in the workflow JSON per contracts/interfaces.md §2.1 — 9 numbered steps, honesty lint per §2.2, three-axis tag lint per §2.3, slug derivation per §2.4. Include the exact `.wheel/outputs/create-mistake-result.md` markdown shape (contracts §2.1 step 9). The five required body sections (`## What happened`, `## The assumption`, `## The correction`, `## Recovery`, `## Prevention for future agents`) must be enumerated explicitly.
+- [X] T010 [kiln] Validate the workflow JSON with `jq '.' plugin-kiln/workflows/report-mistake-and-sync.json > /dev/null` (syntax) and a grep check: `grep -E 'plugin-(kiln|shelf)/scripts/' plugin-kiln/workflows/report-mistake-and-sync.json && echo PORTABILITY_BUG || echo OK`. Must print `OK`.
 
 ### 3c. Skill entrypoint
 
-- [ ] T011 [kiln] Create `plugin-kiln/skills/mistake/` directory.
-- [ ] T012 [kiln] Write `plugin-kiln/skills/mistake/SKILL.md` per contracts/interfaces.md §1 — frontmatter with `name: mistake` and the contract description, body with the LLM guardrails block (quote/summarize `@manifest/types/mistake.md` honesty principle + severity calibration + "do not write about the human" + "filename slug names the trap"), and the `/wheel-run kiln:report-mistake-and-sync` invocation. No structured prompting, no lint, no file writes.
-- [ ] T013 [P] [kiln] Inspect `plugin-kiln/.claude-plugin/plugin.json`. If it maintains an explicit `skills:` listing, add `"mistake"` to it. If skills are auto-discovered (no explicit list), skip this task and document in the PR description. Reference: contracts/interfaces.md §7.
+- [X] T011 [kiln] Create `plugin-kiln/skills/mistake/` directory.
+- [X] T012 [kiln] Write `plugin-kiln/skills/mistake/SKILL.md` per contracts/interfaces.md §1 — frontmatter with `name: mistake` and the contract description, body with the LLM guardrails block (quote/summarize `@manifest/types/mistake.md` honesty principle + severity calibration + "do not write about the human" + "filename slug names the trap"), and the `/wheel-run kiln:report-mistake-and-sync` invocation. No structured prompting, no lint, no file writes.
+- [X] T013 [P] [kiln] Inspect `plugin-kiln/.claude-plugin/plugin.json`. If it maintains an explicit `skills:` listing, add `"mistake"` to it. If skills are auto-discovered (no explicit list), skip this task and document in the PR description. Reference: contracts/interfaces.md §7. **Done**: skills are auto-discovered (no `skills:` list), but also added the new workflow to `workflows:` list which IS maintained.
 
 ### 3d. Sanity activation test (local-only, no shelf dependency)
 
-- [ ] T014 [kiln] From the repo root, run `/wheel:wheel-list` and verify `report-mistake-and-sync` is listed under the kiln plugin. Reference: quickstart.md Step 1.
-- [ ] T015 [kiln] Run `/wheel:wheel-run kiln:report-mistake-and-sync` with a realistic test description ("I assumed the WORKFLOW_PLUGIN_DIR was always exported"). Confirm:
-  - `.wheel/outputs/check-existing-mistakes.txt` is written and non-empty.
-  - `.kiln/mistakes/YYYY-MM-DD-<slug>.md` lands with all 7 frontmatter fields and 5 body sections.
-  - Slug is derived from the assumption (not the correction).
-  - `.wheel/outputs/create-mistake-result.md` matches the §2.1 step-9 shape.
-  - Honesty lint rejects a deliberately hedged submission (`I may have assumed ...`) and re-prompts.
-  - Tag lint rejects a tag list missing any required axis.
-  - If Step 3 (`shelf:shelf-full-sync`) is not yet functional because Phase 4 is incomplete, that is expected — Step 1 and Step 2 are the scope here.
+- [X] T014 [kiln] ~From the repo root, run `/wheel:wheel-list` and verify `report-mistake-and-sync` is listed under the kiln plugin.~ **Deferred to Phase 5 smoke** — `workflow_discover_plugin_workflows` (plugin-wheel/lib/workflow.sh:323) reads from `~/.claude/plugins/cache/...`, so the new workflow won't appear in `/wheel-list` until the plugin is re-installed via marketplace. Surrogate verification performed: `jq '.workflows' plugin-kiln/.claude-plugin/plugin.json` confirms registration; `jq` parses the workflow JSON cleanly; direct `eval` of `.steps[0].command` with `WORKFLOW_PLUGIN_DIR` exported produces expected two-H2-block stdout.
+- [X] T015 [kiln] ~Run `/wheel:wheel-run kiln:report-mistake-and-sync` ...~ **Deferred to Phase 5 smoke** — same plugin-cache reason as T014. All static contract checks pass (3 steps, correct ids/types, version 1.0.0, `terminal: true` on `full-sync`, 9 numbered sub-steps in `create-mistake.instruction`, all 5 body-section headings enumerated, honesty-lint trigger list present, three-axis tag-lint present, slug derivation described). End-to-end activation with honesty/tag-lint re-prompt behaviour will be exercised in Phase 5 T036.
 
 ### 3e. impl-kiln commit
 
-- [ ] T016 [kiln] Write `specs/mistake-capture/agent-notes/impl-kiln.md` — friction note covering what was clear in the spec/plan/contracts, what was ambiguous, any assumption made, and what you wish was more explicit. This is the retrospective input.
+- [X] T016 [kiln] Write `specs/mistake-capture/agent-notes/impl-kiln.md` — friction note covering what was clear in the spec/plan/contracts, what was ambiguous, any assumption made, and what you wish was more explicit. This is the retrospective input.
 - [ ] T017 [kiln] Commit all plugin-kiln changes in one conventional commit: `feat(kiln): add /kiln:mistake skill + report-mistake-and-sync workflow`. Files: `plugin-kiln/skills/mistake/SKILL.md`, `plugin-kiln/workflows/report-mistake-and-sync.json`, `plugin-kiln/scripts/check-existing-mistakes.sh`, `plugin-kiln/.claude-plugin/plugin.json` (if T013 changed it), `CLAUDE.md` (if T002 changed it), `specs/mistake-capture/agent-notes/impl-kiln.md`. Do NOT stage plugin-shelf changes; those belong to Phase 4's commit.
 
 **Checkpoint**: Skill + workflow + script are functional end-to-end through Step 2. Step 3 awaits Phase 4.
@@ -98,16 +91,16 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 ### 4a. Work-list extension (compute-work-list.sh)
 
-- [ ] T018 [shelf] Extend `plugin-shelf/scripts/compute-work-list.sh` to add the `mistakes_actions` array per contracts/interfaces.md §4. Discovery scans `.kiln/mistakes/*.md` (no recursion), computes `source_hash = sha256:<hex>` using the existing `shasum -a 256` pattern (see the script's PRD-hash logic around the existing `source_hash` block), indexes by `path` against the sync-manifest `mistakes[]` array, and emits per-entry objects with `action ∈ {create, update, skip}`.
-- [ ] T019 [shelf] In `compute-work-list.sh`, apply the `proposal_state == "filed"` short-circuit from contracts §4 — a filed entry is always `skip` regardless of source-hash change. This enforces FR-014.
-- [ ] T020 [shelf] Extend the assembled JSON output at the bottom of `compute-work-list.sh` to include the new top-level `mistakes:` key and the new `counts.mistakes: {create, update, skip}` sub-object per contracts §4 ("Updated top-level schema of compute-work-list.json"). Use `jq -n ... --argjson mistakes "$mistakes_actions"`.
-- [ ] T021 [shelf] Run `bash plugin-shelf/scripts/compute-work-list.sh` with a seeded `.kiln/mistakes/sample.md` and verify the output JSON parses and the new `mistakes[]` array appears. Backward-compat check: run the shelf-full-sync workflow's downstream steps against the extended output and confirm the existing `obsidian-apply` logic does not break (since it currently ignores unknown top-level keys).
+- [X] T018 [shelf] Extend `plugin-shelf/scripts/compute-work-list.sh` to add the `mistakes_actions` array per contracts/interfaces.md §4. Discovery scans `.kiln/mistakes/*.md` (no recursion), computes `source_hash = sha256:<hex>` using the existing `shasum -a 256` pattern (see the script's PRD-hash logic around the existing `source_hash` block), indexes by `path` against the sync-manifest `mistakes[]` array, and emits per-entry objects with `action ∈ {create, update, skip}`.
+- [X] T019 [shelf] In `compute-work-list.sh`, apply the `proposal_state == "filed"` short-circuit from contracts §4 — a filed entry is always `skip` regardless of source-hash change. This enforces FR-014.
+- [X] T020 [shelf] Extend the assembled JSON output at the bottom of `compute-work-list.sh` to include the new top-level `mistakes:` key and the new `counts.mistakes: {create, update, skip}` sub-object per contracts §4 ("Updated top-level schema of compute-work-list.json"). Use `jq -n ... --argjson mistakes "$mistakes_actions"`.
+- [X] T021 [shelf] Run `bash plugin-shelf/scripts/compute-work-list.sh` with a seeded `.kiln/mistakes/sample.md` and verify the output JSON parses and the new `mistakes[]` array appears. Backward-compat check: run the shelf-full-sync workflow's downstream steps against the extended output and confirm the existing `obsidian-apply` logic does not break (since it currently ignores unknown top-level keys).
 
 ### 4b. Proposal write (shelf-full-sync.json obsidian-apply step)
 
-- [ ] T022 [shelf] Extend the `obsidian-apply` agent step's `instruction:` string in `plugin-shelf/workflows/shelf-full-sync.json` per contracts/interfaces.md §5 — add a new loop after the `docs` loop that handles the `mistakes[]` array. For each entry: `skip` = no-op; `create` = `mcp__obsidian-projects__create_file` with proposal frontmatter (§5.1) and body (§5.2); `update` = `patch_file` to refresh `source_hash` + `last_synced` + body replacement when hash differs; on "file already exists" fallback to `patch_file` for programmatic fields only; on any other MCP error append `{step: "mistakes", path, message}` to `errors` and continue.
-- [ ] T023 [shelf] In the same `obsidian-apply` instruction, extend the final results JSON to include a `mistakes: {created, updated, skipped}` sub-object per contracts §5. Field classification reference (programmatic vs inferred): treat `source_path`, `source_hash`, `last_synced`, `project`, `target` as programmatic (always patched on UPDATE); `tags`, `severity`, `mistake_class`, `date` as inferred (set on CREATE, preserved on UPDATE) — mirror the existing field-classification pattern for issues and docs.
-- [ ] T024 [shelf] Validate the workflow JSON: `jq '.' plugin-shelf/workflows/shelf-full-sync.json > /dev/null` and a grep check for portability (`grep -E 'plugin-(kiln|shelf)/scripts/' plugin-shelf/workflows/shelf-full-sync.json && echo PORTABILITY_BUG || echo OK` — this file should still only reference `${WORKFLOW_PLUGIN_DIR}` for command steps).
+- [X] T022 [shelf] Extend the `obsidian-apply` agent step's `instruction:` string in `plugin-shelf/workflows/shelf-full-sync.json` per contracts/interfaces.md §5 — added a new loop (step 5) after the `docs` loop that handles the `mistakes[]` array. MCP scope routed to `mcp__claude_ai_obsidian-manifest__*` per contract-edits Edit 1.
+- [X] T023 [shelf] Extended final results JSON (step 9) to include `mistakes: {created, updated, skipped, reconciliation[]}`. Added step 8 (`@inbox/open/` reconciliation) per contracts §5.3. Field classification documented in the instruction.
+- [X] T024 [shelf] Validated: `jq '.'` passes, grep for `plugin-(kiln|shelf)/scripts/` returns nothing — `PORTABILITY OK`.
 
 ### 4c. Manifest reconciliation (update-sync-manifest.sh)
 
