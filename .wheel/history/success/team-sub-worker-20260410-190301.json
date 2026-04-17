@@ -1,0 +1,76 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T19:02:36.000Z",
+  "updated_at": "2026-04-10T19:03:01.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T19:02:37.000Z",
+      "completed_at": "2026-04-10T19:02:37.000Z",
+      "output": ".wheel/outputs/worker-assignment.txt",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T19:02:37.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T19:02:37.000Z",
+      "completed_at": "2026-04-10T19:02:53.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report-back",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T19:02:53.000Z",
+      "completed_at": "2026-04-10T19:03:01.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null; echo ---; for f in .wheel/state_*.json; do [[ -f \"$f\" ]] || continue; jq -r '[input_filename, .workflow_name, .owner_agent_id, .alternate_agent_id, .cursor, .steps[.cursor].id, .steps[.cursor].status, .status] | @tsv' \"$f\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T19:03:01.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T19:03:01.000Z",
+      "completed_at": "2026-04-10T19:03:01.000Z",
+      "output": ".wheel/outputs/worker-done.txt",
+      "command_log": [
+        {
+          "command": "echo 'Worker complete' && date -u +%Y-%m-%dT%H:%M:%SZ",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T19:03:01.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "alternate_agent_id": "worker-1@test-static-team)."
+}

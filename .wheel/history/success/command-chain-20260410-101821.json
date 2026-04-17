@@ -1,0 +1,86 @@
+{
+  "workflow_name": "command-chain",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/tests/command-chain.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "aadaf1f106447908c",
+  "started_at": "2026-04-10T10:18:07.000Z",
+  "updated_at": "2026-04-10T10:18:21.000Z",
+  "steps": [
+    {
+      "id": "count-files",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T10:18:07.000Z",
+      "completed_at": "2026-04-10T10:18:07.000Z",
+      "output": "Markdown files:\n497",
+      "command_log": [
+        {
+          "command": "echo \"Markdown files:\" && find . -name '*.md' -not -path './node_modules/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T10:18:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "count-scripts",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T10:18:07.000Z",
+      "completed_at": "2026-04-10T10:18:07.000Z",
+      "output": "Shell scripts:\n44",
+      "command_log": [
+        {
+          "command": "echo \"Shell scripts:\" && find . -name '*.sh' -not -path './node_modules/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T10:18:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "count-json",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T10:18:07.000Z",
+      "completed_at": "2026-04-10T10:18:07.000Z",
+      "output": "JSON files:\n52",
+      "command_log": [
+        {
+          "command": "echo \"JSON files:\" && find . -name '*.json' -not -path './node_modules/*' -not -path './.wheel/*' | wc -l | tr -d ' '",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T10:18:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "summarize",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T10:18:07.000Z",
+      "completed_at": "2026-04-10T10:18:21.000Z",
+      "output": "reports/file-census.md",
+      "command_log": [
+        {
+          "command": "ls -la reports/file-census.md 2>/dev/null || echo \"file does not exist (good — fix worked)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T10:18:10.000Z"
+        },
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T10:18:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

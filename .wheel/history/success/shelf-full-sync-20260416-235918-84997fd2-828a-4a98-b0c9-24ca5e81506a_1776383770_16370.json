@@ -1,0 +1,226 @@
+{
+  "workflow_name": "shelf-full-sync",
+  "workflow_version": "5.0.0",
+  "workflow_file": "workflows/shelf-full-sync.json",
+  "status": "running",
+  "cursor": 11,
+  "owner_session_id": "84997fd2-828a-4a98-b0c9-24ca5e81506a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-16T23:56:10.000Z",
+  "updated_at": "2026-04-16T23:59:18.000Z",
+  "steps": [
+    {
+      "id": "gather-repo-state",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:10.000Z",
+      "completed_at": "2026-04-16T23:56:11.000Z",
+      "output": ".wheel/outputs/gather-repo-state.txt",
+      "command_log": [
+        {
+          "command": "echo \"Branch: $(git branch --show-current)\" && echo \"Last 5 commits:\" && git log --format='%h %s' -5 && echo '---' && echo \"Open issues: $(gh issue list --state open --json number --limit 100 2>/dev/null | jq length)\" && echo \"Backlog: $(ls .kiln/issues/*.md 2>/dev/null | wc -l | tr -d ' ') items\" && echo \"PRDs: $(ls docs/features/*/PRD.md 2>/dev/null | wc -l | tr -d ' ')\" && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL\"; done && echo \"VERSION: $(cat VERSION 2>/dev/null || echo none)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:11.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:11.000Z",
+      "completed_at": "2026-04-16T23:56:11.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "if [ -f .shelf-config ]; then cat .shelf-config; else echo 'No .shelf-config — using defaults'; echo \"slug=$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))\"; echo 'base_path=projects'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:11.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fetch-github-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:11.000Z",
+      "completed_at": "2026-04-16T23:56:12.000Z",
+      "output": ".wheel/outputs/fetch-github-issues.txt",
+      "command_log": [
+        {
+          "command": "gh issue list --state all --json number,title,state,updatedAt --limit 100 2>/dev/null || echo '[]'",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:12.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-backlog-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:12.000Z",
+      "completed_at": "2026-04-16T23:56:12.000Z",
+      "output": ".wheel/outputs/read-backlog-issues.txt",
+      "command_log": [
+        {
+          "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; TITLE=$(grep -m1 '^title:' \"$f\" | sed 's/^title:[[:space:]]*\"\\{0,1\\}//;s/\"$//' 2>/dev/null || echo '?'); STATUS=$(grep -m1 '^status:' \"$f\" | sed 's/^status:[[:space:]]*//' 2>/dev/null || echo '?'); echo \"$(basename $f): $TITLE [$STATUS]\"; done && echo '## Completed' && ls .kiln/issues/completed/*.md 2>/dev/null | wc -l | tr -d ' ' && echo ' completed issues'",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:12.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-feature-prds",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:12.000Z",
+      "completed_at": "2026-04-16T23:56:13.000Z",
+      "output": ".wheel/outputs/read-feature-prds.txt",
+      "command_log": [
+        {
+          "command": "for prd in docs/features/*/PRD.md; do [ -f \"$prd\" ] || { echo '(no PRDs)'; break; }; DIR=$(basename $(dirname \"$prd\")); SLUG=$(echo \"$DIR\" | sed 's/^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}-//'); TITLE=$(grep -m1 '^# ' \"$prd\" | sed 's/^# //'); FR_COUNT=$(grep -c 'FR-' \"$prd\" 2>/dev/null || echo 0); NFR_COUNT=$(grep -c 'NFR-' \"$prd\" 2>/dev/null || echo 0); STATUS=$(grep -m1 '^\\*\\*Status\\*\\*' \"$prd\" | sed 's/.*: *//'); echo \"SLUG=$SLUG TITLE=$TITLE FRs=$FR_COUNT NFRs=$NFR_COUNT STATUS=$STATUS PATH=$prd\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:13.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "detect-tech-stack",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:13.000Z",
+      "completed_at": "2026-04-16T23:56:13.000Z",
+      "output": ".wheel/outputs/detect-tech-stack.txt",
+      "command_log": [
+        {
+          "command": "echo '## Tech Stack Detection' && ls package.json tsconfig.json Cargo.toml pyproject.toml requirements.txt go.mod Gemfile Dockerfile docker-compose.yml docker-compose.yaml compose.yml compose.yaml 2>/dev/null || echo '(no markers)' && if [ -f package.json ]; then echo '---' && echo 'package.json deps:' && cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null; fi && if [ -d .github/workflows ]; then echo '---' && echo 'infra/github-actions'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:13.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-sync-manifest",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:13.000Z",
+      "completed_at": "2026-04-16T23:56:13.000Z",
+      "output": ".wheel/outputs/sync-manifest.json",
+      "command_log": [
+        {
+          "command": "bash plugin-shelf/scripts/read-sync-manifest.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:13.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "compute-work-list",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:13.000Z",
+      "completed_at": "2026-04-16T23:56:14.000Z",
+      "output": ".wheel/outputs/compute-work-list.json",
+      "command_log": [
+        {
+          "command": "bash plugin-shelf/scripts/compute-work-list.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-apply",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-16T23:56:14.000Z",
+      "completed_at": "2026-04-16T23:58:45.000Z",
+      "output": ".wheel/outputs/obsidian-apply-results.json",
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"\necho \"Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:18.000Z"
+        },
+        {
+          "command": "jq '.counts, {base_path: .base_path, slug: .slug}, {dashboard_needs_update: .dashboard.needs_update, progress_needs_update: .progress.needs_update}' .wheel/outputs/compute-work-list.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:26.000Z"
+        },
+        {
+          "command": "jq '.dashboard, .progress' .wheel/outputs/compute-work-list.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:56:32.000Z"
+        },
+        {
+          "command": "jq '{counts, dashboard, progress}' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/compute-work-list.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:58:24.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "update-sync-manifest",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:58:45.000Z",
+      "completed_at": "2026-04-16T23:58:45.000Z",
+      "output": ".wheel/outputs/update-sync-manifest.txt",
+      "command_log": [
+        {
+          "command": "bash plugin-shelf/scripts/update-sync-manifest.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:58:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-sync-summary",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-16T23:58:45.000Z",
+      "completed_at": "2026-04-16T23:58:45.000Z",
+      "output": ".wheel/outputs/shelf-full-sync-summary.md",
+      "command_log": [
+        {
+          "command": "bash plugin-shelf/scripts/generate-sync-summary.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-16T23:58:45.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "self-improve",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-16T23:58:45.000Z",
+      "completed_at": "2026-04-16T23:59:18.000Z",
+      "output": ".wheel/outputs/self-improve-results.txt",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

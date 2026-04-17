@@ -1,0 +1,69 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "a55f1cb3dd17bbfcb",
+  "started_at": "2026-04-10T00:16:53.000Z",
+  "updated_at": "2026-04-10T00:17:03.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T00:16:53.000Z",
+      "completed_at": "2026-04-10T00:16:53.000Z",
+      "output": "## Worker Assignment\n{\"worker_id\": 3, \"task\": \"Write a haiku about testing\"}",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T00:16:53.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T00:16:53.000Z",
+      "completed_at": "2026-04-10T00:17:03.000Z",
+      "output": ".wheel/outputs/worker-result.md",
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\" && echo \"Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T00:16:58.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report-back",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

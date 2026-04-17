@@ -217,6 +217,7 @@ If a hook blocks you, either:
 - `/analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
 - `/report-issue` — Quick capture bugs/friction to `.kiln/issues/`
+- `/mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
 
 ## Versioning
 

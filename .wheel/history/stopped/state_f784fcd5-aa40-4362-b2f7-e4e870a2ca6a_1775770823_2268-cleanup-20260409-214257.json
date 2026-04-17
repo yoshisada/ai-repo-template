@@ -1,0 +1,178 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 5,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T21:40:23.000Z",
+  "updated_at": "2026-04-09T21:42:09.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:40:23.000Z",
+      "completed_at": "2026-04-09T21:40:23.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:40:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-09T21:40:23.000Z",
+      "completed_at": "2026-04-09T21:40:32.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq '{cursor: .cursor, steps: [.steps[] | \"\\(.id):\\(.status)\"]}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:40:28.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:40:42.000Z",
+      "completed_at": "2026-04-09T21:40:42.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:40:42.000Z",
+      "completed_at": "2026-04-09T21:40:42.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T21:40:42.000Z",
+      "completed_at": "2026-04-09T21:40:42.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "bash -c '\nPLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.854\"\nexport WHEEL_LIB_DIR=\"${PLUGIN_DIR}/lib\"\nsource \"${WHEEL_LIB_DIR}/state.sh\"; source \"${WHEEL_LIB_DIR}/workflow.sh\"; source \"${WHEEL_LIB_DIR}/dispatch.sh\"\nsource \"${WHEEL_LIB_DIR}/lock.sh\"; source \"${WHEEL_LIB_DIR}/context.sh\"; source \"${WHEEL_LIB_DIR}/guard.sh\"; source \"${WHEEL_LIB_DIR}/engine.sh\"\nSTATE_FILE=$(ls -t .wheel/state_*.json | head -1)\nengine_init \"$(jq -r .workflow_file \"$STATE_FILE\")\" \"$STATE_FILE\"\nengine_handle_hook \"stop\" \"{\\\"session_id\\\":\\\"f784fcd5-aa40-4362-b2f7-e4e870a2ca6a\\\",\\\"agent_id\\\":\\\"\\\"}\" 2>/dev/null | jq -r .decision\necho \"Cursor: $(jq .cursor \"$STATE_FILE\")\"\necho \"Teammates: $(jq -r \"[.teams[\\\"create-team\\\"].teammates | keys[]] | join(\\\", \\\")\" \"$STATE_FILE\")\"\n' 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:40:42.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*1775*.json 2>/dev/null | head -1) && jq '.teams[\"create-team\"].teammates | to_entries[] | {name: .key, agent_id: .value.agent_id, status: .value.status}' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:02.000Z"
+        },
+        {
+          "command": "bash -n plugin-wheel/lib/dispatch.sh && echo \"SYNTAX OK\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:56.000Z"
+        },
+        {
+          "command": "git add plugin-wheel/lib/dispatch.sh && git commit -m \"$(cat <<'EOF'\nfix: team-wait captures agent_id in both pending and working states\n\nThe Agent tool PostToolUse fires before the Stop hook transitions\nteam-wait from pending→working. Moved agent_id capture outside the\nstatus check so it runs regardless. Auto-detect also runs in both\nstates now.\n\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>\nEOF\n)\" && git push origin main",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:42:09.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {
+    "create-team": {
+      "team_name": "test-static-team",
+      "created_at": "2026-04-09T21:40:32.000Z",
+      "teammates": {
+        "worker-1": {
+          "task_id": "",
+          "status": "pending",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-1",
+          "started_at": null,
+          "completed_at": null,
+          "assign": {
+            "worker_id": 1,
+            "task": "Write a haiku about code"
+          }
+        },
+        "worker-2": {
+          "task_id": "",
+          "status": "pending",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-2",
+          "started_at": null,
+          "completed_at": null,
+          "assign": {
+            "worker_id": 2,
+            "task": "Write a haiku about bugs"
+          }
+        },
+        "worker-3": {
+          "task_id": "",
+          "status": "pending",
+          "agent_id": "",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-3",
+          "started_at": null,
+          "completed_at": null,
+          "assign": {
+            "worker_id": 3,
+            "task": "Write a haiku about testing"
+          }
+        }
+      }
+    }
+  }
+}

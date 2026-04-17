@@ -1,0 +1,98 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "a1e0dde48abcc962e",
+  "started_at": "2026-04-09T21:48:53.000Z",
+  "updated_at": "2026-04-09T21:49:56.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:48:53.000Z",
+      "completed_at": "2026-04-09T21:48:53.000Z",
+      "output": "## Worker Assignment\n{\"task\": \"default task\"}",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:48:53.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T21:48:53.000Z",
+      "completed_at": "2026-04-09T21:49:56.000Z",
+      "output": ".wheel/outputs/worker-result.md",
+      "command_log": [
+        {
+          "command": "ls -lt /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:48:57.000Z"
+        },
+        {
+          "command": "for f in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a*.json; do echo \"=== $(basename $f) ===\" && jq '{name: .workflow_name, cursor: .cursor, status: .status}' \"$f\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:00.000Z"
+        },
+        {
+          "command": "for f in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a*.json; do echo \"=== $(basename $f) ===\" && jq '{owner_agent_id: .owner_agent_id, cursor: .cursor}' \"$f\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:05.000Z"
+        },
+        {
+          "command": "for f in /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a*.json; do echo \"=== $(basename $f) ===\" && jq '.steps[0].output' \"$f\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:09.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/worker-result.md 2>/dev/null || echo \"FILE_NOT_FOUND\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:24.000Z"
+        },
+        {
+          "command": "ls /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/team-test-static-team/worker-3/ 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:29.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/team-test-static-team/worker-3/result.md 2>/dev/null || echo \"FILE_NOT_FOUND\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:32.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, status: .status, steps: [.steps[] | {id: .id, status: .status}]}' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_ab3dc329b86662c17.json 2>/dev/null || echo \"State file gone - workflow may have completed\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:41.000Z"
+        },
+        {
+          "command": "ls -lt /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/history/success/team-sub-worker* 2>/dev/null | head -5",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:49:46.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

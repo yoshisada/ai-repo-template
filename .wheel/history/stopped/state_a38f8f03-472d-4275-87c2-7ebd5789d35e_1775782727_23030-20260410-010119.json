@@ -1,0 +1,178 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 5,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T00:58:47.000Z",
+  "updated_at": "2026-04-10T01:01:03.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T00:58:47.000Z",
+      "completed_at": "2026-04-10T00:58:47.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T00:58:47.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-10T00:58:47.000Z",
+      "completed_at": "2026-04-10T00:58:59.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T00:58:53.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T00:59:01.000Z",
+      "completed_at": "2026-04-10T00:59:01.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T00:59:01.000Z",
+      "completed_at": "2026-04-10T00:59:01.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T00:59:01.000Z",
+      "completed_at": "2026-04-10T00:59:01.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "working",
+      "started_at": "2026-04-10T00:59:23.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "jq '{cursor: .cursor, teammates: .teams[\"create-team\"].teammates | to_entries | map({name: .key, status: .value.status, agent_id: .value.agent_id})}' .wheel/state_*.json 2>/dev/null | head -30",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T00:59:20.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, step_5_status: .steps[5].status, teammates: .teams[\"create-team\"].teammates | to_entries | map({name: .key, status: .value.status})}' .wheel/state_*.json 2>/dev/null | head -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:00:04.000Z"
+        },
+        {
+          "command": "for f in .wheel/state_*.json; do\n  [[ -f \"$f\" ]] || continue\n  wf=$(jq -r '.workflow_name' \"$f\" 2>/dev/null)\n  [[ \"$wf\" == \"team-sub-worker\" ]] || continue\n  echo \"=== $f ===\"\n  jq '{owner_agent_id: .owner_agent_id, alternate_agent_id: .alternate_agent_id, cursor: .cursor, status: .status, steps: [.steps[] | {id: .id, status: .status}]}' \"$f\"\ndone",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:00:13.000Z"
+        },
+        {
+          "command": "cp plugin-wheel/hooks/post-tool-use.sh ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/post-tool-use.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:01:03.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {
+    "create-team": {
+      "team_name": "test-static-team",
+      "created_at": "2026-04-10T00:58:59.000Z",
+      "teammates": {
+        "worker-1": {
+          "task_id": "",
+          "status": "running",
+          "agent_id": "worker-1@test-static-team",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-1",
+          "started_at": "2026-04-10T00:59:11.000Z",
+          "completed_at": null,
+          "assign": {
+            "worker_id": 1,
+            "task": "Write a haiku about code"
+          }
+        },
+        "worker-2": {
+          "task_id": "",
+          "status": "running",
+          "agent_id": "worker-2@test-static-team",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-2",
+          "started_at": "2026-04-10T00:59:14.000Z",
+          "completed_at": null,
+          "assign": {
+            "worker_id": 2,
+            "task": "Write a haiku about bugs"
+          }
+        },
+        "worker-3": {
+          "task_id": "",
+          "status": "running",
+          "agent_id": "worker-3@test-static-team",
+          "output_dir": ".wheel/outputs/team-test-static-team/worker-3",
+          "started_at": "2026-04-10T00:59:15.000Z",
+          "completed_at": null,
+          "assign": {
+            "worker_id": 3,
+            "task": "Write a haiku about testing"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 7,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T23:26:27.000Z",
+  "updated_at": "2026-04-09T23:27:58.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:27.000Z",
+      "completed_at": "2026-04-09T23:26:27.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:26:27.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:28.000Z",
+      "completed_at": "2026-04-09T23:26:38.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\" && echo \"Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:26:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:39.000Z",
+      "completed_at": "2026-04-09T23:26:39.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:40.000Z",
+      "completed_at": "2026-04-09T23:26:40.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:40.000Z",
+      "completed_at": "2026-04-09T23:26:40.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-09T23:26:56.000Z",
+      "completed_at": "2026-04-09T23:27:10.000Z",
+      "output": ".wheel/outputs/team-test/summary.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T23:27:10.000Z",
+      "completed_at": "2026-04-09T23:27:10.000Z",
+      "output": "## Static Team Test Results\n\nSummary:\nnull\nnull\n\nCollected outputs:\n.wheel/outputs/team-test/results/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/result.md\n.wheel/outputs/team-test/results/worker-1/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/worker-1/result.md\n.wheel/outputs/team-test/results/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/result.md\n.wheel/outputs/team-test/results/worker-2/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/worker-2/result.md\n.wheel/outputs/team-test/results/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/result.md\n.wheel/outputs/team-test/results/worker-3/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/worker-3/result.md",
+      "command_log": [
+        {
+          "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:27:10.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-09T23:27:11.000Z",
+      "completed_at": "2026-04-09T23:27:58.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null | while read sf; do echo \"$(basename $sf): $(jq -r '.workflow_name' \"$sf\" 2>/dev/null)\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:27:45.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_a1f20d6ada6d3234f.json .wheel/state_a5ee8cb47303012da.json .wheel/state_a5fabfb6f50a1d82f.json; do echo \"=== $(basename $sf) ===\" && jq '{cursor, status, steps: [.steps[] | {id, type, status}]}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T23:27:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

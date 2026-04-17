@@ -1,0 +1,80 @@
+{
+  "workflow_name": "composition-mega",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/tests/composition-mega.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "ac20e6cfc947c9442",
+  "started_at": "2026-04-10T09:25:24.000Z",
+  "updated_at": "2026-04-10T09:29:27.000Z",
+  "steps": [
+    {
+      "id": "run-command-chain",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:25:26.000Z",
+      "completed_at": "2026-04-10T09:25:30.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-count-to-100",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:25:43.000Z",
+      "completed_at": "2026-04-10T09:25:51.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:25:43.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-loop-test",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:25:51.000Z",
+      "completed_at": "2026-04-10T09:25:52.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-branch-multi",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:25:52.000Z",
+      "completed_at": "2026-04-10T09:25:57.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "final-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T09:29:10.000Z",
+      "completed_at": "2026-04-10T09:29:27.000Z",
+      "output": "reports/composition-mega-report.md",
+      "command_log": [
+        {
+          "command": "ls reports/ 2>/dev/null || mkdir -p reports",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:29:10.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
