@@ -3,6 +3,18 @@
 **Feature**: manifest-improvement-subroutine
 **Date**: 2026-04-16
 **Audit status**: PASS — no unresolved blockers
+**Post-implementation reconciliation**: 2026-04-16 (auditor)
+
+## Reconciliation notes
+
+- No blockers entries existed at the time of reconciliation. The sole "gaps" section is populated with `**None.**` — consistent with the final audit.
+- Unit tests re-run 2026-04-16: 4 files, 37/37 assertions PASS.
+- Integration tests re-run 2026-04-16: 8 files, 29 assertions PASS (silent-skip 4/4, write-proposal 5/5, out-of-scope 4/4, hallucinated-current 1/1, ungrounded-why 1/1, caller-wiring 3/3, portability 3/3, mcp-unavailable 5/5).
+- FR-5 exact-patch gate confirmed in `plugin-shelf/scripts/check-manifest-target-exists.sh` (LC_ALL=C, grep -F -f needle, returns 1 on any failure).
+- FR-7 silent-on-skip confirmed in `plugin-shelf/scripts/write-proposal-dispatch.sh` (trap EXIT cleanup, emits `{"action":"skip"}` on every failure path, 2>/dev/null on every sub-invocation) and in the `write-proposal-mcp` agent instruction (leaves output file empty on skip/success, single warn line only on MCP-unavailable).
+- FR-8 proposal-only writes confirmed: dispatch envelope produces `proposal_path` prefixed `@inbox/open/`; the `write-proposal-mcp` agent is instructed to call `mcp__claude_ai_obsidian-manifest__create_file` exactly once and the instruction explicitly prohibits direct filesystem writes.
+- FR-16 portability confirmed via `grep -n 'plugin-shelf/scripts\|plugin-kiln/scripts' plugin-shelf/workflows/*.json plugin-kiln/workflows/*.json` → all hits are prefixed by `${WORKFLOW_PLUGIN_DIR}`; zero repo-relative script paths.
+- Caller wiring position confirmed (integration `caller-wiring.sh`): `report-mistake-and-sync` propose@2/terminal@3 of 4, `report-issue-and-sync` propose@2/terminal@3 of 4, `shelf-full-sync` propose@11/terminal@12 of 13. All pre-terminal per FR-11..FR-14.
 
 ## PRD FR → Spec FR → Implementation → Test traceability
 
