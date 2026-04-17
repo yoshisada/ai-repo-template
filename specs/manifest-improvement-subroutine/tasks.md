@@ -28,9 +28,9 @@ description: "Task list for manifest-improvement-subroutine feature implementati
 
 **Purpose**: Create directories and set up the test harness before any code is written.
 
-- [ ] T001 Create directory `plugin-shelf/scripts/` (may already exist) and `plugin-shelf/skills/propose-manifest-improvement/` at repo root.
-- [ ] T002 Create directories `tests/unit/` and `tests/integration/` at repo root for the bash test harness (if absent).
-- [ ] T003 [P] Verify `bats-core` is available on the developer machine (used by unit tests). Document install command in `tests/README.md` if the file does not yet exist.
+- [X] T001 Create directory `plugin-shelf/scripts/` (may already exist) and `plugin-shelf/skills/propose-manifest-improvement/` at repo root.
+- [X] T002 Create directories `tests/unit/` and `tests/integration/` at repo root for the bash test harness (if absent).
+- [X] T003 [P] Verify `bats-core` is available on the developer machine (used by unit tests). Document install command in `tests/README.md` if the file does not yet exist.
 
 ---
 
