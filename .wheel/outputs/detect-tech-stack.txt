@@ -1,2 +1,1 @@
-## Tech Stack Detection
-(no markers)
+package.json
