@@ -119,27 +119,82 @@ updated_manifest=$(jq -n \
    else $cur_prog_paths
    end) as $updated_prog_paths |
 
+  # Process mistakes (Contract: specs/mistake-capture/contracts/interfaces.md §6):
+  #   - upsert create/update rows with proposal_state: "open"
+  #   - apply reconciliation (open → filed) from results.mistakes.reconciliation
+  #   - skip items whose path is in errors
+  ($current_manifest.mistakes // []) as $cur_mistakes |
+  ($work_list.mistakes // []) as $wl_mistakes |
+  ($results.mistakes.reconciliation // []) as $recon |
+
+  # Index current mistakes by path
+  ($cur_mistakes | map({key: .path, value: .}) | from_entries) as $cur_by_path |
+
+  # Apply work list create/update
+  (
+    reduce ($wl_mistakes[] | select(.action != "skip")) as $item ($cur_by_path;
+      if ($err_paths | index($item.path)) then .  # skip failed items
+      elif $item.action == "create" then
+        . + {($item.path): {
+          path: $item.path,
+          filename_slug: $item.filename_slug,
+          date: $item.date,
+          source_hash: $item.source_hash,
+          proposal_path: $item.proposal_path,
+          proposal_state: "open",
+          last_synced: $now
+        }}
+      elif $item.action == "update" then
+        . + {($item.path): (
+          .[$item.path] // {
+            path: $item.path,
+            filename_slug: $item.filename_slug,
+            date: $item.date,
+            proposal_path: $item.proposal_path,
+            proposal_state: "open"
+          } |
+          . + {
+            source_hash: $item.source_hash,
+            last_synced: $now
+          }
+        )}
+      else . end
+    )
+  ) as $post_wl_mistakes |
+
+  # Apply reconciliation: open → filed for paths the agent confirmed left @inbox/open/
+  (
+    reduce $recon[] as $r ($post_wl_mistakes;
+      if .[$r.path] and $r.new_state == "filed" then
+        . + {($r.path): (.[$r.path] | . + {proposal_state: "filed", last_synced: $now})}
+      else . end
+    )
+  ) as $updated_mistakes |
+
   {
     version: ($current_manifest.version // "1.0"),
     last_synced: $now,
     issues: ($updated_issues | to_entries | map(.value)),
     docs: ($updated_docs | to_entries | map(.value)),
+    mistakes: ($updated_mistakes | to_entries | map(.value)),
     progress_paths: $updated_prog_paths
   }
   ' \
   --argjson current_manifest "$current_manifest" \
-  --argjson work_list "$work_list")
+  --argjson work_list "$work_list" \
+  --argjson results "$results")
 
 # Atomic write: write to temp, then mv
 echo "$updated_manifest" | jq . > "${MANIFEST}.tmp"
 mv "${MANIFEST}.tmp" "$MANIFEST"
 
 # Count changes for summary
-added=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?) | select(.action == "create")] | length')
-updated_count=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?) | select(.action == "update")] | length')
+added=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?, .mistakes[]?) | select(.action == "create")] | length')
+updated_count=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?, .mistakes[]?) | select(.action == "update")] | length')
 removed=$(echo "$work_list" | jq '[(.issues[]?) | select(.action == "close")] | length')
-skipped=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?) | select(.action == "skip")] | length')
+skipped=$(echo "$work_list" | jq '[(.issues[]?, .docs[]?, .mistakes[]?) | select(.action == "skip")] | length')
 errors=$(echo "$results" | jq '[.errors[]?] | length')
+filed=$(echo "$results" | jq '[.mistakes.reconciliation[]? | select(.new_state == "filed")] | length')
 
 cat > "$OUT" <<EOF
 Sync manifest updated: $now_iso
@@ -147,6 +202,7 @@ Sync manifest updated: $now_iso
   Updated:   $updated_count
   Removed:   $removed
   Unchanged: $skipped
+  Filed:     $filed (mistake proposals moved out of @inbox/open/)
   Errors:    $errors (items left unchanged for retry)
 EOF
 

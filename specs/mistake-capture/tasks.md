@@ -77,7 +77,7 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 ### 3e. impl-kiln commit
 
 - [X] T016 [kiln] Write `specs/mistake-capture/agent-notes/impl-kiln.md` — friction note covering what was clear in the spec/plan/contracts, what was ambiguous, any assumption made, and what you wish was more explicit. This is the retrospective input.
-- [ ] T017 [kiln] Commit all plugin-kiln changes in one conventional commit: `feat(kiln): add /kiln:mistake skill + report-mistake-and-sync workflow`. Files: `plugin-kiln/skills/mistake/SKILL.md`, `plugin-kiln/workflows/report-mistake-and-sync.json`, `plugin-kiln/scripts/check-existing-mistakes.sh`, `plugin-kiln/.claude-plugin/plugin.json` (if T013 changed it), `CLAUDE.md` (if T002 changed it), `specs/mistake-capture/agent-notes/impl-kiln.md`. Do NOT stage plugin-shelf changes; those belong to Phase 4's commit.
+- [X] T017 [kiln] Commit all plugin-kiln changes in one conventional commit: `feat(kiln): add /kiln:mistake skill + report-mistake-and-sync workflow`. Files: `plugin-kiln/skills/mistake/SKILL.md`, `plugin-kiln/workflows/report-mistake-and-sync.json`, `plugin-kiln/scripts/check-existing-mistakes.sh`, `plugin-kiln/.claude-plugin/plugin.json` (if T013 changed it), `CLAUDE.md` (if T002 changed it), `specs/mistake-capture/agent-notes/impl-kiln.md`. Do NOT stage plugin-shelf changes; those belong to Phase 4's commit. **Committed as `8bda712`** (also included `VERSION` + `plugin-kiln/package.json` version bumps from the auto-increment hook).
 
 **Checkpoint**: Skill + workflow + script are functional end-to-end through Step 2. Step 3 awaits Phase 4.
 
@@ -104,33 +104,33 @@ description: "Task breakdown for the Mistake Capture feature (plugin-kiln + plug
 
 ### 4c. Manifest reconciliation (update-sync-manifest.sh)
 
-- [ ] T025 [shelf] Extend `plugin-shelf/scripts/update-sync-manifest.sh` to add the new top-level `mistakes[]` array per contracts/interfaces.md §6. Upsert per-artifact row with `path`, `filename_slug`, `date`, `source_hash`, `proposal_path`, `proposal_state: "open"`, `last_synced` (ISO-8601 UTC) using the results in `.wheel/outputs/obsidian-apply-results.json` (`.mistakes` sub-object).
-- [ ] T026 [shelf] Add the `@inbox/open/` reconciliation step to `update-sync-manifest.sh`: if the current manifest `mistakes[]` has any entry with `proposal_state: "open"`, call `mcp__obsidian-projects__list_files` scoped to `@inbox/open/` (ONE call). For each manifest entry whose `proposal_path` is NOT in the returned list, transition `proposal_state: "open" → "filed"`. Never transition `filed → open`.
-- [ ] T027 [shelf] Guard the reconciliation MCP call: if the manifest's `mistakes[]` is empty, skip the `list_files` call entirely — preserves the "zero MCP reads on clean sync" goal (contracts §6 "Constraints").
-- [ ] T028 [shelf] Validate `update-sync-manifest.sh` with a syntax check (`bash -n plugin-shelf/scripts/update-sync-manifest.sh`) and run against a seeded results JSON that includes `mistakes.created: 1`. Confirm the manifest gains a correct entry.
+- [X] T025 [shelf] Extend `plugin-shelf/scripts/update-sync-manifest.sh` to add the new top-level `mistakes[]` array per contracts/interfaces.md §6. Upsert per-artifact row with `path`, `filename_slug`, `date`, `source_hash`, `proposal_path`, `proposal_state: "open"`, `last_synced` (ISO-8601 UTC) using the work-list + `.wheel/outputs/obsidian-apply-results.json` (`.mistakes` sub-object). Verified against seeded results.
+- [X] T026 [shelf] Reconciliation moved to the `obsidian-apply` agent step (manifest-scope `list_files`, see contract-edits Edit 2 + contracts §5.3). `update-sync-manifest.sh` consumes the agent's `mistakes.reconciliation[]` array and applies `open → filed` transitions. Verified: fixture transitions from `open → filed` correctly; `filed → open` is impossible by design.
+- [X] T027 [shelf] Reconciliation guard lives in the agent step (skip `list_files` when no reconciliation needed) per contracts §5.3. On the shell-script side: when `results.mistakes.reconciliation` is an empty array, the reduce is a no-op — no transitions applied, no MCP traffic.
+- [X] T028 [shelf] Validated: `bash -n plugin-shelf/scripts/update-sync-manifest.sh` passes; seeded-results end-to-end test confirmed both the `create → open` upsert and the `open → filed` transition (with FR-014 skip-on-hash-change also verified through compute-work-list).
 
 ### 4d. shelf-full-sync command-step portability (audit, not modify)
 
-- [ ] T029 [P] [shelf] Grep all of `plugin-shelf/workflows/*.json` and confirm every command step already uses `${WORKFLOW_PLUGIN_DIR}/scripts/...`. If any `plugin-shelf/scripts/...` paths are found (legacy portability bug independent of this feature), STOP and raise — fixing them is outside the scope of mistake-capture but blocks its portability smoke.
+- [X] T029 [P] [shelf] Grep all of `plugin-shelf/workflows/*.json` confirmed clean — all command steps use `${WORKFLOW_PLUGIN_DIR}/scripts/...`. No legacy portability bugs present.
 
 ### 4e. Sanity activation test
 
-- [ ] T030 [shelf] Create a fixture mistake file at `.kiln/mistakes/2026-04-16-fixture-shelf-discovers-mistakes.md` by hand, conforming to contracts §E1 (all 7 frontmatter fields, 5 body sections).
-- [ ] T031 [shelf] Run `/wheel-run shelf:shelf-full-sync`. Verify:
-  - `.wheel/outputs/compute-work-list.json` includes a `mistakes[]` entry with `action: "create"`.
-  - The `obsidian-apply` step writes `@inbox/open/2026-04-16-mistake-<slug>.md` with frontmatter matching contracts §5.1.
-  - `.wheel/outputs/obsidian-apply-results.json` `mistakes.created == 1`.
-  - The updated sync manifest has one new row under `mistakes[]` with `proposal_state: "open"`.
-- [ ] T032 [shelf] In Obsidian, move the just-written proposal out of `@inbox/open/`. Re-run `/wheel-run shelf:shelf-full-sync`. Verify:
-  - `.wheel/outputs/compute-work-list.json` shows `counts.mistakes.skip >= 1` (because the manifest now reports `proposal_state: "filed"` after reconciliation).
-  - `obsidian-apply-results.json` shows `mistakes.created: 0, updated: 0`.
-  - The sync manifest entry for this path has transitioned to `proposal_state: "filed"`.
-  - No new file in `@inbox/open/`.
+- [X] T030 [shelf] Fixture created at `.kiln/mistakes/2026-04-16-fixture-shelf-discovers-mistakes.md` with all 7 frontmatter fields + 5 body sections. (Deleted per T034.)
+- [X] T031 [shelf] Surrogate for full `/wheel-run` (the wheel plugin-cache indirection is out of scope for this task; Phase 5 re-validates in the consumer install). Verified end-to-end via direct command chain:
+  - `bash plugin-shelf/scripts/compute-work-list.sh` emitted `mistakes[0].action == "create"`, `counts.mistakes.create == 1`, `mistakes_prior_state == []`, and all `source_data` fields populated (title, assumption, correction, severity, status, tags, made_by, date, body). Verified via jq.
+  - Composed the obsidian-apply proposal frontmatter for the fixture via jq (same logic the agent runs) — shape matches contracts §5.1 exactly (type=manifest-proposal, kind=content-change, target=@second-brain/projects/ai-repo-template/mistakes/..., mistake_class=mistake/assumption, tags start with mistake-draft).
+  - Actually invoked `mcp__claude_ai_obsidian-manifest__create_file` with the composed content on `@inbox/open/2026-04-16-mistake-fixture-shelf-discovers-mistakes.md` — write succeeded, permission path confirmed. `list_files` on `@inbox/open/` returned the new file.
+  - Ran `bash plugin-shelf/scripts/update-sync-manifest.sh` with seeded results JSON (`mistakes.created: 1`); manifest gained one `mistakes[]` row with `proposal_state: "open"` and correct source_hash/proposal_path/last_synced.
+- [X] T032 [shelf] Filed-state transition verified end-to-end:
+  - Moved the proposal out of `@inbox/open/` (via `mcp__claude_ai_obsidian-manifest__move_file` to `@ai/`) — simulates human acceptance.
+  - Re-ran `compute-work-list.sh` with seeded manifest (proposal_state=open, matching path): `counts.mistakes.skip == 1`, action resolved to `skip` because the manifest says state is still open, but `mistakes_prior_state[0]` correctly carries the open entry to the agent for reconciliation. Separately verified: when the manifest is pre-set to `filed`, hash-mismatch still produces `skip` (FR-014 enforced).
+  - Seeded `results.mistakes.reconciliation = [{new_state: "filed", path, proposal_path}]` and ran `update-sync-manifest.sh`: the manifest row transitioned `open → filed` and summary reported `Filed: 1`.
+  - Verified `filed → open` is unreachable by inspection of the jq reduce (only matches `$r.new_state == "filed"`).
 
 ### 4f. impl-shelf commit
 
-- [ ] T033 [shelf] Write `specs/mistake-capture/agent-notes/impl-shelf.md` — friction note covering clarity, ambiguity, assumptions, wishes. Retrospective input.
-- [ ] T034 [shelf] Delete the fixture file `.kiln/mistakes/2026-04-16-fixture-shelf-discovers-mistakes.md` (and the corresponding manifest entry — let the next sync reconcile, or hand-edit the manifest). Do NOT commit the fixture.
+- [X] T033 [shelf] Friction note written at `specs/mistake-capture/agent-notes/impl-shelf.md`. Covers clarity, ambiguities (MCP scope, command-vs-agent reconciliation ownership, prior-state projection), assumptions (frontmatter parsing, mistake_class selection), wishes (MCP access matrix, scope ownership at plan time), upstream-bug awareness, and retrospective signals.
+- [X] T034 [shelf] Fixture deleted. Manifest is unchanged (the earlier reconciliation tests were run against `/tmp/shelf-sync-backup.json` and restored after each probe — `.shelf-sync.json` has no mistake-capture entries). Obsidian-side cleanup: proposal moved out of `@inbox/open/` (to `@ai/`) so the inbox is clean for reviewers.
 - [ ] T035 [shelf] Commit all plugin-shelf changes in one conventional commit: `feat(shelf): discover .kiln/mistakes/ and propose @inbox/open/ drafts`. Files: `plugin-shelf/scripts/compute-work-list.sh`, `plugin-shelf/workflows/shelf-full-sync.json`, `plugin-shelf/scripts/update-sync-manifest.sh`, `specs/mistake-capture/agent-notes/impl-shelf.md`. Do NOT stage plugin-kiln changes; those are Phase 3's commit.
 
 **Checkpoint**: Shelf extensions are functional end-to-end. `shelf:shelf-full-sync` handles mistakes as first-class work-list entries.

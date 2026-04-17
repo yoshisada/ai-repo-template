@@ -286,6 +286,13 @@ Each array entry:
   "issues": [ ...existing... ],
   "docs": [ ...existing... ],
   "mistakes": [ ...new, shape above... ],
+  "mistakes_prior_state": [
+    {
+      "path": ".kiln/mistakes/...",
+      "proposal_path": "@inbox/open/...",
+      "proposal_state": "open"
+    }
+  ],
   "dashboard": { ...existing... },
   "progress": { ...existing... },
   "counts": {
@@ -295,6 +302,8 @@ Each array entry:
   }
 }
 ```
+
+**`mistakes_prior_state`** is a flat projection of the manifest's existing `mistakes[]` array, limited to entries with `proposal_state == "open"`. It is included so the `obsidian-apply` agent step can perform reconciliation (§5.3) without reading the manifest file directly — the agent receives all needed state via `context_from`. Emit an empty array `[]` when the manifest has no open mistakes.
 
 `counts.mistakes` is a new sub-object. The assembled `jq` call at the bottom of the script gets a new `--argjson mistakes "$mistakes_actions"` arg and the output object gains the `mistakes` key and `counts.mistakes` sub-key.
 
@@ -325,18 +334,39 @@ For each entry in the `mistakes` array:
 - **`create`** (new proposal):
   - Compose proposal frontmatter (see §5.1).
   - Compose proposal body (see §5.2).
-  - Call `mcp__obsidian-projects__create_file({ path: entry.proposal_path, content: "---\n<yaml>\n---\n<body>" })`.
-  - On `file already exists` error: the proposal was created in a prior partially-completed run. Call `mcp__obsidian-projects__patch_file({ path: entry.proposal_path, frontmatter: { source_path: entry.path, source_hash: entry.source_hash, last_synced: "<now>" } })` to refresh the programmatic fields only. Still count as created.
+  - Call `mcp__claude_ai_obsidian-manifest__create_file({ path: entry.proposal_path, content: "---\n<yaml>\n---\n<body>" })`.
+    - **MCP scope note (per `agent-notes/contract-edits.md` Edit 1)**: The manifest MCP is the scope that holds readwrite on `/@inbox`. The projects MCP is read-only outside `/@second-brain/projects`. All mistake-proposal writes therefore use `mcp__claude_ai_obsidian-manifest__*`. Issue and doc writes to `@second-brain/projects/` continue to use `mcp__obsidian-projects__*`.
+  - On `file already exists` error: the proposal was created in a prior partially-completed run. Call `mcp__claude_ai_obsidian-manifest__patch_file({ path: entry.proposal_path, frontmatter: { source_path: entry.path, source_hash: entry.source_hash, last_synced: "<now>" } })` to refresh the programmatic fields only. Still count as created.
   - On other MCP error: append `{step: "mistakes", path, message}` to `errors`; continue with next entry.
 
 - **`update`** (existing proposal, source file changed):
-  - Same behavior as `create` via `create_file` — but first check: does the proposal still live at `entry.proposal_path`? If it was already filed (i.e., accepted and moved out of `@inbox/open/`), the `compute-work-list.sh` extension will have already emitted `skip` for this path. If we're here with `update`, the proposal still exists in `@inbox/open/` — so `patch_file` the frontmatter with updated `source_hash`, `last_synced`, and (optionally) replace the body if `source_hash` differs. Re-emit the full body.
+  - Same behavior as `create` via `create_file` — but first check: does the proposal still live at `entry.proposal_path`? If it was already filed (i.e., accepted and moved out of `@inbox/open/`), the `compute-work-list.sh` extension will have already emitted `skip` for this path. If we're here with `update`, the proposal still exists in `@inbox/open/` — so `mcp__claude_ai_obsidian-manifest__patch_file` the frontmatter with updated `source_hash`, `last_synced`, and (optionally) replace the body if `source_hash` differs. Re-emit the full body.
 
 Count mistakes in the results JSON:
 
 ```json
 "mistakes": { "created": N, "updated": N, "skipped": N }
 ```
+
+### §5.3 `@inbox/open/` reconciliation (agent-owned, replaces §6 command-side reconciliation)
+
+Because `update-sync-manifest.sh` is a wheel command step (pure bash + jq) and cannot invoke MCP, the reconciliation read moves to this agent step. After processing all `create/update/skip` entries, the agent:
+
+1. Check if reconciliation is needed: skip if the work list has no `mistakes[]` entries AND `source_data.prior_mistakes_count == 0` (computed by `compute-work-list.sh` — see §4).
+2. Call `mcp__claude_ai_obsidian-manifest__list_files({ directory: "@inbox/open/" })` — one call.
+3. Build a `reconciliation` array: for each prior manifest mistake entry passed in via the work-list (the JSON shape is described in §4 under "mistakes_prior_state"), compare `proposal_path` against the returned file list. If `proposal_path` is ABSENT from the listing AND prior `proposal_state == "open"`, emit `{path: <source_path>, proposal_path, new_state: "filed"}` into the `reconciliation` array. Otherwise skip the entry (already filed or still open — no-op).
+4. Emit the reconciliation array in the results JSON alongside the counts:
+
+```json
+"mistakes": {
+  "created": N,
+  "updated": N,
+  "skipped": N,
+  "reconciliation": [ {"path": "...", "proposal_path": "...", "new_state": "filed"}, ... ]
+}
+```
+
+`update-sync-manifest.sh` (§6) consumes the `reconciliation` array and applies the state transitions.
 
 ### §5.1 Proposal frontmatter (REQUIRED)
 
@@ -422,20 +452,22 @@ The "Original body" block MUST reproduce the source artifact's body verbatim so 
 ### State machine for `proposal_state`
 
 - Initial state (on first create): `open`.
-- Transition to `filed`: set when `update-sync-manifest.sh` detects that the proposal no longer exists at `proposal_path` in `@inbox/open/` but the source artifact at `path` still exists on disk. Detection uses `mcp__obsidian-projects__list_files` scoped to `@inbox/open/` (ONE call per sync — same-call batch with existing manifest reconciliation work; do not introduce N calls).
+- Transition to `filed`: set when the `obsidian-apply` agent (see §5.3) detects that the proposal no longer exists at `proposal_path` in `@inbox/open/` but the source artifact at `path` still exists on disk. Detection uses `mcp__claude_ai_obsidian-manifest__list_files` scoped to `@inbox/open/` (ONE call per sync, guarded by "any mistakes to reconcile").
 - Once `filed`: never transitions back to `open` even if the source file is edited. FR-014.
 
 ### `update-sync-manifest.sh` additions
 
-- Read `mistakes_actions` from the results of the `obsidian-apply` step (new `mistakes:` sub-object in `.wheel/outputs/obsidian-apply-results.json`).
-- For each created/updated entry: upsert a row into `mistakes[]` with `proposal_state: "open"`.
-- Run the `@inbox/open/` reconciliation: for each existing `mistakes[]` entry with `proposal_state: "open"`, check whether `proposal_path` is still listed in `@inbox/open/`. If absent, transition to `proposal_state: "filed"`.
+- Read the `mistakes:` sub-object from the results of the `obsidian-apply` step (`.wheel/outputs/obsidian-apply-results.json`), specifically the `reconciliation` array plus the `created`/`updated` counts mapped back to the work-list entries (by `path`).
+- For each created/updated entry in the work list whose `path` is not in the results `errors`: upsert a row into `mistakes[]` with `proposal_state: "open"`.
+- For each entry in the agent's `mistakes.reconciliation` array: update the existing manifest row's `proposal_state` to `"filed"` and refresh `last_synced`. Never transition `filed → open`.
 - Write the manifest back atomically (same pattern the script already uses).
+- MCP is NOT invoked from this shell script (it's a wheel command step). All MCP reads for reconciliation live in the `obsidian-apply` agent step per §5.3.
 
 ### Constraints
 
-- The single `mcp__obsidian-projects__list_files` call for the `@inbox/open/` reconciliation MUST be guarded so it is skipped if `mistakes[]` is empty (no entries → nothing to reconcile). This preserves the "zero MCP reads on clean sync" goal shelf already achieves.
-- MUST NOT introduce per-entry MCP reads. Reconciliation uses the batch list result.
+- The manifest file at repo root is `.shelf-sync.json`. `update-sync-manifest.sh` writes it atomically (tmp + mv).
+- Reconciliation MUST NOT introduce per-entry MCP reads. The agent uses a single `list_files` result.
+- The `mistakes[]` manifest array MUST NOT be touched for entries whose path is in the results `errors` array — those items are retried on the next sync.
 
 ---
 

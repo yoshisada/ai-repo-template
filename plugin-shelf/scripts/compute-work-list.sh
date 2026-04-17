@@ -265,6 +265,126 @@ docs_actions=$(jq -cn \
   ]
 ')
 
+# ---------- compute mistake work list with hash-based diff ----------
+# Contract: specs/mistake-capture/contracts/interfaces.md §4
+# Discovers .kiln/mistakes/*.md, computes content hash per file, joins against
+# the sync-manifest `mistakes[]` array (keyed by path), and emits per-entry
+# action ∈ {create, update, skip}. A prior entry with proposal_state="filed"
+# always produces skip regardless of hash change (FR-014).
+
+mistakes_entries=""
+if [ -d .kiln/mistakes ]; then
+  shopt -s nullglob
+  for mf in .kiln/mistakes/*.md; do
+    [ -f "$mf" ] || continue
+    m_basename=$(basename "$mf" .md)
+    # Expect YYYY-MM-DD-<slug>. Extract date + slug defensively.
+    m_date=""
+    m_slug="$m_basename"
+    if [[ "$m_basename" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2})-(.+)$ ]]; then
+      m_date="${BASH_REMATCH[1]}"
+      m_slug="${BASH_REMATCH[2]}"
+    fi
+
+    m_content=$(cat "$mf")
+    m_source_hash="sha256:$(echo -n "$m_content" | shasum -a 256 | cut -d' ' -f1)"
+
+    # Parse frontmatter fields we need for source_data. Use awk to extract
+    # between the two --- delimiters, then sed to pull individual keys.
+    m_fm=$(awk '/^---$/{n++; next} n==1' "$mf" 2>/dev/null || true)
+    m_body=$(awk '/^---$/{n++; next} n>=2' "$mf" 2>/dev/null || true)
+
+    extract_fm() {
+      local key=$1
+      echo "$m_fm" | grep -E "^${key}:" | head -1 | sed -E "s/^${key}:[[:space:]]*//" | sed -E 's/^"(.*)"$/\1/'
+    }
+
+    m_title=$(echo "$m_body" | grep -E '^# ' | head -1 | sed -E 's/^#[[:space:]]*//')
+    m_assumption=$(extract_fm assumption)
+    m_correction=$(extract_fm correction)
+    m_severity=$(extract_fm severity)
+    m_status=$(extract_fm status)
+    m_made_by=$(extract_fm made_by)
+    m_fm_date=$(extract_fm date)
+    [ -z "$m_date" ] && m_date="$m_fm_date"
+
+    # tags may be inline list or YAML block list. Best-effort capture: take
+    # everything under "tags:" until next top-level key. Then split on commas
+    # or newlines + leading `-`.
+    m_tags_raw=$(echo "$m_fm" | awk '
+      /^tags:/ {flag=1; sub(/^tags:[[:space:]]*/, ""); if(length($0)>0) print; next}
+      flag && /^[A-Za-z_][A-Za-z0-9_]*:/ {flag=0}
+      flag {print}
+    ')
+    m_tags_json=$(echo "$m_tags_raw" | tr ',' '\n' | sed -E 's/^[[:space:]]*-?[[:space:]]*//; s/^\[//; s/\]$//; s/^"//; s/"$//' | awk 'NF' | jq -R . | jq -s .)
+    [ -z "$m_tags_json" ] && m_tags_json="[]"
+
+    m_proposal_path="@inbox/open/${m_date}-mistake-${m_slug}.md"
+
+    # Look up manifest entry by path
+    m_prev=$(jq -c --arg p "$mf" '(.mistakes // []) | map(select(.path == $p)) | .[0] // null' "$manifest_file")
+    m_prev_state=$(echo "$m_prev" | jq -r '.proposal_state // empty')
+    m_prev_hash=$(echo "$m_prev" | jq -r '.source_hash // empty')
+
+    if [ "$m_prev_state" = "filed" ]; then
+      m_action="skip"
+    elif [ -z "$m_prev_hash" ]; then
+      m_action="create"
+    elif [ "$m_source_hash" != "$m_prev_hash" ]; then
+      m_action="update"
+    else
+      m_action="skip"
+    fi
+
+    entry=$(jq -n \
+      --arg action "$m_action" \
+      --arg path "$mf" \
+      --arg filename_slug "$m_slug" \
+      --arg date "$m_date" \
+      --arg source_hash "$m_source_hash" \
+      --arg title "$m_title" \
+      --arg assumption "$m_assumption" \
+      --arg correction "$m_correction" \
+      --arg severity "$m_severity" \
+      --arg status "$m_status" \
+      --argjson tags "$m_tags_json" \
+      --arg made_by "$m_made_by" \
+      --arg body "$m_body" \
+      --arg proposal_path "$m_proposal_path" \
+      '{
+        action: $action,
+        path: $path,
+        filename_slug: $filename_slug,
+        date: $date,
+        source_hash: $source_hash,
+        source_data: {
+          title: $title,
+          assumption: $assumption,
+          correction: $correction,
+          severity: $severity,
+          status: $status,
+          tags: $tags,
+          made_by: $made_by,
+          date: $date,
+          body: $body
+        },
+        proposal_path: $proposal_path
+      }')
+    mistakes_entries="${mistakes_entries}${entry}"$'\n'
+  done
+fi
+
+if [ -n "$mistakes_entries" ]; then
+  mistakes_actions=$(echo "$mistakes_entries" | jq -s '.')
+else
+  mistakes_actions='[]'
+fi
+
+# Build mistakes_prior_state (proposal_state == "open" entries), for the
+# obsidian-apply reconciliation (§5.3).
+mistakes_prior_state=$(jq -c '[(.mistakes // [])[] | select(.proposal_state == "open") | {path, proposal_path, proposal_state}]' "$manifest_file")
+[ -z "$mistakes_prior_state" ] && mistakes_prior_state='[]'
+
 # ---------- counts ----------
 issue_counts=$(echo "$issues_actions" | jq '{
   create: [.[] | select(.action=="create")] | length,
@@ -273,6 +393,11 @@ issue_counts=$(echo "$issues_actions" | jq '{
   skip:   [.[] | select(.action=="skip")]   | length
 }')
 doc_counts=$(echo "$docs_actions" | jq '{
+  create: [.[] | select(.action=="create")] | length,
+  update: [.[] | select(.action=="update")] | length,
+  skip:   [.[] | select(.action=="skip")]   | length
+}')
+mistake_counts=$(echo "$mistakes_actions" | jq '{
   create: [.[] | select(.action=="create")] | length,
   update: [.[] | select(.action=="update")] | length,
   skip:   [.[] | select(.action=="skip")]   | length
@@ -346,18 +471,23 @@ jq -n \
   --arg slug "$slug" \
   --argjson issues "$issues_actions" \
   --argjson docs "$docs_actions" \
+  --argjson mistakes "$mistakes_actions" \
+  --argjson mistakes_prior_state "$mistakes_prior_state" \
   --argjson dashboard "$dashboard_block" \
   --argjson progress "$progress_block" \
   --argjson issue_counts "$issue_counts" \
   --argjson doc_counts "$doc_counts" \
+  --argjson mistake_counts "$mistake_counts" \
   '{
     base_path: $base_path,
     slug: $slug,
     issues: $issues,
     docs: $docs,
+    mistakes: $mistakes,
+    mistakes_prior_state: $mistakes_prior_state,
     dashboard: $dashboard,
     progress: $progress,
-    counts: {issues: $issue_counts, docs: $doc_counts}
+    counts: {issues: $issue_counts, docs: $doc_counts, mistakes: $mistake_counts}
   }' > "$OUT"
 
 echo "compute-work-list.json written: $(jq -c '.counts' "$OUT")"
