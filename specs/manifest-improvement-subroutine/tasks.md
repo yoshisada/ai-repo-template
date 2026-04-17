@@ -120,14 +120,14 @@ description: "Task list for manifest-improvement-subroutine feature implementati
 
 ### Implementation for User Story 4
 
-- [ ] T023 [P] [US4] [FR-013 FR-014] Edit `plugin-kiln/workflows/report-mistake-and-sync.json`: insert the 3-key sub-workflow step from `contracts/interfaces.md` §Caller integration shape immediately BEFORE the `full-sync` step. Bump workflow `version` minor.
-- [ ] T024 [P] [US4] [FR-012 FR-014] Edit `plugin-kiln/workflows/report-issue-and-sync.json`: insert the same step immediately BEFORE the `full-sync` step. Bump `version` minor.
-- [ ] T025 [P] [US4] [FR-011 FR-014] Edit `plugin-shelf/workflows/shelf-full-sync.json`: insert the same step immediately BEFORE the terminal `self-improve` step. Bump `version` minor.
-- [ ] T026 [US4] [FR-017] Create `plugin-shelf/skills/propose-manifest-improvement/SKILL.md` — thin skill wrapper that runs `/wheel-run shelf:propose-manifest-improvement`. Follow the SKILL.md conventions used by existing shelf skills (frontmatter with `name`, `description`, plus a short body).
+- [X] T023 [P] [US4] [FR-013 FR-014] Edit `plugin-kiln/workflows/report-mistake-and-sync.json`: insert the 3-key sub-workflow step from `contracts/interfaces.md` §Caller integration shape immediately BEFORE the `full-sync` step. Bump workflow `version` minor.
+- [X] T024 [P] [US4] [FR-012 FR-014] Edit `plugin-kiln/workflows/report-issue-and-sync.json`: insert the same step immediately BEFORE the `full-sync` step. Bump `version` minor.
+- [X] T025 [P] [US4] [FR-011 FR-014] Edit `plugin-shelf/workflows/shelf-full-sync.json`: insert the same step immediately BEFORE the terminal `self-improve` step. Bump `version` minor.
+- [X] T026 [US4] [FR-017] Create `plugin-shelf/skills/propose-manifest-improvement/SKILL.md` — thin skill wrapper that runs `/wheel-run shelf:propose-manifest-improvement`. Follow the SKILL.md conventions used by existing shelf skills (frontmatter with `name`, `description`, plus a short body).
 
 ### Tests for User Story 4
 
-- [ ] T027 [US4] [FR-011 FR-012 FR-013 FR-014] Write integration test `tests/integration/caller-wiring.sh` that parses each of the three caller JSON files with `jq` and asserts: (a) exactly one step with `workflow == "shelf:propose-manifest-improvement"`; (b) that step's index == (steps.length − 2), i.e., immediately before the terminal step; (c) terminal step is still present and `terminal == true`.
+- [X] T027 [US4] [FR-011 FR-012 FR-013 FR-014] Write integration test `tests/integration/caller-wiring.sh` that parses each of the three caller JSON files with `jq` and asserts: (a) exactly one step with `workflow == "shelf:propose-manifest-improvement"`; (b) that step's index == (steps.length − 2), i.e., immediately before the terminal step; (c) terminal step is still present and `terminal == true`.
 
 **Checkpoint**: All three callers delegate to the sub-workflow uniformly. The sub-workflow is reachable via `/shelf:propose-manifest-improvement` standalone.
 

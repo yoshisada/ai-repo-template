@@ -1,6 +1,6 @@
 {
   "name": "shelf-full-sync",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "steps": [
     {
       "id": "gather-repo-state",
@@ -68,6 +68,11 @@
       "type": "command",
       "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/generate-sync-summary.sh\"",
       "output": ".wheel/outputs/shelf-full-sync-summary.md"
+    },
+    {
+      "id": "propose-manifest-improvement",
+      "type": "workflow",
+      "workflow": "shelf:propose-manifest-improvement"
     },
     {
       "id": "self-improve",
