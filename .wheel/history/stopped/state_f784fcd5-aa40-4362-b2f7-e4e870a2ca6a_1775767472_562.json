@@ -1,0 +1,148 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 1,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T20:44:32.000Z",
+  "updated_at": "2026-04-09T20:45:23.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T20:44:32.000Z",
+      "completed_at": "2026-04-09T20:44:32.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:44:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "working",
+      "started_at": "2026-04-09T20:44:32.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && if [[ -n \"$STATE_FILE\" ]]; then echo \"State: $(basename $STATE_FILE)\" && jq -r '\"Cursor: \\(.cursor) | Step: \\(.steps[.cursor].id) (\\(.steps[.cursor].type)) | Status: \\(.steps[.cursor].status)\"' \"$STATE_FILE\"; else echo \"No state file\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:44:37.000Z"
+        },
+        {
+          "command": "STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1) && jq -r '\"Cursor: \\(.cursor) | Step: \\(.steps[.cursor].id) (\\(.steps[.cursor].type)) | Status: \\(.steps[.cursor].status)\"' \"$STATE_FILE\" && echo \"---\" && jq '.teams // \"no teams\"' \"$STATE_FILE\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:44:47.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.804/hooks/hooks.json | jq -r '.hooks.PostToolUse[0].matcher'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:44:53.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/Documents/github/personal/ai-repo-template/VERSION",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:44:58.000Z"
+        },
+        {
+          "command": "echo \"000.000.000.805\" > VERSION",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:45:05.000Z"
+        },
+        {
+          "command": "echo \"000.000.000.805\" > VERSION",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:45:05.000Z"
+        },
+        {
+          "command": "for pkg in plugin-wheel plugin-kiln plugin-shelf plugin-clay plugin-trim; do jq --arg v \"000.000.000.805\" '.version = $v' \"$pkg/package.json\" > tmp.json && mv tmp.json \"$pkg/package.json\" && jq --arg v \"000.000.000.805\" '.version = $v' \"$pkg/.claude-plugin/plugin.json\" > tmp.json && mv tmp.json \"$pkg/.claude-plugin/plugin.json\"; done && echo \"All versions synced to 805\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:45:11.000Z"
+        },
+        {
+          "command": "git add -A && git commit -m \"fix: bump version to 805 to force plugin cache refresh for hooks.json matcher update\" && git push origin main",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T20:45:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

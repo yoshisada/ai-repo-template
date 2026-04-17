@@ -1,0 +1,31 @@
+{
+  "workflow_name": "team-sub-fail",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-fail.json",
+  "status": "failed",
+  "cursor": 0,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "a4310a5ef6d02fe9b",
+  "started_at": "2026-04-10T18:04:13.000Z",
+  "updated_at": "2026-04-10T18:04:13.000Z",
+  "steps": [
+    {
+      "id": "fail-step",
+      "type": "command",
+      "status": "failed",
+      "started_at": "2026-04-10T18:04:13.000Z",
+      "completed_at": "2026-04-10T18:04:13.000Z",
+      "output": ".wheel/outputs/fail-output.txt",
+      "command_log": [
+        {
+          "command": "echo 'This worker is about to fail intentionally' && exit 1",
+          "exit_code": 1,
+          "timestamp": "2026-04-10T18:04:13.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "alternate_agent_id": "bad-worker@test-failure-team"
+}

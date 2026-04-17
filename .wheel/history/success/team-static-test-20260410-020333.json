@@ -1,0 +1,131 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 7,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T02:00:43.000Z",
+  "updated_at": "2026-04-10T02:03:33.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T02:00:43.000Z",
+      "completed_at": "2026-04-10T02:00:43.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T02:00:43.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-10T02:00:43.000Z",
+      "completed_at": "2026-04-10T02:00:58.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T02:00:47.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:01.000Z",
+      "completed_at": "2026-04-10T02:01:02.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:02.000Z",
+      "completed_at": "2026-04-10T02:01:02.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:02.000Z",
+      "completed_at": "2026-04-10T02:01:02.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:26.000Z",
+      "completed_at": "2026-04-10T02:01:55.000Z",
+      "output": ".wheel/outputs/team-test/summary.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:55.000Z",
+      "completed_at": "2026-04-10T02:01:55.000Z",
+      "output": "## Static Team Test Results\n\nSummary:\nnull\nnull\n\nCollected outputs:\n.wheel/outputs/team-test/results/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/output.md\n.wheel/outputs/team-test/results/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/result.md\n.wheel/outputs/team-test/results/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/result.md",
+      "command_log": [
+        {
+          "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T02:01:55.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-10T02:01:55.000Z",
+      "completed_at": "2026-04-10T02:03:33.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "# Check if team-wait completed automatically\nfor f in .wheel/state_*.json; do\n  wf=$(jq -r '.workflow_name' \"$f\" 2>/dev/null)\n  [[ \"$wf\" == \"team-static-test\" ]] || continue\n  jq -c '{cursor: .cursor, teammates: [.teams[\"create-team\"].teammates | to_entries[] | {n:.key, s:.value.status}]}' \"$f\"\ndone || echo \"No parent state — workflow may have completed entirely\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T02:03:16.000Z"
+        },
+        {
+          "command": "sleep 1",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T02:03:28.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

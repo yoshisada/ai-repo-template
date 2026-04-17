@@ -1,0 +1,76 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "a69db4faa033cc27a",
+  "started_at": "2026-04-10T18:01:18.000Z",
+  "updated_at": "2026-04-10T18:01:28.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T18:01:18.000Z",
+      "completed_at": "2026-04-10T18:01:18.000Z",
+      "output": ".wheel/outputs/worker-assignment.txt",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T18:01:18.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T18:01:18.000Z",
+      "completed_at": "2026-04-10T18:01:21.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report-back",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T18:01:21.000Z",
+      "completed_at": "2026-04-10T18:01:28.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls -la /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs/team-test-dynamic-team/spawn-workers-1/",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T18:01:28.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T18:01:28.000Z",
+      "completed_at": "2026-04-10T18:01:28.000Z",
+      "output": ".wheel/outputs/worker-done.txt",
+      "command_log": [
+        {
+          "command": "echo 'Worker complete' && date -u +%Y-%m-%dT%H:%M:%SZ",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T18:01:28.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "alternate_agent_id": "spawn-workers-2@test-dynamic-team"
+}

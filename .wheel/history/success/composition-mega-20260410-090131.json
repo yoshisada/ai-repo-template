@@ -1,0 +1,97 @@
+{
+  "workflow_name": "composition-mega",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/tests/composition-mega.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T08:59:48.000Z",
+  "updated_at": "2026-04-10T09:01:31.000Z",
+  "steps": [
+    {
+      "id": "run-command-chain",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T08:59:51.000Z",
+      "completed_at": "2026-04-10T08:59:56.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T08:59:51.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-count-to-100",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:00:32.000Z",
+      "completed_at": "2026-04-10T09:00:41.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:00:32.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-loop-test",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:00:46.000Z",
+      "completed_at": "2026-04-10T09:00:47.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null && echo \"---\" && for f in .wheel/state_*.json; do jq -r '\"\\(.workflow_name // .workflow_file): cursor=\\(.cursor) status=\\(.status)\"' \"$f\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:00:46.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-branch-multi",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T09:00:50.000Z",
+      "completed_at": "2026-04-10T09:00:53.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "final-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T09:01:17.000Z",
+      "completed_at": "2026-04-10T09:01:31.000Z",
+      "output": "reports/composition-mega-report.md",
+      "command_log": [
+        {
+          "command": "ls .wheel/history/success/ 2>/dev/null | head -50",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:01:19.000Z"
+        },
+        {
+          "command": "ls -lt .wheel/history/success/ | head -15",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:01:22.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

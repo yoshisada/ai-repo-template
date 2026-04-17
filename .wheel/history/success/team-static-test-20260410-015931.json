@@ -1,0 +1,166 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 7,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T01:54:43.000Z",
+  "updated_at": "2026-04-10T01:59:31.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T01:54:44.000Z",
+      "completed_at": "2026-04-10T01:54:44.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:54:44.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-10T01:54:44.000Z",
+      "completed_at": "2026-04-10T01:54:55.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:54:48.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T01:54:58.000Z",
+      "completed_at": "2026-04-10T01:54:58.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T01:54:58.000Z",
+      "completed_at": "2026-04-10T01:54:58.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-10T01:54:58.000Z",
+      "completed_at": "2026-04-10T01:54:58.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-10T01:55:20.000Z",
+      "completed_at": "2026-04-10T01:59:19.000Z",
+      "output": ".wheel/outputs/team-test/summary.json",
+      "command_log": [
+        {
+          "command": "# Check parent state\nfor f in .wheel/state_*.json; do\n  wf=$(jq -r '.workflow_name' \"$f\" 2>/dev/null)\n  [[ \"$wf\" == \"team-static-test\" ]] || continue\n  jq -c '{cursor: .cursor, status: .status, teammates: [.teams[\"create-team\"].teammates | to_entries[] | {n:.key, s:.value.status}]}' \"$f\"\ndone\necho \"---\"\n# Check worker state files\necho \"Worker state files: $(ls .wheel/state_*.json 2>/dev/null | grep -v \"a38f8f03\" | wc -l | tr -d ' ')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:56:42.000Z"
+        },
+        {
+          "command": "grep -c \"idle_agent_id\\|alternate_agent_id\\|_psf\" ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:56:53.000Z"
+        },
+        {
+          "command": "diff plugin-wheel/hooks/teammate-idle.sh ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:56:58.000Z"
+        },
+        {
+          "command": "# Get parent session_id\nPARENT_SID=$(jq -r '.owner_session_id' .wheel/state_*.json 2>/dev/null | head -1)\necho \"Parent session: $PARENT_SID\"\n\n# Test TeammateIdle for worker-1 \necho \"{\\\"session_id\\\":\\\"$PARENT_SID\\\",\\\"agent_id\\\":\\\"worker-1@test-static-team\\\"}\" | bash ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh 2>&1\necho \"---\"\n# Check parent \nfor f in .wheel/state_*.json; do\n  wf=$(jq -r '.workflow_name' \"$f\" 2>/dev/null)\n  [[ \"$wf\" == \"team-static-test\" ]] || continue\n  jq -c '.teams[\"create-team\"].teammates | to_entries[] | {n:.key, s:.value.status}' \"$f\"\ndone",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:57:05.000Z"
+        },
+        {
+          "command": "# Check hook registration\ncat ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/hooks.json | jq '.hooks.TeammateIdle'\necho \"---\"\n# Check if the hook file exists and is executable\nls -la ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:57:40.000Z"
+        },
+        {
+          "command": "cp plugin-wheel/hooks/teammate-idle.sh ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh && rm -f /tmp/teammate-idle-debug.json && echo \"Ready\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:57:46.000Z"
+        },
+        {
+          "command": "cat /tmp/teammate-idle-debug.json 2>/dev/null | jq '.' || echo \"No debug file — hook didn't fire\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:58:02.000Z"
+        },
+        {
+          "command": "cp plugin-wheel/hooks/teammate-idle.sh ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/hooks/teammate-idle.sh && cp plugin-wheel/lib/dispatch.sh ~/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.938/lib/dispatch.sh && echo \"Synced\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:58:55.000Z"
+        },
+        {
+          "command": "# Check if TeammateIdle detected completion\nfor f in .wheel/state_*.json; do\n  wf=$(jq -r '.workflow_name' \"$f\" 2>/dev/null)\n  [[ \"$wf\" == \"team-static-test\" ]] || continue\n  jq -c '{cursor: .cursor, teammates: [.teams[\"create-team\"].teammates | to_entries[] | {n:.key, s:.value.status}]}' \"$f\"\ndone",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:59:11.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T01:59:19.000Z",
+      "completed_at": "2026-04-10T01:59:20.000Z",
+      "output": "## Static Team Test Results\n\nSummary:\nnull\nnull\n\nCollected outputs:\n.wheel/outputs/team-test/results/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/output.md\n.wheel/outputs/team-test/results/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/haiku.md\n.wheel/outputs/team-test/results/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/result.md",
+      "command_log": [
+        {
+          "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T01:59:19.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-10T01:59:20.000Z",
+      "completed_at": "2026-04-10T01:59:31.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

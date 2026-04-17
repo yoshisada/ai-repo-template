@@ -1,0 +1,84 @@
+{
+  "workflow_name": "team-sub-worker",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-sub-worker.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "a9b61b6eec29fcc4b",
+  "started_at": "2026-04-09T21:41:34.000Z",
+  "updated_at": "2026-04-09T21:42:01.000Z",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:41:34.000Z",
+      "completed_at": "2026-04-09T21:41:34.000Z",
+      "output": "## Worker Assignment\n{\"task\": \"default task\"}",
+      "command_log": [
+        {
+          "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-09T21:41:34.000Z",
+      "completed_at": "2026-04-09T21:42:01.000Z",
+      "output": ".wheel/outputs/worker-result.md",
+      "command_log": [
+        {
+          "command": "ls -t /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_*.json 2>/dev/null | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:37.000Z"
+        },
+        {
+          "command": "jq '{workflow_name, cursor, owner_session_id, owner_agent_id}' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a9b61b6eec29fcc4b.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:40.000Z"
+        },
+        {
+          "command": "jq '.steps[1]' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/team-sub-worker.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:44.000Z"
+        },
+        {
+          "command": "jq '.steps[1].output' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a9b61b6eec29fcc4b.json 2>/dev/null; jq '.context // {}' /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/state_a9b61b6eec29fcc4b.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:49.000Z"
+        },
+        {
+          "command": "mkdir -p /Users/ryansuematsu/Documents/github/personal/ai-repo-template/.wheel/outputs",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:41:52.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T21:42:01.000Z",
+      "completed_at": "2026-04-09T21:42:01.000Z",
+      "output": "Worker complete\n2026-04-09T21:42:01Z",
+      "command_log": [
+        {
+          "command": "echo 'Worker complete' && date -u +%Y-%m-%dT%H:%M:%SZ",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T21:42:01.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

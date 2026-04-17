@@ -1,0 +1,80 @@
+{
+  "workflow_name": "loop-test",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/tests/loop-test.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "a3711e095e7ad6b98",
+  "started_at": "2026-04-10T09:40:14.000Z",
+  "updated_at": "2026-04-10T09:40:15.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T09:40:14.000Z",
+      "completed_at": "2026-04-10T09:40:14.000Z",
+      "output": "Counter initialized",
+      "command_log": [
+        {
+          "command": "rm -f /tmp/wheel-loop-counter.txt && echo '0' > /tmp/wheel-loop-counter.txt && echo 'Counter initialized'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "increment-loop",
+      "type": "loop",
+      "status": "done",
+      "started_at": "2026-04-10T09:40:14.000Z",
+      "completed_at": "2026-04-10T09:40:15.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "COUNT=$(cat /tmp/wheel-loop-counter.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-loop-counter.txt && echo \"Iteration: $COUNT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:14.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-loop-counter.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-loop-counter.txt && echo \"Iteration: $COUNT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:14.000Z"
+        },
+        {
+          "command": "COUNT=$(cat /tmp/wheel-loop-counter.txt) && COUNT=$((COUNT + 1)) && echo $COUNT > /tmp/wheel-loop-counter.txt && echo \"Iteration: $COUNT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:15.000Z"
+        },
+        {
+          "command": "loop: condition met at iteration 3",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:15.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 3
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T09:40:15.000Z",
+      "completed_at": "2026-04-10T09:40:15.000Z",
+      "output": "Loop completed after 3 iterations",
+      "command_log": [
+        {
+          "command": "FINAL=$(cat /tmp/wheel-loop-counter.txt) && echo \"Loop completed after $FINAL iterations\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T09:40:15.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_a3711e095e7ad6b98.json"
+}

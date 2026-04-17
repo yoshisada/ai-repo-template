@@ -1,0 +1,109 @@
+{
+  "workflow_name": "example-workflow",
+  "workflow_version": "1.1.0",
+  "workflow_file": "/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/example.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T21:08:55.000Z",
+  "updated_at": "2026-04-10T21:09:10.000Z",
+  "steps": [
+    {
+      "id": "check-env",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T21:08:56.000Z",
+      "completed_at": "2026-04-10T21:08:56.000Z",
+      "output": ".wheel/outputs/check-env.txt",
+      "command_log": [
+        {
+          "command": "echo 'Checking environment...' && which jq && which bash",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:08:56.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T21:08:56.000Z",
+      "completed_at": "2026-04-10T21:09:03.000Z",
+      "output": "reports/env-report.md",
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:08:59.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify-report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T21:09:03.000Z",
+      "completed_at": "2026-04-10T21:09:03.000Z",
+      "output": ".wheel/outputs/verify-report.txt",
+      "command_log": [
+        {
+          "command": "test -f reports/env-report.md && grep -q . reports/env-report.md && echo 'SUCCESS' || echo 'FAILURE'",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:09:03.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-result",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-10T21:09:03.000Z",
+      "completed_at": "2026-04-10T21:09:03.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q SUCCESS .wheel/outputs/verify-report.txt' exit=0 target=cleanup-success",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:09:03.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-success",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T21:09:03.000Z",
+      "completed_at": "2026-04-10T21:09:10.000Z",
+      "output": "reports/workflow-result.md",
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done 2>&1 || echo \"clean\"\nls .wheel/state_*.json 2>&1 || echo \"clean\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:09:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup-failure",
+      "type": "agent",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

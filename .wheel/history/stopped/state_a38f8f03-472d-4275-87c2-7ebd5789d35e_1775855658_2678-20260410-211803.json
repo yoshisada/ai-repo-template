@@ -1,0 +1,110 @@
+{
+  "workflow_name": "team-partial-failure-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/team-partial-failure.json",
+  "status": "running",
+  "cursor": 0,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T21:14:18.000Z",
+  "updated_at": "2026-04-10T21:17:37.000Z",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "working",
+      "started_at": "2026-04-10T21:14:25.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:14:30.000Z"
+        },
+        {
+          "command": "echo \"nudge\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:14:38.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:14:42.000Z"
+        },
+        {
+          "command": "tail -40 .wheel/logs/wheel.log 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:14:55.000Z"
+        },
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{cursor, step:.steps[.cursor]|{id,type,status}}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:15:21.000Z"
+        },
+        {
+          "command": "ls .wheel/state_*.json\nbash -c '\nsource plugin-wheel/skills/wheel-test/lib/runtime.sh\nexport WT_RUN_TIMESTAMP=20260410T210705Z\nwt_load_run_env\nwt_wait_and_record_serial 4 \"/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/team-partial-failure.json\" \"$(cat /tmp/wt-s-team-partial)\"\n' 2>&1\ntail -3 .wheel/logs/.wheel-test-results-20260410T210705Z.tsv",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:17:37.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "good-worker",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "bad-worker",
+      "type": "teammate",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "verify",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

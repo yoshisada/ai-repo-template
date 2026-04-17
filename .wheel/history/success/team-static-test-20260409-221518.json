@@ -1,0 +1,172 @@
+{
+  "workflow_name": "team-static-test",
+  "workflow_version": "0.0.0",
+  "workflow_file": "workflows/tests/team-static.json",
+  "status": "running",
+  "cursor": 7,
+  "owner_session_id": "f784fcd5-aa40-4362-b2f7-e4e870a2ca6a",
+  "owner_agent_id": "",
+  "started_at": "2026-04-09T22:12:55.000Z",
+  "updated_at": "2026-04-09T22:15:18.000Z",
+  "steps": [
+    {
+      "id": "setup",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T22:12:55.000Z",
+      "completed_at": "2026-04-09T22:12:55.000Z",
+      "output": "Setup complete",
+      "command_log": [
+        {
+          "command": "mkdir -p .wheel/outputs/team-test && echo 'Team static test started' > .wheel/outputs/team-test/setup.txt && echo 'Setup complete'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:12:55.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "status": "done",
+      "started_at": "2026-04-09T22:12:55.000Z",
+      "completed_at": "2026-04-09T22:13:09.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "WHEEL_LIB_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.000.000.876/lib\" && source \"${WHEEL_LIB_DIR}/workflow.sh\" && WORKFLOW=$(workflow_load \"workflows/tests/team-static.json\") && WF_NAME=$(echo \"$WORKFLOW\" | jq -r '.name') && STEP_COUNT=$(echo \"$WORKFLOW\" | jq '.steps | length') && STATE_FILE=$(ls -t .wheel/state_*.json 2>/dev/null | head -1 || true) && if [[ -n \"$STATE_FILE\" && -f \"$STATE_FILE\" ]]; then CURRENT_CURSOR=$(jq -r '.cursor' \"$STATE_FILE\") && CURRENT_STEP_ID=$(echo \"$WORKFLOW\" | jq -r --argjson idx \"$CURRENT_CURSOR\" '.steps[$idx].id // \"complete\"') && echo \"Workflow '$WF_NAME' started ($STEP_COUNT steps).\" && echo \"State file: $(basename $STATE_FILE)\" && echo \"Current step: $CURRENT_STEP_ID (cursor=$CURRENT_CURSOR)\"; else echo \"Workflow completed during kickstart.\"; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:13:01.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-1",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T22:13:13.000Z",
+      "completed_at": "2026-04-09T22:13:13.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-2",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T22:13:13.000Z",
+      "completed_at": "2026-04-09T22:13:13.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "worker-3",
+      "type": "teammate",
+      "status": "done",
+      "started_at": "2026-04-09T22:13:13.000Z",
+      "completed_at": "2026-04-09T22:13:13.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "status": "done",
+      "started_at": "2026-04-09T22:13:28.000Z",
+      "completed_at": "2026-04-09T22:14:55.000Z",
+      "output": ".wheel/outputs/team-test/summary.json",
+      "command_log": [
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"--- $w ---\"; cat .wheel/outputs/team-test-static-team/$w/result.md 2>/dev/null || echo \"(no result yet)\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:13:34.000Z"
+        },
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"--- $w ---\"; ls .wheel/outputs/team-test-static-team/$w/ 2>/dev/null; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:13:41.000Z"
+        },
+        {
+          "command": "ls .wheel/state_*.json 2>/dev/null | while read sf; do echo \"$(basename $sf): cursor=$(jq -r '.cursor' \"$sf\") status=$(jq -r '.status' \"$sf\") wf=$(jq -r '.workflow_name' \"$sf\")\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:13:48.000Z"
+        },
+        {
+          "command": "cat ~/.claude/teams/test-static-team/config.json | jq '[.members[] | {name, agentType}]'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:13:54.000Z"
+        },
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"--- $w ---\"; cat .wheel/outputs/team-test-static-team/$w/result.md 2>/dev/null || echo \"(no result)\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:14:01.000Z"
+        },
+        {
+          "command": "for w in worker-1 worker-2 worker-3; do echo \"--- $w ---\"; ls -la .wheel/outputs/team-test-static-team/$w/ 2>/dev/null; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:14:12.000Z"
+        },
+        {
+          "command": "ls -la .wheel/state_*.json 2>/dev/null && echo \"---\" && ls -t .wheel/history/success/ 2>/dev/null | head -3 && echo \"---\" && ls -t .wheel/history/stopped/ 2>/dev/null | head -3 && echo \"---\" && ls -t .wheel/history/stale/ 2>/dev/null | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:14:40.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-09T22:14:55.000Z",
+      "completed_at": "2026-04-09T22:14:55.000Z",
+      "output": "## Static Team Test Results\n\nSummary:\nnull\nnull\n\nCollected outputs:\n.wheel/outputs/team-test/results/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/result.md\n.wheel/outputs/team-test/results/worker-1/worker-1/assignment.json\n.wheel/outputs/team-test/results/worker-1/worker-1/context.json\n.wheel/outputs/team-test/results/worker-1/worker-1/result.md\n.wheel/outputs/team-test/results/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/result.md\n.wheel/outputs/team-test/results/worker-2/worker-2/assignment.json\n.wheel/outputs/team-test/results/worker-2/worker-2/context.json\n.wheel/outputs/team-test/results/worker-2/worker-2/result.md\n.wheel/outputs/team-test/results/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/result.md\n.wheel/outputs/team-test/results/worker-3/worker-3/assignment.json\n.wheel/outputs/team-test/results/worker-3/worker-3/context.json\n.wheel/outputs/team-test/results/worker-3/worker-3/result.md",
+      "command_log": [
+        {
+          "command": "echo '## Static Team Test Results' && echo '' && echo 'Summary:' && cat .wheel/outputs/team-test/summary.json 2>/dev/null | jq -r '.completed_count, .failed_count' && echo '' && echo 'Collected outputs:' && find .wheel/outputs/team-test/results/ -type f 2>/dev/null | sort",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:14:55.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "status": "done",
+      "started_at": "2026-04-09T22:14:55.000Z",
+      "completed_at": "2026-04-09T22:15:18.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "jq '.teams[\"create-team\"].teammates | to_entries[] | {name: .key, status: .value.status}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775772775_8300.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:14:57.000Z"
+        },
+        {
+          "command": "jq '{cursor: .cursor, steps: [.steps[] | {id: .id, status: .status}]}' .wheel/state_f784fcd5-aa40-4362-b2f7-e4e870a2ca6a_1775772775_8300.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:15:01.000Z"
+        },
+        {
+          "command": "cat ~/.claude/teams/test-static-team/config.json | jq '[.members[] | .name]'",
+          "exit_code": 0,
+          "timestamp": "2026-04-09T22:15:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "teams": {}
+}

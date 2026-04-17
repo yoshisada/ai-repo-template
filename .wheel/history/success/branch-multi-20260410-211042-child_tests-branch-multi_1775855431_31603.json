@@ -1,0 +1,93 @@
+{
+  "workflow_name": "branch-multi",
+  "workflow_version": "1.0.0",
+  "workflow_file": "workflows/tests/branch-multi.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T21:10:31.000Z",
+  "updated_at": "2026-04-10T21:10:42.000Z",
+  "steps": [
+    {
+      "id": "detect-language",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:31.000Z",
+      "completed_at": "2026-04-10T21:10:31.000Z",
+      "output": ".wheel/outputs/detected-language.txt",
+      "command_log": [
+        {
+          "command": "if [ -f package.json ]; then echo 'javascript'; elif [ -f Cargo.toml ]; then echo 'rust'; elif [ -f go.mod ]; then echo 'go'; else echo 'unknown'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:10:31.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "check-js",
+      "type": "branch",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:31.000Z",
+      "completed_at": "2026-04-10T21:10:31.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "branch: condition='grep -q javascript .wheel/outputs/detected-language.txt' exit=1 target=fallback-analysis",
+          "exit_code": 1,
+          "timestamp": "2026-04-10T21:10:31.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "analyze-js",
+      "type": "command",
+      "status": "skipped",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fallback-analysis",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:31.000Z",
+      "completed_at": "2026-04-10T21:10:31.000Z",
+      "output": ".wheel/outputs/fallback-analysis.txt",
+      "command_log": [
+        {
+          "command": "LANG=$(cat .wheel/outputs/detected-language.txt) && echo \"## ${LANG} Analysis\" && echo 'No detailed analyzer for this language yet.' && echo \"File count: $(find . -maxdepth 3 -type f | wc -l | tr -d ' ')\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:10:31.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:31.000Z",
+      "completed_at": "2026-04-10T21:10:42.000Z",
+      "output": "reports/language-analysis.md",
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}, parent:.parent_workflow}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:10:39.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_a38f8f03-472d-4275-87c2-7ebd5789d35e_1775855398_12632.json"
+}

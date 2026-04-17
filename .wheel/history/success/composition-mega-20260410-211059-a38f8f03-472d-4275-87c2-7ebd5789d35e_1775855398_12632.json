@@ -1,0 +1,80 @@
+{
+  "workflow_name": "composition-mega",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/Documents/github/personal/ai-repo-template/workflows/tests/composition-mega.json",
+  "status": "running",
+  "cursor": 4,
+  "owner_session_id": "a38f8f03-472d-4275-87c2-7ebd5789d35e",
+  "owner_agent_id": "",
+  "started_at": "2026-04-10T21:09:58.000Z",
+  "updated_at": "2026-04-10T21:10:59.000Z",
+  "steps": [
+    {
+      "id": "run-command-chain",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:03.000Z",
+      "completed_at": "2026-04-10T21:10:20.000Z",
+      "output": null,
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status}, parent:.parent_workflow}' \"$sf\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:10:03.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-count-to-100",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:21.000Z",
+      "completed_at": "2026-04-10T21:10:29.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-loop-test",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:30.000Z",
+      "completed_at": "2026-04-10T21:10:30.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "run-branch-multi",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:30.000Z",
+      "completed_at": "2026-04-10T21:10:42.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "final-report",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-10T21:10:43.000Z",
+      "completed_at": "2026-04-10T21:10:59.000Z",
+      "output": "reports/composition-mega-report.md",
+      "command_log": [
+        {
+          "command": "for sf in .wheel/state_*.json; do jq '{workflow_name, cursor, step:.steps[.cursor]|{id,type,status,output}}' \"$sf\"; done\necho \"---\"\njq '.steps[4]' workflows/tests/composition-mega.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-10T21:10:52.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
