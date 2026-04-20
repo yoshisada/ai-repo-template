@@ -22,9 +22,9 @@ All helper scripts under `plugin-kiln/scripts/fix-recording/`. Tests under the s
 
 **Purpose**: Create the scaffold directories + gitignore + staging path so every subsequent task has a landing place. No code yet.
 
-- [ ] T001 Add `.kiln/fixes/` to `.gitignore` at repo root (one line after the existing `.kiln/qa/` entry), and verify the line is present by running `grep -Fxq '.kiln/fixes/' .gitignore`. Implements **FR-021**.
-- [ ] T002 [P] Create the helper-script directory and test directory: `plugin-kiln/scripts/fix-recording/` and `plugin-kiln/scripts/fix-recording/__tests__/`. Add a short `README.md` in each with one sentence explaining the dir's role. Implements the structure decision from **plan.md** (Source Code tree).
-- [ ] T003 [P] Create the staging path for the manifest type: `specs/fix-skill-with-recording-teams/assets/manifest-types/`. Implements decision **R3** and prepares T015's landing location.
+- [X] T001 Add `.kiln/fixes/` to `.gitignore` at repo root (one line after the existing `.kiln/qa/` entry), and verify the line is present by running `grep -Fxq '.kiln/fixes/' .gitignore`. Implements **FR-021**.
+- [X] T002 [P] Create the helper-script directory and test directory: `plugin-kiln/scripts/fix-recording/` and `plugin-kiln/scripts/fix-recording/__tests__/`. Add a short `README.md` in each with one sentence explaining the dir's role. Implements the structure decision from **plan.md** (Source Code tree).
+- [X] T003 [P] Create the staging path for the manifest type: `specs/fix-skill-with-recording-teams/assets/manifest-types/`. Implements decision **R3** and prepares T015's landing location.
 
 **Checkpoint**: Scratch directories exist and gitignore is updated. No behavior yet.
 

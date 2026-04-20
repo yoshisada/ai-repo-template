@@ -40,3 +40,6 @@ npm-debug.log*
 reports/
 .wheel/outputs/
 .wheel/logs/
+
+# Fix records (FR-021) — local fix-recording artifacts; mirrored into Obsidian, not committed
+.kiln/fixes/
