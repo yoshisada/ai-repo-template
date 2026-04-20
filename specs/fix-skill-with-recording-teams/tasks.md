@@ -106,7 +106,7 @@ All helper scripts under `plugin-kiln/scripts/fix-recording/`. Tests under the s
 
 **Independent Test**: Grep the skill + briefs for `plugin-shelf/scripts/` and `plugin-kiln/skills/` — all matches must be inside comments or code-fence examples, never in live substitution.
 
-- [ ] T016 [US10] Write `plugin-kiln/scripts/fix-recording/__tests__/test-skill-portability.sh` — a pure-bash script that greps `plugin-kiln/skills/fix/SKILL.md` and any sibling brief under `plugin-kiln/skills/fix/team-briefs/` for the literal strings `plugin-shelf/scripts/` and `plugin-kiln/skills/`. Allow matches only inside `<!-- ... -->` HTML comment blocks or triple-backtick fenced code labeled with a non-shell language. Any other match exits 1. Add the test to `run-all.sh`. Cites **FR-025**.
+- [X] T016 [US10] Write `plugin-kiln/scripts/fix-recording/__tests__/test-skill-portability.sh` — a pure-bash script that greps `plugin-kiln/skills/fix/SKILL.md` and any sibling brief under `plugin-kiln/skills/fix/team-briefs/` for the literal strings `plugin-shelf/scripts/` and `plugin-kiln/skills/`. Allow matches only inside `<!-- ... -->` HTML comment blocks or triple-backtick fenced code labeled with a non-shell language. Any other match exits 1. Add the test to `run-all.sh`. Cites **FR-025**.
 
 **Checkpoint**: A regression test guards against future authoring accidents.
 
