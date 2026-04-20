@@ -84,4 +84,55 @@ if [[ "$(basename "$out_path_2")" != *"-2.md" ]]; then
   exit 1
 fi
 
+# --- Escalated envelope (FR-012, US2 acceptance scenario #2) ------------------
+empty_files=$(mktemp)
+: > "$empty_files"
+
+envelope_esc=$(bash "$compose" \
+  --issue "Flaky test suite" \
+  --root-cause "Intermittent race condition between setup and first request" \
+  --fix-summary "Tried: retry loop, seed-pin, timeout bump. None reproduced locally." \
+  --files-changed-file "$empty_files" \
+  --commit-hash "" \
+  --feature-spec-path "" \
+  --resolves-issue "" \
+  --status escalated)
+
+envelope_esc_path="$tmp/envelope-esc.json"
+printf '%s' "$envelope_esc" > "$envelope_esc_path"
+
+out_esc=$(bash "$script" "$envelope_esc_path")
+if [ ! -f "$out_esc" ]; then
+  printf 'FAIL: escalated record was not written\n' >&2
+  exit 1
+fi
+
+# Frontmatter: status: escalated, commit: null.
+if ! head -10 "$out_esc" | grep -Fq 'status: escalated'; then
+  printf 'FAIL: escalated record missing status: escalated\n' >&2
+  head -15 "$out_esc" >&2
+  exit 1
+fi
+if ! head -10 "$out_esc" | grep -Fq 'commit: null'; then
+  printf 'FAIL: escalated record must carry commit: null\n' >&2
+  exit 1
+fi
+
+# ## Escalation notes must be populated (NOT _none_).
+esc_body=$(awk '/^## Escalation notes$/{flag=1;next}/^## /{flag=0}flag' "$out_esc")
+esc_body=$(printf '%s' "$esc_body" | sed '/^$/d')
+if [ "$esc_body" = "_none_" ] || [ -z "$esc_body" ]; then
+  printf 'FAIL: escalated record must have populated Escalation notes; got %q\n' "$esc_body" >&2
+  exit 1
+fi
+
+# Files changed list may be empty — allowed for escalated envelopes.
+# The body's `## Files changed` should render `_none_` in that case.
+files_body=$(awk '/^## Files changed$/{flag=1;next}/^## /{flag=0}flag' "$out_esc")
+files_body=$(printf '%s' "$files_body" | sed '/^$/d')
+if [ "$files_body" != "_none_" ]; then
+  printf 'FAIL: escalated record with empty files should show _none_ in Files changed; got %q\n' "$files_body" >&2
+  exit 1
+fi
+
 exit 0

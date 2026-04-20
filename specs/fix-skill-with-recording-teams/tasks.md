@@ -70,7 +70,7 @@ All helper scripts under `plugin-kiln/scripts/fix-recording/`. Tests under the s
 
 **Independent Test**: Force debug loop to escalate; verify local record and Obsidian note both have `status: escalated` and a populated escalation section.
 
-- [ ] T013 [US2] Extend `plugin-kiln/scripts/fix-recording/__tests__/test-compose-envelope.sh` with a `status: escalated` case: `commit_hash` must be `null`, `files_changed` MAY be empty, `fix_summary` contains "techniques tried". Extend `__tests__/test-write-local-record.sh` with an escalated case: frontmatter `status: escalated`, `commit: null`, `## Escalation notes` is populated (NOT `_none_`), `## Files changed` may list inspected files. One commit. Cites **FR-012**.
+- [X] T013 [US2] Extend `plugin-kiln/scripts/fix-recording/__tests__/test-compose-envelope.sh` with a `status: escalated` case: `commit_hash` must be `null`, `files_changed` MAY be empty, `fix_summary` contains "techniques tried". Extend `__tests__/test-write-local-record.sh` with an escalated case: frontmatter `status: escalated`, `commit: null`, `## Escalation notes` is populated (NOT `_none_`), `## Files changed` may list inspected files. One commit. Cites **FR-012**.
 
 **Checkpoint**: Escalated fixes are end-to-end-supported by the helpers. Skill edit from T012 already passes `--status escalated` when R7's condition holds — this phase just proves the downstream helpers behave.
 
@@ -82,7 +82,7 @@ All helper scripts under `plugin-kiln/scripts/fix-recording/`. Tests under the s
 
 **Independent Test**: (1) Run `/kiln:fix` on a trivial typo → `@inbox/open/` gains no file. (2) Run `/kiln:fix` on a seeded manifest-gap bug → `@inbox/open/<date>-manifest-improvement-<slug>.md` appears with FR-008 + FR-009 shape.
 
-- [ ] T014 [US4] [US5] Author the `fix-reflect` team-brief template. Same location decision as T011 (inline first, sibling file if SKILL.md exceeds 500 lines). The brief MUST encode the `fix-reflect` contract from `contracts/interfaces.md`: inputs available, allowed/forbidden tools, flow steps 1–5, exact-patch gate invocation, reflect-output path `.kiln/fixes/.reflect-output-<timestamp>.json`. Cites **FR-003**, **FR-008**, **FR-009**, **FR-010**, **FR-014**, **FR-018**, **FR-025**. T012 is updated in the same commit to wire this brief into the second `TeamCreate` call (if not already) — keep the skill edit self-consistent.
+- [X] T014 [US4] [US5] Author the `fix-reflect` team-brief template. Same location decision as T011 (inline first, sibling file if SKILL.md exceeds 500 lines). The brief MUST encode the `fix-reflect` contract from `contracts/interfaces.md`: inputs available, allowed/forbidden tools, flow steps 1–5, exact-patch gate invocation, reflect-output path `.kiln/fixes/.reflect-output-<timestamp>.json`. Cites **FR-003**, **FR-008**, **FR-009**, **FR-010**, **FR-014**, **FR-018**, **FR-025**. T012 is updated in the same commit to wire this brief into the second `TeamCreate` call (if not already) — keep the skill edit self-consistent.
 
 **Checkpoint**: Both team briefs exist, both are wired from SKILL.md. Reflect silent-on-no-op and proposal-on-gap paths both have complete prompt text.
 
