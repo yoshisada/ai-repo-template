@@ -1,5 +1,5 @@
 {
-  "name": "shelf-full-sync",
+  "name": "sync",
   "version": "4.0.0",
   "steps": [
     {
@@ -62,7 +62,7 @@
       "id": "generate-sync-summary",
       "type": "command",
       "command": "bash plugin-shelf/scripts/generate-sync-summary.sh",
-      "output": ".wheel/outputs/shelf-full-sync-summary.md",
+      "output": ".wheel/outputs/sync-summary.md",
       "terminal": true
     }
   ]

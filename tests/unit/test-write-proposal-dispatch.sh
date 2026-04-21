@@ -140,7 +140,7 @@ cleanup_sandbox "$sb"
 
 # FR-010: slug in proposal_path matches the deterministic derivation
 sb=$(setup_sandbox)
-why_text="Add status_label field because .wheel/outputs/shelf-full-sync-summary.md shows hard-coded labels"
+why_text="Add status_label field because .wheel/outputs/sync-summary.md shows hard-coded labels"
 expected_slug=$(printf '%s' "$why_text" | bash "$ROOT/plugin-shelf/scripts/derive-proposal-slug.sh")
 reflect_json=$(jq -cn \
   --arg target "@manifest/types/mistake.md" \

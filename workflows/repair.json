@@ -1,5 +1,5 @@
 {
-  "name": "shelf-repair",
+  "name": "repair",
   "version": "1.0.0",
   "steps": [
     {
@@ -29,7 +29,7 @@
     {
       "id": "read-existing-dashboard",
       "type": "agent",
-      "instruction": "Read the current project dashboard from Obsidian and extract all sections.\n\nYou have MCP tools: mcp__obsidian-projects__read_file.\n\n1. Read the shelf config output to get `base_path` and `slug`.\n2. Read the dashboard: `mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })`\n3. If not found: write \"ERROR: No project found at {base_path}/{slug}/{slug}.md — run /shelf-create first\" and stop.\n4. Parse and output the dashboard content with sections clearly labeled:\n   - FRONTMATTER: (the full YAML frontmatter)\n   - TITLE: (the # heading)\n   - DESCRIPTION: (text between title and first ## section)\n   - HUMAN_NEEDED: (## Human Needed section content)\n   - FEEDBACK: (## Feedback section content)\n   - FEEDBACK_LOG: (## Feedback Log section content)\n   - OTHER_SECTIONS: (any sections not matching the above)\n\nPreserve the exact content of each section — do not modify or reformat.",
+      "instruction": "Read the current project dashboard from Obsidian and extract all sections.\n\nYou have MCP tools: mcp__obsidian-projects__read_file.\n\n1. Read the shelf config output to get `base_path` and `slug`.\n2. Read the dashboard: `mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })`\n3. If not found: write \"ERROR: No project found at {base_path}/{slug}/{slug}.md — run /shelf:create first\" and stop.\n4. Parse and output the dashboard content with sections clearly labeled:\n   - FRONTMATTER: (the full YAML frontmatter)\n   - TITLE: (the # heading)\n   - DESCRIPTION: (text between title and first ## section)\n   - HUMAN_NEEDED: (## Human Needed section content)\n   - FEEDBACK: (## Feedback section content)\n   - FEEDBACK_LOG: (## Feedback Log section content)\n   - OTHER_SECTIONS: (any sections not matching the above)\n\nPreserve the exact content of each section — do not modify or reformat.",
       "context_from": ["read-shelf-config"],
       "output": ".wheel/outputs/read-existing-dashboard.md"
     },
@@ -38,21 +38,21 @@
       "type": "agent",
       "instruction": "Compare the existing dashboard to the current template and report structural differences.\n\n1. Read the current template from context (read-current-template output).\n2. Read the existing dashboard sections from context (read-existing-dashboard output).\n3. Read the status labels from context (read-status-labels output) to check for non-canonical status values.\n4. Compare and report:\n\n## Status\n- Current status value in frontmatter\n- Whether it is canonical or non-canonical\n- If non-canonical, what it should be normalized to\n\n## Structural Changes\nList each difference between the dashboard and template:\n- Missing sections (sections in template but not in dashboard)\n- Extra sections (sections in dashboard but not in template)\n- Frontmatter field differences (missing fields, extra fields)\n- Format differences (heading levels, section ordering)\n\n## Content to Preserve\nList user-written content that MUST be preserved during repair:\n- Human Needed items (both checked and unchecked)\n- Feedback entries\n- Feedback Log entries\n- Progress entries (if any exist inline)\n- Description text\n\n## Non-Canonical Labels Found\nList any non-canonical status values and their canonical equivalents.\n\nWrite this report to your output. This report will be used by the apply-repairs step.",
       "context_from": ["read-shelf-config", "read-current-template", "read-status-labels", "read-existing-dashboard"],
-      "output": ".wheel/outputs/shelf-repair-diff.md"
+      "output": ".wheel/outputs/repair-diff.md"
     },
     {
       "id": "apply-repairs",
       "type": "agent",
       "instruction": "Apply template structure to the existing dashboard while preserving user content.\n\nYou have MCP tools: mcp__obsidian-projects__update_file.\n\n1. Read all context:\n   - read-shelf-config: get base_path, slug\n   - read-current-template: the template structure to apply\n   - read-existing-dashboard: the current dashboard content with labeled sections\n   - generate-diff-report: what needs to change\n\n2. Read the status labels from context (read-status-labels output) for canonical status values.\n\n3. Rebuild the dashboard:\n   a. Start with the template structure\n   b. Populate frontmatter from existing values, but:\n      - Normalize status to canonical value if non-canonical\n      - Preserve all existing frontmatter fields (status, tags, next_step, last_updated, repo, project)\n   c. Preserve the existing title and description\n   d. Preserve ALL content from these sections exactly as-is:\n      - ## Human Needed (all items, checked and unchecked)\n      - ## Feedback (all entries)\n      - ## Feedback Log (all entries)\n   e. If the dashboard has sections not in the template, preserve them at the end\n\n4. Write the rebuilt dashboard:\n   `mcp__obsidian-projects__update_file({ path: \"{base_path}/{slug}/{slug}.md\", content: \"{rebuilt dashboard}\" })`\n\n5. Report what was changed and what was preserved in your output.\n\nIMPORTANT: Never delete user-written content. If in doubt, preserve it.",
       "context_from": ["read-shelf-config", "read-current-template", "read-status-labels", "read-existing-dashboard", "generate-diff-report"],
-      "output": ".wheel/outputs/shelf-repair-result.md"
+      "output": ".wheel/outputs/repair-result.md"
     },
     {
       "id": "verify-repair",
       "type": "agent",
       "instruction": "Re-read the dashboard after repair and confirm it matches the template structure.\n\nYou have MCP tools: mcp__obsidian-projects__read_file.\n\n1. Read the shelf config to get base_path and slug.\n2. Read the repaired dashboard: `mcp__obsidian-projects__read_file({ path: \"{base_path}/{slug}/{slug}.md\" })`\n3. Read the template from context (read-current-template output).\n4. Read the status labels from context (read-status-labels output) for canonical status validation.\n5. Verify:\n   - All template sections exist (## Human Needed, ## Feedback, ## Feedback Log)\n   - Frontmatter has required fields (status, tags, next_step, last_updated, project)\n   - Status is a canonical value\n   - No template placeholders remain (no {slug}, {date}, etc.)\n6. Report PASS or FAIL with details.\n\nIf FAIL, list specific issues found.",
       "context_from": ["read-shelf-config", "read-current-template", "read-status-labels", "apply-repairs"],
-      "output": ".wheel/outputs/shelf-repair-verify.md",
+      "output": ".wheel/outputs/repair-verify.md",
       "terminal": true
     }
   ]

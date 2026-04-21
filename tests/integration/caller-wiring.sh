@@ -50,8 +50,8 @@ check_caller() {
   printf 'PASS %s (propose_idx=%s terminal_idx=%s/%s)\n' "$name" "$propose_idx" "$terminal_idx" "$total"
 }
 
-check_caller "report-mistake-and-sync" "$ROOT/plugin-kiln/workflows/report-mistake-and-sync.json"
-check_caller "report-issue-and-sync"   "$ROOT/plugin-kiln/workflows/report-issue-and-sync.json"
-check_caller "shelf-full-sync"         "$ROOT/plugin-shelf/workflows/shelf-full-sync.json"
+check_caller "mistake"                 "$ROOT/plugin-kiln/workflows/mistake.json"
+check_caller "report-issue"            "$ROOT/plugin-kiln/workflows/report-issue.json"
+check_caller "sync"                    "$ROOT/plugin-shelf/workflows/sync.json"
 
 [ "$fail" -eq 0 ]

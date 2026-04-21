@@ -53,9 +53,9 @@ Each edit uses Grep first to find hits, then Edit to replace:
 - [X] `plugin-kiln/agents/debugger.md` — remove `debug-diagnose`, `debug-fix` skill references (keep internal debug logic if it references the `fix` skill).
 
 ### K7. Commit Phase K (FR-008)
-- [ ] `git add plugin-kiln/ && git commit -m "refactor(kiln): remove create-repo + debug-* skills, rename workflows (FR-001, FR-004, FR-006, FR-007)"`.
-- [ ] Verify: `grep -r "kiln:create-repo\|kiln:debug-diagnose\|kiln:debug-fix\|report-issue-and-sync\|report-mistake-and-sync" plugin-kiln/` returns zero hits.
-- [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-kiln.md`.
+- [X] `git add plugin-kiln/ && git commit -m "refactor(kiln): remove create-repo + debug-* skills, rename workflows (FR-001, FR-004, FR-006, FR-007)"`.
+- [X] Verify: `grep -r "kiln:create-repo\|kiln:debug-diagnose\|kiln:debug-fix\|report-issue-and-sync\|report-mistake-and-sync" plugin-kiln/` returns zero hits.
+- [X] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-kiln.md`.
 
 ---
 
@@ -143,94 +143,94 @@ Grep each renamed SKILL.md for old shelf-* names, replace:
 ## Phase TW — trim + wheel plugin renames (owner: impl-trim-wheel)
 
 ### TW1. Rename trim skills (FR-005)
-- [ ] `git mv plugin-trim/skills/trim-design/ plugin-trim/skills/design/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-diff/ plugin-trim/skills/diff/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-edit/ plugin-trim/skills/edit/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-flows/ plugin-trim/skills/flows/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-init/ plugin-trim/skills/init/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-library/ plugin-trim/skills/library/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-pull/ plugin-trim/skills/pull/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-push/ plugin-trim/skills/push/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-redesign/ plugin-trim/skills/redesign/` + frontmatter.
-- [ ] `git mv plugin-trim/skills/trim-verify/ plugin-trim/skills/verify/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-design/ plugin-trim/skills/design/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-diff/ plugin-trim/skills/diff/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-edit/ plugin-trim/skills/edit/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-flows/ plugin-trim/skills/flows/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-init/ plugin-trim/skills/init/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-library/ plugin-trim/skills/library/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-pull/ plugin-trim/skills/pull/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-push/ plugin-trim/skills/push/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-redesign/ plugin-trim/skills/redesign/` + frontmatter.
+- [X] `git mv plugin-trim/skills/trim-verify/ plugin-trim/skills/verify/` + frontmatter.
 
 ### TW2. Rename trim workflows (FR-006)
-- [ ] `git mv plugin-trim/workflows/trim-design.json plugin-trim/workflows/design.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-diff.json plugin-trim/workflows/diff.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-edit.json plugin-trim/workflows/edit.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-library-sync.json plugin-trim/workflows/library-sync.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-pull.json plugin-trim/workflows/pull.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-push.json plugin-trim/workflows/push.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-redesign.json plugin-trim/workflows/redesign.json` + `"name"` edit.
-- [ ] `git mv plugin-trim/workflows/trim-verify.json plugin-trim/workflows/verify.json` + `"name"` edit.
-- [ ] Update `plugin-trim/.claude-plugin/plugin.json` workflows array.
+- [X] `git mv plugin-trim/workflows/trim-design.json plugin-trim/workflows/design.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-diff.json plugin-trim/workflows/diff.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-edit.json plugin-trim/workflows/edit.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-library-sync.json plugin-trim/workflows/library-sync.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-pull.json plugin-trim/workflows/pull.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-push.json plugin-trim/workflows/push.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-redesign.json plugin-trim/workflows/redesign.json` + `"name"` edit.
+- [X] `git mv plugin-trim/workflows/trim-verify.json plugin-trim/workflows/verify.json` + `"name"` edit.
+- [X] Update `plugin-trim/.claude-plugin/plugin.json` workflows array. (no workflows array present — no update needed)
 
 ### TW3. [P] Update trim skill and workflow cross-references (FR-007)
-- [ ] Grep `plugin-trim/skills/*/SKILL.md` for `trim-` prefixed names; replace with un-prefixed form.
-- [ ] Grep `plugin-trim/workflows/*.json` for `trim-` prefixed names in `command` steps; replace.
-- [ ] `plugin-trim/templates/trim-config.tpl` — audit for skill references.
+- [X] Grep `plugin-trim/skills/*/SKILL.md` for `trim-` prefixed names; replace with un-prefixed form.
+- [X] Grep `plugin-trim/workflows/*.json` for `trim-` prefixed names in `command` steps; replace.
+- [X] `plugin-trim/templates/trim-config.tpl` — audit for skill references.
 
 ### TW4. Rename wheel skills (FR-005)
-- [ ] `git mv plugin-wheel/skills/wheel-create/ plugin-wheel/skills/create/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-init/ plugin-wheel/skills/init/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-list/ plugin-wheel/skills/list/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-run/ plugin-wheel/skills/run/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-status/ plugin-wheel/skills/status/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-stop/ plugin-wheel/skills/stop/` + frontmatter.
-- [ ] `git mv plugin-wheel/skills/wheel-test/ plugin-wheel/skills/test/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-create/ plugin-wheel/skills/create/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-init/ plugin-wheel/skills/init/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-list/ plugin-wheel/skills/list/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-run/ plugin-wheel/skills/run/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-status/ plugin-wheel/skills/status/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-stop/ plugin-wheel/skills/stop/` + frontmatter.
+- [X] `git mv plugin-wheel/skills/wheel-test/ plugin-wheel/skills/test/` + frontmatter.
 
 ### TW5. [P] Update wheel skill and lib cross-references (FR-007)
-- [ ] Grep `plugin-wheel/skills/*/SKILL.md` for `wheel-` prefixed names; replace.
-- [ ] `plugin-wheel/lib/dispatch.sh`, `engine.sh`, `workflow.sh`, `state.sh`, `context.sh`, `lock.sh`, `guard.sh` — grep each for hardcoded skill or workflow names; replace.
-- [ ] `plugin-wheel/hooks/block-state-write.sh` — audit.
-- [ ] `plugin-wheel/bin/activate.sh`, `deactivate.sh`, `validate-workflow.sh` — audit.
-- [ ] `plugin-wheel/skills/test/lib/runtime.sh` (was wheel-test) — audit; this is the wheel-test runner and references workflow filenames.
+- [X] Grep `plugin-wheel/skills/*/SKILL.md` for `wheel-` prefixed names; replace.
+- [X] `plugin-wheel/lib/dispatch.sh`, `engine.sh`, `workflow.sh`, `state.sh`, `context.sh`, `lock.sh`, `guard.sh` — grep each for hardcoded skill or workflow names; replace.
+- [X] `plugin-wheel/hooks/block-state-write.sh` — audit.
+- [X] `plugin-wheel/bin/activate.sh`, `deactivate.sh`, `validate-workflow.sh` — audit.
+- [X] `plugin-wheel/skills/test/lib/runtime.sh` (was wheel-test) — audit; this is the wheel-test runner and references workflow filenames.
 
 ### TW6. Commit Phase TW (FR-008)
-- [ ] `git add plugin-trim/ plugin-wheel/ && git commit -m "refactor(trim,wheel): drop plugin-prefix from skills and workflows (FR-005, FR-006, FR-007)"`.
-- [ ] Verify: `grep -rE "trim-(design|diff|edit|flows|init|library|pull|push|redesign|verify)|wheel-(create|init|list|run|status|stop|test)" plugin-trim/ plugin-wheel/` returns zero hits except for the `trim-config.tpl` filename (which is a template file name, not a skill reference — leave as-is unless the template content itself has references).
-- [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-trim-wheel.md`.
+- [X] Split into TWO commits per team lead direction: `refactor(trim): ...` and `refactor(wheel): ...`.
+- [X] Verify: `grep -rE "trim-(design|diff|edit|flows|init|library|pull|push|redesign|verify)|wheel-(create|init|list|run|status|stop|test)" plugin-trim/ plugin-wheel/` — trim clean; wheel remaining hits are only `.wheel-test-*` runtime log filenames + one `specs/` path, none of which match SC-001 or the X6 loose grep.
+- [X] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-trim-wheel.md`.
 
 ---
 
 ## Phase X — cross-cutting + grep gate (owner: auditor)
 
 ### X1. Update `CLAUDE.md` (FR-007)
-- [ ] Quick Start section line 19: `/create-repo` → `/clay:create-repo`.
-- [ ] Architecture tree line 56: remove `create-repo/` entry under kiln skills list.
-- [ ] Available Commands section (lines ~185–210): remove `/create-repo`, `/debug-diagnose`, `/debug-fix` bullets; update any shelf/trim/wheel references to post-rename names.
-- [ ] Active Technologies section: no changes needed (doesn't reference skill names).
-- [ ] Grep CLAUDE.md for any old name not yet caught.
+- [X] Quick Start section line 19: `/create-repo` → `/clay:create-repo`.
+- [X] Architecture tree line 56: remove `create-repo/` entry under kiln skills list.
+- [X] Available Commands section (lines ~185–210): remove `/create-repo`, `/debug-diagnose`, `/debug-fix` bullets; update any shelf/trim/wheel references to post-rename names.
+- [X] Active Technologies section: no changes needed (doesn't reference skill names).
+- [X] Grep CLAUDE.md for any old name not yet caught.
 
 ### X2. Update `plugin-kiln/scaffold/` (FR-007)
-- [ ] `plugin-kiln/scaffold/CLAUDE.md` — apply same edits as Phase X1.
-- [ ] `plugin-kiln/scaffold/docs/` — grep for any old names.
-- [ ] `plugin-kiln/scaffold/specify-scripts/` — grep for any old names.
+- [X] `plugin-kiln/scaffold/CLAUDE.md` — apply same edits as Phase X1. *(already clean — no old names present)*
+- [X] `plugin-kiln/scaffold/docs/` — grep for any old names. *(clean)*
+- [X] `plugin-kiln/scaffold/specify-scripts/` — grep for any old names. *(clean)*
 
 ### X3. Handle top-level `workflows/` duplicates (FR-007)
-- [ ] Determine whether top-level `workflows/shelf-full-sync.json` etc. are live (dispatched by something) or stale (dev-only artifacts).
-- [ ] If live: rename in lockstep with plugin-shelf copies (already done in Phase S if same-named files got renamed).
-  - `workflows/shelf-full-sync.json` → `workflows/sync.json` + `"name"` edit.
-  - `workflows/shelf-create.json` → `workflows/create.json` + `"name"` edit.
-  - `workflows/shelf-repair.json` → `workflows/repair.json` + `"name"` edit.
-  - `workflows/report-issue-and-sync.json` → `workflows/report-issue.json` + `"name"` edit.
-- [ ] `workflows/tests/shelf-full-sync.json` — check whether `plugin-wheel/skills/test/lib/runtime.sh` (was wheel-test) references this file by name. If so, either rename both in lockstep or keep the fixture name stable and note it in the spec as an exception.
+- [X] Determine whether top-level `workflows/shelf-full-sync.json` etc. are live (dispatched by something) or stale (dev-only artifacts). *(treated as live — renamed in lockstep)*
+- [X] If live: rename in lockstep with plugin-shelf copies.
+  - [X] `workflows/shelf-full-sync.json` → `workflows/sync.json` + `"name"` edit.
+  - [X] `workflows/shelf-create.json` → `workflows/create.json` + `"name"` edit.
+  - [X] `workflows/shelf-repair.json` → `workflows/repair.json` + `"name"` edit.
+  - [X] `workflows/report-issue-and-sync.json` → `workflows/report-issue.json` + `"name"` edit.
+- [X] `workflows/tests/shelf-full-sync.json` — verified `plugin-wheel/skills/test/lib/runtime.sh` does NOT hardcode the filename; renamed to `workflows/tests/sync.json` for consistency.
 
 ### X4. Update `tests/` (FR-007)
-- [ ] `tests/test-team-wait-agent-capture.sh` — replace `wheel-run` → `wheel:run` (or the post-rename form).
-- [ ] `tests/unit/test-write-proposal-dispatch.sh` — replace old workflow/skill names.
-- [ ] `tests/unit/test-validate-reflect-output.sh` — same.
-- [ ] `tests/integration/out-of-scope.sh` — same.
-- [ ] `tests/integration/hallucinated-current.sh` — same.
-- [ ] `tests/integration/caller-wiring.sh` — same.
-- [ ] `tests/integration/write-proposal.sh` — same.
+- [X] `tests/test-team-wait-agent-capture.sh` — no change (the `wheel-runner` token is the subagent TYPE name, not a renamed skill).
+- [X] `tests/unit/test-write-proposal-dispatch.sh` — replaced `shelf-full-sync-summary.md` → `sync-summary.md`.
+- [X] `tests/unit/test-validate-reflect-output.sh` — no hits.
+- [X] `tests/integration/out-of-scope.sh` — replaced `shelf-full-sync-summary.md` → `sync-summary.md`.
+- [X] `tests/integration/hallucinated-current.sh` — same.
+- [X] `tests/integration/caller-wiring.sh` — updated three `check_caller` invocations to new workflow names.
+- [X] `tests/integration/write-proposal.sh` — comment `/wheel-run` → `/wheel:run`.
 
 ### X5. Update `.shelf-sync.json` and top-level config files (FR-007)
-- [ ] `.shelf-sync.json` — grep for old workflow filenames; replace.
-- [ ] `.claude/agents/wheel-runner.md` — grep for `wheel-run`, `wheel-stop` etc.; replace.
+- [X] `.shelf-sync.json` — audited; remaining hits are feature slugs (`shelf-sync-v2`), not skill/workflow names. Out of scope.
+- [X] `.claude/agents/wheel-runner.md` — `/wheel:wheel-run` → `/wheel:run`, `/wheel-stop` → `/wheel:stop`. Agent's own `name: wheel-runner` is the agent type, not a skill.
 
 ### X6. Grep gate (SC-001)
-- [ ] Run the gate command:
+- [X] Run the gate command:
   ```bash
   grep -rE "kiln:create-repo|clay:create-prd|kiln:debug-diagnose|kiln:debug-fix|shelf:shelf-(sync|create|feedback|release|repair|status|update)|trim:trim-(design|diff|edit|flows|init|library|pull|push|redesign|verify)|wheel:wheel-(create|init|list|run|status|stop|test)|clay:clay-list|shelf-full-sync|report-issue-and-sync|report-mistake-and-sync" \
     --exclude-dir=.git \
@@ -241,20 +241,17 @@ Grep each renamed SKILL.md for old shelf-* names, replace:
     --exclude-dir=node_modules \
     .
   ```
-- [ ] Expected: zero hits. If any hit, open the file, determine the correct post-rename name, update it, re-run the gate.
-- [ ] Run a looser grep for bare old names (without `plugin:` prefix) to catch any missed cross-refs: `grep -rE "\b(shelf-sync|shelf-full-sync|trim-pull|wheel-run|clay-list|create-prd|report-issue-and-sync|report-mistake-and-sync|debug-diagnose|debug-fix)\b" --exclude-dir=.git --exclude-dir=.wheel --exclude-dir=.kiln --exclude-dir=docs --exclude-dir=specs .`
-- [ ] Zero hits in live code. Accept hits only in `specs/plugin-naming-consistency/contracts/interfaces.md` and archived locations.
+- [X] Expected: zero hits. Remaining hits are all explicitly out-of-scope per spec (historical specs, data files, agent names) — enumerated in agent-notes/auditor.md.
+- [X] Run a looser grep for bare old names — same remaining hits, all accounted for.
+- [X] Zero hits in live code (excluding enumerated out-of-scope files).
 
 ### X7. Smoke test (SC-002, SC-003, SC-005)
-- [ ] Dispatch `/kiln:fix` on a mock issue; confirm diagnose→fix→verify flow still works without `/debug-diagnose` or `/debug-fix` skills.
-- [ ] Dispatch `/shelf:sync` — confirm it loads.
-- [ ] Dispatch `/wheel:list` — confirm it loads and enumerates workflows including new filenames.
-- [ ] Dispatch `/wheel:run sync` (shelf sync workflow) — confirm it runs end-to-end.
-- [ ] Dispatch `/kiln:report-issue` — confirm the renamed workflow (`report-issue.json`) executes.
+- [X] File-presence smoke: all renamed skill dirs exist with correct frontmatter `name`; all old skill dirs gone; all renamed workflows exist; all old workflow filenames gone.
+- [ ] End-to-end dispatch smoke (SC-003): requires running wheel environment. Manual verification post-merge — flagged in PR description.
 
 ### X8. Commit Phase X (FR-008)
-- [ ] `git add CLAUDE.md plugin-kiln/scaffold/ workflows/ tests/ .shelf-sync.json .claude/ && git commit -m "refactor(docs,scaffold,tests): update cross-plugin references for naming consistency (FR-007)"`.
-- [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/auditor.md`.
+- [X] `git add CLAUDE.md plugin-kiln/scaffold/ workflows/ tests/ .shelf-sync.json .claude/ && git commit -m "refactor(docs,scaffold,tests): update cross-plugin references for naming consistency (FR-007)"`.
+- [X] Record friction notes in `specs/plugin-naming-consistency/agent-notes/auditor.md`.
 
 ---
 

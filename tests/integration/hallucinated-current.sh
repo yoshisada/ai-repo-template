@@ -28,7 +28,7 @@ reflect=$(jq -cn \
   --arg section "## Required frontmatter" \
   --arg current "- severity — enum: low | medium | high" \
   --arg proposed "- severity — enum: minor | moderate | major | critical" \
-  --arg why "see .wheel/outputs/shelf-full-sync-summary.md" \
+  --arg why "see .wheel/outputs/sync-summary.md" \
   '{skip:false, target:$target, section:$section, current:$current, proposed:$proposed, why:$why}')
 printf '%s\n' "$reflect" > "$TMP/.wheel/outputs/propose-manifest-improvement.json"
 
