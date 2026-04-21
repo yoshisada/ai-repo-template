@@ -1,9 +1,9 @@
 ---
-name: update
+name: shelf-update
 description: Push a progress update to Obsidian. Records session summary, status change, next steps, decisions, and human-needed items — all appended to the project dashboard via MCP.
 ---
 
-# shelf:update — Push Progress Update
+# shelf:shelf-update — Push Progress Update
 
 Record your session's work in Obsidian. Appends a timestamped progress entry, updates dashboard frontmatter (status, next step), optionally creates a decision record, and manages the Human Needed checklist.
 
@@ -43,7 +43,7 @@ Read the existing dashboard before making any changes:
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 ```
 
-- If not found: suggest "No project found — run `/shelf:create` first" and STOP
+- If not found: suggest "No project found — run `/shelf:shelf-create` first" and STOP
 - Parse the YAML frontmatter to get current `status`, `next_step`, `last_updated`
 - Parse the `## Human Needed` section to preserve existing `- [x]` items (FR-010)
 - Parse the `## Feedback` and `## Feedback Log` sections to preserve them

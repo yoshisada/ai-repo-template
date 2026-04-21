@@ -1,18 +1,18 @@
 ---
-name: propose-manifest-improvement
-description: Reflect on the current run's artifacts and, only when a concrete actionable change to a manifest type or template file is identified, file a single proposal in @inbox/open/ via Obsidian MCP. Silent no-op otherwise. Used by kiln:mistake, kiln:report-issue, and shelf:sync — invoke standalone via this skill to test in isolation.
+name: shelf-propose-manifest-improvement
+description: Reflect on the current run's artifacts and, only when a concrete actionable change to a manifest type or template file is identified, file a single proposal in @inbox/open/ via Obsidian MCP. Silent no-op otherwise. Used by kiln:kiln-mistake, kiln:kiln-report-issue, and shelf:shelf-sync — invoke standalone via this skill to test in isolation.
 ---
 
-# propose-manifest-improvement — File a Manifest-Type Improvement Proposal
+# shelf:shelf-propose-manifest-improvement — File a Manifest-Type Improvement Proposal
 
-This is the standalone entrypoint for the `shelf:propose-manifest-improvement` sub-workflow (FR-017). It reflects on the current run's `.wheel/outputs/*` artifacts and — **only** when it can identify a concrete, actionable textual change to a file under `@manifest/types/` or `@manifest/templates/` — writes a single proposal note to `@inbox/open/` via the Obsidian MCP.
+This is the standalone entrypoint for the `shelf:shelf-propose-manifest-improvement` sub-workflow (FR-017). It reflects on the current run's `.wheel/outputs/*` artifacts and — **only** when it can identify a concrete, actionable textual change to a file under `@manifest/types/` or `@manifest/templates/` — writes a single proposal note to `@inbox/open/` via the Obsidian MCP.
 
 Every other run, silent no-op: no file, no log line, no side effect.
 
 ## How to invoke
 
 ```text
-/wheel:run shelf:propose-manifest-improvement
+/wheel:run shelf:shelf-propose-manifest-improvement
 ```
 
 This skill dispatches that exactly. No arguments.
@@ -37,7 +37,7 @@ This skill dispatches that exactly. No arguments.
 
 ## When to run standalone vs as a sub-workflow step
 
-- **Sub-workflow** (the normal path): `shelf:sync`, `kiln:report-issue`, and `kiln:mistake` each invoke this sub-workflow as their pre-terminal step. No manual invocation needed — proposals surface automatically on any caller run that produced relevant context.
+- **Sub-workflow** (the normal path): `shelf:shelf-sync`, `kiln:kiln-report-issue`, and `kiln:kiln-mistake` each invoke this sub-workflow as their pre-terminal step. No manual invocation needed — proposals surface automatically on any caller run that produced relevant context.
 - **Standalone** (this skill): useful for testing, or when you want to reflect on an ad-hoc set of artifacts already seeded under `.wheel/outputs/`.
 
 ## Troubleshooting

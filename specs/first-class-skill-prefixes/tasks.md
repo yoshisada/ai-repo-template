@@ -78,31 +78,31 @@
 
 ### Rename directories + update frontmatter
 
-- [ ] **S-001** `git mv` plugin-shelf/skills/create → plugin-shelf/skills/shelf-create; update frontmatter `name: shelf-create`
-- [ ] **S-002** `git mv` plugin-shelf/skills/feedback → plugin-shelf/skills/shelf-feedback; update frontmatter `name: shelf-feedback`
-- [ ] **S-003** `git mv` plugin-shelf/skills/propose-manifest-improvement → plugin-shelf/skills/shelf-propose-manifest-improvement; update frontmatter `name: shelf-propose-manifest-improvement`
-- [ ] **S-004** `git mv` plugin-shelf/skills/release → plugin-shelf/skills/shelf-release; update frontmatter `name: shelf-release`
-- [ ] **S-005** `git mv` plugin-shelf/skills/repair → plugin-shelf/skills/shelf-repair; update frontmatter `name: shelf-repair`
-- [ ] **S-006** `git mv` plugin-shelf/skills/status → plugin-shelf/skills/shelf-status; update frontmatter `name: shelf-status`
-- [ ] **S-007** `git mv` plugin-shelf/skills/sync → plugin-shelf/skills/shelf-sync; update frontmatter `name: shelf-sync`
-- [ ] **S-008** `git mv` plugin-shelf/skills/update → plugin-shelf/skills/shelf-update; update frontmatter `name: shelf-update`
+- [X] **S-001** `git mv` plugin-shelf/skills/create → plugin-shelf/skills/shelf-create; update frontmatter `name: shelf-create`
+- [X] **S-002** `git mv` plugin-shelf/skills/feedback → plugin-shelf/skills/shelf-feedback; update frontmatter `name: shelf-feedback`
+- [X] **S-003** `git mv` plugin-shelf/skills/propose-manifest-improvement → plugin-shelf/skills/shelf-propose-manifest-improvement; update frontmatter `name: shelf-propose-manifest-improvement`
+- [X] **S-004** `git mv` plugin-shelf/skills/release → plugin-shelf/skills/shelf-release; update frontmatter `name: shelf-release`
+- [X] **S-005** `git mv` plugin-shelf/skills/repair → plugin-shelf/skills/shelf-repair; update frontmatter `name: shelf-repair`
+- [X] **S-006** `git mv` plugin-shelf/skills/status → plugin-shelf/skills/shelf-status; update frontmatter `name: shelf-status`
+- [X] **S-007** `git mv` plugin-shelf/skills/sync → plugin-shelf/skills/shelf-sync; update frontmatter `name: shelf-sync`
+- [X] **S-008** `git mv` plugin-shelf/skills/update → plugin-shelf/skills/shelf-update; update frontmatter `name: shelf-update`
 
 ### Workflow JSON alignment (FR-004)
 
-- [ ] **S-009** `git mv` plugin-shelf/workflows/create.json → plugin-shelf/workflows/shelf-create.json; update internal `name`/`activate_name` to `shelf-create` if present
-- [ ] **S-010** `git mv` plugin-shelf/workflows/propose-manifest-improvement.json → plugin-shelf/workflows/shelf-propose-manifest-improvement.json; update internal fields
-- [ ] **S-011** `git mv` plugin-shelf/workflows/repair.json → plugin-shelf/workflows/shelf-repair.json; update internal fields
-- [ ] **S-012** `git mv` plugin-shelf/workflows/sync.json → plugin-shelf/workflows/shelf-sync.json; update internal fields
+- [X] **S-009** `git mv` plugin-shelf/workflows/create.json → plugin-shelf/workflows/shelf-create.json; update internal `name`/`activate_name` to `shelf-create` if present
+- [X] **S-010** `git mv` plugin-shelf/workflows/propose-manifest-improvement.json → plugin-shelf/workflows/shelf-propose-manifest-improvement.json; update internal fields
+- [X] **S-011** `git mv` plugin-shelf/workflows/repair.json → plugin-shelf/workflows/shelf-repair.json; update internal fields
+- [X] **S-012** `git mv` plugin-shelf/workflows/sync.json → plugin-shelf/workflows/shelf-sync.json; update internal fields
 
 ### In-plugin cross-reference sweep
 
-- [ ] **S-013** Grep `plugin-shelf/` for old bare skill names in command-shape (`create`, `feedback`, `propose-manifest-improvement`, `release`, `repair`, `status`, `sync`, `update`); rewrite to prefixed forms.
-- [ ] **S-014** Grep `plugin-shelf/agents/`, `plugin-shelf/hooks/`, `plugin-shelf/templates/`, `plugin-shelf/scripts/` (whichever exist) for old bare skill names in command-shape; update.
+- [X] **S-013** Grep `plugin-shelf/` for old bare skill names in command-shape (`create`, `feedback`, `propose-manifest-improvement`, `release`, `repair`, `status`, `sync`, `update`); rewrite to prefixed forms.
+- [X] **S-014** Grep `plugin-shelf/agents/`, `plugin-shelf/hooks/`, `plugin-shelf/templates/`, `plugin-shelf/scripts/` (whichever exist) for old bare skill names in command-shape; update.
 
 ### Verification
 
-- [ ] **S-015** Run command-shape grep within `plugin-shelf/` for old bare skill names — expect zero live hits.
-- [ ] **S-016** Commit Phase S with message `refactor(shelf): prefix first-class skills with shelf- (FR-001)`.
+- [X] **S-015** Run command-shape grep within `plugin-shelf/` for old bare skill names — expect zero live hits.
+- [X] **S-016** Commit Phase S with message `refactor(shelf): prefix first-class skills with shelf- (FR-001)`.
 
 ---
 
@@ -131,7 +131,7 @@
 ### Verification
 
 - [X] **C-010** Run command-shape grep within `plugin-clay/` for old bare skill names — expect zero live hits. [Verified zero hits.]
-- [ ] **C-011** Commit Phase C with message `refactor(clay): prefix first-class skills with clay- (FR-001)`.
+- [X] **C-011** Commit Phase C with message `refactor(clay): prefix first-class skills with clay- (FR-001)`.
 
 ---
 

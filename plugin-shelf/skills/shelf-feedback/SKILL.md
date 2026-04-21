@@ -1,9 +1,9 @@
 ---
-name: feedback
+name: shelf-feedback
 description: Read and process feedback from the Obsidian project dashboard. Displays items with suggested actions, then archives them to the Feedback Log with timestamps. Run at session start to pick up notes left in Obsidian.
 ---
 
-# shelf:feedback — Read and Process Feedback
+# shelf:shelf-feedback — Read and Process Feedback
 
 Surface any feedback notes left in the Obsidian project dashboard's `## Feedback` section. Display each item with a suggested action, then archive processed items to `## Feedback Log` with a timestamp.
 
@@ -36,7 +36,7 @@ Determine the project slug and base path. Priority order: explicit argument > `.
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 ```
 
-- If not found: suggest "No project found — run `/shelf:create` first" and STOP (FR-022)
+- If not found: suggest "No project found — run `/shelf:shelf-create` first" and STOP (FR-022)
 - If MCP fails: warn "MCP server unavailable — cannot read feedback" and STOP (NFR-004)
 
 Store the full dashboard content for later update.
@@ -60,7 +60,7 @@ For each feedback item, categorize it and suggest an action:
 
 | Pattern | Category | Suggested Action |
 |---------|----------|-----------------|
-| Contains "fix", "bug", "broken", "error" | Fix request | "Run `/fix {issue}` or `/shelf:sync` to track as an issue" |
+| Contains "fix", "bug", "broken", "error" | Fix request | "Run `/kiln:kiln-fix {issue}` or `/shelf:shelf-sync` to track as an issue" |
 | Contains "add", "feature", "want", "need" | Feature request | "Consider adding to backlog via `/report-issue`" |
 | Contains "scope", "plan", "rethink", "consider" | Planning note | "Note for next `/specify` or `/plan` session" |
 | Contains "urgent", "asap", "blocker" | Urgent | "Priority item — address before continuing" |
