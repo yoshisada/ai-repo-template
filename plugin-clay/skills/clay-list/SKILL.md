@@ -1,5 +1,5 @@
 ---
-name: list
+name: clay-list
 description: List all products under products/ with their pipeline status (idea, researched, named, PRD-created, repo-created).
 ---
 
@@ -13,7 +13,7 @@ Show all products under `products/` with their current pipeline status.
 
 Check if the `products/` directory exists. If it does not exist, tell the user:
 
-> No products found. Run `/clay:idea-research` to start your first product idea.
+> No products found. Run `/clay:clay-idea-research` to start your first product idea.
 
 If it exists, list all subdirectories under `products/`.
 
@@ -103,8 +103,8 @@ Each product directory follows the structure:
 
 For each product, suggest the next pipeline step based on its status:
 
-- **idea** → "Run `/clay:idea-research` to research the market"
-- **researched** → "Run `/clay:project-naming` to find a name"
-- **named** → "Run `/clay:new-product` to create a PRD"
-- **prd-created** → "Run `/clay:create-repo` to create a GitHub repo"
+- **idea** → "Run `/clay:clay-idea-research` to research the market"
+- **researched** → "Run `/clay:clay-project-naming` to find a name"
+- **named** → "Run `/clay:clay-new-product` to create a PRD"
+- **prd-created** → "Run `/clay:clay-create-repo` to create a GitHub repo"
 - **repo-created** → "Run `/kiln:build-prd` in the repo to start building"

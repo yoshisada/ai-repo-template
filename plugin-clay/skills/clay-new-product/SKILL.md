@@ -1,5 +1,5 @@
 ---
-name: new-product
+name: clay-new-product
 description: Create PRDs for a new product or feature addition. Asks clarifying questions, then generates structured PRD artifacts. Supports three modes — multi-product repo (products/<slug>/), new product, and feature addition. Default output is products/<slug>/. Use when the user says "new product", "create a PRD", "PRD this", "add a feature", or similar.
 ---
 
@@ -208,7 +208,7 @@ After generating the PRD artifacts:
 3. Suggest the next step based on mode:
 
 **Mode A** (product collection):
-> PRD is ready at `products/<product-slug>/`. To build this product, run `/clay:create-repo <product-slug>` to scaffold a new repo seeded with this PRD, then `/kiln:build-prd` inside that repo.
+> PRD is ready at `products/<product-slug>/`. To build this product, run `/clay:clay-create-repo <product-slug>` to scaffold a new repo seeded with this PRD, then `/kiln:kiln-build-prd` inside that repo.
 
 **Mode B** (single-product repo):
 > PRD is ready. To build this product, run `/kiln:build-prd` which will execute the full pipeline (specify → plan → tasks → implement → audit → PR).

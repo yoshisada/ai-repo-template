@@ -1,5 +1,5 @@
 ---
-name: idea-research
+name: clay-idea-research
 description: Research a product idea — find similar projects, classify by similarity (exact match, close competitor, adjacent, slightly similar), and recommend go/no-go. Use when a user wants market research, competitor discovery, or "has this already been built?"
 ---
 

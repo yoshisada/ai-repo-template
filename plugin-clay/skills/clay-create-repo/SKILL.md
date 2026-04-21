@@ -1,6 +1,6 @@
 ---
-name: create-repo
-description: Create a new GitHub repository and scaffold it with clay. Seeds PRD artifacts from products/<slug>/ if available. Use after /clay:new-product to turn a PRD into a live project, or standalone to scaffold a new repo.
+name: clay-create-repo
+description: Create a new GitHub repository and scaffold it with clay. Seeds PRD artifacts from products/<slug>/ if available. Use after /clay:clay-new-product to turn a PRD into a live project, or standalone to scaffold a new repo.
 ---
 
 # Create Repo — Scaffold a New Project with Clay
@@ -30,7 +30,7 @@ If not provided in user input, ask these questions **one at a time**:
 5. **PRD seeding**: Should we copy PRD artifacts into the new repo?
    - If `products/<slug>/PRD.md` exists (from argument or detection): offer to seed from it (default: yes)
    - If `products/` contains multiple products: list them and ask which to seed from
-   - If no PRDs exist: skip — user can run `/clay:new-product` in the new repo later
+   - If no PRDs exist: skip — user can run `/clay:clay-new-product` in the new repo later
 6. **Local path**: Where to clone locally? (default: sibling directory `../<repo-name>`)
 
 ## Step 2: Validate Prerequisites
@@ -139,7 +139,7 @@ git push -u origin main
 ## Step 7.5: Update Clay Config Registry
 
 <!-- FR-009, FR-013: Append repo entry to clay.config after successful creation -->
-After the initial commit and push succeeds (Step 7), record this repo in `clay.config` so `/clay:idea` and `/clay:list` can track it.
+After the initial commit and push succeeds (Step 7), record this repo in `clay.config` so `/clay:clay-idea` and `/clay:clay-list` can track it.
 
 ```bash
 # Append to clay.config (create if it doesn't exist)
@@ -162,7 +162,7 @@ git commit -m "Track <slug> in clay.config"
 
 ## Step 8: Write Status Marker
 
-Write the repo URL back to the source product directory so `/clay:list` and `clay:sync` can track the status as "repo-created":
+Write the repo URL back to the source product directory so `/clay:clay-list` and `clay:sync` can track the status as "repo-created":
 
 ```bash
 echo "https://github.com/<owner>/<repo-name>" > products/<slug>/.repo-url
@@ -190,7 +190,7 @@ This marker file is read by `clay_derive_status()` to set the product status to 
 
 **Next steps**:
 1. `cd <local-path>`
-2. Edit `docs/PRD.md` with your product requirements (or run `/clay:new-product`)
+2. Edit `docs/PRD.md` with your product requirements (or run `/clay:clay-new-product`)
 3. Run `/kiln:build-prd` to start building
 ```
 

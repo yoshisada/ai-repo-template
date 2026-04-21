@@ -1,5 +1,5 @@
 ---
-name: project-naming
+name: clay-project-naming
 description: Research and propose distinctive project names with availability checks for npm, GitHub, and domains. Use when a user wants help naming a product, app, startup, tool, or repository.
 ---
 
