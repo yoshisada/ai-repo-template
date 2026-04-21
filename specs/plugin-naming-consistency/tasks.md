@@ -134,9 +134,9 @@ Grep each renamed SKILL.md for old shelf-* names, replace:
 - [X] `plugin-shelf/scripts/derive-proposal-slug.sh` — audit. *(no shelf-* refs)*
 
 ### S6. Commit Phase S (FR-008)
-- [ ] `git add plugin-shelf/ && git commit -m "refactor(shelf): drop shelf- prefix from skills and workflows (FR-005, FR-006, FR-007)"`.
-- [ ] Verify: `grep -rE "shelf-(create|feedback|release|repair|status|sync|update|full-sync)" plugin-shelf/` returns zero hits. *(Remaining expected hits are all in `plugin-shelf/docs/PRD.md` (historical PRD), `scripts/*.sh` comments pointing to real `specs/shelf-sync-efficiency/` spec dir and `.shelf-sync.json` data file, and one example string in `skills/sync/SKILL.md` referencing historical feature slug `shelf-sync-v2` — all out of scope per rename tables. See agent-notes/impl-shelf.md.)*
-- [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-shelf.md`.
+- [X] `git add plugin-shelf/ && git commit -m "refactor(shelf): drop shelf- prefix from skills and workflows (FR-005, FR-006, FR-007)"`. *(commit 0f566f8)*
+- [X] Verify: `grep -rE "shelf-(create|feedback|release|repair|status|sync|update|full-sync)" plugin-shelf/` returns zero hits. *(Remaining expected hits are all in `plugin-shelf/docs/PRD.md` (historical PRD), `scripts/*.sh` comments pointing to real `specs/shelf-sync-efficiency/` spec dir and `.shelf-sync.json` data file, and one example string in `skills/sync/SKILL.md` referencing historical feature slug `shelf-sync-v2` — all out of scope per rename tables. See agent-notes/impl-shelf.md.)*
+- [X] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-shelf.md`.
 
 ---
 

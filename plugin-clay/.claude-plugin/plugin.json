@@ -1,6 +1,6 @@
 {
   "name": "clay",
-  "version": "000.001.000.072",
+  "version": "000.001.000.074",
   "description": "Idea-to-project pipeline for Claude Code. Market research, naming, PRD creation, and repo scaffolding.",
   "author": {
     "name": "yoshisada"
