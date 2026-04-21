@@ -1,6 +1,6 @@
 ---
-name: wheel-run
-description: Start a workflow by name or plugin:name. Validates the workflow JSON, creates per-agent state file, and activates hook interception. Usage: /wheel-run <workflow-name> or /wheel-run <plugin>:<workflow-name>
+name: run
+description: Start a workflow by name or plugin:name. Validates the workflow JSON, creates per-agent state file, and activates hook interception. Usage: /wheel:run <workflow-name> or /wheel:run <plugin>:<workflow-name>
 ---
 
 # Wheel Run — Start a Workflow
@@ -48,7 +48,7 @@ The PostToolUse hook intercepts this call, reads the workflow file, creates the 
 
 ```bash
 echo "Workflow started. Hooks are now active."
-echo "Run /wheel-status to check progress, /wheel-stop to deactivate."
+echo "Run /wheel:status to check progress, /wheel:stop to deactivate."
 ```
 
 That's it. Do NOT read the state file or workflow file — the hooks will tell you what to do next.
@@ -64,8 +64,8 @@ That's it. Do NOT read the state file or workflow file — the hooks will tell y
 After activation, **all workflow progression happens through hooks**. Do not manually advance the cursor, update step statuses, or modify state files yourself.
 
 - **Do NOT read the workflow JSON file.** The validation script handles that. You don't need to know step details — hooks will instruct you.
-- **Do NOT read state files.** Use `/wheel-status` if you need to check progress.
+- **Do NOT read state files.** Use `/wheel:status` if you need to check progress.
 - **Do NOT spawn sub-agents** for any workflow step — including `"type": "workflow"` steps. Workflow steps are like function calls: the referenced workflow runs inline in the same conversation, dispatched by the hook system.
-- **Do NOT manually stop workflows.** Use `/wheel-stop` and let the hook handle archival.
+- **Do NOT manually stop workflows.** Use `/wheel:stop` and let the hook handle archival.
 - **Do NOT manually archive or delete state files.** The hook system owns the workflow lifecycle.
 - Your only job after activation is to **execute the current step's work** as instructed by hooks, and let hooks handle progression to the next step.

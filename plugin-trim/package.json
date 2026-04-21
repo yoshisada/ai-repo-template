@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/trim",
-  "version": "000.001.000.124",
+  "version": "000.001.000.157",
   "description": "Bidirectional design-code sync via Penpot MCP. Pull designs into code, push code to Penpot, detect drift, manage component libraries, generate designs, edit via natural language, verify visually, redesign, and track user flows.",
   "author": "yoshisada",
   "license": "MIT",

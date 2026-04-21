@@ -1,5 +1,5 @@
 ---
-name: wheel-init
+name: init
 description: Initialize wheel for the current repo. Creates .wheel/, workflows/, merges hook config into .claude/settings.json. Safe to run multiple times.
 ---
 
@@ -48,7 +48,7 @@ This re-syncs hook configuration without touching user workflows.
 ## Usage
 
 ```
-/wheel-init              # First-time setup
-/wheel-init --force      # Re-scaffold, overwrite existing files
-/wheel-init update       # Re-sync hooks after plugin update
+/wheel:init              # First-time setup
+/wheel:init --force      # Re-scaffold, overwrite existing files
+/wheel:init update       # Re-sync hooks after plugin update
 ```

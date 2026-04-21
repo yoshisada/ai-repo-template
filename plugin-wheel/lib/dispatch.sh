@@ -1728,7 +1728,7 @@ _teammate_flush_from_state() {
 - Agent '${agent_name}' on team '${team_name}': MUST run this exact Bash command to activate its sub-workflow: \`bash ${PLUGIN_DIR}/bin/activate.sh ${wf} --as ${agent_name}@${team_name}\`. Assignment: ${outdir}/assignment.json, Context: ${outdir}/context.json, Output to: ${outdir}/"
   done <<< "$names"
 
-  jq -n --arg msg "Spawn ${count} teammate agent(s) with run_in_background: true and mode: bypassPermissions. Each agent MUST run the exact Bash command provided below to activate its sub-workflow — do NOT use /wheel-run, the --as flag is required so the hooks can map the agent back to the right teammate slot.${spawn_list}
+  jq -n --arg msg "Spawn ${count} teammate agent(s) with run_in_background: true and mode: bypassPermissions. Each agent MUST run the exact Bash command provided below to activate its sub-workflow — do NOT use /wheel:run, the --as flag is required so the hooks can map the agent back to the right teammate slot.${spawn_list}
 
 Spawn ALL agents in parallel (single message with multiple Agent tool calls). Create a TaskCreate entry for each. After spawning all, proceed — the team-wait step will handle completion tracking." \
     '{"decision": "block", "reason": $msg}'
