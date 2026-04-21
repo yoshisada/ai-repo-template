@@ -1,9 +1,9 @@
 ---
-name: shelf-sync
+name: sync
 description: Sync issues, docs, and tech tags from GitHub and the local repo to Obsidian. Creates/updates issue notes with templates and tags, closes archived issues, syncs PRD summaries as doc notes, and refreshes tech stack tags on the dashboard.
 ---
 
-# shelf-sync — Sync Issues, Docs & Tags to Obsidian
+# shelf:sync — Sync Issues, Docs & Tags to Obsidian
 
 Pull open issues from GitHub and `.kiln/issues/` into Obsidian as individual issue notes. Updates existing notes, closes archived ones, syncs PRD summaries as doc notes, refreshes tech stack tags, and skips anything unchanged since the last sync.
 
@@ -36,7 +36,7 @@ Determine the project slug and base path. Priority order: explicit argument > `.
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 ```
 
-- If not found: suggest "No project found — run `/shelf-create` first" and STOP
+- If not found: suggest "No project found — run `/shelf:create` first" and STOP
 - If MCP fails: warn "MCP server unavailable — cannot sync issues" and STOP (NFR-004)
 
 ## Step 3: Fetch GitHub Issues (FR-013)
@@ -207,7 +207,7 @@ Track counters: `docs_created`, `docs_updated`, `docs_skipped`
 
 Re-detect the tech stack and update dashboard tags if they've changed.
 
-1. **Re-detect tech stack** (FR-014): Run the same detection as `/shelf-create` Step 3:
+1. **Re-detect tech stack** (FR-014): Run the same detection as `/shelf:create` Step 3:
    ```bash
    ls package.json tsconfig.json Cargo.toml pyproject.toml requirements.txt go.mod Gemfile Dockerfile docker-compose.yml 2>/dev/null
    ```

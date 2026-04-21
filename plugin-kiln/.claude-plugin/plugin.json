@@ -1,13 +1,13 @@
 {
   "name": "kiln",
-  "version": "000.001.000.004",
+  "version": "000.001.000.072",
   "description": "Spec-first development harness for Claude Code. Provides skills, agents, hooks, and templates for PRD-driven development with 4-gate enforcement.",
   "author": {
     "name": "yoshisada"
   },
   "homepage": "https://github.com/yoshisada/ai-repo-template",
   "workflows": [
-    "workflows/report-issue-and-sync.json",
-    "workflows/report-mistake-and-sync.json"
+    "workflows/report-issue.json",
+    "workflows/mistake.json"
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/shelf",
-  "version": "000.001.000.004",
+  "version": "000.001.000.072",
   "description": "Obsidian project dashboard for Claude Code. Syncs project status, progress, issues, and feedback between code repos and an Obsidian vault via MCP.",
   "author": "yoshisada",
   "license": "MIT",

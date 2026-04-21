@@ -1,9 +1,9 @@
 ---
-name: shelf-create
+name: create
 description: Scaffold a new project in Obsidian via wheel workflow. Creates the full directory structure, dashboard with auto-detected tech stack tags, progress-based initial status, and about.md — all via MCP.
 ---
 
-# shelf-create — Scaffold New Project in Obsidian
+# shelf:create — Scaffold New Project in Obsidian
 
 Create a complete Obsidian project dashboard for the current repo. Runs as a wheel workflow with deterministic step ordering: gathers repo data first (config, progress signals, tech stack, metadata), then navigates the vault, checks for duplicates, and creates the project structure via MCP.
 
@@ -21,10 +21,10 @@ If the user provided a project name as an argument, note it for the workflow (th
 
 ### 2. Run Workflow
 
-Delegate to the shelf-create wheel workflow:
+Delegate to the shelf:create wheel workflow:
 
 ```
-/wheel-run shelf:shelf-create
+/wheel:run shelf:create
 ```
 
 The workflow executes these steps in order:
@@ -56,10 +56,10 @@ Project '{slug}' created in Obsidian.
     - issues/
     - decisions/
 
-Next: Run /shelf-update to record your first progress entry.
+Next: Run /shelf:update to record your first progress entry.
 ```
 
-If the workflow detected a duplicate project, report: "Project '{slug}' already exists in Obsidian. Run /shelf-repair to update it."
+If the workflow detected a duplicate project, report: "Project '{slug}' already exists in Obsidian. Run /shelf:repair to update it."
 
 ## Status Label Validation (FR-013)
 

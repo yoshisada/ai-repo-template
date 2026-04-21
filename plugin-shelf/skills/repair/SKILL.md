@@ -1,9 +1,9 @@
 ---
-name: shelf-repair
+name: repair
 description: Re-apply current templates to an existing Obsidian project. Preserves user content (Feedback, Human Needed, Feedback Log, progress entries), normalizes status labels, and reports all changes via a diff preview.
 ---
 
-# shelf-repair — Repair Existing Project
+# shelf:repair — Repair Existing Project
 
 Re-apply the current dashboard template to an existing Obsidian project. Produces a diff report before making changes, preserves all user-written content, and normalizes non-canonical status labels to their canonical equivalents.
 
@@ -17,14 +17,14 @@ $ARGUMENTS
 
 ### 1. Validate Project Exists
 
-Check that `.shelf-config` exists in the repo root. If not, warn: "No .shelf-config found — run `/shelf-create` first or create .shelf-config manually." and STOP.
+Check that `.shelf-config` exists in the repo root. If not, warn: "No .shelf-config found — run `/shelf:create` first or create .shelf-config manually." and STOP.
 
 ### 2. Run Workflow
 
-Delegate to the shelf-repair wheel workflow:
+Delegate to the shelf:repair wheel workflow:
 
 ```
-/wheel-run shelf:shelf-repair
+/wheel:run shelf:repair
 ```
 
 The workflow executes these steps in order:
@@ -71,4 +71,4 @@ Before setting or displaying a project status, read the canonical status list fr
 - **No hardcoded vault paths** — the workflow uses `.shelf-config` for path resolution (NFR-002)
 - **Preserve user content** — Feedback, Human Needed, Feedback Log, and progress entries are never deleted (FR-009)
 - **Diff before apply** — the workflow always generates a change report before modifying anything (FR-010)
-- **Idempotent** — running shelf-repair twice produces the same result (NFR-002)
+- **Idempotent** — running shelf:repair twice produces the same result (NFR-002)

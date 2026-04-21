@@ -1,9 +1,9 @@
 ---
-name: shelf-status
+name: status
 description: Display a formatted project status summary from Obsidian. Shows status, next step, latest progress, open issue count, and human-needed items. Read-only — does not modify anything.
 ---
 
-# shelf-status — Quick Project Status View
+# shelf:status — Quick Project Status View
 
 Display a formatted summary of the project's current state from Obsidian. This is a read-only command — it never writes or modifies any files.
 
@@ -36,7 +36,7 @@ Determine the project slug and base path. Priority order: explicit argument > `.
 mcp__obsidian-projects__read_file({ path: "{base_path}/{slug}/{slug}.md" })
 ```
 
-- If not found: suggest "No project found — run `/shelf-create` first" and STOP (FR-028)
+- If not found: suggest "No project found — run `/shelf:create` first" and STOP (FR-028)
 - If MCP fails: warn "MCP server unavailable — cannot read project status" and STOP (NFR-004)
 
 ## Step 3: Parse Dashboard Frontmatter (FR-024, FR-003)

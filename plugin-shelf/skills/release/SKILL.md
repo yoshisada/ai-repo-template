@@ -1,9 +1,9 @@
 ---
-name: shelf-release
+name: release
 description: Record a release in Obsidian. Creates a release note with auto-generated changelog from git history, and appends a progress entry marking the release event.
 ---
 
-# shelf-release — Record a Release
+# shelf:release — Record a Release
 
 Create a release note in Obsidian with an auto-generated changelog from git history. Also appends a progress entry documenting the release event.
 
@@ -113,7 +113,7 @@ mcp__obsidian-projects__create_file({
 
 ## Step 7: Append Progress Entry (FR-039)
 
-Follow the same pattern as shelf-update for appending a progress entry:
+Follow the same pattern as shelf:update for appending a progress entry:
 
 1. Determine current month: `YYYY-MM`
 2. Read or create the monthly progress file:

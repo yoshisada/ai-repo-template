@@ -62,31 +62,31 @@ Each edit uses Grep first to find hits, then Edit to replace:
 ## Phase C — clay plugin renames (owner: impl-clay)
 
 ### C1. Rename `clay:create-prd` → `clay:new-product` (FR-002)
-- [ ] `git mv plugin-clay/skills/create-prd/ plugin-clay/skills/new-product/`.
-- [ ] Edit `plugin-clay/skills/new-product/SKILL.md` frontmatter: `name: create-prd` → `name: new-product`.
-- [ ] Update description if it self-describes as "create PRDs" to match the new name.
+- [X] `git mv plugin-clay/skills/create-prd/ plugin-clay/skills/new-product/`.
+- [X] Edit `plugin-clay/skills/new-product/SKILL.md` frontmatter: `name: create-prd` → `name: new-product`.
+- [X] Update description if it self-describes as "create PRDs" to match the new name.
 
 ### C2. Rename `clay:clay-list` → `clay:list` (FR-005)
-- [ ] `git mv plugin-clay/skills/clay-list/ plugin-clay/skills/list/`.
-- [ ] Edit `plugin-clay/skills/list/SKILL.md` frontmatter: `name: clay-list` → `name: list`.
+- [X] `git mv plugin-clay/skills/clay-list/ plugin-clay/skills/list/`.
+- [X] Edit `plugin-clay/skills/list/SKILL.md` frontmatter: `name: clay-list` → `name: list`.
 
 ### C3. Rename `clay-sync.json` → `sync.json` (FR-006)
-- [ ] `git mv plugin-clay/workflows/clay-sync.json plugin-clay/workflows/sync.json`.
-- [ ] Edit `plugin-clay/workflows/sync.json` — change `"name": "clay-sync"` → `"name": "sync"`. Update the `.wheel/outputs/clay-sync-*.md` output paths inside the JSON to `.wheel/outputs/sync-*.md` (keep prefix-free for consistency, or leave if downstream consumers rely on the old path — default: update to sync-*).
-- [ ] Update `plugin-clay/.claude-plugin/plugin.json` `workflows` array: `workflows/clay-sync.json` → `workflows/sync.json`.
+- [X] `git mv plugin-clay/workflows/clay-sync.json plugin-clay/workflows/sync.json`.
+- [X] Edit `plugin-clay/workflows/sync.json` — change `"name": "clay-sync"` → `"name": "sync"`. Update the `.wheel/outputs/clay-sync-*.md` output paths inside the JSON to `.wheel/outputs/sync-*.md` (keep prefix-free for consistency, or leave if downstream consumers rely on the old path — default: update to sync-*).
+- [X] Update `plugin-clay/.claude-plugin/plugin.json` `workflows` array: `workflows/clay-sync.json` → `workflows/sync.json`.
 
 ### C4. [P] Update clay skill cross-references (FR-007)
-- [ ] `plugin-clay/skills/list/SKILL.md` (formerly clay-list) — update any self-references from `clay-list` to `list`; update the `clay-sync` reference (line with `<!-- FR-036: clay_derive_status logic — keep identical with clay-sync workflow -->`) to `sync`.
-- [ ] `plugin-clay/skills/new-product/SKILL.md` — update any self-references from `create-prd` to `new-product`; update references to `clay-list` → `list`.
-- [ ] `plugin-clay/skills/create-repo/SKILL.md` — update `/clay-list` → `/clay:list`, `clay-sync` → `clay:sync` (line 165 at minimum).
-- [ ] `plugin-clay/skills/idea/SKILL.md` — grep for `create-prd`, `clay-list`, `clay-sync` and update each.
-- [ ] `plugin-clay/skills/idea-research/SKILL.md` — same grep, same updates.
-- [ ] `plugin-clay/skills/project-naming/SKILL.md` — same grep, same updates.
+- [X] `plugin-clay/skills/list/SKILL.md` (formerly clay-list) — update any self-references from `clay-list` to `list`; update the `clay-sync` reference (line with `<!-- FR-036: clay_derive_status logic — keep identical with clay-sync workflow -->`) to `sync`.
+- [X] `plugin-clay/skills/new-product/SKILL.md` — update any self-references from `create-prd` to `new-product`; update references to `clay-list` → `list`.
+- [X] `plugin-clay/skills/create-repo/SKILL.md` — update `/clay-list` → `/clay:list`, `clay-sync` → `clay:sync` (line 165 at minimum).
+- [X] `plugin-clay/skills/idea/SKILL.md` — grep for `create-prd`, `clay-list`, `clay-sync` and update each.
+- [X] `plugin-clay/skills/idea-research/SKILL.md` — same grep, same updates.
+- [X] `plugin-clay/skills/project-naming/SKILL.md` — same grep, same updates.
 
 ### C5. Commit Phase C (FR-008)
-- [ ] `git add plugin-clay/ && git commit -m "refactor(clay): rename create-prd→new-product, clay-list→list, clay-sync→sync (FR-002, FR-005, FR-006, FR-007)"`.
-- [ ] Verify: `grep -r "create-prd\|clay-list\|clay-sync" plugin-clay/` returns zero hits.
-- [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-clay.md`.
+- [X] `git add plugin-clay/ && git commit -m "refactor(clay): rename create-prd→new-product, clay-list→list, clay-sync→sync (FR-002, FR-005, FR-006, FR-007)"`.
+- [X] Verify: `grep -r "create-prd\|clay-list\|clay-sync" plugin-clay/` returns zero hits.
+- [X] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-clay.md`.
 
 ---
 
@@ -94,48 +94,48 @@ Each edit uses Grep first to find hits, then Edit to replace:
 
 ### S1. Rename shelf skills (FR-005)
 Run each as a git mv + frontmatter edit pair:
-- [ ] `git mv plugin-shelf/skills/shelf-create/ plugin-shelf/skills/create/` + edit `name: shelf-create` → `name: create`.
-- [ ] `git mv plugin-shelf/skills/shelf-feedback/ plugin-shelf/skills/feedback/` + edit `name: shelf-feedback` → `name: feedback`.
-- [ ] `git mv plugin-shelf/skills/shelf-release/ plugin-shelf/skills/release/` + edit `name: shelf-release` → `name: release`.
-- [ ] `git mv plugin-shelf/skills/shelf-repair/ plugin-shelf/skills/repair/` + edit `name: shelf-repair` → `name: repair`.
-- [ ] `git mv plugin-shelf/skills/shelf-status/ plugin-shelf/skills/status/` + edit `name: shelf-status` → `name: status`.
-- [ ] `git mv plugin-shelf/skills/shelf-sync/ plugin-shelf/skills/sync/` + edit `name: shelf-sync` → `name: sync`.
-- [ ] `git mv plugin-shelf/skills/shelf-update/ plugin-shelf/skills/update/` + edit `name: shelf-update` → `name: update`.
+- [X] `git mv plugin-shelf/skills/shelf-create/ plugin-shelf/skills/create/` + edit `name: shelf-create` → `name: create`.
+- [X] `git mv plugin-shelf/skills/shelf-feedback/ plugin-shelf/skills/feedback/` + edit `name: shelf-feedback` → `name: feedback`.
+- [X] `git mv plugin-shelf/skills/shelf-release/ plugin-shelf/skills/release/` + edit `name: shelf-release` → `name: release`.
+- [X] `git mv plugin-shelf/skills/shelf-repair/ plugin-shelf/skills/repair/` + edit `name: shelf-repair` → `name: repair`.
+- [X] `git mv plugin-shelf/skills/shelf-status/ plugin-shelf/skills/status/` + edit `name: shelf-status` → `name: status`.
+- [X] `git mv plugin-shelf/skills/shelf-sync/ plugin-shelf/skills/sync/` + edit `name: shelf-sync` → `name: sync`.
+- [X] `git mv plugin-shelf/skills/shelf-update/ plugin-shelf/skills/update/` + edit `name: shelf-update` → `name: update`.
 
 ### S2. Rename shelf workflows (FR-006)
-- [ ] `git mv plugin-shelf/workflows/shelf-full-sync.json plugin-shelf/workflows/sync.json` + edit JSON `"name": "shelf-full-sync"` → `"name": "sync"`.
-- [ ] `git mv plugin-shelf/workflows/shelf-create.json plugin-shelf/workflows/create.json` + edit JSON `"name": "shelf-create"` → `"name": "create"`.
-- [ ] `git mv plugin-shelf/workflows/shelf-repair.json plugin-shelf/workflows/repair.json` + edit JSON `"name": "shelf-repair"` → `"name": "repair"`.
-- [ ] `propose-manifest-improvement.json` — unchanged (FR-006).
-- [ ] Update `plugin-shelf/.claude-plugin/plugin.json` `workflows` array.
+- [X] `git mv plugin-shelf/workflows/shelf-full-sync.json plugin-shelf/workflows/sync.json` + edit JSON `"name": "shelf-full-sync"` → `"name": "sync"`.
+- [X] `git mv plugin-shelf/workflows/shelf-create.json plugin-shelf/workflows/create.json` + edit JSON `"name": "shelf-create"` → `"name": "create"`.
+- [X] `git mv plugin-shelf/workflows/shelf-repair.json plugin-shelf/workflows/repair.json` + edit JSON `"name": "shelf-repair"` → `"name": "repair"`.
+- [X] `propose-manifest-improvement.json` — unchanged (FR-006).
+- [X] Update `plugin-shelf/.claude-plugin/plugin.json` `workflows` array. *(no-op: file has no workflows array — see agent-notes/impl-shelf.md)*
 
 ### S3. [P] Update shelf skill cross-references (FR-007)
 Grep each renamed SKILL.md for old shelf-* names, replace:
-- [ ] `plugin-shelf/skills/create/SKILL.md` (was shelf-create).
-- [ ] `plugin-shelf/skills/feedback/SKILL.md` (was shelf-feedback).
-- [ ] `plugin-shelf/skills/release/SKILL.md` (was shelf-release).
-- [ ] `plugin-shelf/skills/repair/SKILL.md` (was shelf-repair).
-- [ ] `plugin-shelf/skills/status/SKILL.md` (was shelf-status).
-- [ ] `plugin-shelf/skills/sync/SKILL.md` (was shelf-sync).
-- [ ] `plugin-shelf/skills/update/SKILL.md` (was shelf-update).
-- [ ] `plugin-shelf/skills/propose-manifest-improvement/SKILL.md` — update refs to shelf-full-sync callers.
+- [X] `plugin-shelf/skills/create/SKILL.md` (was shelf-create).
+- [X] `plugin-shelf/skills/feedback/SKILL.md` (was shelf-feedback).
+- [X] `plugin-shelf/skills/release/SKILL.md` (was shelf-release).
+- [X] `plugin-shelf/skills/repair/SKILL.md` (was shelf-repair).
+- [X] `plugin-shelf/skills/status/SKILL.md` (was shelf-status).
+- [X] `plugin-shelf/skills/sync/SKILL.md` (was shelf-sync).
+- [X] `plugin-shelf/skills/update/SKILL.md` (was shelf-update).
+- [X] `plugin-shelf/skills/propose-manifest-improvement/SKILL.md` — update refs to shelf-full-sync callers.
 
 ### S4. [P] Update shelf workflow internals (FR-007)
-- [ ] `plugin-shelf/workflows/sync.json` (was shelf-full-sync) — audit command steps for old workflow filenames or skill names.
-- [ ] `plugin-shelf/workflows/create.json`, `repair.json`, `propose-manifest-improvement.json` — same audit.
+- [X] `plugin-shelf/workflows/sync.json` (was shelf-full-sync) — audit command steps for old workflow filenames or skill names.
+- [X] `plugin-shelf/workflows/create.json`, `repair.json`, `propose-manifest-improvement.json` — same audit.
 
 ### S5. [P] Update shelf scripts and status labels (FR-007)
-- [ ] `plugin-shelf/status-labels.md` — grep for shelf-* and workflow filenames; replace.
-- [ ] `plugin-shelf/scripts/update-sync-manifest.sh` — audit.
-- [ ] `plugin-shelf/scripts/compute-work-list.sh` — audit.
-- [ ] `plugin-shelf/scripts/generate-sync-summary.sh` — audit.
-- [ ] `plugin-shelf/scripts/obsidian-snapshot-capture.sh`, `obsidian-snapshot-diff.sh` — audit.
-- [ ] `plugin-shelf/scripts/read-sync-manifest.sh` — audit.
-- [ ] `plugin-shelf/scripts/derive-proposal-slug.sh` — audit.
+- [X] `plugin-shelf/status-labels.md` — grep for shelf-* and workflow filenames; replace.
+- [X] `plugin-shelf/scripts/update-sync-manifest.sh` — audit. *(remaining refs are to `.shelf-sync.json` data file and `specs/shelf-sync-efficiency/` historical contract — both out of scope per rename tables)*
+- [X] `plugin-shelf/scripts/compute-work-list.sh` — audit. *(only historical spec-path comment; out of scope)*
+- [X] `plugin-shelf/scripts/generate-sync-summary.sh` — audit. *(updated OUT path from shelf-full-sync-summary.md to sync-summary.md to match workflow rename)*
+- [X] `plugin-shelf/scripts/obsidian-snapshot-capture.sh`, `obsidian-snapshot-diff.sh` — audit. *(only historical spec-path comments; out of scope)*
+- [X] `plugin-shelf/scripts/read-sync-manifest.sh` — audit. *(only `.shelf-sync.json` + historical spec-path; out of scope)*
+- [X] `plugin-shelf/scripts/derive-proposal-slug.sh` — audit. *(no shelf-* refs)*
 
 ### S6. Commit Phase S (FR-008)
 - [ ] `git add plugin-shelf/ && git commit -m "refactor(shelf): drop shelf- prefix from skills and workflows (FR-005, FR-006, FR-007)"`.
-- [ ] Verify: `grep -rE "shelf-(create|feedback|release|repair|status|sync|update|full-sync)" plugin-shelf/` returns zero hits.
+- [ ] Verify: `grep -rE "shelf-(create|feedback|release|repair|status|sync|update|full-sync)" plugin-shelf/` returns zero hits. *(Remaining expected hits are all in `plugin-shelf/docs/PRD.md` (historical PRD), `scripts/*.sh` comments pointing to real `specs/shelf-sync-efficiency/` spec dir and `.shelf-sync.json` data file, and one example string in `skills/sync/SKILL.md` referencing historical feature slug `shelf-sync-v2` — all out of scope per rename tables. See agent-notes/impl-shelf.md.)*
 - [ ] Record friction notes in `specs/plugin-naming-consistency/agent-notes/impl-shelf.md`.
 
 ---
