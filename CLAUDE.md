@@ -278,4 +278,5 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based — reflect output at `.wheel/outputs/propose-manifest-improvement.json` (internal, not user-visible); proposal file at `@inbox/open/<YYYY-MM-DD>-manifest-improvement-<slug>.md` written via MCP. (build/manifest-improvement-subroutine-20260416)
 
 ## Recent Changes
+- build/fix-skill-with-recording-teams-20260420: `/kiln:fix` gained Step 7 "Record the Fix" — writes a local fix record to `.kiln/fixes/<date>-<slug>.md` and spawns two short-lived teams (`fix-record` for the Obsidian note, `fix-reflect` for an optional manifest-improvement proposal). Debug loop (Steps 2b–5) stays in main chat. New helpers under `plugin-kiln/scripts/fix-recording/`; new manifest type `@manifest/types/fix.md` (staged at `specs/.../assets/manifest-types/fix.md`).
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)

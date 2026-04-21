@@ -228,6 +228,158 @@ If the debug loop exhausts all strategies (9 attempts), present the user with ev
 [What the user should try manually, or whether this needs a spec update]
 ```
 
+## Step 7: Record the Fix (NON-NEGOTIABLE)
+
+Steps 2b–5 MUST complete in main chat before this step begins (FR-020 — the debug loop stays in main chat; no `TeamCreate`, `TaskCreate`, `SendMessage` to a teammate, or wheel-activate call MUST occur before the commit or escalation step is reached). Step 7 is the first and only place in this skill that spawns teams.
+
+This step composes a durable record of the fix, writes it locally, and spawns two parallel short-lived teams that file the Obsidian note and (optionally) a manifest-improvement proposal. It runs whether the debug loop succeeded (commit landed) OR escalated (9 attempts exhausted). Do NOT skip it.
+
+### 7.1 Determine status and commit_hash
+
+Compare `git rev-parse HEAD` at skill start vs now. If HEAD advanced, the debug loop landed a commit: `STATUS=fixed` and `COMMIT_HASH=$(git rev-parse HEAD)`. If HEAD is unchanged and the debug-fix loop exhausted 9 attempts: `STATUS=escalated` and `COMMIT_HASH=""` (null in the envelope).
+
+### 7.2 Resolve SHELF_SCRIPTS_DIR (plugin portability, FR-025)
+
+Export `SHELF_SCRIPTS_DIR` before any helper or team invocation, via the three-step fallback below. This variable is the ONLY way team briefs reference shelf scripts — hardcoding a repo-relative shelf script path is a portability bug per `CLAUDE.md`.
+
+```bash
+SHELF_SCRIPTS_DIR="${WORKFLOW_PLUGIN_DIR:-}"
+if [ -n "${SHELF_SCRIPTS_DIR}" ] && [ -d "${SHELF_SCRIPTS_DIR}/../plugin-shelf/scripts" ]; then
+  SHELF_SCRIPTS_DIR="${SHELF_SCRIPTS_DIR}/../plugin-shelf/scripts"
+elif [ -d "$(pwd)/plugin-shelf/scripts" ]; then
+  SHELF_SCRIPTS_DIR="$(pwd)/plugin-shelf/scripts"
+else
+  SHELF_SCRIPTS_DIR="$(find "${HOME}/.claude/plugins/cache" -maxdepth 6 -type d -name 'scripts' -path '*/plugin-shelf/*' 2>/dev/null | head -1)"
+fi
+export SHELF_SCRIPTS_DIR
+```
+
+Also resolve `FIX_RECORDING_DIR` pointing at this plugin's `scripts/fix-recording/` directory (the kiln-internal helpers). Same fallback logic, but looking for `plugin-kiln/scripts/fix-recording`.
+
+```bash
+FIX_RECORDING_DIR="${WORKFLOW_PLUGIN_DIR:-}"
+if [ -n "${FIX_RECORDING_DIR}" ] && [ -d "${FIX_RECORDING_DIR}/scripts/fix-recording" ]; then
+  FIX_RECORDING_DIR="${FIX_RECORDING_DIR}/scripts/fix-recording"
+elif [ -d "$(pwd)/plugin-kiln/scripts/fix-recording" ]; then
+  FIX_RECORDING_DIR="$(pwd)/plugin-kiln/scripts/fix-recording"
+else
+  FIX_RECORDING_DIR="$(find "${HOME}/.claude/plugins/cache" -maxdepth 6 -type d -name 'fix-recording' -path '*/plugin-kiln/scripts/*' 2>/dev/null | head -1)"
+fi
+export FIX_RECORDING_DIR
+```
+
+### 7.3 Compose the envelope (main chat, inline bash)
+
+Write the changed-files list to a temp file, then invoke `compose-envelope.sh` with every required flag. The helper resolves `project_name` internally via `resolve-project-name.sh` (FR-013) and strips `.kiln/qa/.env.test` lines from every string field (FR-026).
+
+```bash
+mkdir -p .kiln/fixes
+envelope_path=".kiln/fixes/.envelope-$(date +%s).json"
+
+files_list=$(mktemp)
+if [ "$STATUS" = "fixed" ] && [ -n "$COMMIT_HASH" ]; then
+  git diff --name-only "${COMMIT_HASH}^".."${COMMIT_HASH}" > "$files_list"
+else
+  # Escalated: list files inspected during the debug loop, not modified.
+  # Derive from /fix-diagnose artifacts if available; otherwise an empty list is acceptable.
+  : > "$files_list"
+fi
+
+bash "$FIX_RECORDING_DIR/compose-envelope.sh" \
+  --issue             "<one-line issue summary>" \
+  --root-cause        "<one-sentence root cause>" \
+  --fix-summary       "<1–3 sentence description of the change (fixed) or techniques tried (escalated)>" \
+  --files-changed-file "$files_list" \
+  --commit-hash       "$COMMIT_HASH" \
+  --feature-spec-path "<specs/<feature>/spec.md or empty>" \
+  --resolves-issue    "<gh issue ref or empty>" \
+  --status            "$STATUS" \
+  > "$envelope_path"
+```
+
+### 7.4 Write the local record (inline, before team spawn — FR-002, FR-020)
+
+```bash
+local_record_path=$(bash "$FIX_RECORDING_DIR/write-local-record.sh" "$envelope_path")
+```
+
+Capture `local_record_path` — the final user report in 7.10 references it.
+
+### 7.5 Render both team briefs
+
+Both briefs are static files shipped with this skill under `team-briefs/`. Render them via `render-team-brief.sh` to substitute the six placeholders (`ENVELOPE_PATH`, `SCRIPTS_DIR`, `SLUG`, `DATE`, `PROJECT_NAME`, `TEAM_KIND`).
+
+```bash
+today=$(date -u +%Y-%m-%d)
+slug=$(basename "$local_record_path" .md | sed "s/^${today}-//; s/-[0-9]*$//")
+project_name=$(jq -r '.project_name // ""' "$envelope_path")
+abs_envelope=$(cd "$(dirname "$envelope_path")" && printf '%s/%s\n' "$(pwd)" "$(basename "$envelope_path")")
+
+record_brief_src="$FIX_RECORDING_DIR/../../skills/fix/team-briefs/fix-record.md"
+reflect_brief_src="$FIX_RECORDING_DIR/../../skills/fix/team-briefs/fix-reflect.md"
+
+record_brief=$(bash "$FIX_RECORDING_DIR/render-team-brief.sh" \
+  --envelope-path "$abs_envelope" \
+  --scripts-dir   "$SHELF_SCRIPTS_DIR" \
+  --slug          "$slug" \
+  --date          "$today" \
+  --project-name  "$project_name" \
+  --team-kind     "fix-record" \
+  < "$record_brief_src")
+
+reflect_brief=$(bash "$FIX_RECORDING_DIR/render-team-brief.sh" \
+  --envelope-path "$abs_envelope" \
+  --scripts-dir   "$SHELF_SCRIPTS_DIR" \
+  --slug          "$slug" \
+  --date          "$today" \
+  --project-name  "$project_name" \
+  --team-kind     "fix-reflect" \
+  < "$reflect_brief_src")
+```
+
+### 7.6 Spawn both teams in parallel (FR-003 — same tool-call batch)
+
+Issue **both** `TeamCreate` + `TaskCreate` pairs in the same assistant message, as a single batch of tool calls (Decision R2). This is what "parallel" means here — both teams are created before either finishes.
+
+- `TeamCreate` name `fix-record-<timestamp>`, teammate `recorder` (model: `haiku`), task brief = rendered `record_brief`.
+- `TeamCreate` name `fix-reflect-<timestamp>`, teammate `reflector` (model: `sonnet`), task brief = rendered `reflect_brief`.
+- `TaskCreate` for each team, passing the rendered brief as the task description.
+
+### 7.7 Poll to completion
+
+Use `TaskList` to poll both teams until each task reaches `completed`. If a teammate uses `SendMessage` to escape for path ambiguity (FR-010 / FR-011) or MCP unavailability (FR-016), handle the reply inline — one short message per escape. Keep main-chat traffic minimal (SC-004 budget: ≤3k tokens per invocation).
+
+### 7.8 TeamDelete regardless of outcome (FR-017)
+
+After both tasks reach any terminal state — success, silent skip, MCP-unavailable warn, or internal error — issue `TeamDelete` for `fix-record-<timestamp>` and `fix-reflect-<timestamp>`. No orphans MUST remain when the skill returns control to the user.
+
+### 7.9 Cleanup transient scratch
+
+```bash
+rm -f "$envelope_path"
+rm -f .kiln/fixes/.reflect-output-*.json
+```
+
+The local record at `$local_record_path` is NOT deleted — it persists alongside the Obsidian note.
+
+### 7.10 User-facing report (extends Step 5)
+
+Append these lines to the Step 5 report:
+
+```
+Local record: <local_record_path>
+Obsidian note: <@projects/<project>/fixes/<date>-<slug>.md OR "skipped (MCP unavailable)" OR "skipped (project_name null)">
+Manifest proposal: <@inbox/open/... OR "none (no gap identified)">
+```
+
+### Constraints enforced by this step (cross-reference)
+
+- FR-019: Step 7 MUST NOT invoke `shelf:shelf-full-sync` or any wheel workflow. The Obsidian write in Step 7.6 is the only vault-write mechanism.
+- FR-020: Steps 2b–5 complete in main chat first; no team-spawn before 7.6.
+- FR-023: No wheel workflow is added or modified by this step.
+- FR-025: All script paths come from `$SHELF_SCRIPTS_DIR` / `$FIX_RECORDING_DIR`; no repo-relative plugin path literal appears anywhere in the live substitution values.
+- FR-017: `TeamDelete` runs for both teams on every terminal outcome — success, silent skip, MCP-unavailable warn, or internal error. No early return skips 7.8.
+
 ## UI Issues — QA Engineer is MANDATORY (NON-NEGOTIABLE)
 
 If the issue involves the UI in ANY way — layout, styling, visual regression, component behavior, responsiveness, "looks wrong", button doesn't work, page doesn't render — the QA engineer MUST run as part of verification. This is not optional.
