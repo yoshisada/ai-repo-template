@@ -1,9 +1,9 @@
 ---
-name: trim-push
+name: push
 description: Push code components to Penpot. Analyzes code structure and styles, creates or updates Penpot components via MCP, and updates component mappings.
 ---
 
-# trim-push — Push Code Components to Penpot
+# push — Push Code Components to Penpot
 
 Analyze code components in the project, extract their visual structure and styles, and create or update matching Penpot components via MCP. Existing Penpot components are updated in place; new components are created. Runs as a wheel workflow.
 
@@ -23,17 +23,17 @@ Check that `.trim/config` exists:
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
   exit 1
 fi
 ```
 
 ### 2. Run Workflow
 
-Delegate to the trim-push wheel workflow:
+Delegate to the push wheel workflow:
 
 ```
-/wheel-run trim:trim-push
+/wheel:run trim:push
 ```
 
 The workflow executes these steps in order:
@@ -76,7 +76,7 @@ Push complete.
   Updated: .trim/components.json
 
 Next: Open Penpot to view and edit the pushed components and pages,
-      then run /trim-pull to sync visual changes back to code.
+      then run /trim:pull to sync visual changes back to code.
 ```
 
 ## Rules

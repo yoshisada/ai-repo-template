@@ -1,11 +1,11 @@
 ---
-name: trim-edit
+name: edit
 description: Edit Penpot designs via natural language. Changes are logged and stay in Penpot until pulled.
 ---
 
-# trim-edit — Natural Language Design Editing
+# edit — Natural Language Design Editing
 
-Modify Penpot designs by describing changes in natural language. The edit is applied in Penpot via MCP, logged to `.trim/changes.md`, and does NOT sync to code. The developer reviews the change in Penpot and runs `/trim-pull` when ready.
+Modify Penpot designs by describing changes in natural language. The edit is applied in Penpot via MCP, logged to `.trim/changes.md`, and does NOT sync to code. The developer reviews the change in Penpot and runs `/trim:pull` when ready.
 
 ## User Input
 
@@ -17,21 +17,21 @@ $ARGUMENTS
 
 The user MUST provide a natural language description of the desired edit.
 
-- If `$ARGUMENTS` is empty: print "Usage: `/trim-edit <description>`\nExample: `/trim-edit make the sidebar narrower and change the accent color to blue`" and STOP.
+- If `$ARGUMENTS` is empty: print "Usage: `/trim:edit <description>`\nExample: `/trim:edit make the sidebar narrower and change the accent color to blue`" and STOP.
 - Otherwise, note the edit description for the workflow.
 
 ## Step 2: Check Penpot MCP Availability
 
 Verify that Penpot MCP tools are available by checking for `mcp__penpot-*` tools.
 
-- If no Penpot MCP tools are available: print "Penpot MCP is required for /trim-edit. Install and configure the Penpot MCP server." and STOP.
+- If no Penpot MCP tools are available: print "Penpot MCP is required for /trim:edit. Install and configure the Penpot MCP server." and STOP.
 
 ## Step 3: Run Workflow (FR-001, FR-025)
 
-Delegate to the trim-edit wheel workflow:
+Delegate to the edit wheel workflow:
 
 ```
-/wheel-run trim:trim-edit
+/wheel:run trim:edit
 ```
 
 The workflow executes these steps in order:
@@ -55,8 +55,8 @@ Design edit applied in Penpot.
   Logged to:  .trim/changes.md
 
 Changes are in Penpot only — code has NOT been modified.
-Run /trim-pull when you're ready to sync to code.
-Run /trim-verify to visually check the changes match your expectations.
+Run /trim:pull when you're ready to sync to code.
+Run /trim:verify to visually check the changes match your expectations.
 ```
 
 ## Rules

@@ -1,9 +1,9 @@
 ---
-name: trim-pull
+name: pull
 description: Pull a Penpot design into framework-appropriate code. Reads design via MCP, detects project framework, generates code, and updates component mappings.
 ---
 
-# trim-pull — Pull Penpot Design into Code
+# pull — Pull Penpot Design into Code
 
 Read a Penpot design via MCP and generate framework-appropriate code that matches the design's layout, spacing, colors, typography, and component hierarchy. Reuses existing components from the component mapping. Runs as a wheel workflow with deterministic step ordering.
 
@@ -23,17 +23,17 @@ Check that `.trim/config` exists and has valid Penpot connection details:
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
   exit 1
 fi
 ```
 
 ### 2. Run Workflow
 
-Delegate to the trim-pull wheel workflow:
+Delegate to the pull wheel workflow:
 
 ```
-/wheel-run trim:trim-pull
+/wheel:run trim:pull
 ```
 
 The workflow executes these steps in order:
@@ -66,8 +66,8 @@ Pull complete.
   Flows Discovered: {N} flows inferred from Penpot pages, written to .trim/flows.json
   Updated: .trim/components.json
 
-Next: Run /trim-diff to verify code matches the design,
-      or edit the generated code and /trim-push to sync changes back.
+Next: Run /trim:diff to verify code matches the design,
+      or edit the generated code and /trim:push to sync changes back.
 ```
 
 If the workflow failed (e.g., MCP unavailable), display the error from the relevant step output.

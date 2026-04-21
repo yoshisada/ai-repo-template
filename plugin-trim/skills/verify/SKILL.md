@@ -1,9 +1,9 @@
 ---
-name: trim-verify
+name: verify
 description: Visually verify rendered code matches Penpot designs. Walks user flows, screenshots each step, compares via Claude vision.
 ---
 
-# trim-verify — Visual Verification
+# verify — Visual Verification
 
 Compare rendered code against Penpot designs by walking each tracked user flow in a headless browser, screenshotting each step, fetching the corresponding Penpot frame, and using Claude vision to identify semantic visual differences. Outputs a verification report.
 
@@ -17,8 +17,8 @@ Optional: a specific flow name to verify. If omitted, all flows are verified.
 
 ## Step 1: Check Prerequisites (FR-007)
 
-1. Read `.trim/flows.json`. If not found or empty: print "No user flows defined. Run `/trim-flows add <name>` to define flows before verifying." and STOP.
-2. If `$ARGUMENTS` specifies a flow name: verify it exists in `.trim/flows.json`. If not found: print "Flow '{name}' not found. Run `/trim-flows list` to see available flows." and STOP.
+1. Read `.trim/flows.json`. If not found or empty: print "No user flows defined. Run `/trim:flows add <name>` to define flows before verifying." and STOP.
+2. If `$ARGUMENTS` specifies a flow name: verify it exists in `.trim/flows.json`. If not found: print "Flow '{name}' not found. Run `/trim:flows list` to see available flows." and STOP.
 3. Ensure `.trim/verify/` directory exists for screenshot storage (FR-012).
 
 ## Step 2: Check Browser Availability (FR-008)
@@ -34,10 +34,10 @@ npx playwright --version 2>/dev/null
 
 ## Step 3: Run Workflow (FR-007, FR-025)
 
-Delegate to the trim-verify wheel workflow:
+Delegate to the verify wheel workflow:
 
 ```
-/wheel-run trim:trim-verify
+/wheel:run trim:verify
 ```
 
 The workflow executes these steps in order:

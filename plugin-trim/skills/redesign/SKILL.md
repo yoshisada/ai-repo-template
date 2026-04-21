@@ -1,9 +1,9 @@
 ---
-name: trim-redesign
+name: redesign
 description: Full UI redesign in Penpot. Reimagines visual design while preserving information architecture and user flows.
 ---
 
-# trim-redesign — Full UI Redesign
+# redesign — Full UI Redesign
 
 Generate a complete new Penpot design that reimagines the visual design while preserving the information architecture (pages, navigation, user flows). Reads the PRD, existing components, current design, and user flows for context. All changes are logged with rationale.
 
@@ -19,14 +19,14 @@ Optional context or direction for the redesign (e.g., "dark theme", "modernize t
 
 Verify that Penpot MCP tools are available.
 
-- If unavailable: print "Penpot MCP is required for /trim-redesign. Install and configure the Penpot MCP server." and STOP.
+- If unavailable: print "Penpot MCP is required for /trim:redesign. Install and configure the Penpot MCP server." and STOP.
 
 ## Step 2: Run Workflow (FR-013, FR-025)
 
-Delegate to the trim-redesign wheel workflow:
+Delegate to the redesign wheel workflow:
 
 ```
-/wheel-run trim:trim-redesign
+/wheel:run trim:redesign
 ```
 
 The workflow executes these steps in order:
@@ -51,8 +51,8 @@ UI redesign applied in Penpot.
   Logged to:    .trim/changes.md
 
 Changes are in Penpot only — code has NOT been modified.
-Review the redesign in Penpot, then run /trim-pull when ready to sync to code.
-Run /trim-verify to check the redesign against your expectations.
+Review the redesign in Penpot, then run /trim:pull when ready to sync to code.
+Run /trim:verify to check the redesign against your expectations.
 ```
 
 ## Rules

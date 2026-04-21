@@ -1,11 +1,11 @@
 ---
-name: trim-flows
+name: flows
 description: Manage user flows for verification and QA. Subcommands: add, list, sync, export-tests.
 ---
 
-# trim-flows — User Flow Management
+# flows — User Flow Management
 
-Define, list, sync, and export user flows stored in `.trim/flows.json`. Flows track the steps a user takes through the application — each step maps to a page, component, and Penpot frame. Flows feed visual verification (`/trim-verify`) and QA test generation.
+Define, list, sync, and export user flows stored in `.trim/flows.json`. Flows track the steps a user takes through the application — each step maps to a page, component, and Penpot frame. Flows feed visual verification (`/trim:verify`) and QA test generation.
 
 ## User Input
 
@@ -19,7 +19,7 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
 
 - If empty or unrecognized: print usage and STOP:
   ```
-  Usage: /trim-flows <subcommand>
+  Usage: /trim:flows <subcommand>
 
   Subcommands:
     add <name>      Define a new user flow interactively
@@ -59,11 +59,11 @@ Parse `$ARGUMENTS` for one of: `add <name>`, `list`, `sync`, `export-tests`.
    }
    ```
 7. Append the flow to the array and write `.trim/flows.json`.
-8. Report: "Flow '{name}' added with {N} steps. Run `/trim-flows sync` to map steps to Penpot frames."
+8. Report: "Flow '{name}' added with {N} steps. Run `/trim:flows sync` to map steps to Penpot frames."
 
 ### Subcommand: `list` (FR-021)
 
-1. Read `.trim/flows.json`. If not found: print "No flows defined. Run `/trim-flows add <name>` to create one." and STOP.
+1. Read `.trim/flows.json`. If not found: print "No flows defined. Run `/trim:flows add <name>` to create one." and STOP.
 2. Display a formatted table:
    ```
    User Flows (.trim/flows.json)

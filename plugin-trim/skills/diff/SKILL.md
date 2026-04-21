@@ -1,9 +1,9 @@
 ---
-name: trim-diff
+name: diff
 description: Compare Penpot designs against code and report drift. Categorizes mismatches as code-only, design-only, style-divergence, or layout-difference with actionable suggestions.
 ---
 
-# trim-diff — Detect Design-Code Drift
+# diff — Detect Design-Code Drift
 
 Compare the current state of Penpot designs against the current code and produce a categorized drift report. Each mismatch includes an actionable suggestion (pull, push, or manual review). Runs as a wheel workflow.
 
@@ -21,17 +21,17 @@ Optional: component name to diff. If omitted, checks all tracked components in `
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
   exit 1
 fi
 ```
 
 ### 2. Run Workflow
 
-Delegate to the trim-diff wheel workflow:
+Delegate to the diff wheel workflow:
 
 ```
-/wheel-run trim:trim-diff
+/wheel:run trim:diff
 ```
 
 The workflow executes these steps in order:
@@ -43,7 +43,7 @@ The workflow executes these steps in order:
 
 ### 3. Report Results
 
-After the workflow completes, read `.wheel/outputs/trim-diff-report.md` and display the drift report:
+After the workflow completes, read `.wheel/outputs/diff-report.md` and display the drift report:
 
 ```
 Drift Report for {project}
@@ -51,12 +51,12 @@ Drift Report for {project}
   Components Checked: {N}
 
   In Sync:          {N}
-  Code-only:        {N} — run /trim-push to create in Penpot
-  Design-only:      {N} — run /trim-pull to generate code
+  Code-only:        {N} — run /trim:push to create in Penpot
+  Design-only:      {N} — run /trim:pull to generate code
   Style Divergence:  {N} — pull or push to resolve
   Layout Difference: {N} — manual review recommended
 
-  Full report: .wheel/outputs/trim-diff-report.md
+  Full report: .wheel/outputs/diff-report.md
 ```
 
 ## Rules

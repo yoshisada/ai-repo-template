@@ -1,12 +1,12 @@
 {
-  "name": "trim-verify",
+  "name": "verify",
   "version": "1.0.0",
   "steps": [
     {
       "id": "resolve-trim-plugin",
       "type": "command",
       "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
-      "output": ".wheel/outputs/resolve-trim-plugin.txt"
+      "output": ".wheel/outputs/resolve-plugin.txt"
     },
     {
       "id": "read-flows",

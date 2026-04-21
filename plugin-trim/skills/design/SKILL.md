@@ -1,9 +1,9 @@
 ---
-name: trim-design
+name: design
 description: Generate an initial Penpot design from product context. Reads PRD, existing components, and project conventions to create a structured Penpot design via MCP.
 ---
 
-# trim-design — Generate Design from Product Context
+# design — Generate Design from Product Context
 
 Read product context (PRDs, existing component library, project conventions) and generate an initial Penpot design via MCP. Reuses existing library components where appropriate and follows the project's visual conventions. Runs as a wheel workflow.
 
@@ -24,17 +24,17 @@ Description of what to design, or path to a PRD file. Examples:
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim-init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
   exit 1
 fi
 ```
 
 ### 2. Run Workflow
 
-Delegate to the trim-design wheel workflow:
+Delegate to the design wheel workflow:
 
 ```
-/wheel-run trim:trim-design
+/wheel:run trim:design
 ```
 
 The workflow executes these steps in order:
@@ -66,7 +66,7 @@ Design generated.
   Updated: .trim/components.json
 
 Next: Open Penpot to review and refine the generated design,
-      then run /trim-pull to generate code from the design.
+      then run /trim:pull to generate code from the design.
 ```
 
 ## Rules

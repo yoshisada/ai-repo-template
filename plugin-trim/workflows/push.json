@@ -1,62 +1,62 @@
 {
-  "name": "trim-push",
+  "name": "push",
   "version": "1.0.0",
   "steps": [
     {
       "id": "read-config",
       "type": "command",
-      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
-      "output": ".wheel/outputs/trim-read-config.txt"
+      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim:init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
+      "output": ".wheel/outputs/read-config.txt"
     },
     {
       "id": "detect-framework",
       "type": "command",
       "command": "echo \"## Framework Detection\" && FRAMEWORK=\"html\"; CSS_APPROACH=\"plain-css\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; if echo \"$DEPS\" | grep -q 'tailwindcss'; then CSS_APPROACH=\"tailwind\"; elif echo \"$DEPS\" | grep -q 'styled-components'; then CSS_APPROACH=\"styled-components\"; elif echo \"$DEPS\" | grep -q 'css-modules'; then CSS_APPROACH=\"css-modules\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\" && echo \"css_approach=$CSS_APPROACH\"",
-      "output": ".wheel/outputs/trim-detect-framework.txt"
+      "output": ".wheel/outputs/detect-framework.txt"
     },
     {
       "id": "scan-components",
       "type": "command",
-      "command": "echo \"## Component Scan\" && FRAMEWORK=$(grep '^framework=' .wheel/outputs/trim-detect-framework.txt 2>/dev/null | cut -d= -f2); case \"$FRAMEWORK\" in react) find src/components app/components components -name '*.tsx' -o -name '*.jsx' 2>/dev/null | head -50;; vue) find src/components app/components components -name '*.vue' 2>/dev/null | head -50;; svelte) find src/components src/lib/components src/routes -name '*.svelte' 2>/dev/null | head -50;; *) find src/components components -name '*.html' 2>/dev/null | head -50;; esac; echo \"---\"; echo \"total=$(find src/components app/components components src/lib/components 2>/dev/null | wc -l | tr -d ' ')\"",
-      "output": ".wheel/outputs/trim-scan-components.txt"
+      "command": "echo \"## Component Scan\" && FRAMEWORK=$(grep '^framework=' .wheel/outputs/detect-framework.txt 2>/dev/null | cut -d= -f2); case \"$FRAMEWORK\" in react) find src/components app/components components -name '*.tsx' -o -name '*.jsx' 2>/dev/null | head -50;; vue) find src/components app/components components -name '*.vue' 2>/dev/null | head -50;; svelte) find src/components src/lib/components src/routes -name '*.svelte' 2>/dev/null | head -50;; *) find src/components components -name '*.html' 2>/dev/null | head -50;; esac; echo \"---\"; echo \"total=$(find src/components app/components components src/lib/components 2>/dev/null | wc -l | tr -d ' ')\"",
+      "output": ".wheel/outputs/scan-components.txt"
     },
     {
       "id": "classify-files",
       "type": "command",
-      "command": "echo '## File Classification' && FRAMEWORK=$(grep '^framework=' .wheel/outputs/trim-detect-framework.txt 2>/dev/null | cut -d= -f2); SCAN_FILE=.wheel/outputs/trim-scan-components.txt; if [ ! -f \"$SCAN_FILE\" ]; then echo 'ERROR: No scan output found'; exit 1; fi; while IFS= read -r filepath; do [ -z \"$filepath\" ] && continue; case \"$filepath\" in \\#*|---*|total=*) continue;; esac; case \"$filepath\" in */pages/*|*/app/*/page.*|*/app/*/layout.*|*/routes/*) echo \"type=page path=$filepath\";; */components/*|*/lib/components/*|*/ui/*) echo \"type=component path=$filepath\";; *) echo \"type=component path=$filepath\";; esac; done < \"$SCAN_FILE\"",
-      "output": ".wheel/outputs/trim-classify-files.txt"
+      "command": "echo '## File Classification' && FRAMEWORK=$(grep '^framework=' .wheel/outputs/detect-framework.txt 2>/dev/null | cut -d= -f2); SCAN_FILE=.wheel/outputs/scan-components.txt; if [ ! -f \"$SCAN_FILE\" ]; then echo 'ERROR: No scan output found'; exit 1; fi; while IFS= read -r filepath; do [ -z \"$filepath\" ] && continue; case \"$filepath\" in \\#*|---*|total=*) continue;; esac; case \"$filepath\" in */pages/*|*/app/*/page.*|*/app/*/layout.*|*/routes/*) echo \"type=page path=$filepath\";; */components/*|*/lib/components/*|*/ui/*) echo \"type=component path=$filepath\";; *) echo \"type=component path=$filepath\";; esac; done < \"$SCAN_FILE\"",
+      "output": ".wheel/outputs/classify-files.txt"
     },
     {
       "id": "read-mappings",
       "type": "command",
       "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
-      "output": ".wheel/outputs/trim-read-mappings.txt"
+      "output": ".wheel/outputs/read-mappings.txt"
     },
     {
       "id": "resolve-trim-plugin",
       "type": "command",
       "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
-      "output": ".wheel/outputs/trim-resolve-plugin.txt"
+      "output": ".wheel/outputs/resolve-plugin.txt"
     },
     {
       "id": "push-to-penpot",
       "type": "agent",
       "instruction": "POSITIONING RULES (apply to ALL Penpot element creation):\n- Before creating any frame, read all existing frames on the current page via MCP to get their bounding boxes (x, y, width, height).\n- Calculate the new frame's position: x = rightmost_existing_frame.x + rightmost_existing_frame.width + 40, y = 0 for top-level frames.\n- If placing variants/states of a frame, position them vertically: y = primary_frame.y + primary_frame.height + 40, same x as primary.\n- If this is the first frame on the page, position at x=0, y=0.\n- Minimum gap between any two frames: 40px in both x and y directions.\n- Never position a frame at (0,0) if other frames already exist on the page.\n\nPush code components and pages to Penpot as structured, editable design elements. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_file_id, and default_page.\n2. Read the framework detection output to understand the project's framework and CSS approach.\n3. Read the file classification output from classify-files — each line is either `type=component path=...` or `type=page path=...`.\n4. Read the current component mappings from context.\n5. Split the classified files into two groups: COMPONENTS and PAGES.\n\nCOMPONENT PUSH (files classified as type=component):\n6. For each component file:\n   a. Read the code file to extract its visual properties: layout structure, colors, typography, spacing, sizing.\n   b. Check if it already has a mapping in .trim/components.json:\n      - If mapped: use Penpot MCP tools to UPDATE the existing Penpot component (by penpot_component_id)\n      - If not mapped: use Penpot MCP tools to CREATE a new Penpot component\n   c. Create structured Penpot components (frames, rectangles, text elements) — NOT screenshots. The Penpot components must be editable with correct layout, colors, typography, and spacing.\n   d. Place all components on the \"Components\" page using the COMPONENTS PAGE RULES below.\n\nPAGE PUSH (files classified as type=page):\n7. For each page file:\n   a. Read the code file to understand the full page layout, which components it imports, and its route.\n   b. Create (or find) a dedicated Penpot page named after the route (e.g., \"Dashboard\", \"Settings\").\n   c. Create a full-screen composed frame (1440x900 default) that represents the complete page layout.\n   d. Reference component library elements where the page imports them — reuse Penpot components from the Components page.\n   e. Each page gets its own individual Penpot page. Do NOT place multiple page designs on the same Penpot page.\n\n8. Build an updated component mappings JSON array that includes:\n   - All existing mappings with updated last_synced for modified components\n   - New entries for newly created components/pages with: code_path, component_name, penpot_component_id, penpot_component_name, classification (\"component\" or \"page\"), last_synced (ISO 8601 now), sync_direction: \"push\"\n9. Include the updated mappings JSON in your output inside a ```json code block.\n\nCOMPONENTS PAGE RULES:\n- Create (or update) a Penpot page named \"Components\" for the component library.\n- Group components by category. Infer categories from directory structure (e.g., components/buttons/ → \"Buttons\"). If flat directory, group alphabetically.\n- For each category group:\n  a. Create a text element as a header label (e.g., \"Buttons\", \"Inputs\", \"Cards\") at the top of the group area.\n  b. Arrange components in a grid below the header: fixed column width of 300px, 20px gap between items, wrap to new rows when exceeding 1200px total width.\n  c. Each component is displayed inside a labeled card frame (component name as text label above the component frame).\n- When updating an existing Components page: keep existing component positions, append new components to the end of their category group.\n- Position category groups vertically with 60px gap between groups.\n\nPAGE COMPOSITION RULES:\n- Each page gets its own dedicated Penpot page named after the route.\n- Page frames are full-screen: 1440x900 (desktop). Add additional viewport variants (768x1024 tablet, 375x812 mobile) if the page uses responsive layout.\n- Compose the page by referencing components from the component library — do not recreate component internals.\n- Before creating a page-level frame, check if a Penpot page already exists for this route. If yes, update it. If no, create a new Penpot page.\n\nWrite a summary of all pushed components and pages, including counts for each type, and mapping updates to your output.",
       "context_from": ["read-config", "detect-framework", "scan-components", "classify-files", "read-mappings", "resolve-trim-plugin"],
-      "output": ".wheel/outputs/trim-push-result.md"
+      "output": ".wheel/outputs/push-result.md"
     },
     {
       "id": "discover-flows",
       "type": "agent",
       "instruction": "Auto-discover user flows from the codebase and merge into .trim/flows.json.\n\n1. Read the framework detection output to determine the routing approach:\n   - React: scan for react-router Route definitions, Link/NavLink components\n   - Next.js: scan app/ or pages/ directory structure for file-based routes\n   - Vue: scan for vue-router route definitions\n   - Svelte: scan src/routes/ directory structure\n   - HTML: scan for <a href> links between pages\n2. Read the scanned components list from context.\n3. For each discovered route, identify navigation links/calls that connect to other routes.\n4. Build flow objects from connected routes:\n   - Each flow represents a user journey through 2+ connected pages\n   - Flow name: descriptive (e.g., \"main-navigation\", \"auth-flow\", \"checkout-flow\")\n   - Each step: action=\"navigate\", target=route path, page=route path, component=page component name\n5. Read existing .trim/flows.json (or start with empty array if not found).\n6. Merge rules:\n   - If an auto-discovered flow has the same name as an existing flow with \"source\": \"manual\", SKIP IT.\n   - If an auto-discovered flow has the same name as an existing \"auto-discovered\" flow, REPLACE it (re-scan updates).\n   - All new flows get \"source\": \"auto-discovered\".\n7. Write the merged flows array to .trim/flows.json with 2-space indentation.\n8. Report: discovered N flows with M total steps, merged with K existing flows.",
       "context_from": ["detect-framework", "scan-components", "read-config"],
-      "output": ".wheel/outputs/trim-discover-flows-push.txt"
+      "output": ".wheel/outputs/discover-flows-push.txt"
     },
     {
       "id": "update-mappings",
       "type": "command",
-      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \".wheel/outputs/trim-push-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/trim-push-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in push result\"; fi; else echo \"No push result to process\"; fi",
-      "output": ".wheel/outputs/trim-update-mappings-push.txt",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \".wheel/outputs/push-result.md\" ]; then MAPPINGS=$(grep -A1000 '```json' \".wheel/outputs/push-result.md\" | grep -B1000 '```' | grep -v '```' | head -100); if [ -n \"$MAPPINGS\" ] && echo \"$MAPPINGS\" | jq . > /dev/null 2>&1; then echo \"$MAPPINGS\" | jq . > \"$COMP_FILE\"; echo \"Updated $COMP_FILE\"; else echo \"No valid mapping update found in push result\"; fi; else echo \"No push result to process\"; fi",
+      "output": ".wheel/outputs/update-mappings-push.txt",
       "terminal": true
     }
   ]
