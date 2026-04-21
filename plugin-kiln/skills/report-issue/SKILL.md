@@ -5,7 +5,7 @@ description: Log a bug, friction point, or improvement idea to the project backl
 
 # Report Issue — Log to Backlog
 
-Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. This skill delegates to the `report-issue-and-sync` wheel workflow, which creates the issue file and syncs to Obsidian via shelf.
+Quickly capture a bug, friction point, or improvement idea so it doesn't get lost. This skill delegates to the `report-issue` wheel workflow, which creates the issue file and syncs to Obsidian via shelf.
 
 ## User Input
 
@@ -45,11 +45,11 @@ If no file paths are found in the description, omit the `files` field entirely.
 
 ## Step 2: Run Workflow
 
-Run `/wheel-run kiln:report-issue-and-sync` to execute the workflow. The workflow will:
+Run `/wheel:run kiln:report-issue` to execute the workflow. The workflow will:
 
 1. Check existing issues for duplicates
 2. Classify and create the issue file in `.kiln/issues/`
-3. Sync to Obsidian via `shelf-full-sync`
+3. Sync to Obsidian via `shelf:sync`
 
 The user's issue description (from `$ARGUMENTS` above) is already in the conversation context — the workflow's agent step will use it.
 

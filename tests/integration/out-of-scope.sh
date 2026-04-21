@@ -31,7 +31,7 @@ run_case() {
     --arg section "top" \
     --arg current "$current" \
     --arg proposed "replacement" \
-    --arg why "see .wheel/outputs/shelf-full-sync-summary.md" \
+    --arg why "see .wheel/outputs/sync-summary.md" \
     '{skip:false, target:$target, section:$section, current:$current, proposed:$proposed, why:$why}')
   printf '%s\n' "$reflect" > "$TMP/.wheel/outputs/propose-manifest-improvement.json"
   local envelope

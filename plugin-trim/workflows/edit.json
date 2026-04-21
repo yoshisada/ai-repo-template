@@ -1,0 +1,33 @@
+{
+  "name": "edit",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "resolve-trim-plugin",
+      "type": "command",
+      "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
+      "output": ".wheel/outputs/resolve-plugin.txt"
+    },
+    {
+      "id": "read-design-state",
+      "type": "command",
+      "command": "echo '## Design State' && echo '### Components' && if [ -f .trim/components.json ]; then cat .trim/components.json; else echo '(no .trim/components.json)'; fi && echo '' && echo '### Config' && if [ -f .trim/config ]; then cat .trim/config; else echo '(no .trim/config)'; fi",
+      "output": ".wheel/outputs/read-design-state.txt"
+    },
+    {
+      "id": "apply-edit",
+      "type": "agent",
+      "instruction": "POSITIONING RULES (apply to ALL Penpot element creation):\n- Before creating any frame, read all existing frames on the current page via MCP to get their bounding boxes (x, y, width, height).\n- Calculate the new frame's position: x = rightmost_existing_frame.x + rightmost_existing_frame.width + 40, y = 0 for top-level frames.\n- If placing variants/states of a frame, position them vertically: y = primary_frame.y + primary_frame.height + 40, same x as primary.\n- If this is the first frame on the page, position at x=0, y=0.\n- Minimum gap between any two frames: 40px in both x and y directions.\n- Never position a frame at (0,0) if other frames already exist on the page.\n\nApply a targeted design edit to the Penpot design via MCP.\n\nYou have Penpot MCP tools available for reading and modifying designs.\n\n1. Read the design state from context (read-design-state output) to understand current components and config.\n2. Read the user's edit description from the conversation context.\n3. Fetch the current Penpot design state via MCP to understand what exists.\n4. Interpret the natural language description and determine which specific components/properties need to change.\n5. Apply ONLY the requested changes via Penpot MCP tools — do NOT regenerate the entire design.\n6. Record what was actually changed:\n   - Which components were modified\n   - Which properties changed (before → after)\n   - Which Penpot frames were affected\n\nWrite a detailed summary of all changes made to your output file. Include:\n- What was requested\n- What was actually changed (component names, property changes)\n- Which Penpot frames were affected\n- Any issues encountered\n\nIMPORTANT: Do NOT modify any code files. Changes stay in Penpot only.",
+      "context_from": ["resolve-trim-plugin", "read-design-state"],
+      "output": ".wheel/outputs/apply-edit.txt"
+    },
+    {
+      "id": "log-change",
+      "type": "agent",
+      "instruction": "Append a design change entry to .trim/changes.md.\n\n1. Read the apply-edit output to get the details of what was changed.\n2. Read the design state from context for component names.\n3. If .trim/changes.md does not exist, create it with a header:\n   ```\n   # Design Changelog\n   ```\n4. Append a new entry in this format:\n   ```\n   ## [ISO-8601-TIMESTAMP] edit\n\n   **Request**: [the natural language description from the user]\n\n   **Changes**:\n   - [change 1: component/property before → after]\n   - [change 2: ...]\n\n   **Affected Frames**: [comma-separated list of Penpot frame names]\n\n   ---\n   ```\n5. The entry MUST include enough context to understand the change without viewing the Penpot diff.\n\nWrite a confirmation to your output file with the entry that was appended.",
+      "context_from": ["read-design-state", "apply-edit"],
+      "output": ".wheel/outputs/log-change.txt",
+      "terminal": true
+    }
+  ]
+}

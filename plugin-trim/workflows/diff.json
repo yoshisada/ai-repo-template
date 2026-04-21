@@ -1,0 +1,38 @@
+{
+  "name": "diff",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "read-config",
+      "type": "command",
+      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim:init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
+      "output": ".wheel/outputs/read-config.txt"
+    },
+    {
+      "id": "read-mappings",
+      "type": "command",
+      "command": "COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); COMP_FILE=${COMP_FILE:-.trim/components.json}; if [ -f \"$COMP_FILE\" ]; then cat \"$COMP_FILE\"; else echo '[]'; fi",
+      "output": ".wheel/outputs/read-mappings.txt"
+    },
+    {
+      "id": "scan-components",
+      "type": "command",
+      "command": "echo \"## Component Scan\" && FRAMEWORK=\"html\"; if [ -f package.json ]; then DEPS=$(cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null); if echo \"$DEPS\" | grep -q '^react$'; then FRAMEWORK=\"react\"; elif echo \"$DEPS\" | grep -q '^vue$'; then FRAMEWORK=\"vue\"; elif echo \"$DEPS\" | grep -q '^svelte$'; then FRAMEWORK=\"svelte\"; fi; fi; OVERRIDE=$(grep '^framework=' .trim/config 2>/dev/null | cut -d= -f2 | tr -d ' '); if [ -n \"$OVERRIDE\" ]; then FRAMEWORK=\"$OVERRIDE\"; fi; echo \"framework=$FRAMEWORK\"; case \"$FRAMEWORK\" in react) find src/components app/components components -name '*.tsx' -o -name '*.jsx' 2>/dev/null | head -50;; vue) find src/components app/components components -name '*.vue' 2>/dev/null | head -50;; svelte) find src/components src/lib/components src/routes -name '*.svelte' 2>/dev/null | head -50;; *) find src/components components -name '*.html' 2>/dev/null | head -50;; esac",
+      "output": ".wheel/outputs/scan-components.txt"
+    },
+    {
+      "id": "resolve-trim-plugin",
+      "type": "command",
+      "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
+      "output": ".wheel/outputs/resolve-plugin.txt"
+    },
+    {
+      "id": "generate-diff",
+      "type": "agent",
+      "instruction": "Compare the current Penpot design state against the current code state and produce a categorized drift report. You have access to Penpot MCP tools.\n\n1. Read the config output to get penpot_file_id.\n2. Read the component mappings from context — these define which components are tracked.\n3. Read the scanned code components list from context.\n4. For each tracked component in the mappings:\n   a. Use Penpot MCP tools to read the Penpot component's current state (layout, colors, typography, spacing).\n   b. Read the corresponding code file to extract its current visual properties.\n   c. Compare Penpot state vs code state.\n   d. Categorize any mismatches:\n      - **code-only**: Component exists in code but has no Penpot counterpart (code_path exists, penpot component not found)\n      - **design-only**: Component exists in Penpot but not in code (penpot component found, code_path file missing)\n      - **style-divergence**: Component exists in both but visual properties differ (colors, typography, spacing)\n      - **layout-difference**: Component exists in both but layout structure differs (flex/grid, nesting, ordering)\n      - **deleted**: Component tracked in mapping but deleted from one or both sides\n5. Also check for untracked components:\n   - Code components found by scan that have no mapping entry: flag as code-only\n   - Penpot components not in any mapping: flag as design-only (if detectable)\n6. For each mismatch, provide an actionable suggestion:\n   - code-only: suggest `/trim:push` to create in Penpot\n   - design-only: suggest `/trim:pull` to generate code\n   - style-divergence: suggest pull or push based on which side looks more recent\n   - layout-difference: suggest manual review\n   - deleted: suggest removing the mapping entry\n7. Write the drift report in this format:\n\n   # Drift Report\n   **Date**: {ISO 8601}\n   **Components Checked**: {N}\n\n   ## In Sync\n   - {component name}: code and Penpot match\n\n   ## Mismatches\n   ### {category}\n   - **{component name}**: {details} — Suggestion: {action}\n\n   ## Summary\n   - In sync: {N}\n   - Code-only: {N}\n   - Design-only: {N}\n   - Style divergence: {N}\n   - Layout difference: {N}\n   - Deleted: {N}\n\nWrite the full report to your output.",
+      "context_from": ["read-config", "read-mappings", "scan-components", "resolve-trim-plugin"],
+      "output": ".wheel/outputs/diff-report.md",
+      "terminal": true
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "workflow_name": "propose-manifest-improvement",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.000.000.1143/workflows/propose-manifest-improvement.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "31541d9f-e838-42c3-81e2-39f3bd4154e9",
+  "owner_agent_id": "",
+  "started_at": "2026-04-17T22:08:03.000Z",
+  "updated_at": "2026-04-17T22:09:23.000Z",
+  "steps": [
+    {
+      "id": "reflect",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-17T22:08:07.000Z",
+      "completed_at": "2026-04-17T22:08:57.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement.json",
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"\necho \"Run /wheel-status to check progress, /wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:08:07.000Z"
+        },
+        {
+          "command": "STATE_FILES=($(ls .wheel/state_*.json 2>/dev/null))\nif [[ ${#STATE_FILES[@]} -eq 0 ]]; then\n  echo \"No workflows are currently running.\"\n  exit 0\nfi\necho \"Active workflows: ${#STATE_FILES[@]}\"\necho \"\"\nfor sf in \"${STATE_FILES[@]}\"; do\n  STATE=$(cat \"$sf\")\n  NAME=$(echo \"$STATE\" | jq -r '.workflow_name')\n  STATUS=$(echo \"$STATE\" | jq -r '.status')\n  CURSOR=$(echo \"$STATE\" | jq -r '.cursor')\n  TOTAL=$(echo \"$STATE\" | jq '.steps | length')\n  STEP_ID=$(echo \"$STATE\" | jq -r \".steps[$CURSOR].id\")\n  STEP_STATUS=$(echo \"$STATE\" | jq -r \".steps[$CURSOR].status\")\n  STARTED=$(echo \"$STATE\" | jq -r '.started_at')\n  LAST_CMD=$(echo \"$STATE\" | jq -r \".steps[$CURSOR].command_log[-1].command // \\\"(none)\\\"\")\n  FILENAME=$(basename \"$sf\")\n  echo \"--- $FILENAME ---\"\n  echo \"Workflow: $NAME\"\n  echo \"Status:   $STATUS\"\n  echo \"Step:     $STEP_ID ($((CURSOR + 1))/$TOTAL)\"\n  echo \"Step status: $STEP_STATUS\"\n  echo \"Last command: $LAST_CMD\"\n  echo \"Started: $STARTED\"\ndone 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:08:18.000Z"
+        },
+        {
+          "command": "awk 'NR==22{print length($0), substr($0,60,30); exit}' .wheel/state_31541d9f*.json 2>&1 && echo \"---\" && sed -n '22p' .wheel/state_31541d9f*.json | head -c 200 && echo \"\" && echo \"---\" && python3 -c \"\nimport json\nwith open('.wheel/state_31541d9f-e838-42c3-81e2-39f3bd4154e9_1776463683_8818.json') as f:\n  try:\n    d = json.load(f)\n    print('parse OK')\n    print('workflow:', d.get('workflow_name'))\n    print('status:', d.get('status'))\n    print('cursor:', d.get('cursor'))\n    print('step count:', len(d.get('steps', [])))\n  except Exception as e:\n    print('parse FAIL:', e)\n\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:08:27.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/ 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:08:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-dispatch",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-17T22:08:57.000Z",
+      "completed_at": "2026-04-17T22:08:57.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement-dispatch.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/write-proposal-dispatch.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:08:57.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-mcp",
+      "type": "agent",
+      "status": "working",
+      "started_at": "2026-04-17T22:08:57.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "WORKFLOW_PLUGIN_DIR=/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.000.000.1143 bash \"${WORKFLOW_PLUGIN_DIR:-/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.000.000.1143}/scripts/write-proposal-dispatch.sh\" 2>&1; ec=$?\necho \"---\"\necho \"exit_code=$ec\"\necho \"---\"\ncat .wheel/outputs/propose-manifest-improvement-dispatch.json 2>&1",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:09:03.000Z"
+        },
+        {
+          "command": "cat .shelf-config 2>&1 | head -5 && echo \"---\" && VR=$(grep -E '^vault_root' .shelf-config 2>/dev/null | head -1 | sed 's/^vault_root[[:space:]]*=[[:space:]]*//') && echo \"VAULT_ROOT=$VR\" && ls \"$VR/manifest/types\" 2>&1 | head -10",
+          "exit_code": 0,
+          "timestamp": "2026-04-17T22:09:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

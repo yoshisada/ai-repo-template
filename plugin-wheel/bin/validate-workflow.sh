@@ -17,7 +17,7 @@ source "${WHEEL_LIB_DIR}/workflow.sh"
 
 # --- Pre-flight ---
 if [ ! -d ".wheel" ]; then
-  echo "ERROR: Wheel is not set up. Run /wheel-init first." >&2
+  echo "ERROR: Wheel is not set up. Run /wheel:init first." >&2
   exit 1
 fi
 

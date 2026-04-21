@@ -7,7 +7,7 @@
 #   - frontmatter keys type/target/date
 #   - body_sections preserving the five fields
 # (The MCP agent step, which does the actual vault write, is exercised
-# end-to-end only via /wheel-run inside Claude Code; the command-step gate
+# end-to-end only via /wheel:run inside Claude Code; the command-step gate
 # enforcement is what this integration test validates.)
 
 set -u

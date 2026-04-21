@@ -1,6 +1,6 @@
 ---
 name: propose-manifest-improvement
-description: Reflect on the current run's artifacts and, only when a concrete actionable change to a manifest type or template file is identified, file a single proposal in @inbox/open/ via Obsidian MCP. Silent no-op otherwise. Used by report-mistake-and-sync, report-issue-and-sync, and shelf-full-sync — invoke standalone via this skill to test in isolation.
+description: Reflect on the current run's artifacts and, only when a concrete actionable change to a manifest type or template file is identified, file a single proposal in @inbox/open/ via Obsidian MCP. Silent no-op otherwise. Used by kiln:mistake, kiln:report-issue, and shelf:sync — invoke standalone via this skill to test in isolation.
 ---
 
 # propose-manifest-improvement — File a Manifest-Type Improvement Proposal
@@ -12,7 +12,7 @@ Every other run, silent no-op: no file, no log line, no side effect.
 ## How to invoke
 
 ```text
-/wheel-run shelf:propose-manifest-improvement
+/wheel:run shelf:propose-manifest-improvement
 ```
 
 This skill dispatches that exactly. No arguments.
@@ -37,7 +37,7 @@ This skill dispatches that exactly. No arguments.
 
 ## When to run standalone vs as a sub-workflow step
 
-- **Sub-workflow** (the normal path): `shelf-full-sync`, `report-issue-and-sync`, and `report-mistake-and-sync` each invoke this sub-workflow as their pre-terminal step. No manual invocation needed — proposals surface automatically on any caller run that produced relevant context.
+- **Sub-workflow** (the normal path): `shelf:sync`, `kiln:report-issue`, and `kiln:mistake` each invoke this sub-workflow as their pre-terminal step. No manual invocation needed — proposals surface automatically on any caller run that produced relevant context.
 - **Standalone** (this skill): useful for testing, or when you want to reflect on an ad-hoc set of artifacts already seeded under `.wheel/outputs/`.
 
 ## Troubleshooting

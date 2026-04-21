@@ -16,7 +16,7 @@ This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-
 
 New session? Run `/resume` to auto-detect where you left off and get your next steps.
 
-First time? Run `/init` to set up kiln in an existing repo, or `/create-repo` for a brand new repo.
+First time? Run `/init` to set up kiln in an existing repo, or `/clay:create-repo` for a brand new repo.
 
 ## Build & Development
 
@@ -45,15 +45,14 @@ plugin-kiln/
 ├── .claude-plugin/
 │   ├── plugin.json          # Plugin manifest (name, version, description)
 │   └── marketplace.json     # Distribution config for Claude Code marketplace
-├── skills/                  # 28 skills — auto-discovered as /skill-name commands
+├── skills/                  # Skills — auto-discovered as /skill-name commands
 │   ├── build-prd/           # Master pipeline orchestrator (agent teams)
 │   ├── specify/,plan/,...   # Specify → Plan → Tasks → Implement → Audit workflow
-│   ├── debug*/              # Bug fix loop (diagnose → fix → verify)
+│   ├── fix/                 # Bug fix loop (diagnose → fix → verify, inline)
 │   ├── qa-*/                # QA testing (setup, checkpoint, final, live pass)
 │   ├── ux-evaluate/         # UI/UX design review
 │   ├── init/                # Add kiln to existing repo
-│   ├── resume/              # Session pickup — detect in-progress work
-│   └── create-repo/         # New GitHub repo with kiln pre-configured
+│   └── next/                # Session pickup — detect in-progress work
 ├── agents/                  # 7 agents — spawned as team members
 │   ├── qa-engineer.md       # Visual QA with Playwright + /chrome (3 modes)
 │   ├── ux-evaluator.md      # Design review (heuristics, a11y, visual, interaction)
@@ -186,8 +185,8 @@ If a hook blocks you, either:
 
 ### Project Setup
 - `/init` — Add kiln to an existing repo
-- `/resume` — Pick up where you left off (run at start of every session)
-- `/create-repo` — Create a brand new GitHub repo with kiln
+- `/next` — Pick up where you left off (run at start of every session)
+- `/clay:create-repo` — Create a brand new GitHub repo with kiln
 
 ### Kiln Workflow (run in this order)
 1. `/specify` — Create a feature spec
@@ -197,9 +196,7 @@ If a hook blocks you, either:
 5. `/audit` — PRD compliance audit (also runs inside implement)
 
 ### Debugging (no spec required)
-- `/fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number.
-- `/debug-diagnose` — Classify an issue and collect diagnostics (used by `/fix`)
-- `/debug-fix` — Apply a fix and verify it (used by `/fix`)
+- `/fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Diagnose and fix logic are now inline in `/fix`.
 
 ### QA (two workflows — same 4-agent team, different reporter mode)
 - `/qa-pass` — **Standalone**. 4-agent team (e2e + chrome + ux + reporter). Findings filed as GitHub issues. Use outside the pipeline.

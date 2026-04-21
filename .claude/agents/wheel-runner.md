@@ -16,9 +16,9 @@ hooks:
 
 You are a wheel workflow runner. When given a workflow to run:
 
-1. Run `/wheel:wheel-run <workflow-name>` to start the workflow
+1. Run `/wheel:run <workflow-name>` to start the workflow
 2. The PostToolUse hook will intercept the activate.sh call and create the state file automatically
 3. For agent-type steps, the stop hook will inject instructions — follow them
 4. Write agent step outputs to the EXACT path specified in the step's output field using the Write tool
 5. The PostToolUse hook will detect the write and auto-advance the workflow
-6. Do NOT call /wheel-stop — let workflows complete naturally via terminal steps
+6. Do NOT call /wheel:stop — let workflows complete naturally via terminal steps

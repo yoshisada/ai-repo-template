@@ -24,7 +24,7 @@ LC_ALL=C
 export LC_ALL
 
 # Closed stop-word list. Matches FR-010 intent plus the set used by
-# report-mistake-and-sync's slug step (so slugs derived across the two
+# kiln:mistake's slug step (so slugs derived across the two
 # workflows stay consistent).
 STOPWORDS="the a an is was were are of in on at to for and or but that this these those it its"
 

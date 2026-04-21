@@ -3,13 +3,13 @@
 # Contract: specs/shelf-sync-efficiency/contracts/interfaces.md §7
 #
 # Reads compute-work-list.json and obsidian-apply-results.json and emits
-# the terminal summary markdown at .wheel/outputs/shelf-full-sync-summary.md
+# the terminal summary markdown at .wheel/outputs/sync-summary.md
 # with five sections in the required order: Issues, Docs, Tags, Progress,
 # Errors. Shape MUST stay byte-compatible with v3 (FR-005/SC-006).
 
 set -euo pipefail
 
-OUT=".wheel/outputs/shelf-full-sync-summary.md"
+OUT=".wheel/outputs/sync-summary.md"
 WL=".wheel/outputs/compute-work-list.json"
 AR=".wheel/outputs/obsidian-apply-results.json"
 

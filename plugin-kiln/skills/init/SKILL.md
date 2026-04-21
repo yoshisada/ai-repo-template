@@ -5,7 +5,7 @@ description: "Initialize an existing repo with kiln. Installs the plugin, scaffo
 
 # Init — Add Kiln to an Existing Repo
 
-Install kiln into an existing project. Unlike `/create-repo` (which creates a brand new GitHub repo), this is for projects that already exist and want to adopt spec-first development.
+Install kiln into an existing project. Unlike `/clay:create-repo` (which creates a brand new GitHub repo), this is for projects that already exist and want to adopt spec-first development.
 
 ```text
 $ARGUMENTS

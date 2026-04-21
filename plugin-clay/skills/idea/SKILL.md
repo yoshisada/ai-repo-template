@@ -133,21 +133,21 @@ Based on the user's confirmed choice:
 
 Run the full new-product pipeline in sequence. Ask for confirmation before each step:
 
-1. **Run `/idea-research`** with the user's idea description
+1. **Run `/clay:idea-research`** with the user's idea description
    - After research completes, ask: "Research complete. Ready to move on to naming? (yes/no)"
-2. **Run `/project-naming`** if user confirms
+2. **Run `/clay:project-naming`** if user confirms
    - After naming completes, ask: "Naming complete. Ready to create the PRD? (yes/no)"
-3. **Run `/create-prd`** if user confirms
+3. **Run `/clay:new-product`** if user confirms
 
 The user can stop at any point. Each step is optional after the first.
 
 ### Route: "Add to existing product"
 
-Run `/create-prd` targeting the matched product:
+Run `/clay:new-product` targeting the matched product:
 
 > Adding a feature to **<product-name>** (`products/<slug>/`).
 
-Run `/create-prd` in Mode C (feature addition) for the matched product slug. This creates a feature PRD under `products/<slug>/features/`.
+Run `/clay:new-product` in Mode C (feature addition) for the matched product slug. This creates a feature PRD under `products/<slug>/features/`.
 
 ### Route: "Work in existing repo"
 
@@ -161,7 +161,7 @@ Suggest the user open the existing repo:
 > ```
 >
 > Once in the repo, you can:
-> - Run `/build-prd` to start a full build from a PRD
+> - Run `/kiln:build-prd` to start a full build from a PRD
 > - Run `/clay:idea` there to explore sub-ideas within that project
 >
 > Repo URL: <repo-url>
@@ -170,4 +170,4 @@ Do NOT automatically `cd` or run commands in the other repo. Just suggest.
 
 ### Route: "Similar but distinct"
 
-Proceed as "New product" — the user has acknowledged the overlap and wants a separate product anyway. Follow the same pipeline: `/idea-research` → `/project-naming` → `/create-prd`.
+Proceed as "New product" — the user has acknowledged the overlap and wants a separate product anyway. Follow the same pipeline: `/clay:idea-research` → `/clay:project-naming` → `/clay:new-product`.
