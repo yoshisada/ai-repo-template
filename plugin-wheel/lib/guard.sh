@@ -31,10 +31,12 @@ resolve_state_file() {
 
   # Scan state files and match on owner fields
   # FR-011/FR-013: When parent and child share the same ownership (workflow composition),
-  # prefer the deepest child (has parent_workflow set) since it's the active one.
+  # resolve to the deepest descendant by walking the parent_workflow chain — the leaf
+  # is the active workflow. A single-level preference (has parent vs not) is not enough
+  # because a grandchild and its child both have parent_workflow set, and glob ordering
+  # is nondeterministic (filenames embed ${date}_${RANDOM}).
   local sf
-  local matched_file=""
-  local matched_is_child=false
+  local -a candidates=()
   for sf in "${state_dir}"/state_*.json; do
     [[ -f "$sf" ]] || continue
     local owner_sid owner_aid
@@ -54,22 +56,35 @@ resolve_state_file() {
     fi
 
     if [[ "$id_match" == true ]]; then
-      local has_parent
-      has_parent=$(jq -r '.parent_workflow // empty' "$sf" 2>/dev/null)
-      if [[ -n "$has_parent" ]]; then
-        matched_file="$sf"
-        matched_is_child=true
-      elif [[ "$matched_is_child" == false ]]; then
-        matched_file="$sf"
-      fi
+      candidates+=("$sf")
     fi
   done
 
-  if [[ -n "$matched_file" ]]; then
-    printf '%s\n' "$matched_file"
-    return 0
+  if [[ ${#candidates[@]} -eq 0 ]]; then
+    return 1
   fi
 
-  # No state file for this agent — pass through
-  return 1
+  # Pick the leaf: a candidate whose path is not referenced as parent_workflow by
+  # any other candidate. In a well-formed chain there is exactly one leaf.
+  local c1 c2 c2_parent is_leaf
+  for c1 in "${candidates[@]}"; do
+    is_leaf=true
+    for c2 in "${candidates[@]}"; do
+      [[ "$c1" == "$c2" ]] && continue
+      c2_parent=$(jq -r '.parent_workflow // empty' "$c2" 2>/dev/null) || true
+      if [[ "$c2_parent" == "$c1" ]]; then
+        is_leaf=false
+        break
+      fi
+    done
+    if [[ "$is_leaf" == true ]]; then
+      printf '%s\n' "$c1"
+      return 0
+    fi
+  done
+
+  # Fallback — no leaf found (should not happen for well-formed state). Return the
+  # deepest-by-chain-walk candidate instead of silently passing through.
+  printf '%s\n' "${candidates[-1]}"
+  return 0
 }
