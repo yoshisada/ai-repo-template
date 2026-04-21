@@ -171,7 +171,7 @@
 ### Verification
 
 - [X] **T-021** Run command-shape grep within `plugin-trim/` for old bare skill names — expect zero live hits.
-- [ ] **T-022** Commit Phase T with message `refactor(trim): prefix first-class skills with trim- (FR-001)`.
+- [X] **T-022** Commit Phase T with message `refactor(trim): prefix first-class skills with trim- (FR-001)`.
 
 ---
 
