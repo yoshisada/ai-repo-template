@@ -1,5 +1,5 @@
 ---
-name: init
+name: trim-init
 description: Initialize trim for a project. Discovers Penpot files via MCP, creates .trim/config, and scans existing components for initial mappings.
 ---
 
@@ -13,7 +13,7 @@ Set up trim for this project by discovering available Penpot files via MCP, sele
 $ARGUMENTS
 ```
 
-Optional: Penpot file ID to skip discovery (e.g., `trim:init abc123-def456`).
+Optional: Penpot file ID to skip discovery (e.g., `trim:trim-init abc123-def456`).
 
 ## Steps
 
@@ -78,7 +78,7 @@ File: "New Project" (file_id: def456)
 Pages:
   - Page 1 (empty)
 
-Status: Blank file — ready for design-first workflow or /trim:push.
+Status: Blank file — ready for design-first workflow or /trim:trim-push.
 ```
 
 ### 4. Write Configuration
@@ -89,7 +89,7 @@ Write `.trim/config` with the discovered values. **No project_id required** — 
 mkdir -p .trim
 cat > .trim/config << TRIMCFG
 # Trim configuration — maps this repo to its Penpot file
-# Run /trim:init to update
+# Run /trim:trim-init to update
 
 # Penpot file UUID (required)
 penpot_file_id = ${FILE_ID}
@@ -111,7 +111,7 @@ If the Penpot file has existing components, scan them and create initial `.trim/
 
 For each Penpot component found via MCP:
 - Record: `penpot_component_id`, `penpot_component_name`
-- Leave `code_path` as `null` (unmapped — user runs `/trim:pull` or manually maps)
+- Leave `code_path` as `null` (unmapped — user runs `/trim:trim-pull` or manually maps)
 - Set `last_synced` to now
 - Set `sync_direction` to `"discovered"`
 
@@ -138,10 +138,10 @@ Trim initialized.
   Mappings:        .trim/components.json
 
 Next steps:
-  - File is blank?     → /trim:design to generate a design from your PRD
-  - File has designs?  → /trim:pull to generate code from Penpot
-  - Have code already? → /trim:push to push components to Penpot
-  - Want to check?     → /trim:diff to compare code vs design
+  - File is blank?     → /trim:trim-design to generate a design from your PRD
+  - File has designs?  → /trim:trim-pull to generate code from Penpot
+  - Have code already? → /trim:trim-push to push components to Penpot
+  - Want to check?     → /trim:trim-diff to compare code vs design
 ```
 
 ## Rules

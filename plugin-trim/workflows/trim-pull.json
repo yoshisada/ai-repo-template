@@ -1,11 +1,11 @@
 {
-  "name": "pull",
+  "name": "trim-pull",
   "version": "1.0.0",
   "steps": [
     {
       "id": "read-config",
       "type": "command",
-      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim:init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
+      "command": "if [ ! -f .trim/config ]; then echo 'ERROR: .trim/config not found — run /trim:trim-init first'; exit 1; fi; while IFS='=' read -r key val; do key=$(echo \"$key\" | tr -d ' '); val=$(echo \"$val\" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'); [[ \"$key\" =~ ^#.*$ || -z \"$key\" ]] && continue; echo \"$key=$val\"; done < .trim/config",
       "output": ".wheel/outputs/read-config.txt"
     },
     {

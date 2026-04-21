@@ -1,5 +1,5 @@
 ---
-name: library
+name: trim-library
 description: Manage the bidirectional component library. Lists all tracked components with sync status, or syncs drifted components when called with 'sync'.
 ---
 
@@ -22,7 +22,7 @@ $ARGUMENTS
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -42,7 +42,7 @@ COMP_FILE=$(grep '^components_file=' .trim/config 2>/dev/null | cut -d= -f2 | tr
 COMP_FILE=${COMP_FILE:-.trim/components.json}
 
 if [ ! -f "$COMP_FILE" ] || [ "$(cat "$COMP_FILE")" = "[]" ]; then
-  echo "No components tracked yet. Run /trim:pull or /trim:push to start tracking."
+  echo "No components tracked yet. Run /trim:trim-pull or /trim:trim-push to start tracking."
   exit 0
 fi
 
@@ -60,8 +60,8 @@ Component Library — {N} components tracked
   Header            src/components/Header.tsx         Header               2026-04-09T11:30:00Z     push
   ...
 
-Next: Run /trim:library sync to auto-sync drifted components,
-      or /trim:diff for a detailed drift report.
+Next: Run /trim:trim-library sync to auto-sync drifted components,
+      or /trim:trim-diff for a detailed drift report.
 ```
 
 ### 3b. Sync Mode (`sync` arg)

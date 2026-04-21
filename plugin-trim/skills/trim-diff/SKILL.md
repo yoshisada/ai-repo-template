@@ -1,5 +1,5 @@
 ---
-name: diff
+name: trim-diff
 description: Compare Penpot designs against code and report drift. Categorizes mismatches as code-only, design-only, style-divergence, or layout-difference with actionable suggestions.
 ---
 
@@ -21,7 +21,7 @@ Optional: component name to diff. If omitted, checks all tracked components in `
 
 ```bash
 if [ ! -f .trim/config ]; then
-  echo "ERROR: No .trim/config found. Run /trim:init first to connect to your Penpot project."
+  echo "ERROR: No .trim/config found. Run /trim:trim-init first to connect to your Penpot project."
   exit 1
 fi
 ```
@@ -31,7 +31,7 @@ fi
 Delegate to the diff wheel workflow:
 
 ```
-/wheel:run trim:diff
+/wheel:run trim:trim-diff
 ```
 
 The workflow executes these steps in order:
@@ -51,8 +51,8 @@ Drift Report for {project}
   Components Checked: {N}
 
   In Sync:          {N}
-  Code-only:        {N} — run /trim:push to create in Penpot
-  Design-only:      {N} — run /trim:pull to generate code
+  Code-only:        {N} — run /trim:trim-push to create in Penpot
+  Design-only:      {N} — run /trim:trim-pull to generate code
   Style Divergence:  {N} — pull or push to resolve
   Layout Difference: {N} — manual review recommended
 

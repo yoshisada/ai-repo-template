@@ -1,5 +1,5 @@
 {
-  "name": "verify",
+  "name": "trim-verify",
   "version": "1.0.0",
   "steps": [
     {

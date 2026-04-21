@@ -112,25 +112,25 @@
 
 ### Rename directories + update frontmatter
 
-- [ ] **C-001** `git mv` plugin-clay/skills/create-repo → plugin-clay/skills/clay-create-repo; update frontmatter `name: clay-create-repo`
-- [ ] **C-002** `git mv` plugin-clay/skills/idea → plugin-clay/skills/clay-idea; update frontmatter `name: clay-idea`
-- [ ] **C-003** `git mv` plugin-clay/skills/idea-research → plugin-clay/skills/clay-idea-research; update frontmatter `name: clay-idea-research`
-- [ ] **C-004** `git mv` plugin-clay/skills/list → plugin-clay/skills/clay-list; update frontmatter `name: clay-list`
-- [ ] **C-005** `git mv` plugin-clay/skills/new-product → plugin-clay/skills/clay-new-product; update frontmatter `name: clay-new-product`
-- [ ] **C-006** `git mv` plugin-clay/skills/project-naming → plugin-clay/skills/clay-project-naming; update frontmatter `name: clay-project-naming`
+- [X] **C-001** `git mv` plugin-clay/skills/create-repo → plugin-clay/skills/clay-create-repo; update frontmatter `name: clay-create-repo`
+- [X] **C-002** `git mv` plugin-clay/skills/idea → plugin-clay/skills/clay-idea; update frontmatter `name: clay-idea`
+- [X] **C-003** `git mv` plugin-clay/skills/idea-research → plugin-clay/skills/clay-idea-research; update frontmatter `name: clay-idea-research`
+- [X] **C-004** `git mv` plugin-clay/skills/list → plugin-clay/skills/clay-list; update frontmatter `name: clay-list`
+- [X] **C-005** `git mv` plugin-clay/skills/new-product → plugin-clay/skills/clay-new-product; update frontmatter `name: clay-new-product`
+- [X] **C-006** `git mv` plugin-clay/skills/project-naming → plugin-clay/skills/clay-project-naming; update frontmatter `name: clay-project-naming`
 
 ### Workflow JSON alignment (FR-004)
 
-- [ ] **C-007** Inspect `plugin-clay/workflows/sync.json`: read its internal `name` / `activate_name`, grep for references. If it corresponds to a clay skill, rename accordingly. If not (there is no `clay-sync` skill), KEEP filename as-is. Document the outcome in the commit message.
+- [X] **C-007** Inspect `plugin-clay/workflows/sync.json`: read its internal `name` / `activate_name`, grep for references. If it corresponds to a clay skill, rename accordingly. If not (there is no `clay-sync` skill), KEEP filename as-is. Document the outcome in the commit message. [Verified: internal name="sync", no activate_name, no clay-sync skill exists — filename KEPT as sync.json.]
 
 ### In-plugin cross-reference sweep
 
-- [ ] **C-008** Grep `plugin-clay/` for old bare skill names in command-shape (`create-repo`, `idea`, `idea-research`, `list`, `new-product`, `project-naming`); rewrite to prefixed forms.
-- [ ] **C-009** Grep `plugin-clay/agents/`, `plugin-clay/hooks/`, `plugin-clay/templates/`, `plugin-clay/scripts/` (whichever exist) for old bare skill names in command-shape; update.
+- [X] **C-008** Grep `plugin-clay/` for old bare skill names in command-shape (`create-repo`, `idea`, `idea-research`, `list`, `new-product`, `project-naming`); rewrite to prefixed forms.
+- [X] **C-009** Grep `plugin-clay/agents/`, `plugin-clay/hooks/`, `plugin-clay/templates/`, `plugin-clay/scripts/` (whichever exist) for old bare skill names in command-shape; update. [N/A: none of those directories exist in plugin-clay.]
 
 ### Verification
 
-- [ ] **C-010** Run command-shape grep within `plugin-clay/` for old bare skill names — expect zero live hits.
+- [X] **C-010** Run command-shape grep within `plugin-clay/` for old bare skill names — expect zero live hits. [Verified zero hits.]
 - [ ] **C-011** Commit Phase C with message `refactor(clay): prefix first-class skills with clay- (FR-001)`.
 
 ---
@@ -141,36 +141,36 @@
 
 ### Rename directories + update frontmatter
 
-- [ ] **T-001** `git mv` plugin-trim/skills/design → plugin-trim/skills/trim-design; update frontmatter `name: trim-design`
-- [ ] **T-002** `git mv` plugin-trim/skills/diff → plugin-trim/skills/trim-diff; update frontmatter `name: trim-diff`
-- [ ] **T-003** `git mv` plugin-trim/skills/edit → plugin-trim/skills/trim-edit; update frontmatter `name: trim-edit`
-- [ ] **T-004** `git mv` plugin-trim/skills/flows → plugin-trim/skills/trim-flows; update frontmatter `name: trim-flows`
-- [ ] **T-005** `git mv` plugin-trim/skills/init → plugin-trim/skills/trim-init; update frontmatter `name: trim-init`
-- [ ] **T-006** `git mv` plugin-trim/skills/library → plugin-trim/skills/trim-library; update frontmatter `name: trim-library`
-- [ ] **T-007** `git mv` plugin-trim/skills/pull → plugin-trim/skills/trim-pull; update frontmatter `name: trim-pull`
-- [ ] **T-008** `git mv` plugin-trim/skills/push → plugin-trim/skills/trim-push; update frontmatter `name: trim-push`
-- [ ] **T-009** `git mv` plugin-trim/skills/redesign → plugin-trim/skills/trim-redesign; update frontmatter `name: trim-redesign`
-- [ ] **T-010** `git mv` plugin-trim/skills/verify → plugin-trim/skills/trim-verify; update frontmatter `name: trim-verify`
+- [X] **T-001** `git mv` plugin-trim/skills/design → plugin-trim/skills/trim-design; update frontmatter `name: trim-design`
+- [X] **T-002** `git mv` plugin-trim/skills/diff → plugin-trim/skills/trim-diff; update frontmatter `name: trim-diff`
+- [X] **T-003** `git mv` plugin-trim/skills/edit → plugin-trim/skills/trim-edit; update frontmatter `name: trim-edit`
+- [X] **T-004** `git mv` plugin-trim/skills/flows → plugin-trim/skills/trim-flows; update frontmatter `name: trim-flows`
+- [X] **T-005** `git mv` plugin-trim/skills/init → plugin-trim/skills/trim-init; update frontmatter `name: trim-init`
+- [X] **T-006** `git mv` plugin-trim/skills/library → plugin-trim/skills/trim-library; update frontmatter `name: trim-library`
+- [X] **T-007** `git mv` plugin-trim/skills/pull → plugin-trim/skills/trim-pull; update frontmatter `name: trim-pull`
+- [X] **T-008** `git mv` plugin-trim/skills/push → plugin-trim/skills/trim-push; update frontmatter `name: trim-push`
+- [X] **T-009** `git mv` plugin-trim/skills/redesign → plugin-trim/skills/trim-redesign; update frontmatter `name: trim-redesign`
+- [X] **T-010** `git mv` plugin-trim/skills/verify → plugin-trim/skills/trim-verify; update frontmatter `name: trim-verify`
 
 ### Workflow JSON alignment (FR-004)
 
-- [ ] **T-011** `git mv` plugin-trim/workflows/design.json → plugin-trim/workflows/trim-design.json; update internal fields
-- [ ] **T-012** `git mv` plugin-trim/workflows/diff.json → plugin-trim/workflows/trim-diff.json; update internal fields
-- [ ] **T-013** `git mv` plugin-trim/workflows/edit.json → plugin-trim/workflows/trim-edit.json; update internal fields
-- [ ] **T-014** `git mv` plugin-trim/workflows/pull.json → plugin-trim/workflows/trim-pull.json; update internal fields
-- [ ] **T-015** `git mv` plugin-trim/workflows/push.json → plugin-trim/workflows/trim-push.json; update internal fields
-- [ ] **T-016** `git mv` plugin-trim/workflows/redesign.json → plugin-trim/workflows/trim-redesign.json; update internal fields
-- [ ] **T-017** `git mv` plugin-trim/workflows/verify.json → plugin-trim/workflows/trim-verify.json; update internal fields
-- [ ] **T-018** Leave `plugin-trim/workflows/library-sync.json` as-is (not a skill correspondence). Verify belief by reading the file and confirming.
+- [X] **T-011** `git mv` plugin-trim/workflows/design.json → plugin-trim/workflows/trim-design.json; update internal fields
+- [X] **T-012** `git mv` plugin-trim/workflows/diff.json → plugin-trim/workflows/trim-diff.json; update internal fields
+- [X] **T-013** `git mv` plugin-trim/workflows/edit.json → plugin-trim/workflows/trim-edit.json; update internal fields
+- [X] **T-014** `git mv` plugin-trim/workflows/pull.json → plugin-trim/workflows/trim-pull.json; update internal fields
+- [X] **T-015** `git mv` plugin-trim/workflows/push.json → plugin-trim/workflows/trim-push.json; update internal fields
+- [X] **T-016** `git mv` plugin-trim/workflows/redesign.json → plugin-trim/workflows/trim-redesign.json; update internal fields
+- [X] **T-017** `git mv` plugin-trim/workflows/verify.json → plugin-trim/workflows/trim-verify.json; update internal fields
+- [X] **T-018** Leave `plugin-trim/workflows/library-sync.json` as-is (not a skill correspondence). Verify belief by reading the file and confirming.
 
 ### In-plugin cross-reference sweep
 
-- [ ] **T-019** Grep `plugin-trim/` for old bare skill names in command-shape (`design`, `diff`, `edit`, `flows`, `init`, `library`, `pull`, `push`, `redesign`, `verify`); rewrite to prefixed forms.
-- [ ] **T-020** Grep `plugin-trim/agents/`, `plugin-trim/hooks/`, `plugin-trim/templates/`, `plugin-trim/scripts/` (whichever exist) for old bare skill names in command-shape; update.
+- [X] **T-019** Grep `plugin-trim/` for old bare skill names in command-shape (`design`, `diff`, `edit`, `flows`, `init`, `library`, `pull`, `push`, `redesign`, `verify`); rewrite to prefixed forms.
+- [X] **T-020** Grep `plugin-trim/agents/`, `plugin-trim/hooks/`, `plugin-trim/templates/`, `plugin-trim/scripts/` (whichever exist) for old bare skill names in command-shape; update.
 
 ### Verification
 
-- [ ] **T-021** Run command-shape grep within `plugin-trim/` for old bare skill names — expect zero live hits.
+- [X] **T-021** Run command-shape grep within `plugin-trim/` for old bare skill names — expect zero live hits.
 - [ ] **T-022** Commit Phase T with message `refactor(trim): prefix first-class skills with trim- (FR-001)`.
 
 ---
