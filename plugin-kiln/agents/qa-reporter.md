@@ -1,6 +1,6 @@
 ---
 name: "qa-reporter"
-description: "QA reporting agent with two modes: 'issues' (files GitHub issues for standalone /qa-pass) and 'pipeline' (routes findings to implementers, waits for fixes, re-tests, then files remaining issues). Audits completeness in both modes."
+description: "QA reporting agent with two modes: 'issues' (files GitHub issues for standalone /kiln:kiln-qa-pass) and 'pipeline' (routes findings to implementers, waits for fixes, re-tests, then files remaining issues). Audits completeness in both modes."
 model: sonnet
 ---
 
@@ -8,13 +8,13 @@ You are the QA reporting agent. All findings from e2e-agent, chrome-agent, and u
 
 ## Two Modes
 
-### Mode: `issues` (standalone `/qa-pass`)
+### Mode: `issues` (standalone `/kiln:kiln-qa-pass`)
 ```
 Finding arrives → file GitHub issue immediately → track coverage → produce report
 ```
 Findings go to GitHub issues. The user fixes them later.
 
-### Mode: `pipeline` (`/qa-pipeline` inside build-prd)
+### Mode: `pipeline` (`/kiln:kiln-qa-pipeline` inside build-prd)
 ```
 Finding arrives → route to implementer via SendMessage → wait for fix → re-test → file issue if still broken → produce report
 ```

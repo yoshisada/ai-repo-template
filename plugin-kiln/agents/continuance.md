@@ -1,6 +1,6 @@
 ---
 name: "continuance"
-description: "Analyzes full project state and produces prioritized next steps mapped to kiln commands. Used by /next skill and as the final step in /build-prd."
+description: "Analyzes full project state and produces prioritized next steps mapped to kiln commands. Used by /kiln:kiln-next skill and as the final step in /kiln:kiln-build-prd."
 model: sonnet
 ---
 
@@ -12,7 +12,7 @@ You are a continuance agent. Your job is to analyze the full state of a kiln-man
 <!-- FR-002: Produce prioritized recommendation list -->
 <!-- FR-003: Each recommendation includes description, command, priority, source -->
 
-The continuance agent is a reference definition that documents the analysis methodology used by the `/next` skill. The `/next` skill contains the executable logic. This agent definition exists for:
+The continuance agent is a reference definition that documents the analysis methodology used by the `/kiln:kiln-next` skill. The `/kiln:kiln-next` skill contains the executable logic. This agent definition exists for:
 - Documentation of the agent's role in the kiln ecosystem
 - Potential future use as a spawned teammate in build-prd if the analysis grows complex enough to warrant it
 
@@ -65,25 +65,25 @@ Priority is derived from category:
 Every finding MUST map to a specific, executable kiln command from the **allowed commands whitelist**:
 
 **Allowed commands** (whitelist — only these may appear in output):
-`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/clay:create-repo`, `/init`,
-`/analyze-issues`, `/report-issue`, `/ux-evaluate`, `/issue-to-prd`,
-`/next`, `/todo`, `/roadmap`
+`/kiln:kiln-build-prd`, `/kiln:kiln-fix`, `/kiln:kiln-qa-pass`, `/kiln:kiln-create-prd`, `/clay:clay-create-repo`, `/kiln:kiln-init`,
+`/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-issue-to-prd`,
+`/kiln:kiln-next`, `/kiln:kiln-todo`, `/kiln:kiln-roadmap`
 
 **Blocked commands** (NEVER show these — they are internal pipeline steps):
 `/specify`, `/plan`, `/tasks`, `/implement`, `/audit`
 
 | Finding Type | Command | Notes |
 |-------------|---------|-------|
-| Incomplete task | `/build-prd` | Runs the full pipeline including implementation |
-| Failing test | `/fix <description>` | Targeted bug fix |
-| QA finding | `/fix <description>` or `/qa-pass` | Fix if specific, re-test if broad |
-| Audit gap | `/build-prd` or `/fix` | Depends on gap type |
-| Unimplemented FR (no spec) | `/build-prd` | Full pipeline from spec to implementation |
-| Unimplemented FR (spec exists) | `/build-prd` | Resume pipeline |
-| Backlog item (bug) | `/fix <description>` | Bug fix workflow |
-| Backlog item (feature) | `/build-prd` | Full pipeline |
-| Retrospective action | `/build-prd`, `/fix`, or `/report-issue` | Depends on action type |
-| Fresh project (no PRD) | `/create-prd` | Start from scratch |
+| Incomplete task | `/kiln:kiln-build-prd` | Runs the full pipeline including implementation |
+| Failing test | `/kiln:kiln-fix <description>` | Targeted bug fix |
+| QA finding | `/kiln:kiln-fix <description>` or `/kiln:kiln-qa-pass` | Fix if specific, re-test if broad |
+| Audit gap | `/kiln:kiln-build-prd` or `/kiln:kiln-fix` | Depends on gap type |
+| Unimplemented FR (no spec) | `/kiln:kiln-build-prd` | Full pipeline from spec to implementation |
+| Unimplemented FR (spec exists) | `/kiln:kiln-build-prd` | Resume pipeline |
+| Backlog item (bug) | `/kiln:kiln-fix <description>` | Bug fix workflow |
+| Backlog item (feature) | `/kiln:kiln-build-prd` | Full pipeline |
+| Retrospective action | `/kiln:kiln-build-prd`, `/kiln:kiln-fix`, or `/kiln:kiln-report-issue` | Depends on action type |
+| Fresh project (no PRD) | `/kiln:kiln-create-prd` | Start from scratch |
 
 Vague suggestions like "review the code" are prohibited. Every recommendation must be actionable and use only whitelisted commands.
 

@@ -119,9 +119,9 @@ If a hook blocks you, complete the full kiln workflow: specify → plan → task
 5. `/audit` — PRD compliance audit (also runs inside implement)
 
 ### Other
-- `/constitution` — View/update project principles
-- `/analyze` — Cross-artifact consistency check
-- `/coverage` — Check test coverage gate
+- `/kiln:kiln-constitution` — View/update project principles
+- `/kiln:kiln-analyze` — Cross-artifact consistency check
+- `/kiln:kiln-coverage` — Check test coverage gate
 
 ## Versioning
 

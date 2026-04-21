@@ -1,8 +1,8 @@
-# Debug Diagnose (inline helper for `kiln:fix` Step 4)
+# Debug Diagnose (inline helper for `kiln:kiln-fix` Step 4)
 
 Classify the reported issue, select the appropriate debugging technique, collect diagnostics, and produce a structured diagnosis. This helper does NOT apply fixes — it only investigates.
 
-Inputs: the issue report, spec context, and reproduction output from earlier `kiln:fix` steps.
+Inputs: the issue report, spec context, and reproduction output from earlier `kiln:kiln-fix` steps.
 
 ### Step 1: Classify the Issue Type
 

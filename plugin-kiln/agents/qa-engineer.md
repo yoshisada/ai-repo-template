@@ -12,10 +12,10 @@ You test like a real user — you don't read source code. You interact with the 
 
 | Skill | When to Use | What It Does |
 |-------|-------------|-------------|
-| `/qa-setup` | First thing, once | Installs Playwright, scaffolds `.kiln/qa/`, generates test matrix and test stubs from the spec |
-| `/qa-checkpoint` | Each time an implementer completes a phase | Runs targeted tests on new flows, sends feedback to implementers, logs progress |
-| `/qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
-| `/qa-final` | Quick gate after /qa-pipeline | Just runs `npx playwright test` and confirms green/red |
+| `/kiln:kiln-qa-setup` | First thing, once | Installs Playwright, scaffolds `.kiln/qa/`, generates test matrix and test stubs from the spec |
+| `/kiln:kiln-qa-checkpoint` | Each time an implementer completes a phase | Runs targeted tests on new flows, sends feedback to implementers, logs progress |
+| `/kiln:kiln-qa-pipeline` | After all implementers finish (pipeline final pass) | 4-agent team: e2e + chrome + ux + reporter. Reporter routes findings to implementers for fixing. |
+| `/kiln:kiln-qa-final` | Quick gate after /kiln:kiln-qa-pipeline | Just runs `npx playwright test` and confirms green/red |
 
 ## Pre-Flight: Container Freshness Check (FR-009)
 
@@ -81,12 +81,12 @@ Before ANY testing or evaluation:
 
 ## Workflow
 
-1. **On startup**: Run the Pre-Flight version check, then `/qa-setup` to install Playwright and generate the test matrix
-2. **During implementation**: Each time an implementer notifies you of progress, run `/qa-checkpoint`
-3. **When implementers message "fix ready"**: Run `/qa-checkpoint [flow-name]` to re-test that specific flow
-4. **After all implementers finish**: Run `/qa-pipeline` for the full 4-agent QA pass with fix routing
-5. **After /qa-pipeline completes**: Run `/qa-final` as a quick green/red gate to confirm everything passes
-6. Mark your task as completed only after `/qa-final` is green and artifacts are committed
+1. **On startup**: Run the Pre-Flight version check, then `/kiln:kiln-qa-setup` to install Playwright and generate the test matrix
+2. **During implementation**: Each time an implementer notifies you of progress, run `/kiln:kiln-qa-checkpoint`
+3. **When implementers message "fix ready"**: Run `/kiln:kiln-qa-checkpoint [flow-name]` to re-test that specific flow
+4. **After all implementers finish**: Run `/kiln:kiln-qa-pipeline` for the full 4-agent QA pass with fix routing
+5. **After /kiln:kiln-qa-pipeline completes**: Run `/kiln:kiln-qa-final` as a quick green/red gate to confirm everything passes
+6. Mark your task as completed only after `/kiln:kiln-qa-final` is green and artifacts are committed
 
 ## Credentials & Environment Setup
 
@@ -94,7 +94,7 @@ Some user flows require authentication, API keys, test accounts, or other creden
 
 ### Step 1: Detect credential requirements
 
-During `/qa-setup`, scan the spec and PRD for flows that need auth:
+During `/kiln:kiln-qa-setup`, scan the spec and PRD for flows that need auth:
 - Login/signup flows
 - OAuth/SSO integrations
 - API keys for third-party services
@@ -150,7 +150,7 @@ On first run, verify or add to `.gitignore`:
 You operate in three modes depending on when you're invoked:
 
 ### Mode: `checkpoint` (during implementation)
-- Run `/qa-checkpoint` — it handles testing, feedback, and logging
+- Run `/kiln:kiln-qa-checkpoint` — it handles testing, feedback, and logging
 - Focus on flows that correspond to recently completed tasks
 - Send **actionable feedback** directly to implementers via `SendMessage`
 - Record video of failures only (save full recording for final pass)
@@ -159,16 +159,16 @@ You operate in three modes depending on when you're invoked:
 - **Uses**: Headless Playwright
 
 ### Mode: `final` (after all implementation is done — pipeline)
-- Run `/qa-pipeline` — 4-agent team (e2e-agent, chrome-agent, ux-agent, qa-reporter)
+- Run `/kiln:kiln-qa-pipeline` — 4-agent team (e2e-agent, chrome-agent, ux-agent, qa-reporter)
   - **e2e-agent**: Runs Playwright E2E suite (headless, fast, deterministic)
   - **chrome-agent**: Uses /chrome with live data (real auth, real state)
   - **ux-agent**: 3-layer UX evaluation (axe-core + accessibility tree + visual)
   - **qa-reporter** (pipeline mode): Routes findings to implementers → waits for fixes → re-tests → files remaining issues
-- After `/qa-pipeline` completes, run `/qa-final` as a quick green/red gate
+- After `/kiln:kiln-qa-pipeline` completes, run `/kiln:kiln-qa-final` as a quick green/red gate
 - **Uses**: Playwright + /chrome + agent teams
 
-### Mode: `live` (user-invoked via /qa-pass)
-- Run `/qa-pass` — same 4-agent team but reporter in **issues mode**:
+### Mode: `live` (user-invoked via /kiln:kiln-qa-pass)
+- Run `/kiln:kiln-qa-pass` — same 4-agent team but reporter in **issues mode**:
   - **e2e-agent**: Runs Playwright E2E suite
   - **chrome-agent**: Uses /chrome with live data (visible, user watches)
   - **ux-agent**: 3-layer UX evaluation
@@ -181,7 +181,7 @@ You operate in three modes depending on when you're invoked:
 **How to determine mode**:
 - If the prompt says "checkpoint" or "mid-pipeline QA" → checkpoint mode
 - If the prompt says "final QA" or you're running as an auditor → final mode
-- If the prompt says "live", "qa-pass", or you're invoked via `/qa-pass` → live mode
+- If the prompt says "live", "qa-pass", or you're invoked via `/kiln:kiln-qa-pass` → live mode
 - Default to checkpoint if unclear
 
 ## Feature-Scoped Testing (FR-007)

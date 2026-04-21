@@ -12,63 +12,63 @@
 
 ### Rename directories + update frontmatter
 
-- [ ] **K-001** `git mv` plugin-kiln/skills/analyze → plugin-kiln/skills/kiln-analyze; update SKILL.md frontmatter `name: kiln-analyze`
-- [ ] **K-002** `git mv` plugin-kiln/skills/analyze-issues → plugin-kiln/skills/kiln-analyze-issues; update frontmatter `name: kiln-analyze-issues`
-- [ ] **K-003** `git mv` plugin-kiln/skills/build-prd → plugin-kiln/skills/kiln-build-prd; update frontmatter `name: kiln-build-prd`
-- [ ] **K-004** `git mv` plugin-kiln/skills/checklist → plugin-kiln/skills/kiln-checklist; update frontmatter `name: kiln-checklist`
-- [ ] **K-005** `git mv` plugin-kiln/skills/clarify → plugin-kiln/skills/kiln-clarify; update frontmatter `name: kiln-clarify`
-- [ ] **K-006** `git mv` plugin-kiln/skills/constitution → plugin-kiln/skills/kiln-constitution; update frontmatter `name: kiln-constitution`
-- [ ] **K-007** `git mv` plugin-kiln/skills/coverage → plugin-kiln/skills/kiln-coverage; update frontmatter `name: kiln-coverage`
-- [ ] **K-008** `git mv` plugin-kiln/skills/create-prd → plugin-kiln/skills/kiln-create-prd; update frontmatter `name: kiln-create-prd`
-- [ ] **K-009** `git mv` plugin-kiln/skills/fix → plugin-kiln/skills/kiln-fix; update frontmatter `name: kiln-fix`
-- [ ] **K-010** `git mv` plugin-kiln/skills/init → plugin-kiln/skills/kiln-init; update frontmatter `name: kiln-init`
-- [ ] **K-011** `git mv` plugin-kiln/skills/issue-to-prd → plugin-kiln/skills/kiln-issue-to-prd; update frontmatter `name: kiln-issue-to-prd`
-- [ ] **K-012** `git mv` plugin-kiln/skills/mistake → plugin-kiln/skills/kiln-mistake; update frontmatter `name: kiln-mistake`
-- [ ] **K-013** `git mv` plugin-kiln/skills/next → plugin-kiln/skills/kiln-next; update frontmatter `name: kiln-next`
-- [ ] **K-014** `git mv` plugin-kiln/skills/qa-audit → plugin-kiln/skills/kiln-qa-audit; update frontmatter `name: kiln-qa-audit`
-- [ ] **K-015** `git mv` plugin-kiln/skills/qa-checkpoint → plugin-kiln/skills/kiln-qa-checkpoint; update frontmatter `name: kiln-qa-checkpoint`
-- [ ] **K-016** `git mv` plugin-kiln/skills/qa-final → plugin-kiln/skills/kiln-qa-final; update frontmatter `name: kiln-qa-final`
-- [ ] **K-017** `git mv` plugin-kiln/skills/qa-pass → plugin-kiln/skills/kiln-qa-pass; update frontmatter `name: kiln-qa-pass`
-- [ ] **K-018** `git mv` plugin-kiln/skills/qa-pipeline → plugin-kiln/skills/kiln-qa-pipeline; update frontmatter `name: kiln-qa-pipeline`
-- [ ] **K-019** `git mv` plugin-kiln/skills/qa-setup → plugin-kiln/skills/kiln-qa-setup; update frontmatter `name: kiln-qa-setup`
-- [ ] **K-020** `git mv` plugin-kiln/skills/report-issue → plugin-kiln/skills/kiln-report-issue; update frontmatter `name: kiln-report-issue`
-- [ ] **K-021** `git mv` plugin-kiln/skills/reset-prd → plugin-kiln/skills/kiln-reset-prd; update frontmatter `name: kiln-reset-prd`
-- [ ] **K-022** `git mv` plugin-kiln/skills/resume → plugin-kiln/skills/kiln-resume; update frontmatter `name: kiln-resume`
-- [ ] **K-023** `git mv` plugin-kiln/skills/roadmap → plugin-kiln/skills/kiln-roadmap; update frontmatter `name: kiln-roadmap`
-- [ ] **K-024** `git mv` plugin-kiln/skills/taskstoissues → plugin-kiln/skills/kiln-taskstoissues; update frontmatter `name: kiln-taskstoissues`
-- [ ] **K-025** `git mv` plugin-kiln/skills/todo → plugin-kiln/skills/kiln-todo; update frontmatter `name: kiln-todo`
-- [ ] **K-026** `git mv` plugin-kiln/skills/ux-evaluate → plugin-kiln/skills/kiln-ux-evaluate; update frontmatter `name: kiln-ux-evaluate`
-- [ ] **K-027** `git mv` plugin-kiln/skills/version → plugin-kiln/skills/kiln-version; update frontmatter `name: kiln-version`
+- [X] **K-001** `git mv` plugin-kiln/skills/analyze → plugin-kiln/skills/kiln-analyze; update SKILL.md frontmatter `name: kiln-analyze`
+- [X] **K-002** `git mv` plugin-kiln/skills/analyze-issues → plugin-kiln/skills/kiln-analyze-issues; update frontmatter `name: kiln-analyze-issues`
+- [X] **K-003** `git mv` plugin-kiln/skills/build-prd → plugin-kiln/skills/kiln-build-prd; update frontmatter `name: kiln-build-prd`
+- [X] **K-004** `git mv` plugin-kiln/skills/checklist → plugin-kiln/skills/kiln-checklist; update frontmatter `name: kiln-checklist`
+- [X] **K-005** `git mv` plugin-kiln/skills/clarify → plugin-kiln/skills/kiln-clarify; update frontmatter `name: kiln-clarify`
+- [X] **K-006** `git mv` plugin-kiln/skills/constitution → plugin-kiln/skills/kiln-constitution; update frontmatter `name: kiln-constitution`
+- [X] **K-007** `git mv` plugin-kiln/skills/coverage → plugin-kiln/skills/kiln-coverage; update frontmatter `name: kiln-coverage`
+- [X] **K-008** `git mv` plugin-kiln/skills/create-prd → plugin-kiln/skills/kiln-create-prd; update frontmatter `name: kiln-create-prd`
+- [X] **K-009** `git mv` plugin-kiln/skills/fix → plugin-kiln/skills/kiln-fix; update frontmatter `name: kiln-fix`
+- [X] **K-010** `git mv` plugin-kiln/skills/init → plugin-kiln/skills/kiln-init; update frontmatter `name: kiln-init`
+- [X] **K-011** `git mv` plugin-kiln/skills/issue-to-prd → plugin-kiln/skills/kiln-issue-to-prd; update frontmatter `name: kiln-issue-to-prd`
+- [X] **K-012** `git mv` plugin-kiln/skills/mistake → plugin-kiln/skills/kiln-mistake; update frontmatter `name: kiln-mistake`
+- [X] **K-013** `git mv` plugin-kiln/skills/next → plugin-kiln/skills/kiln-next; update frontmatter `name: kiln-next`
+- [X] **K-014** `git mv` plugin-kiln/skills/qa-audit → plugin-kiln/skills/kiln-qa-audit; update frontmatter `name: kiln-qa-audit`
+- [X] **K-015** `git mv` plugin-kiln/skills/qa-checkpoint → plugin-kiln/skills/kiln-qa-checkpoint; update frontmatter `name: kiln-qa-checkpoint`
+- [X] **K-016** `git mv` plugin-kiln/skills/qa-final → plugin-kiln/skills/kiln-qa-final; update frontmatter `name: kiln-qa-final`
+- [X] **K-017** `git mv` plugin-kiln/skills/qa-pass → plugin-kiln/skills/kiln-qa-pass; update frontmatter `name: kiln-qa-pass`
+- [X] **K-018** `git mv` plugin-kiln/skills/qa-pipeline → plugin-kiln/skills/kiln-qa-pipeline; update frontmatter `name: kiln-qa-pipeline`
+- [X] **K-019** `git mv` plugin-kiln/skills/qa-setup → plugin-kiln/skills/kiln-qa-setup; update frontmatter `name: kiln-qa-setup`
+- [X] **K-020** `git mv` plugin-kiln/skills/report-issue → plugin-kiln/skills/kiln-report-issue; update frontmatter `name: kiln-report-issue`
+- [X] **K-021** `git mv` plugin-kiln/skills/reset-prd → plugin-kiln/skills/kiln-reset-prd; update frontmatter `name: kiln-reset-prd`
+- [X] **K-022** `git mv` plugin-kiln/skills/resume → plugin-kiln/skills/kiln-resume; update frontmatter `name: kiln-resume`
+- [X] **K-023** `git mv` plugin-kiln/skills/roadmap → plugin-kiln/skills/kiln-roadmap; update frontmatter `name: kiln-roadmap`
+- [X] **K-024** `git mv` plugin-kiln/skills/taskstoissues → plugin-kiln/skills/kiln-taskstoissues; update frontmatter `name: kiln-taskstoissues`
+- [X] **K-025** `git mv` plugin-kiln/skills/todo → plugin-kiln/skills/kiln-todo; update frontmatter `name: kiln-todo`
+- [X] **K-026** `git mv` plugin-kiln/skills/ux-evaluate → plugin-kiln/skills/kiln-ux-evaluate; update frontmatter `name: kiln-ux-evaluate`
+- [X] **K-027** `git mv` plugin-kiln/skills/version → plugin-kiln/skills/kiln-version; update frontmatter `name: kiln-version`
 
 ### No-ops (verify, do not change)
 
-- [ ] **K-028** Verify plugin-kiln/skills/audit (name: `audit`) unchanged — pipeline-internal
-- [ ] **K-029** Verify plugin-kiln/skills/implement (name: `implement`) unchanged — pipeline-internal
-- [ ] **K-030** Verify plugin-kiln/skills/plan (name: `plan`) unchanged — pipeline-internal
-- [ ] **K-031** Verify plugin-kiln/skills/specify (name: `specify`) unchanged — pipeline-internal
-- [ ] **K-032** Verify plugin-kiln/skills/tasks (name: `tasks`) unchanged — pipeline-internal
-- [ ] **K-033** Verify plugin-kiln/skills/kiln-cleanup (name: `kiln-cleanup`) unchanged — already prefixed
-- [ ] **K-034** Verify plugin-kiln/skills/kiln-doctor (name: `kiln-doctor`) unchanged — already prefixed
+- [X] **K-028** Verify plugin-kiln/skills/audit (name: `audit`) unchanged — pipeline-internal
+- [X] **K-029** Verify plugin-kiln/skills/implement (name: `implement`) unchanged — pipeline-internal
+- [X] **K-030** Verify plugin-kiln/skills/plan (name: `plan`) unchanged — pipeline-internal
+- [X] **K-031** Verify plugin-kiln/skills/specify (name: `specify`) unchanged — pipeline-internal
+- [X] **K-032** Verify plugin-kiln/skills/tasks (name: `tasks`) unchanged — pipeline-internal
+- [X] **K-033** Verify plugin-kiln/skills/kiln-cleanup (name: `kiln-cleanup`) unchanged — already prefixed
+- [X] **K-034** Verify plugin-kiln/skills/kiln-doctor (name: `kiln-doctor`) unchanged — already prefixed
 
 ### Workflow JSON alignment (FR-004)
 
-- [ ] **K-035** `git mv` plugin-kiln/workflows/mistake.json → plugin-kiln/workflows/kiln-mistake.json; update internal `name`/`activate_name` fields to `kiln-mistake` if present
-- [ ] **K-036** `git mv` plugin-kiln/workflows/report-issue.json → plugin-kiln/workflows/kiln-report-issue.json; update internal `name`/`activate_name` fields to `kiln-report-issue` if present
+- [X] **K-035** `git mv` plugin-kiln/workflows/mistake.json → plugin-kiln/workflows/kiln-mistake.json; update internal `name`/`activate_name` fields to `kiln-mistake` if present
+- [X] **K-036** `git mv` plugin-kiln/workflows/report-issue.json → plugin-kiln/workflows/kiln-report-issue.json; update internal `name`/`activate_name` fields to `kiln-report-issue` if present
 
 ### In-plugin cross-reference sweep
 
-- [ ] **K-037** Grep `plugin-kiln/` for every renamed skill's old bare name (e.g., `analyze`, `analyze-issues`, `build-prd`, `checklist`, `clarify`, `constitution`, `coverage`, `create-prd`, `fix`, `init`, `issue-to-prd`, `mistake`, `next`, `qa-audit`, `qa-checkpoint`, `qa-final`, `qa-pass`, `qa-pipeline`, `qa-setup`, `report-issue`, `reset-prd`, `resume`, `roadmap`, `taskstoissues`, `todo`, `ux-evaluate`, `version`) in command-shape (e.g., `/<name>`, `kiln:<name>`, `.claude-plugin` manifest, workflow JSON) and rewrite to new prefixed form. EXCEPTIONS: the five pipeline-internal names (`specify`, `plan`, `tasks`, `implement`, `audit`) STAY bare in every occurrence — do not rewrite these.
-- [ ] **K-038** Update plugin-kiln/skills/kiln-build-prd/SKILL.md (FR-008): ensure every internal command reference (`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`) stays bare AND every first-class command reference (`/create-prd` → `/kiln:kiln-create-prd`, `/fix` → `/kiln:kiln-fix`, etc.) is prefixed.
-- [ ] **K-039** Grep `plugin-kiln/agents/` for references to old bare skill names in command-shape; update.
-- [ ] **K-040** Grep `plugin-kiln/hooks/` for references to old bare skill names in command-shape; update.
-- [ ] **K-041** Grep `plugin-kiln/templates/` for references to old bare skill names in command-shape; update.
-- [ ] **K-042** Grep `plugin-kiln/scripts/` for references to old bare skill names in command-shape; update.
-- [ ] **K-043** Grep `plugin-kiln/scaffold/` (if present) for references to old bare skill names in command-shape; update. (Scaffold templates are what consumers see — FR-006 surface.)
+- [X] **K-037** Grep `plugin-kiln/` for every renamed skill's old bare name (e.g., `analyze`, `analyze-issues`, `build-prd`, `checklist`, `clarify`, `constitution`, `coverage`, `create-prd`, `fix`, `init`, `issue-to-prd`, `mistake`, `next`, `qa-audit`, `qa-checkpoint`, `qa-final`, `qa-pass`, `qa-pipeline`, `qa-setup`, `report-issue`, `reset-prd`, `resume`, `roadmap`, `taskstoissues`, `todo`, `ux-evaluate`, `version`) in command-shape (e.g., `/<name>`, `kiln:<name>`, `.claude-plugin` manifest, workflow JSON) and rewrite to new prefixed form. EXCEPTIONS: the five pipeline-internal names (`specify`, `plan`, `tasks`, `implement`, `audit`) STAY bare in every occurrence — do not rewrite these.
+- [X] **K-038** Update plugin-kiln/skills/kiln-build-prd/SKILL.md (FR-008): ensure every internal command reference (`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`) stays bare AND every first-class command reference (`/create-prd` → `/kiln:kiln-create-prd`, `/fix` → `/kiln:kiln-fix`, etc.) is prefixed.
+- [X] **K-039** Grep `plugin-kiln/agents/` for references to old bare skill names in command-shape; update.
+- [X] **K-040** Grep `plugin-kiln/hooks/` for references to old bare skill names in command-shape; update.
+- [X] **K-041** Grep `plugin-kiln/templates/` for references to old bare skill names in command-shape; update.
+- [X] **K-042** Grep `plugin-kiln/scripts/` for references to old bare skill names in command-shape; update.
+- [X] **K-043** Grep `plugin-kiln/scaffold/` (if present) for references to old bare skill names in command-shape; update. (Scaffold templates are what consumers see — FR-006 surface.)
 
 ### Verification
 
-- [ ] **K-044** Run `grep -rn -E '/(analyze|analyze-issues|build-prd|checklist|clarify|constitution|coverage|create-prd|fix|init|issue-to-prd|mistake|next|qa-audit|qa-checkpoint|qa-final|qa-pass|qa-pipeline|qa-setup|report-issue|reset-prd|resume|roadmap|taskstoissues|todo|ux-evaluate|version)\b' plugin-kiln/` — expect zero live hits (pipeline-internal bare forms are fine since they're not in this regex).
-- [ ] **K-045** Commit Phase K with message `refactor(kiln): prefix first-class skills with kiln- (FR-001)`.
+- [X] **K-044** Run `grep -rn -E '/(analyze|analyze-issues|build-prd|checklist|clarify|constitution|coverage|create-prd|fix|init|issue-to-prd|mistake|next|qa-audit|qa-checkpoint|qa-final|qa-pass|qa-pipeline|qa-setup|report-issue|reset-prd|resume|roadmap|taskstoissues|todo|ux-evaluate|version)\b' plugin-kiln/` — expect zero live hits (pipeline-internal bare forms are fine since they're not in this regex).
+- [X] **K-045** Commit Phase K with message `refactor(kiln): prefix first-class skills with kiln- (FR-001)`.
 
 ---
 

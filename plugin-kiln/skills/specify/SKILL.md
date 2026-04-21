@@ -169,7 +169,7 @@ Given that feature description, do this:
       
       ## Notes
       
-      - Items marked incomplete require spec updates before `/clarify` or `/plan`
+      - Items marked incomplete require spec updates before `/kiln:kiln-clarify` or `/plan`
       ```
 
    b. **Run Validation Check**: Review the spec against each checklist item:
@@ -223,7 +223,7 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/clarify` or `/plan`).
+7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/kiln:kiln-clarify` or `/plan`).
 
 8. **Check for extension hooks**: After reporting completion, check if `.specify/extensions.yml` exists in the project root.
    - If it exists, read it and look for entries under the `hooks.after_specify` key
