@@ -1,9 +1,9 @@
 ---
-name: create-prd
-description: Create PRDs from product ideas or feature requests. Asks clarifying questions, then generates structured PRD artifacts. Supports three modes — multi-product repo (products/<slug>/), new product, and feature addition. Default output is products/<slug>/. Use when the user says "create a PRD", "PRD this", "add a feature", or similar.
+name: new-product
+description: Create PRDs for a new product or feature addition. Asks clarifying questions, then generates structured PRD artifacts. Supports three modes — multi-product repo (products/<slug>/), new product, and feature addition. Default output is products/<slug>/. Use when the user says "new product", "create a PRD", "PRD this", "add a feature", or similar.
 ---
 
-# Create PRD
+# New Product — Create a PRD
 
 Transform a product idea or feature request into a clear, narrowly-scoped PRD — without drifting into architecture specs or engineering tickets.
 
@@ -24,7 +24,7 @@ Determine how to organize the output by inspecting the workspace.
 Use when:
 - A `products/` directory exists (or this is a PRD-focused repo)
 - No `docs/PRD.md` exists with real product content
-- The user explicitly says "create a PRD", "PRD this", "new product", or similar
+- The user explicitly says "new product", "create a PRD", "PRD this", or similar
 - Multiple products may coexist in this repo
 
 **Output**: 3 files in `products/<product-slug>/`
@@ -208,13 +208,13 @@ After generating the PRD artifacts:
 3. Suggest the next step based on mode:
 
 **Mode A** (product collection):
-> PRD is ready at `products/<product-slug>/`. To build this product, run `/create-repo <product-slug>` to scaffold a new repo seeded with this PRD, then `/build-prd` inside that repo.
+> PRD is ready at `products/<product-slug>/`. To build this product, run `/clay:create-repo <product-slug>` to scaffold a new repo seeded with this PRD, then `/kiln:build-prd` inside that repo.
 
 **Mode B** (single-product repo):
-> PRD is ready. To build this product, run `/build-prd` which will execute the full pipeline (specify → plan → tasks → implement → audit → PR).
+> PRD is ready. To build this product, run `/kiln:build-prd` which will execute the full pipeline (specify → plan → tasks → implement → audit → PR).
 
 **Mode C** (feature addition):
-> Feature PRD is ready. To build this feature, run `/build-prd <feature-slug>` to execute the full pipeline against this feature PRD.
+> Feature PRD is ready. To build this feature, run `/kiln:build-prd <feature-slug>` to execute the full pipeline against this feature PRD.
 
 ## Do Not Overwrite
 

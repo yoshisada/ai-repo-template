@@ -1,5 +1,5 @@
 ---
-name: clay-list
+name: list
 description: List all products under products/ with their pipeline status (idea, researched, named, PRD-created, repo-created).
 ---
 
@@ -37,7 +37,7 @@ Set a flag `HAS_CLAY_CONFIG` to true/false based on whether the file was found a
 
 For each product directory under `products/`, derive its status using this logic (check in this order — first match wins):
 
-<!-- FR-036: clay_derive_status logic — keep identical with clay-sync workflow -->
+<!-- FR-036: clay_derive_status logic — keep identical with clay:sync workflow -->
 1. If `products/<slug>/.repo-url` exists → status is **repo-created**
 2. If `products/<slug>/PRD.md` AND `products/<slug>/PRD-MVP.md` AND `products/<slug>/PRD-Phases.md` all exist → status is **prd-created**
 3. If `products/<slug>/naming.md` exists → status is **named**
@@ -105,6 +105,6 @@ For each product, suggest the next pipeline step based on its status:
 
 - **idea** → "Run `/clay:idea-research` to research the market"
 - **researched** → "Run `/clay:project-naming` to find a name"
-- **named** → "Run `/clay:create-prd` to create a PRD"
+- **named** → "Run `/clay:new-product` to create a PRD"
 - **prd-created** → "Run `/clay:create-repo` to create a GitHub repo"
-- **repo-created** → "Run `/build-prd` in the repo to start building"
+- **repo-created** → "Run `/kiln:build-prd` in the repo to start building"
