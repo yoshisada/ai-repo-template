@@ -158,6 +158,12 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
     fi
   fi
 
+  # Source engine libs up-front so both resolution (workflow_discover_plugin_workflows)
+  # and state creation (state_init, workflow_load) are available. Sourcing engine.sh
+  # pulls in state.sh + workflow.sh + others via its own guard.
+  export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+  source "${PLUGIN_DIR}/lib/engine.sh"
+
   # Read workflow file — check local workflows/ first, then scan plugin workflows/ dirs
   WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
   if [[ -n "$WORKFLOW_NAME" && ! -f "$WORKFLOW_FILE" ]]; then
@@ -165,22 +171,28 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
     if [[ -f "$WORKFLOW_NAME" ]]; then
       WORKFLOW_FILE="$WORKFLOW_NAME"
     else
-      # Scan installed plugins for a workflows/ dir containing this workflow
-      export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
-      source "${PLUGIN_DIR}/lib/workflow.sh"
+      # Scan installed plugins for a workflows/ dir containing this workflow.
+      # Plugin-prefixed names (plugin:name) MUST match both fields, because
+      # discovery emits bare .name values — mirrors validate-workflow.sh.
       PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows 2>/dev/null || echo '[]')
-      RESOLVED=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r \
-        --arg name "$WORKFLOW_NAME" \
-        '.[] | select(.name == $name) | .path // empty' | head -1)
+      if [[ "$WORKFLOW_NAME" == *":"* ]]; then
+        PLUGIN_REF="${WORKFLOW_NAME%%:*}"
+        NAME_REF="${WORKFLOW_NAME#*:}"
+        RESOLVED=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r \
+          --arg plugin "$PLUGIN_REF" --arg name "$NAME_REF" \
+          '.[] | select(.plugin == $plugin and .name == $name) | .path // empty' | head -1)
+      else
+        RESOLVED=$(printf '%s\n' "$PLUGIN_WORKFLOWS" | jq -r \
+          --arg name "$WORKFLOW_NAME" \
+          '.[] | select(.name == $name) | .path // empty' | head -1)
+      fi
       if [[ -n "$RESOLVED" && -f "$RESOLVED" ]]; then
         WORKFLOW_FILE="$RESOLVED"
       fi
     fi
   fi
+  ACTIVATE_OK=0
   if [[ -n "$WORKFLOW_NAME" && -f "$WORKFLOW_FILE" ]]; then
-    # Source engine libs for validation and state creation
-    export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
-    source "${PLUGIN_DIR}/lib/engine.sh"
 
     # Validate workflow
     WORKFLOW_JSON=$(workflow_load "$WORKFLOW_FILE" 2>/dev/null)
@@ -210,13 +222,18 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
       export WHEEL_HOOK_SCRIPT=""
       export WHEEL_HOOK_INPUT='{}'
       engine_kickstart "$STATE_FILE" >/dev/null 2>&1
+      ACTIVATE_OK=1
 
       # Clean up legacy pending file if present
       rm -f .wheel/pending.json
     fi
   fi
 
-  wheel_log "exit" "result=activate workflow=${WORKFLOW_NAME}"
+  if [[ "$ACTIVATE_OK" -eq 1 ]]; then
+    wheel_log "exit" "result=activate workflow=${WORKFLOW_NAME}"
+  else
+    wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=unresolved-or-invalid"
+  fi
   echo '{"hookEventName": "PostToolUse"}'
   exit 0
 fi
