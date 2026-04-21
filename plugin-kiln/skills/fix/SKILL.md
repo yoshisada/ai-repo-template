@@ -105,7 +105,7 @@ If you'd prefer to provide them another way, let me know.
 
 ### While waiting for credentials:
 - Continue with Steps 2 (spec context) — you can read specs without credentials
-- Run `/fix-diagnose` on what you CAN inspect (code analysis, stack traces, config)
+- Follow `plugin-kiln/scripts/debug/diagnose.md` on what you CAN inspect (code analysis, stack traces, config)
 - Do NOT attempt to reproduce auth-dependent flows without credentials — you'll get false negatives
 - Do NOT hardcode, guess, or fabricate credentials
 
@@ -152,14 +152,14 @@ If the bug does NOT reproduce, tell the user: "I can't reproduce this. Here's wh
 
 ## Step 4: Run the Debug Loop
 
-Run `/fix-diagnose` with:
+Read `plugin-kiln/scripts/debug/diagnose.md` and follow its procedure with:
 - The issue description
 - The spec context (what SHOULD work)
 - The reproduction result (how it actually fails)
 
-Then run `/fix-fix` with the diagnosis.
+Then read `plugin-kiln/scripts/debug/fix.md` and follow its procedure with the diagnosis.
 
-The debug loop runs: diagnose → fix → verify → (repeat if needed, max 9 attempts).
+The debug loop runs: diagnose → fix → verify → (repeat if needed, max 9 attempts). Both helpers are plain markdown procedural guides — read them at the start of each loop iteration.
 
 See the `debugger` agent definition for full loop details.
 
@@ -236,7 +236,7 @@ This step composes a durable record of the fix, writes it locally, and spawns tw
 
 ### 7.1 Determine status and commit_hash
 
-Compare `git rev-parse HEAD` at skill start vs now. If HEAD advanced, the debug loop landed a commit: `STATUS=fixed` and `COMMIT_HASH=$(git rev-parse HEAD)`. If HEAD is unchanged and the debug-fix loop exhausted 9 attempts: `STATUS=escalated` and `COMMIT_HASH=""` (null in the envelope).
+Compare `git rev-parse HEAD` at skill start vs now. If HEAD advanced, the debug loop landed a commit: `STATUS=fixed` and `COMMIT_HASH=$(git rev-parse HEAD)`. If HEAD is unchanged and the debug loop exhausted 9 attempts: `STATUS=escalated` and `COMMIT_HASH=""` (null in the envelope).
 
 ### 7.2 Resolve SHELF_SCRIPTS_DIR (plugin portability, FR-025)
 
@@ -374,7 +374,7 @@ Manifest proposal: <@inbox/open/... OR "none (no gap identified)">
 
 ### Constraints enforced by this step (cross-reference)
 
-- FR-019: Step 7 MUST NOT invoke `shelf:shelf-full-sync` or any wheel workflow. The Obsidian write in Step 7.6 is the only vault-write mechanism.
+- FR-019: Step 7 MUST NOT invoke `shelf:sync` or any wheel workflow. The Obsidian write in Step 7.6 is the only vault-write mechanism.
 - FR-020: Steps 2b–5 complete in main chat first; no team-spawn before 7.6.
 - FR-023: No wheel workflow is added or modified by this step.
 - FR-025: All script paths come from `$SHELF_SCRIPTS_DIR` / `$FIX_RECORDING_DIR`; no repo-relative plugin path literal appears anywhere in the live substitution values.

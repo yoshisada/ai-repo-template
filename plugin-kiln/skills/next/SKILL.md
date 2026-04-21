@@ -237,19 +237,19 @@ For each finding, assign the most specific applicable kiln command:
 | Retrospective action (bug) | `/fix <description>` |
 | No PRD exists | `/create-prd` |
 | No specs exist but PRD exists | `/build-prd` |
+| No repo exists yet | `/clay:create-repo` |
 
 ### Command Filtering (FR-009, FR-010)
 
 After mapping findings to commands, filter ALL recommendations through these rules:
 
 **Allowed commands** (whitelist — only these may appear in output):
-`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/create-repo`, `/init`,
+`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/clay:create-repo`, `/init`,
 `/analyze-issues`, `/report-issue`, `/ux-evaluate`, `/issue-to-prd`,
 `/next`, `/todo`, `/roadmap`
 
 **Blocked commands** (NEVER show these in output):
-`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`,
-`/debug-diagnose`, `/debug-fix`
+`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`
 
 **Replacement rules** — if a blocked command would be recommended, replace it:
 - `/specify` -> `/build-prd`
@@ -257,8 +257,6 @@ After mapping findings to commands, filter ALL recommendations through these rul
 - `/tasks` -> `/build-prd`
 - `/implement` -> `/build-prd`
 - `/audit` -> `/build-prd`
-- `/debug-diagnose` -> `/fix <description>`
-- `/debug-fix` -> `/fix <description>`
 
 If after filtering a recommendation has no valid command, drop it entirely.
 

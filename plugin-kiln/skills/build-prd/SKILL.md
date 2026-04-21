@@ -825,7 +825,7 @@ Prompt must include:
 - Which agent reported it
 - The working directory and branch
 - Any prior fix attempts (from the implementer or previous debugger runs)
-- Instructions to use /debug-diagnose first, then /debug-fix
+- Instructions to follow `plugin-kiln/scripts/debug/diagnose.md` first, then `plugin-kiln/scripts/debug/fix.md`
 - Instructions to message the original reporter when fixed
 - Instructions to message team lead if escalating
 ```
@@ -837,9 +837,9 @@ Agent reports failure
   │
   ├─ Team lead spawns debugger agent
   │
-  ├─ Debugger runs /debug-diagnose → classifies issue, selects technique
+  ├─ Debugger follows scripts/debug/diagnose.md → classifies issue, selects technique
   │
-  ├─ Debugger runs /debug-fix → applies fix, verifies
+  ├─ Debugger follows scripts/debug/fix.md → applies fix, verifies
   │     │
   │     ├─ PASS → debugger notifies reporter, reporter re-verifies
   │     │           │

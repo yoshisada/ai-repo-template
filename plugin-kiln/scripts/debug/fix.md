@@ -1,17 +1,8 @@
----
-name: "debug-fix"
-description: "Apply a targeted fix based on a diagnosis, then verify it passes. Reverts on failure. Tracks every attempt in debug-log.md to avoid repeating failed approaches."
----
+# Debug Fix (inline helper for `kiln:fix` Step 4)
 
-## Debug Fix
+Apply a fix based on the diagnosis produced by `scripts/debug/diagnose.md`, then verify it works. If verification fails, revert and report.
 
-Apply a fix based on the diagnosis from `/debug-diagnose`, then verify it works. If verification fails, revert and report.
-
-```text
-$ARGUMENTS
-```
-
-The arguments should contain the diagnosis output from `/debug-diagnose`. If no arguments, check the conversation for the most recent diagnosis.
+Input: the diagnosis output.
 
 ### Step 1: Pre-Fix Safety
 

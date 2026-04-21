@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check-existing-mistakes.sh — list existing mistake artifacts for duplicate detection.
 #
-# Invoked by plugin-kiln/workflows/report-mistake-and-sync.json step "check-existing-mistakes".
+# Invoked by plugin-kiln/workflows/mistake.json step "check-existing-mistakes".
 # Output is captured by wheel to .wheel/outputs/check-existing-mistakes.txt and passed as
 # context to the next step's agent so it can skip filenames that would collide.
 #

@@ -226,7 +226,7 @@ After generating the PRD artifacts:
 > Feature PRD is ready. To build this feature, run `/build-prd <feature-slug>` which will execute the full kiln pipeline against this feature PRD.
 
 **Mode C** (new product):
-> PRD is ready at `products/<product-slug>/`. To build this product, run `/create-repo <product-slug>` to scaffold a new repo, then `/build-prd` inside that repo.
+> PRD is ready at `products/<product-slug>/`. To build this product, run `/clay:create-repo <product-slug>` to scaffold a new repo, then `/build-prd` inside that repo.
 
 **Mode C** (feature addition):
 > Feature PRD is ready at `products/<product-slug>/features/<feature-slug>/`. To build this feature, open the product's repo and run `/build-prd <feature-slug>`.

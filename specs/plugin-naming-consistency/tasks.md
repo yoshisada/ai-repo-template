@@ -13,44 +13,44 @@ Every task maps to at least one FR. `[P]` marks tasks safely parallelizable with
 ## Phase K — kiln plugin renames (owner: impl-kiln)
 
 ### K1. Delete `plugin-kiln/skills/create-repo/` (FR-001)
-- [ ] `git rm -r plugin-kiln/skills/create-repo/`.
-- [ ] Verify no stray files remain: `ls plugin-kiln/skills/create-repo/ 2>&1` should report "No such file".
+- [X] `git rm -r plugin-kiln/skills/create-repo/`.
+- [X] Verify no stray files remain: `ls plugin-kiln/skills/create-repo/ 2>&1` should report "No such file".
 
 ### K2. Absorb debug-diagnose + debug-fix into `kiln:fix` (FR-004)
-- [ ] Read `plugin-kiln/skills/debug-diagnose/SKILL.md` and `plugin-kiln/skills/debug-fix/SKILL.md` in full.
-- [ ] Read `plugin-kiln/skills/fix/SKILL.md` in full.
-- [ ] Decide: inline vs. helper scripts (see plan.md). If helper scripts, create them under `plugin-kiln/scripts/`.
-- [ ] Update `plugin-kiln/skills/fix/SKILL.md` to subsume the debug-* logic. Verify the fix skill no longer references `/debug-diagnose` or `/debug-fix`.
-- [ ] `git rm -r plugin-kiln/skills/debug-diagnose/ plugin-kiln/skills/debug-fix/`.
+- [X] Read `plugin-kiln/skills/debug-diagnose/SKILL.md` and `plugin-kiln/skills/debug-fix/SKILL.md` in full.
+- [X] Read `plugin-kiln/skills/fix/SKILL.md` in full.
+- [X] Decide: inline vs. helper scripts (see plan.md). If helper scripts, create them under `plugin-kiln/scripts/`.
+- [X] Update `plugin-kiln/skills/fix/SKILL.md` to subsume the debug-* logic. Verify the fix skill no longer references `/debug-diagnose` or `/debug-fix`.
+- [X] `git rm -r plugin-kiln/skills/debug-diagnose/ plugin-kiln/skills/debug-fix/`.
 
 ### K3. Update `plugin-kiln/skills/next/SKILL.md` block-list (FR-004, FR-007)
-- [ ] Read `next/SKILL.md` and find the block-list + replacement-rules table + any prose mentioning `/debug-diagnose` or `/debug-fix`.
-- [ ] Remove both entries from the block-list.
-- [ ] Remove both entries from the replacement-rules table.
-- [ ] Remove surrounding explanatory prose about the debug-* block-list shim.
-- [ ] Remove any `create-repo` references (FR-001).
-- [ ] Verify: grep `next/SKILL.md` for `debug-diagnose`, `debug-fix`, `create-repo` — should return zero hits.
+- [X] Read `next/SKILL.md` and find the block-list + replacement-rules table + any prose mentioning `/debug-diagnose` or `/debug-fix`.
+- [X] Remove both entries from the block-list.
+- [X] Remove both entries from the replacement-rules table.
+- [X] Remove surrounding explanatory prose about the debug-* block-list shim.
+- [X] Remove any `create-repo` references (FR-001).
+- [X] Verify: grep `next/SKILL.md` for `debug-diagnose`, `debug-fix`, `create-repo` — should return zero hits.
 
 ### K4. [P] Rename kiln workflows (FR-006)
-- [ ] `git mv plugin-kiln/workflows/report-issue-and-sync.json plugin-kiln/workflows/report-issue.json`.
-- [ ] Edit `plugin-kiln/workflows/report-issue.json` — change `"name": "report-issue-and-sync"` → `"name": "report-issue"`.
-- [ ] `git mv plugin-kiln/workflows/report-mistake-and-sync.json plugin-kiln/workflows/mistake.json`.
-- [ ] Edit `plugin-kiln/workflows/mistake.json` — change `"name": "report-mistake-and-sync"` → `"name": "mistake"`.
-- [ ] Update `plugin-kiln/.claude-plugin/plugin.json` `workflows` array to reference new filenames.
-- [ ] Update `plugin-kiln/skills/report-issue/SKILL.md` dispatch paths to `workflows/report-issue.json`.
-- [ ] Update `plugin-kiln/skills/mistake/SKILL.md` dispatch paths to `workflows/mistake.json`.
+- [X] `git mv plugin-kiln/workflows/report-issue-and-sync.json plugin-kiln/workflows/report-issue.json`.
+- [X] Edit `plugin-kiln/workflows/report-issue.json` — change `"name": "report-issue-and-sync"` → `"name": "report-issue"`.
+- [X] `git mv plugin-kiln/workflows/report-mistake-and-sync.json plugin-kiln/workflows/mistake.json`.
+- [X] Edit `plugin-kiln/workflows/mistake.json` — change `"name": "report-mistake-and-sync"` → `"name": "mistake"`.
+- [X] Update `plugin-kiln/.claude-plugin/plugin.json` `workflows` array to reference new filenames.
+- [X] Update `plugin-kiln/skills/report-issue/SKILL.md` dispatch paths to `workflows/report-issue.json`.
+- [X] Update `plugin-kiln/skills/mistake/SKILL.md` dispatch paths to `workflows/mistake.json`.
 
 ### K5. [P] Update kiln skill cross-references (FR-001, FR-004, FR-007)
 Each edit uses Grep first to find hits, then Edit to replace:
-- [ ] `plugin-kiln/skills/init/SKILL.md` — remove `create-repo` references; redirect to `clay:create-repo + kiln:init`.
-- [ ] `plugin-kiln/skills/create-prd/SKILL.md` — remove `create-repo` references; redirect to `clay:create-repo`.
-- [ ] `plugin-kiln/skills/issue-to-prd/SKILL.md` — remove `create-repo` references.
-- [ ] `plugin-kiln/skills/build-prd/SKILL.md` — remove `create-repo`, `debug-diagnose`, `debug-fix` references.
-- [ ] `plugin-kiln/bin/init.mjs` — remove `create-repo` references.
+- [X] `plugin-kiln/skills/init/SKILL.md` — remove `create-repo` references; redirect to `clay:create-repo + kiln:init`.
+- [X] `plugin-kiln/skills/create-prd/SKILL.md` — remove `create-repo` references; redirect to `clay:create-repo`.
+- [X] `plugin-kiln/skills/issue-to-prd/SKILL.md` — remove `create-repo` references.
+- [X] `plugin-kiln/skills/build-prd/SKILL.md` — remove `create-repo`, `debug-diagnose`, `debug-fix` references.
+- [X] `plugin-kiln/bin/init.mjs` — remove `create-repo` references.
 
 ### K6. [P] Update kiln agent briefs (FR-001, FR-004, FR-007)
-- [ ] `plugin-kiln/agents/continuance.md` — remove `create-repo`, `debug-diagnose`, `debug-fix` references.
-- [ ] `plugin-kiln/agents/debugger.md` — remove `debug-diagnose`, `debug-fix` skill references (keep internal debug logic if it references the `fix` skill).
+- [X] `plugin-kiln/agents/continuance.md` — remove `create-repo`, `debug-diagnose`, `debug-fix` references.
+- [X] `plugin-kiln/agents/debugger.md` — remove `debug-diagnose`, `debug-fix` skill references (keep internal debug logic if it references the `fix` skill).
 
 ### K7. Commit Phase K (FR-008)
 - [ ] `git add plugin-kiln/ && git commit -m "refactor(kiln): remove create-repo + debug-* skills, rename workflows (FR-001, FR-004, FR-006, FR-007)"`.

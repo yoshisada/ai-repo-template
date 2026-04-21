@@ -5,9 +5,9 @@ description: Capture an AI-made mistake (wrong assumption, bad tool call, missed
 
 # Mistake — Capture an AI Mistake for Future Agents
 
-Log a specific AI error — a wrong assumption, a bad tool call, a misread of context — as a schema-conformant note in `.kiln/mistakes/`. The `shelf-full-sync` sub-workflow runs next and files a review proposal in `@inbox/open/`. On acceptance, the maintainer moves the note into the project's `mistakes/` folder where it becomes training data for future AI agents working on a similar stack.
+Log a specific AI error — a wrong assumption, a bad tool call, a misread of context — as a schema-conformant note in `.kiln/mistakes/`. The `shelf:sync` sub-workflow runs next and files a review proposal in `@inbox/open/`. On acceptance, the maintainer moves the note into the project's `mistakes/` folder where it becomes training data for future AI agents working on a similar stack.
 
-This skill delegates to the `report-mistake-and-sync` wheel workflow. All structured collection, linting, and file writes happen inside the workflow's `create-mistake` agent step — this skill's job is to invoke the workflow with the user's description.
+This skill delegates to the `mistake` wheel workflow. All structured collection, linting, and file writes happen inside the workflow's `create-mistake` agent step — this skill's job is to invoke the workflow with the user's description.
 
 ## User Input
 
@@ -60,11 +60,11 @@ Every mistake note MUST carry tags on three axes. The workflow's tag lint enforc
 
 ## Step 3: Run Workflow
 
-Run `/wheel-run kiln:report-mistake-and-sync` to start the workflow. It will:
+Run `/wheel:run kiln:mistake` to start the workflow. It will:
 
 1. List existing mistake files (for duplicate detection).
 2. Collect the 7 required frontmatter fields + 5 body sections, apply the honesty lint and three-axis tag lint, derive the filename slug from the assumption, and write `.kiln/mistakes/YYYY-MM-DD-<slug>.md`.
-3. Hand off to `shelf:shelf-full-sync`, which files a proposal in `@inbox/open/` for human review.
+3. Hand off to `shelf:sync`, which files a proposal in `@inbox/open/` for human review.
 
 The user's description (from `$ARGUMENTS`) is already in the conversation context — the workflow's agent step will pull it from activation context.
 

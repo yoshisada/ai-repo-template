@@ -1,17 +1,8 @@
----
-name: "debug-diagnose"
-description: "Classify an issue by type, select the right debugging technique, collect diagnostics, and produce a structured root cause hypothesis. Does NOT fix — only diagnoses."
----
+# Debug Diagnose (inline helper for `kiln:fix` Step 4)
 
-## Debug Diagnose
+Classify the reported issue, select the appropriate debugging technique, collect diagnostics, and produce a structured diagnosis. This helper does NOT apply fixes — it only investigates.
 
-Classify the reported issue, select the appropriate debugging technique, collect diagnostics, and produce a structured diagnosis. This skill does NOT apply fixes — it only investigates.
-
-```text
-$ARGUMENTS
-```
-
-The arguments should contain the issue report (from QA, smoke tester, test runner, auditor, or team lead). If no arguments, check `SendMessage` history for the most recent failure report.
+Inputs: the issue report, spec context, and reproduction output from earlier `kiln:fix` steps.
 
 ### Step 1: Classify the Issue Type
 
@@ -263,7 +254,7 @@ Collect: whether clean build succeeds, environment version comparison.
 
 ### Step 4: Produce Diagnosis
 
-Write the diagnosis to stdout (the debugger agent reads it) in this format:
+Write the diagnosis in this format (the fix helper consumes it):
 
 ```markdown
 ## Diagnosis

@@ -8,12 +8,12 @@ You are a senior debugger agent. Your primary job is to fix bugs in features tha
 
 You can also be spawned on-demand during a build-prd pipeline when an agent gets stuck, but your main use case is **direct invocation by the user**.
 
-## Available Skills
+## Available Resources
 
-| Skill | When to Use | What It Does |
+| Resource | When to Use | What It Does |
 |-------|-------------|-------------|
-| `/debug-diagnose` | First step for every issue | Classifies the issue type, selects debugging techniques, collects diagnostics, and produces a structured diagnosis |
-| `/debug-fix` | After diagnosis | Applies a targeted fix based on the diagnosis, then verifies it. Reports pass/fail with evidence. |
+| `plugin-kiln/scripts/debug/diagnose.md` | First step for every issue | Procedural guide: classify the issue type, select a debugging technique, collect diagnostics, and produce a structured diagnosis |
+| `plugin-kiln/scripts/debug/fix.md` | After diagnosis | Procedural guide: apply a targeted fix based on the diagnosis, then verify it. Reports pass/fail with evidence. |
 | `/qa-checkpoint` | For visual/UI bugs | Runs Playwright to reproduce and verify visual issues |
 | `/qa-setup` | If Playwright needed but not set up | Installs Playwright and scaffolds test infra |
 
@@ -38,19 +38,19 @@ USER reports issue (via /fix)
   │
   ├─ Read spec context (what SHOULD work)
   │
-  ├─ /debug-diagnose → produces Diagnosis
+  ├─ scripts/debug/diagnose.md → produces Diagnosis
   │
-  ├─ /debug-fix → applies fix, verifies
+  ├─ scripts/debug/fix.md → applies fix, verifies
   │     │
   │     ├─ PASS → commit fix, report to user, done
   │     │
   │     └─ FAIL → log failed approach
   │           │
-  │           ├─ attempts < 3 for this technique → /debug-fix (different angle)
+  │           ├─ attempts < 3 for this technique → scripts/debug/fix.md (different angle)
   │           │
   │           └─ attempts >= 3 → switch technique
   │                 │
-  │                 ├─ techniques tried < 3 → /debug-diagnose (next technique)
+  │                 ├─ techniques tried < 3 → scripts/debug/diagnose.md (next technique)
   │                 │
   │                 └─ techniques tried >= 3 → ESCALATE to user with full report
 ```
@@ -81,7 +81,7 @@ If the report is vague, ask the user (or reporter) for: exact error output, step
 
 ## Step 2: Run Diagnosis
 
-Run `/debug-diagnose` with the parsed issue. It will:
+Read `plugin-kiln/scripts/debug/diagnose.md` and follow its procedure with the parsed issue. It will:
 1. Classify the issue type (visual, runtime, logic, performance, integration, flaky, build)
 2. Select appropriate debugging techniques
 3. Collect diagnostics (logs, traces, screenshots, stack traces)
@@ -89,14 +89,14 @@ Run `/debug-diagnose` with the parsed issue. It will:
 
 ## Step 3: Apply Fix and Verify
 
-Run `/debug-fix` with the diagnosis. It will:
+Read `plugin-kiln/scripts/debug/fix.md` and follow its procedure with the diagnosis. It will:
 1. Apply a targeted fix based on the root cause hypothesis
 2. Run the appropriate verification (re-run test, re-check UI, rebuild, etc.)
 3. Report PASS or FAIL with evidence
 
 ### UI Issues — QA Verification is MANDATORY
 
-If the issue type is **visual** or involves any UI component, `/debug-fix` passing is NOT sufficient. You MUST also:
+If the issue type is **visual** or involves any UI component, the fix helper passing is NOT sufficient. You MUST also:
 
 1. Run `/qa-setup` if Playwright is not yet installed
 2. Run `/qa-final` to execute ALL E2E flows — not just the one you fixed
@@ -117,8 +117,8 @@ This is non-negotiable. UI fixes have a high rate of introducing regressions in 
 ### On FAIL:
 1. Log the failed approach in `debug-log.md` with WHY it didn't work
 2. Check attempt counts:
-   - If < 3 attempts with this technique: try a different fix angle with `/debug-fix`
-   - If >= 3 attempts: switch to the next debugging technique with `/debug-diagnose`
+   - If < 3 attempts with this technique: try a different fix angle by re-running the `scripts/debug/fix.md` procedure
+   - If >= 3 attempts: switch to the next debugging technique via `scripts/debug/diagnose.md`
    - If >= 3 techniques tried: ESCALATE
 
 ### On ESCALATE:

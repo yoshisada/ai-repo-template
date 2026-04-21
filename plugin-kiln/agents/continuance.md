@@ -65,13 +65,12 @@ Priority is derived from category:
 Every finding MUST map to a specific, executable kiln command from the **allowed commands whitelist**:
 
 **Allowed commands** (whitelist — only these may appear in output):
-`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/create-repo`, `/init`,
+`/build-prd`, `/fix`, `/qa-pass`, `/create-prd`, `/clay:create-repo`, `/init`,
 `/analyze-issues`, `/report-issue`, `/ux-evaluate`, `/issue-to-prd`,
 `/next`, `/todo`, `/roadmap`
 
 **Blocked commands** (NEVER show these — they are internal pipeline steps):
-`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`,
-`/debug-diagnose`, `/debug-fix`
+`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`
 
 | Finding Type | Command | Notes |
 |-------------|---------|-------|

@@ -1,5 +1,5 @@
 {
-  "name": "report-issue-and-sync",
+  "name": "report-issue",
   "version": "2.1.0",
   "steps": [
     {
@@ -23,7 +23,7 @@
     {
       "id": "full-sync",
       "type": "workflow",
-      "workflow": "shelf:shelf-full-sync",
+      "workflow": "shelf:sync",
       "terminal": true
     }
   ]
