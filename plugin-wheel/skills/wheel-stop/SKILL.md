@@ -1,5 +1,5 @@
 ---
-name: stop
+name: wheel-stop
 description: Stop running workflows. Archives state files to .wheel/history/ and deactivates hook interception. Optionally target a specific workflow by session_id or agent_id.
 ---
 
@@ -66,7 +66,7 @@ if [[ ${#REMAINING[@]} -gt 0 ]]; then
     echo "  $(basename $sf): $NAME"
   done
   echo ""
-  echo "Use '/wheel:stop --all' to stop all workflows, or '/wheel:stop <target>' to target specific ones."
+  echo "Use '/wheel:wheel-stop --all' to stop all workflows, or '/wheel:wheel-stop <target>' to target specific ones."
 else
   echo "All workflows stopped. Hooks are now dormant."
 fi

@@ -5,6 +5,6 @@
 # session_id and agent_id to create a properly-owned state file.
 #
 # Usage: activate.sh <workflow-name>
-# Called by /wheel:run after validation. The workflow name is passed as $1
+# Called by /wheel:wheel-run after validation. The workflow name is passed as $1
 # so the hook can extract it from tool_input.command.
 exit 0

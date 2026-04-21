@@ -1,6 +1,6 @@
 ---
-name: create
-description: Generate a wheel workflow JSON file from a natural language description or by reverse-engineering an existing file. Usage: /wheel:create <description> or /wheel:create from:<filepath>
+name: wheel-create
+description: Generate a wheel workflow JSON file from a natural language description or by reverse-engineering an existing file. Usage: /wheel:wheel-create <description> or /wheel:wheel-create from:<filepath>
 ---
 
 # Wheel Create — Generate Workflow JSON
@@ -8,8 +8,8 @@ description: Generate a wheel workflow JSON file from a natural language descrip
 Create a new wheel workflow JSON file from either a natural language description or by reverse-engineering an existing file (SKILL.md, shell script, etc.).
 
 **Two modes**:
-- **Description Mode**: `/wheel:create gather git stats, analyze repo structure, write a health report`
-- **File Mode**: `/wheel:create from:plugin-wheel/skills/status/SKILL.md`
+- **Description Mode**: `/wheel:wheel-create gather git stats, analyze repo structure, write a health report`
+- **File Mode**: `/wheel:wheel-create from:plugin-wheel/skills/wheel-status/SKILL.md`
 
 ## User Input
 
@@ -23,7 +23,7 @@ $ARGUMENTS
 
 Determine the mode from `$ARGUMENTS`:
 
-1. **If `$ARGUMENTS` is empty**: Prompt the user — "Please provide either a workflow description or a file path with the `from:` prefix. Examples: `/wheel:create gather git stats and write a report` or `/wheel:create from:path/to/script.sh`". **Stop here.**
+1. **If `$ARGUMENTS` is empty**: Prompt the user — "Please provide either a workflow description or a file path with the `from:` prefix. Examples: `/wheel:wheel-create gather git stats and write a report` or `/wheel:wheel-create from:path/to/script.sh`". **Stop here.**
 
 2. **If `$ARGUMENTS` starts with `from:`**: This is **File Mode**. Extract the file path (everything after `from:`). Validate the file exists:
 
@@ -333,7 +333,7 @@ After writing, report:
 2. **Workflow name**: The resolved name
 3. **Step count**: Total number of steps
 4. **Step summary**: For each step, show: `id` | `type` | one-line description
-5. **Run command**: `/wheel:run <name>`
+5. **Run command**: `/wheel:wheel-run <name>`
 
 Example output:
 
@@ -346,7 +346,7 @@ Steps: 3
   2. analyze-repo    | command | Analyze repository structure
   3. write-report    | agent   | Write health report from gathered data
 
-Run with: /wheel:run git-stats-health-report
+Run with: /wheel:wheel-run git-stats-health-report
 ```
 
 ## Agent Self-Service
@@ -366,7 +366,7 @@ The skill auto-detects agent context: if the description is clear and actionable
 - **Never overwrite**: If `workflows/<name>.json` exists, append a numeric suffix (`-2`, `-3`, ...). Never overwrite an existing file.
 - **Max 20 steps**: Cap generated workflows at 20 steps. Consolidate if the input implies more.
 - **Validate before writing**: Always run the full validation from Step 6 before writing. Never write invalid JSON.
-- **No auto-execution**: The skill creates the workflow file but does NOT run it. The user must run `/wheel:run <name>` separately.
+- **No auto-execution**: The skill creates the workflow file but does NOT run it. The user must run `/wheel:wheel-run <name>` separately.
 - **Create workflows/ directory**: If the `workflows/` directory doesn't exist, create it before writing.
 - **Clarify when vague**: If the description is too vague to decompose into steps (e.g., "do something"), ask a clarifying question before proceeding.
 - **Complex logic as agent steps**: If a section of the source file has deeply nested conditional logic that doesn't map cleanly to the 4 step types, wrap it as an `agent` step with the original intent in the instruction field.

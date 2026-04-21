@@ -8,6 +8,6 @@
 #        deactivate.sh --all        — stop all workflows
 #        deactivate.sh <target>     — stop workflows matching target
 #
-# Called by /wheel:stop. The PostToolUse hook extracts the argument from
+# Called by /wheel:wheel-stop. The PostToolUse hook extracts the argument from
 # tool_input.command to determine which state files to archive.
 exit 0

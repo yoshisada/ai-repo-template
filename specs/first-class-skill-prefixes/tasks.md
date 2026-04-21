@@ -181,27 +181,27 @@
 
 ### Rename directories + update frontmatter
 
-- [ ] **W-001** `git mv` plugin-wheel/skills/create → plugin-wheel/skills/wheel-create; update frontmatter `name: wheel-create`
-- [ ] **W-002** `git mv` plugin-wheel/skills/init → plugin-wheel/skills/wheel-init; update frontmatter `name: wheel-init`
-- [ ] **W-003** `git mv` plugin-wheel/skills/list → plugin-wheel/skills/wheel-list; update frontmatter `name: wheel-list`
-- [ ] **W-004** `git mv` plugin-wheel/skills/run → plugin-wheel/skills/wheel-run; update frontmatter `name: wheel-run`
-- [ ] **W-005** `git mv` plugin-wheel/skills/status → plugin-wheel/skills/wheel-status; update frontmatter `name: wheel-status`
-- [ ] **W-006** `git mv` plugin-wheel/skills/stop → plugin-wheel/skills/wheel-stop; update frontmatter `name: wheel-stop`
-- [ ] **W-007** `git mv` plugin-wheel/skills/test → plugin-wheel/skills/wheel-test; update frontmatter `name: wheel-test`
+- [X] **W-001** `git mv` plugin-wheel/skills/create → plugin-wheel/skills/wheel-create; update frontmatter `name: wheel-create`
+- [X] **W-002** `git mv` plugin-wheel/skills/init → plugin-wheel/skills/wheel-init; update frontmatter `name: wheel-init`
+- [X] **W-003** `git mv` plugin-wheel/skills/list → plugin-wheel/skills/wheel-list; update frontmatter `name: wheel-list`
+- [X] **W-004** `git mv` plugin-wheel/skills/run → plugin-wheel/skills/wheel-run; update frontmatter `name: wheel-run`
+- [X] **W-005** `git mv` plugin-wheel/skills/status → plugin-wheel/skills/wheel-status; update frontmatter `name: wheel-status`
+- [X] **W-006** `git mv` plugin-wheel/skills/stop → plugin-wheel/skills/wheel-stop; update frontmatter `name: wheel-stop`
+- [X] **W-007** `git mv` plugin-wheel/skills/test → plugin-wheel/skills/wheel-test; update frontmatter `name: wheel-test`
 
 ### Workflow JSON alignment (FR-004)
 
-- [ ] **W-008** Leave `plugin-wheel/workflows/example.json` as-is (not a skill correspondence; it is a template/example).
+- [X] **W-008** Leave `plugin-wheel/workflows/example.json` as-is (not a skill correspondence; it is a template/example).
 
 ### In-plugin cross-reference sweep
 
-- [ ] **W-009** Grep `plugin-wheel/` for old bare skill names in command-shape (`create`, `init`, `list`, `run`, `status`, `stop`, `test`); rewrite to prefixed forms. **IMPORTANT**: because words like `run`, `status`, `stop`, `init`, `list`, `create`, `test` collide with ordinary English and with unrelated code, use strict command-shape regexes (e.g., `/wheel:run`, `wheel:status`, `activate_name: "run"`, etc.) — do NOT sweep bare-word matches. Expect the collision surface to be larger than for other plugins; budget more time.
-- [ ] **W-010** Grep `plugin-wheel/agents/`, `plugin-wheel/hooks/`, `plugin-wheel/templates/`, `plugin-wheel/scripts/`, `plugin-wheel/lib/` (whichever exist) for old bare skill names in command-shape; update.
+- [X] **W-009** Grep `plugin-wheel/` for old bare skill names in command-shape (`create`, `init`, `list`, `run`, `status`, `stop`, `test`); rewrite to prefixed forms. **IMPORTANT**: because words like `run`, `status`, `stop`, `init`, `list`, `create`, `test` collide with ordinary English and with unrelated code, use strict command-shape regexes (e.g., `/wheel:run`, `wheel:status`, `activate_name: "run"`, etc.) — do NOT sweep bare-word matches. Expect the collision surface to be larger than for other plugins; budget more time.
+- [X] **W-010** Grep `plugin-wheel/agents/`, `plugin-wheel/hooks/`, `plugin-wheel/templates/`, `plugin-wheel/scripts/`, `plugin-wheel/lib/` (whichever exist) for old bare skill names in command-shape; update.
 
 ### Verification
 
-- [ ] **W-011** Run command-shape grep within `plugin-wheel/` for old bare skill names — expect zero live hits.
-- [ ] **W-012** Commit Phase W with message `refactor(wheel): prefix first-class skills with wheel- (FR-001)`.
+- [X] **W-011** Run command-shape grep within `plugin-wheel/` for old bare skill names — expect zero live hits.
+- [X] **W-012** Commit Phase W with message `refactor(wheel): prefix first-class skills with wheel- (FR-001)`.
 
 ---
 

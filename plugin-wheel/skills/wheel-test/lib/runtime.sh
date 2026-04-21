@@ -2,7 +2,7 @@
 # wheel test runtime library — all wt_* functions per
 # specs/wheel-test-skill/contracts/interfaces.md
 #
-# Sourced by plugin-wheel/skills/test/SKILL.md.
+# Sourced by plugin-wheel/skills/wheel-test/SKILL.md.
 # All functions are synchronous, return 0 on success, non-zero on failure.
 # Functions print results to stdout; state is passed via args or read-only WT_* globals.
 # No function writes to .wheel/state_*.json or advances cursors — that's activate.sh + hooks (FR-016).
@@ -82,7 +82,7 @@ wt_require_clean_state() {
     for o in "${orphans[@]}"; do
       echo "  $o" >&2
     done
-    echo "wheel test: archive them (or run /wheel:stop) before re-running." >&2
+    echo "wheel test: archive them (or run /wheel:wheel-stop) before re-running." >&2
     return 1
   fi
   return 0
@@ -155,7 +155,7 @@ wt_activate() {
   base="$(basename "$wf" .json)"
   printf '%s\n' "$base"
   # activate.sh expects the workflow name (or absolute path for local workflows);
-  # the existing wheel:run pattern passes the workflow file argument unchanged.
+  # the existing wheel:wheel-run pattern passes the workflow file argument unchanged.
   "$WT_ACTIVATE_SH" "$wf" >&2
 }
 

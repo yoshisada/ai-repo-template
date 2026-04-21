@@ -33,8 +33,8 @@ How workflow state advances:
   - agent steps: complete the agent's work, hooks detect completion and advance
   - workflow steps: hooks dispatch the sub-workflow inline and advance on completion
 
-If you need to stop a workflow: /wheel:stop
-If you need to check status: /wheel:status
+If you need to stop a workflow: /wheel:wheel-stop
+If you need to check status: /wheel:wheel-status
 BLOCK
       exit 2
     fi
@@ -61,8 +61,8 @@ How workflow state advances:
   - agent steps: complete the agent's work, hooks detect completion and advance
   - workflow steps: hooks dispatch the sub-workflow inline and advance on completion
 
-If you need to stop a workflow: /wheel:stop
-If you need to check status: /wheel:status
+If you need to stop a workflow: /wheel:wheel-stop
+If you need to check status: /wheel:wheel-status
 EOF
   exit 2
 fi

@@ -1,5 +1,5 @@
 ---
-name: status
+name: wheel-status
 description: Show the status of all running workflows. Displays workflow name, current step, progress, session/agent IDs, and elapsed time.
 ---
 
@@ -54,5 +54,5 @@ done
 ## Rules
 
 - This skill takes no arguments.
-- If any state file is corrupted (invalid JSON), report the error for that file and suggest running `/wheel:stop` to clean up.
+- If any state file is corrupted (invalid JSON), report the error for that file and suggest running `/wheel:wheel-stop` to clean up.
 - If the workflow file referenced in a state file no longer exists, report that error.

@@ -1,5 +1,5 @@
 ---
-name: list
+name: wheel-list
 description: List all available wheel workflows. Scans local workflows/ directory and installed plugin manifests. Displays names, step counts, step types, validation status, grouped by source.
 ---
 
@@ -177,7 +177,7 @@ if [[ "$PLUGIN_WF_COUNT" -gt 0 ]]; then
   done
 
   echo ""
-  echo "Run plugin workflows with \`/wheel:run <plugin>:<workflow-name>\` (e.g., \`/wheel:run ${P_NAME}:${WF_NAME}\`)."
+  echo "Run plugin workflows with \`/wheel:wheel-run <plugin>:<workflow-name>\` (e.g., \`/wheel:wheel-run ${P_NAME}:${WF_NAME}\`)."
   echo "Copy to \`workflows/\` to customize."
 fi
 ```
@@ -191,7 +191,7 @@ If Step 1 found no local workflow files AND Step 3 found no plugin workflows, di
 ```
 No workflows found.
 
-Run `/wheel:create` to create your first workflow, or install a plugin that ships workflows.
+Run `/wheel:wheel-create` to create your first workflow, or install a plugin that ships workflows.
 ```
 
 **Stop here** — there is nothing else to display.

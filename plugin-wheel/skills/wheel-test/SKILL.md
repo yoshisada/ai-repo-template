@@ -1,13 +1,13 @@
 ---
-name: test
-description: Run every workflow under workflows/tests/ end-to-end and emit a markdown pass/fail report at .wheel/logs/test-run-<timestamp>.md. Classifies workflows into 4 phases by JSON step types, runs Phase 1 in parallel (back-to-back activations) and Phases 2-4 serially via the wheel activate.sh + hook path. Usage: /wheel:test
+name: wheel-test
+description: Run every workflow under workflows/tests/ end-to-end and emit a markdown pass/fail report at .wheel/logs/test-run-<timestamp>.md. Classifies workflows into 4 phases by JSON step types, runs Phase 1 in parallel (back-to-back activations) and Phases 2-4 serially via the wheel activate.sh + hook path. Usage: /wheel:wheel-test
 ---
 
 <!--
   Plugin manifest note: plugin-wheel/.claude-plugin/plugin.json uses skill
   auto-discovery — no explicit registration required. This file's presence
-  under plugin-wheel/skills/test/ is sufficient for Claude Code to
-  expose /wheel:test.
+  under plugin-wheel/skills/wheel-test/ is sufficient for Claude Code to
+  expose /wheel:wheel-test.
 -->
 
 # Wheel Test — End-to-End Workflow Suite
@@ -49,7 +49,7 @@ Source the function library and run preflight in a single Bash call. This sets t
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_init_run_clock
 wt_require_nonempty_tests_dir
 wt_require_clean_state
@@ -111,7 +111,7 @@ In practice the flow is:
 # Record start times for all Phase 1 workflows in one go.
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
 while read -r tag path; do
   [[ "$tag" == "PHASE1" ]] || continue
@@ -131,7 +131,7 @@ After all Phase 1 activations have been issued, run the wait loop in ONE Bash ca
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
 wt_phase1_wait_all
 ```
@@ -190,7 +190,7 @@ Once there is no state file left (workflow archived):
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
 wt_wait_and_record_serial 2 "/<absolute-repo-root>/workflows/tests/<workflow>.json" "$(cat /tmp/wt-start)"
 ```
@@ -244,7 +244,7 @@ Then drive that step exactly like Step 4b (read `context_from` outputs, write `o
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
 wt_wait_and_record_serial 3 "/<absolute-repo-root>/workflows/tests/<workflow>.json" "$(cat /tmp/wt-start)"
 ```
@@ -274,7 +274,7 @@ For **each** `PHASE4 <absolute-path>` line from Step 1, follow these 10 steps on
     ```bash
     set -euo pipefail
     WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-    source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+    source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
     wt_load_run_env
     wt_wait_and_record_serial 4 "/<abs-path>/workflows/tests/<workflow>.json" <start-epoch>
     ```
@@ -292,7 +292,7 @@ One final Bash call builds and emits the report and returns the verdict.
 ```bash
 set -euo pipefail
 WT_REPO_ROOT="$(git rev-parse --show-toplevel)"
-source "${WT_REPO_ROOT}/plugin-wheel/skills/test/lib/runtime.sh"
+source "${WT_REPO_ROOT}/plugin-wheel/skills/wheel-test/lib/runtime.sh"
 wt_load_run_env
 wt_reconcile_expected_failures
 BODY="$(wt_build_report)"
@@ -300,7 +300,7 @@ wt_emit_report "$BODY"
 wt_final_verdict
 ```
 
-The final `wt_final_verdict` call is the ONLY function whose exit code propagates as the skill's final status (per `specs/wheel:test-skill/contracts/interfaces.md`).
+The final `wt_final_verdict` call is the ONLY function whose exit code propagates as the skill's final status (per `specs/wheel-test-skill/contracts/interfaces.md`).
 
 ---
 
@@ -316,7 +316,7 @@ The final `wt_final_verdict` call is the ONLY function whose exit code propagate
 
 ## Troubleshooting
 
-- **"pre-existing state files detected"** — Run `/wheel:stop` for each, or archive them manually into `.wheel/history/stopped/`, then re-run `/wheel:test`.
+- **"pre-existing state files detected"** — Run `/wheel:wheel-stop` for each, or archive them manually into `.wheel/history/stopped/`, then re-run `/wheel:wheel-test`.
 - **"TIMEOUT" rows** — A workflow failed to archive within its phase budget. Check `.wheel/logs/wheel.log` between `WT_LOG_BASELINE` and EOF.
 - **Orphans present but verdict PASS?** — Won't happen. Orphans force FAIL per FR-008 / FR-017.
 - **Activation did nothing** — you used `"$VAR"` instead of a literal path. The hook regex requires `/` or `./` at the start of the activate.sh token. Re-issue with the expanded absolute path.
@@ -324,8 +324,8 @@ The final `wt_final_verdict` call is the ONLY function whose exit code propagate
 
 ## Files
 
-- `plugin-wheel/skills/test/SKILL.md` — this file
-- `plugin-wheel/skills/test/lib/runtime.sh` — function library (all `wt_*` functions per `specs/wheel:test-skill/contracts/interfaces.md`)
+- `plugin-wheel/skills/wheel-test/SKILL.md` — this file
+- `plugin-wheel/skills/wheel-test/lib/runtime.sh` — function library (all `wt_*` functions per `specs/wheel-test-skill/contracts/interfaces.md`)
 - `.wheel/logs/test-run-<WT_RUN_TIMESTAMP>.md` — generated report (per run)
 - `.wheel/logs/.wheel-test-results-<WT_RUN_TIMESTAMP>.tsv` — transient result accumulator (inspectable for debugging)
 - `.wheel/logs/.wheel-test-phases-<WT_RUN_TIMESTAMP>.env` — transient classification snapshot (inspectable for debugging)
