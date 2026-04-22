@@ -8,10 +8,10 @@ Tasks follow the phase partition specified in the Task #1 description. Mark each
 
 ## Phase A — `.shelf-config` schema + counter helpers
 
-- [ ] **A-1** Create `plugin-shelf/scripts/shelf-counter.sh` with three subcommands (`read`, `increment-and-decide`, `ensure-defaults`) per `contracts/interfaces.md` §3. Include flock-with-fallback locking, atomic tempfile+mv write, tolerant key parsing. Make executable (`chmod +x`).
-- [ ] **A-2** Update the scaffold `.shelf-config` template (wherever new projects get `.shelf-config` seeded — locate via `grep -r 'base_path' plugin-*/scaffold/ plugin-*/bin/ 2>/dev/null`) to include the two new keys with defaults. If no explicit template exists, add a call to `shelf-counter.sh ensure-defaults` into the init path that creates `.shelf-config`.
-- [ ] **A-3** Add `.shelf-config.lock` to the repo-root `.gitignore` (add or create the file). Verify `.shelf-config` itself remains tracked.
-- [ ] **A-4** Unit-ish smoke test for `shelf-counter.sh`: run it 10 times against a fresh temp `.shelf-config` with threshold=3 and verify counter progression `0→1→2→reset(0)→1→2→reset(0)→…`. Capture in a short shell transcript committed under `specs/report-issue-speedup/agent-notes/counter-smoke.md`.
+- [X] **A-1** Create `plugin-shelf/scripts/shelf-counter.sh` with three subcommands (`read`, `increment-and-decide`, `ensure-defaults`) per `contracts/interfaces.md` §3. Include flock-with-fallback locking, atomic tempfile+mv write, tolerant key parsing. Make executable (`chmod +x`).
+- [X] **A-2** Update the scaffold `.shelf-config` template (wherever new projects get `.shelf-config` seeded — locate via `grep -r 'base_path' plugin-*/scaffold/ plugin-*/bin/ 2>/dev/null`) to include the two new keys with defaults. If no explicit template exists, add a call to `shelf-counter.sh ensure-defaults` into the init path that creates `.shelf-config`. _(Done: wired `ensure-defaults` into the `write-shelf-config` step of `plugin-shelf/workflows/shelf-create.json` — runs on both CREATED and SKIPPED branches, making it idempotent for existing projects too.)_
+- [X] **A-3** Add `.shelf-config.lock` to the repo-root `.gitignore` (add or create the file). Verify `.shelf-config` itself remains tracked.
+- [X] **A-4** Unit-ish smoke test for `shelf-counter.sh`: run it 10 times against a fresh temp `.shelf-config` with threshold=3 and verify counter progression `0→1→2→reset(0)→1→2→reset(0)→…`. Capture in a short shell transcript committed under `specs/report-issue-speedup/agent-notes/counter-smoke.md`. _(Noted: macOS has no `flock` by default; the fallback path ran. Cadence verified.)_
 
 ## Phase B — `shelf-write-issue-note` sub-workflow
 

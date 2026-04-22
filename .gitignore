@@ -36,6 +36,9 @@ npm-debug.log*
 .wheel/state.json
 .wheel/.locks/
 
+# Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
+.shelf-config.lock
+
 # Workflow outputs — generated, never commit
 reports/
 .wheel/outputs/
