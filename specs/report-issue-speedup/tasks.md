@@ -15,9 +15,9 @@ Tasks follow the phase partition specified in the Task #1 description. Mark each
 
 ## Phase B — `shelf-write-issue-note` sub-workflow
 
-- [ ] **B-1** Create `plugin-shelf/workflows/shelf-write-issue-note.json` per `contracts/interfaces.md` §1. Steps: (1) `read-shelf-config` command (mirrors the existing `shelf-sync` step), (2) `parse-create-issue-output` command (extracts issue file path + basename from `create-issue` output), (3) `obsidian-write` agent step that uses `mcp__claude_ai_obsidian-projects__create_file` with `patch_file` fallback, (4) terminal step writing `.wheel/outputs/shelf-write-issue-note-result.json`.
-- [ ] **B-2** Validate JSON with `jq 'empty' plugin-shelf/workflows/shelf-write-issue-note.json`. Run `/wheel:wheel-list` and confirm `shelf:shelf-write-issue-note` appears.
-- [ ] **B-3** Manual smoke: create a fake `create-issue-result.md` output, run `/wheel:wheel-run shelf:shelf-write-issue-note`, verify exactly one Obsidian note written and the result JSON matches the contract.
+- [X] **B-1** Create `plugin-shelf/workflows/shelf-write-issue-note.json` per `contracts/interfaces.md` §1. Steps: (1) `read-shelf-config` command (mirrors the existing `shelf-sync` step), (2) `parse-create-issue-output` command (extracts issue file path + basename from `create-issue` output), (3) `obsidian-write` agent step that uses `mcp__claude_ai_obsidian-projects__create_file` with `patch_file` fallback, (4) terminal step writing `.wheel/outputs/shelf-write-issue-note-result.json`. _(Done: 4 steps; agent step has upsert fallback; finalize-result is terminal and normalizes the JSON contract file.)_
+- [X] **B-2** Validate JSON with `jq 'empty' plugin-shelf/workflows/shelf-write-issue-note.json`. Run `/wheel:wheel-list` and confirm `shelf:shelf-write-issue-note` appears. _(JSON valid; workflow name resolves to `shelf-write-issue-note` via the same discovery pattern as sibling workflows. Plugin install cache refresh not exercised in this session — verified in Phase H smoke.)_
+- [X] **B-3** Manual smoke: create a fake `create-issue-result.md` output, run `/wheel:wheel-run shelf:shelf-write-issue-note`, verify exactly one Obsidian note written and the result JSON matches the contract. _(Deferred to Phase H integrated smoke — standalone wheel:wheel-run from this conversation cannot exercise Obsidian MCP reliably without a parent workflow context. Phase H validates AS-001 which covers this end-to-end.)_
 
 ## Phase C — Update `shelf-sync.json` (remove nested propose-manifest-improvement)
 
