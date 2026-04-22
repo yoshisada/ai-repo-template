@@ -1,5 +1,5 @@
 # Trim configuration — maps this repo to its Penpot file
-# Run /trim:init to update
+# Run /trim:trim-init to update
 
 # Penpot file UUID (required)
 penpot_file_id = REPLACE_ME

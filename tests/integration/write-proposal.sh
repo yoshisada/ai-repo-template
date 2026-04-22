@@ -7,7 +7,7 @@
 #   - frontmatter keys type/target/date
 #   - body_sections preserving the five fields
 # (The MCP agent step, which does the actual vault write, is exercised
-# end-to-end only via /wheel:run inside Claude Code; the command-step gate
+# end-to-end only via /wheel:wheel-run inside Claude Code; the command-step gate
 # enforcement is what this integration test validates.)
 
 set -u
@@ -35,7 +35,7 @@ EOF
 
 CURRENT="- \`severity\` — enum: \`minor\` | \`moderate\` | \`major\`"
 PROPOSED="- \`severity\` — enum: \`minor\` | \`moderate\` | \`major\` | \`critical\`"
-WHY="Run /kiln:mistake produced .kiln/mistakes/2026-04-16-api-outage.md that needed a critical severity; current enum forced a false moderate."
+WHY="Run /kiln:kiln-mistake produced .kiln/mistakes/2026-04-16-api-outage.md that needed a critical severity; current enum forced a false moderate."
 
 reflect=$(jq -cn \
   --arg target "@manifest/types/mistake.md" \

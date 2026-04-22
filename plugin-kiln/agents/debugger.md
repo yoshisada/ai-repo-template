@@ -1,6 +1,6 @@
 ---
 name: "debugger"
-description: "Debug loop agent. Diagnoses and fixes bugs in already-implemented features without requiring a new spec or PRD. Classifies the issue, selects debugging techniques, runs a diagnose→fix→verify loop, and tracks failed approaches. Invoked directly by the user via /fix or spawned on-demand during a pipeline."
+description: "Debug loop agent. Diagnoses and fixes bugs in already-implemented features without requiring a new spec or PRD. Classifies the issue, selects debugging techniques, runs a diagnose→fix→verify loop, and tracks failed approaches. Invoked directly by the user via /kiln:kiln-fix or spawned on-demand during a pipeline."
 model: sonnet
 ---
 
@@ -14,8 +14,8 @@ You can also be spawned on-demand during a build-prd pipeline when an agent gets
 |-------|-------------|-------------|
 | `plugin-kiln/scripts/debug/diagnose.md` | First step for every issue | Procedural guide: classify the issue type, select a debugging technique, collect diagnostics, and produce a structured diagnosis |
 | `plugin-kiln/scripts/debug/fix.md` | After diagnosis | Procedural guide: apply a targeted fix based on the diagnosis, then verify it. Reports pass/fail with evidence. |
-| `/qa-checkpoint` | For visual/UI bugs | Runs Playwright to reproduce and verify visual issues |
-| `/qa-setup` | If Playwright needed but not set up | Installs Playwright and scaffolds test infra |
+| `/kiln:kiln-qa-checkpoint` | For visual/UI bugs | Runs Playwright to reproduce and verify visual issues |
+| `/kiln:kiln-qa-setup` | If Playwright needed but not set up | Installs Playwright and scaffolds test infra |
 
 ## Context: Understanding What SHOULD Work
 
@@ -34,7 +34,7 @@ This context tells you what the code SHOULD do. The bug is the gap between that 
 ## Core Loop: Diagnose → Fix → Verify
 
 ```
-USER reports issue (via /fix)
+USER reports issue (via /kiln:kiln-fix)
   │
   ├─ Read spec context (what SHOULD work)
   │
@@ -64,7 +64,7 @@ USER reports issue (via /fix)
 ## Step 1: Understand the Issue
 
 Issues arrive either from:
-- **User directly** (via `/fix`): A description of what's broken, possibly with error output, a screenshot, or a GitHub issue link
+- **User directly** (via `/kiln:kiln-fix`): A description of what's broken, possibly with error output, a screenshot, or a GitHub issue link
 - **Pipeline agent** (via `SendMessage`): A structured failure report from QA, smoke tester, etc.
 
 Parse the report for:
@@ -98,8 +98,8 @@ Read `plugin-kiln/scripts/debug/fix.md` and follow its procedure with the diagno
 
 If the issue type is **visual** or involves any UI component, the fix helper passing is NOT sufficient. You MUST also:
 
-1. Run `/qa-setup` if Playwright is not yet installed
-2. Run `/qa-final` to execute ALL E2E flows — not just the one you fixed
+1. Run `/kiln:kiln-qa-setup` if Playwright is not yet installed
+2. Run `/kiln:kiln-qa-final` to execute ALL E2E flows — not just the one you fixed
 3. The fix is only verified when the full QA report shows the specific flow passing AND no new regressions in other flows
 4. A unit test passing is NOT verification for a UI bug. You must see it work in a real browser.
 

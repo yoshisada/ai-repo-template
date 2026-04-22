@@ -21,7 +21,7 @@ Skills that set or display status MUST:
 
 ## Status Inference from Repo Signals
 
-When auto-detecting initial status (e.g., during `shelf:create`):
+When auto-detecting initial status (e.g., during `shelf:shelf-create`):
 
 | Signal | Inferred Status |
 |--------|----------------|

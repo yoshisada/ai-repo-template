@@ -1,0 +1,273 @@
+---
+name: "kiln-qa-pass"
+description: "Standalone QA pass with 4-agent team. E2E tests + live /chrome testing + UX evaluation. Findings filed as GitHub issues. Use this outside the pipeline — for pipeline use, see /kiln:kiln-qa-pipeline."
+---
+
+# QA Pass — Standalone (Files GitHub Issues)
+
+Run a full QA pass with a 4-agent team. Findings are filed as GitHub issues for the user to address later. This is the standalone workflow — for pipeline integration where findings route to implementers, use `/kiln:kiln-qa-pipeline`.
+
+```text
+$ARGUMENTS
+```
+
+## Architecture
+
+```
+/kiln:kiln-qa-pass (you — team lead)
+  │
+  ├─ e2e-agent      Runs Playwright E2E suite (headless, fast, deterministic)
+  │                  Sends PASS/FAIL per test → qa-reporter
+  │
+  ├─ chrome-agent   Uses /chrome with live data (visible, real auth, real state)
+  │                  Sends PASS/FAIL per flow → qa-reporter
+  │
+  ├─ ux-agent       3-layer UX evaluation (axe-core + semantic + visual)
+  │                  Sends findings → qa-reporter
+  │
+  └─ qa-reporter    MODE: issues
+                    Files each finding as a GitHub issue
+                    Cross-checks completeness
+                    Produces QA-PASS-REPORT.md
+```
+
+**Requires**: Chrome + Claude-in-Chrome extension (for chrome-agent). If /chrome is unavailable, chrome-agent is skipped and e2e-agent + ux-agent still run.
+
+## Pre-Flight
+
+1. **Version Verification**: Before dispatching any QA agents, verify the build is current:
+   - Read the `VERSION` file from the project root
+   - If a dev server is running, check the app for a version indicator (page footer, meta tags, CLI output)
+   - If versions mismatch: run the project's build command, wait, and re-check
+   - If still mismatched after rebuild: warn the user and add a disclaimer to the QA report
+   - If no VERSION file exists: skip this check with a warning
+
+2. **Verify /chrome**: Check availability. If unavailable, warn that chrome-agent will be skipped.
+
+2. **Read spec context**: `specs/*/spec.md`, `specs/*/plan.md`, `docs/PRD.md`. Build or read `.kiln/qa/test-matrix.md`.
+
+3. **Start dev server** (if not running):
+   ```bash
+   DEV_CMD=$(node -e "const p=require('./package.json'); console.log(p.scripts?.dev || p.scripts?.start || '')" 2>/dev/null)
+   if [ -n "$DEV_CMD" ]; then npm run dev & else npx vite & fi
+   DEV_PID=$!
+   ```
+
+4. **Check credentials**: `.kiln/qa/.env.test`. If missing and needed, ask the user.
+
+5. **Ensure Playwright**: `npx playwright --version || npm install -D @playwright/test && npx playwright install chromium`
+
+6. **Prepare artifacts**:
+   ```bash
+   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+   mkdir -p ".kiln/qa/$TIMESTAMP/screenshots/desktop" ".kiln/qa/$TIMESTAMP/screenshots/tablet" ".kiln/qa/$TIMESTAMP/screenshots/mobile" ".kiln/qa/$TIMESTAMP/screenshots/reference" ".kiln/qa/$TIMESTAMP/snapshots"
+   mkdir -p .kiln/qa/baselines
+   ln -sfn "$TIMESTAMP" .kiln/qa/latest
+   ```
+
+## Step 1: Create Team
+
+```
+TeamCreate: "qa-pass"
+```
+
+Create 4 tasks:
+
+```
+Task 1: "E2E test suite"         → owner: e2e-agent    → depends: none
+Task 2: "Live browser testing"   → owner: chrome-agent  → depends: none
+Task 3: "UX evaluation"          → owner: ux-agent      → depends: none
+Task 4: "Report and audit"       → owner: qa-reporter   → depends: 1, 2, 3
+```
+
+All testing agents run in parallel. Reporter waits for all three.
+
+If /chrome is not available, skip Task 2 (chrome-agent) and remove it from Task 4's dependencies.
+
+## Step 2: Spawn Agents
+
+All with `run_in_background: true`, `mode: "bypassPermissions"`.
+
+### e2e-agent prompt:
+
+```
+You are the E2E test agent. Run the Playwright test suite against the live app.
+
+Working directory: [path]
+Dev server: [URL]
+Playwright config: .kiln/qa/playwright.config.ts
+
+Step 1: Ensure all E2E tests are written
+- Read .kiln/qa/test-matrix.md
+- For every flow, verify a test exists in .kiln/qa/tests/
+- Write tests for any missing flows (use accessible selectors only)
+
+Step 2: Run the full suite
+  cd .kiln/qa && npx playwright test --config=playwright.config.ts 2>&1
+
+Step 3: Send results to qa-reporter
+For each test result:
+  SendMessage("qa-reporter", "E2E [PASS/FAIL]: [test name]
+    File: [test file]
+    Duration: [Xs]
+    Error: [if failed — assertion message]
+    Video: [path to .webm if recorded]")
+
+When done:
+  SendMessage("qa-reporter", "E2E COMPLETE — [X/Y] tests passed")
+  Mark task completed.
+
+Rules:
+- Run ALL tests, not a subset.
+- Use video: 'on' for failures, 'retain-on-failure' for passes.
+- Accessible selectors only (getByRole, getByLabel, getByText, getByTestId).
+- Do NOT file issues — qa-reporter handles that.
+```
+
+### chrome-agent prompt:
+
+```
+You are the live browser testing agent. Use /chrome to test with real data and real auth sessions.
+
+Working directory: [path]
+Dev server: [URL]
+Test matrix: .kiln/qa/test-matrix.md
+Screenshot directory: .kiln/qa/latest/screenshots/
+
+You test things the headless E2E suite CANNOT:
+- Flows requiring real authentication (shared Chrome login sessions)
+- Flows with real/production data
+- Third-party integrations (OAuth, payment, external APIs)
+- Visual states that need a human eye (the user is watching)
+
+For EVERY flow in the test matrix:
+1. navigate_page to the URL
+2. wait_for page to load
+3. take_screenshot at each significant state
+4. list_console_messages for JS errors
+5. Execute the flow (click, fill, hover)
+6. Send result to qa-reporter:
+   SendMessage("qa-reporter", "CHROME [PASS/FAIL]: [flow name] (US-NNN)
+     Steps: [what you did]
+     Result: [what happened]
+     Console errors: [count]
+     Screenshots: [paths]")
+
+Also test responsive:
+- Resize to tablet (768px) and mobile (375px)
+- Screenshot key pages at each viewport
+
+When done:
+  SendMessage("qa-reporter", "CHROME TESTING COMPLETE — [X/Y] flows passed")
+  Mark task completed.
+
+Rules:
+- The user is watching. Move deliberately.
+- If a flow needs login, use the user's existing Chrome session. If not logged in, ask the user to log in manually.
+- Screenshot EVERY significant state.
+- Do NOT file issues — qa-reporter handles that.
+```
+
+### ux-agent prompt:
+
+```
+You are the UX evaluator. Run a 3-layer evaluation on every page.
+
+Working directory: [path]
+Dev server: [URL]
+Screenshot directory: .kiln/qa/latest/screenshots/
+Audit scripts: plugin/skills/ux-audit-scripts/
+
+For EVERY page/route:
+
+LAYER 1 (Programmatic — MANDATORY):
+1. navigate_page to the route
+2. evaluate_script with contents of plugin/skills/ux-audit-scripts/axe-inject.js
+3. evaluate_script("return window.__axeResults")
+4. evaluate_script with contents of plugin/skills/ux-audit-scripts/contrast-check.js
+5. evaluate_script with contents of plugin/skills/ux-audit-scripts/layout-check.js
+6. Send each violation to qa-reporter
+
+LAYER 2 (Semantic):
+7. take_snapshot — accessibility tree
+8. Evaluate against Nielsen's 10 heuristics
+9. Send findings to qa-reporter
+
+LAYER 3 (Visual — Rubric-Based Scoring):
+10. Read the rubric from plugin/templates/ux-rubric.md
+11. Step 3a: Check constitution/spec for a design reference URL. If found, capture reference screenshots to .kiln/qa/latest/screenshots/reference/
+12. Step 3b: Load baseline from .kiln/qa/baselines/ux-rubric-latest.json if it exists
+13. Step 3c: Score each page against all 10 dimensions (D1-D10) using the rubric. Use pairwise comparison if reference available.
+14. Step 3d: Send VISUAL RUBRIC scorecards, detailed findings for scores <= 4, and VISUAL REGRESSION alerts for baseline drops >= 2 points
+15. Also check for visual bugs (overlaps, truncation, invisible text, broken images)
+
+When done:
+  SendMessage("qa-reporter", "UX EVALUATION COMPLETE — [N] findings sent")
+  Mark task completed.
+
+Rules:
+- Layer 1 is MANDATORY on every page.
+- Be specific: exact ratios, colors, selectors.
+- If evaluate_script fails (CSP), fall back to Layers 2+3.
+- Do NOT file issues — qa-reporter handles that.
+```
+
+### qa-reporter prompt:
+
+```
+You are the QA reporter. MODE: issues (standalone /kiln:kiln-qa-pass).
+
+Working directory: [path]
+Test matrix: .kiln/qa/test-matrix.md
+
+RECEIVE findings from e2e-agent, chrome-agent, and ux-agent.
+
+For EACH finding:
+1. File a GitHub issue:
+   gh issue create --label "qa-pass" --label "[severity]" --title "[QA] ..." --body "..."
+2. Track the issue number
+
+CROSS-CHECK completeness:
+- Every flow in test matrix covered by e2e-agent AND chrome-agent?
+- Every page evaluated by ux-agent?
+- If missing, message the responsible agent
+
+After all agents complete:
+1. Produce .kiln/qa/latest/QA-PASS-REPORT.md
+2. git add .kiln/qa/ && git commit -m "qa: QA pass report — N issues filed"
+3. Mark task completed
+
+Follow full instructions in plugin/agents/qa-reporter.md.
+```
+
+## Step 3: Monitor
+
+You are the team lead. Track via `TaskList`. Relay user observations to agents.
+
+## Step 4: Report
+
+Wait for qa-reporter task to complete, then present:
+
+```
+## QA Pass Complete
+
+**E2E Tests**: X/Y passing
+**Chrome Tests**: X/Y passing
+**UX Score**: N/10
+**Issues Filed**: N (N critical, M major, P minor)
+
+Report: .kiln/qa/latest/QA-PASS-REPORT.md
+Issues: gh issue list --label "qa-pass"
+```
+
+## Step 5: Cleanup
+
+```bash
+kill $DEV_PID 2>/dev/null
+```
+
+**Confirm before shutdown**: Ask each agent "Are you finished? Reply 'READY TO SHUTDOWN'." Wait for confirmation. Never shut down an agent with uncommitted work or pending messages.
+
+Shutdown order: e2e-agent → chrome-agent → ux-agent → qa-reporter (last, since it depends on the others).
+
+Then `TeamDelete: "qa-pass"`.

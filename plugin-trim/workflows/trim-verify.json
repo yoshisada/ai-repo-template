@@ -1,0 +1,40 @@
+{
+  "name": "trim-verify",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "resolve-trim-plugin",
+      "type": "command",
+      "command": "TRIM_PATH=$(jq -r '.plugins | to_entries[] | .value[] | select(.installPath | contains(\"/trim/\")) | .installPath' ~/.claude/plugins/installed_plugins.json 2>/dev/null | head -1); if [ -z \"$TRIM_PATH\" ]; then TRIM_PATH=plugin-trim; fi; echo \"trim_plugin_path=$TRIM_PATH\"",
+      "output": ".wheel/outputs/resolve-plugin.txt"
+    },
+    {
+      "id": "read-flows",
+      "type": "command",
+      "command": "if [ -f .trim/flows.json ]; then echo '## Flows' && cat .trim/flows.json && echo '' && echo \"flow_count=$(jq length .trim/flows.json)\" && echo \"total_steps=$(jq '[.[].steps | length] | add' .trim/flows.json)\"; else echo 'ERROR: .trim/flows.json not found'; fi",
+      "output": ".wheel/outputs/read-flows.txt"
+    },
+    {
+      "id": "capture-screenshots",
+      "type": "agent",
+      "instruction": "Walk each user flow and capture screenshots at every step.\n\nYou have Penpot MCP tools and browser tools (Playwright or /chrome MCP) available.\n\n1. Read the flows from context (read-flows output).\n2. Ensure the .trim/verify/ directory exists.\n3. For each flow in .trim/flows.json:\n   a. For each step in the flow:\n      - Execute the step action in the browser:\n        - navigate: go to the URL\n        - click: click the target element\n        - fill: fill the target input\n        - select: select an option\n        - scroll: scroll the page\n        - wait: wait for the target to appear\n      - Take a screenshot and save to .trim/verify/{flow-name}-step-{N}.png\n      - If the step has a penpot_frame_id: fetch that Penpot frame via MCP\n   b. Record the screenshot path and Penpot frame data for each step\n\nPrefer Playwright headless for screenshots. If Playwright is unavailable, use /chrome MCP tools.\n\nWrite a summary to your output: for each flow/step, the screenshot path and whether the Penpot frame was fetched.\n\nIMPORTANT: Do NOT modify any code files or Penpot designs. This is read-only verification.",
+      "context_from": ["resolve-trim-plugin", "read-flows"],
+      "output": ".wheel/outputs/capture-screenshots.txt"
+    },
+    {
+      "id": "compare-visuals",
+      "type": "agent",
+      "instruction": "Compare each captured screenshot against its corresponding Penpot frame using visual analysis.\n\n1. Read the capture-screenshots output to get the list of screenshot paths and Penpot frame data.\n2. For each step that has both a screenshot and a Penpot frame:\n   a. Read the screenshot image\n   b. Read/view the Penpot frame design\n   c. Compare them semantically — identify:\n      - Layout shifts (elements in wrong position, wrong size)\n      - Color differences (wrong background, text, or accent colors)\n      - Missing or extra elements (elements in design but not code, or vice versa)\n      - Typography mismatches (wrong font, size, weight, line-height)\n      - Spacing issues (wrong margins, padding, gaps)\n   d. Record result: pass (matches) or fail (mismatch with description)\n3. For steps without a Penpot frame: record as 'skipped — no Penpot frame mapped'\n\nUse Claude vision (multimodal image analysis) for comparison — NOT pixel-diffing.\n\n4. Additionally, check for element overlaps within each screenshot:\n   a. Identify all visible UI elements and their bounding boxes (x, y, width, height)\n   b. For each pair of elements (a, b), check AABB overlap:\n      if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y) → overlap detected\n   c. Record overlapping element pairs in the results as 'overlap' mismatches\n   d. Exclude intentional overlaps (z-indexed layers, modals, tooltips) — only flag unintentional collisions\n\nWrite detailed per-step results to your output file.",
+      "context_from": ["capture-screenshots"],
+      "output": ".wheel/outputs/compare-visuals.txt"
+    },
+    {
+      "id": "write-report",
+      "type": "agent",
+      "instruction": "Generate the verification report and update flow metadata.\n\n1. Read the comparison results from context (compare-visuals output).\n2. Read the flows from context (read-flows output) for flow names and structure.\n3. Read the trim plugin path from context (resolve-trim-plugin output) to find the report template.\n4. Generate .trim/verify-report.md with this structure:\n   ```\n   # Visual Verification Report\n\n   **Date**: [ISO-8601 now]\n   **Flows verified**: [count]\n   **Pass**: [count] | **Fail**: [count]\n\n   ## Flow: [name]\n\n   ### Step 1: [action] [target]\n   - **Result**: pass|fail|skipped\n   - **Screenshot**: .trim/verify/[flow]-step-[N].png\n   - **Penpot Frame**: [frame_id or 'unmapped']\n   - **Mismatch**: [description or 'none']\n\n   ---\n   ```\n5. Update `last_verified` timestamp in .trim/flows.json for each verified flow.\n6. Confirm all screenshots are stored in .trim/verify/ (gitignored).\n\nWrite a summary to your output file with total pass/fail counts.",
+      "context_from": ["read-flows", "compare-visuals"],
+      "output": ".wheel/outputs/write-report.txt",
+      "terminal": true
+    }
+  ]
+}

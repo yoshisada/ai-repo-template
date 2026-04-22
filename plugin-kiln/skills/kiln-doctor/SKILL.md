@@ -269,13 +269,13 @@ Otherwise, update the file:
 jq --arg v "$canonical_version" '.version = $v' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
 
 # For TOML files — use sed to replace version line
-sed -i '' "s/^version = .*/version = \"$canonical_version\"/" "$file"
+sed -i '' "s/^version = .*/kiln:kiln-version = \"$canonical_version\"/" "$file"
 
 # For YAML files — use sed to replace version line
-sed -i '' "s/^version:.*/version: \"$canonical_version\"/" "$file"
+sed -i '' "s/^version:.*/kiln:kiln-version: \"$canonical_version\"/" "$file"
 
 # For .cfg files — use sed to replace version line
-sed -i '' "s/^version = .*/version = $canonical_version/" "$file"
+sed -i '' "s/^version = .*/kiln:kiln-version = $canonical_version/" "$file"
 ```
 
 Report: `Updated <file> version from <old> to <new>`

@@ -14,9 +14,9 @@ This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-
 
 ## Quick Start
 
-New session? Run `/resume` to auto-detect where you left off and get your next steps.
+New session? Run `/kiln:kiln-resume` to auto-detect where you left off and get your next steps.
 
-First time? Run `/init` to set up kiln in an existing repo, or `/clay:create-repo` for a brand new repo.
+First time? Run `/kiln:kiln-init` to set up kiln in an existing repo, or `/clay:clay-create-repo` for a brand new repo.
 
 ## Build & Development
 
@@ -36,7 +36,7 @@ node plugin-kiln/bin/init.mjs update        # re-sync templates
 cat VERSION                            # check current version
 ```
 
-There is no test suite for the plugin itself. Testing is done by running the pipeline on consumer projects via `/build-prd`.
+There is no test suite for the plugin itself. Testing is done by running the pipeline on consumer projects via `/kiln:kiln-build-prd`.
 
 ## Architecture
 
@@ -76,7 +76,7 @@ plugin-kiln/
 
 **Skills** are user-invocable commands (`/skill-name`). They contain the logic and instructions.
 
-**Agents** are spawned by skills (especially `/build-prd`) as team members. Each agent has a specific role and model assignment (sonnet for complex work, haiku for simple validation).
+**Agents** are spawned by skills (especially `/kiln:kiln-build-prd`) as team members. Each agent has a specific role and model assignment (sonnet for complex work, haiku for simple validation).
 
 **Hooks** are shell scripts that run before every Edit/Write/Bash tool use. They enforce the workflow — you can't skip steps because the hooks block you.
 
@@ -85,7 +85,7 @@ plugin-kiln/
 ### Key pipeline flow (build-prd)
 
 ```
-/build-prd
+/kiln:kiln-build-prd
   → Reads PRD, designs agent team
   → Spawns: specifier → [researcher] → implementer(s) → [qa-engineer] → auditor(s) → retrospective
   → QA engineer runs alongside implementers (checkpoint feedback loop)
@@ -179,42 +179,42 @@ PreToolUse hooks that run on every Edit/Write:
 
 If a hook blocks you, either:
 - Complete the full kiln workflow: specify → plan → tasks → implement (for new features)
-- Run `/fix` to fix a bug in an already-specced feature (existing specs satisfy the gates)
+- Run `/kiln:kiln-fix` to fix a bug in an already-specced feature (existing specs satisfy the gates)
 
 ## Available Commands
 
 ### Project Setup
-- `/init` — Add kiln to an existing repo
-- `/next` — Pick up where you left off (run at start of every session)
-- `/clay:create-repo` — Create a brand new GitHub repo with kiln
+- `/kiln:kiln-init` — Add kiln to an existing repo
+- `/kiln:kiln-next` — Pick up where you left off (run at start of every session)
+- `/clay:clay-create-repo` — Create a brand new GitHub repo with kiln
 
 ### Kiln Workflow (run in this order)
-1. `/specify` — Create a feature spec
-2. `/plan` — Create implementation plan + interface contracts
-3. `/tasks` — Generate task breakdown
-4. `/implement` — Execute tasks incrementally + PRD audit
-5. `/audit` — PRD compliance audit (also runs inside implement)
+1. `/specify` — Create a feature spec (pipeline-internal — stays bare)
+2. `/plan` — Create implementation plan + interface contracts (pipeline-internal — stays bare)
+3. `/tasks` — Generate task breakdown (pipeline-internal — stays bare)
+4. `/implement` — Execute tasks incrementally + PRD audit (pipeline-internal — stays bare)
+5. `/audit` — PRD compliance audit (pipeline-internal — stays bare; also runs inside implement)
 
 ### Debugging (no spec required)
-- `/fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Diagnose and fix logic are now inline in `/fix`.
+- `/kiln:kiln-fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Diagnose and fix logic are now inline in `/kiln:kiln-fix`.
 
 ### QA (two workflows — same 4-agent team, different reporter mode)
-- `/qa-pass` — **Standalone**. 4-agent team (e2e + chrome + ux + reporter). Findings filed as GitHub issues. Use outside the pipeline.
-- `/qa-pipeline` — **Pipeline**. Same 4 agents but reporter routes findings to implementers, waits for fixes, re-tests, then files remaining issues. Used by `/build-prd`.
-- `/qa-final` — Quick E2E gate. Just runs `npx playwright test` — green/red, no evaluation.
-- `/qa-setup` — Install Playwright and scaffold QA test infrastructure
-- `/qa-checkpoint` — Quick targeted QA on recently completed flows (feedback loop during implementation)
-- `/ux-evaluate` — Standalone UI/UX design review using /chrome
+- `/kiln:kiln-qa-pass` — **Standalone**. 4-agent team (e2e + chrome + ux + reporter). Findings filed as GitHub issues. Use outside the pipeline.
+- `/kiln:kiln-qa-pipeline` — **Pipeline**. Same 4 agents but reporter routes findings to implementers, waits for fixes, re-tests, then files remaining issues. Used by `/kiln:kiln-build-prd`.
+- `/kiln:kiln-qa-final` — Quick E2E gate. Just runs `npx playwright test` — green/red, no evaluation.
+- `/kiln:kiln-qa-setup` — Install Playwright and scaffold QA test infrastructure
+- `/kiln:kiln-qa-checkpoint` — Quick targeted QA on recently completed flows (feedback loop during implementation)
+- `/kiln:kiln-ux-evaluate` — Standalone UI/UX design review using /chrome
 
 ### Other
-- `/constitution` — View/update project principles
-- `/analyze` — Cross-artifact consistency check
-- `/coverage` — Check test coverage gate
-- `/build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
-- `/analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
+- `/kiln:kiln-constitution` — View/update project principles
+- `/kiln:kiln-analyze` — Cross-artifact consistency check
+- `/kiln:kiln-coverage` — Check test coverage gate
+- `/kiln:kiln-build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
+- `/kiln:kiln-analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
-- `/report-issue` — Quick capture bugs/friction to `.kiln/issues/`
-- `/mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
+- `/kiln:kiln-report-issue` — Quick capture bugs/friction to `.kiln/issues/`
+- `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
 
 ## Versioning
 
@@ -275,5 +275,5 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - File-based — reflect output at `.wheel/outputs/propose-manifest-improvement.json` (internal, not user-visible); proposal file at `@inbox/open/<YYYY-MM-DD>-manifest-improvement-<slug>.md` written via MCP. (build/manifest-improvement-subroutine-20260416)
 
 ## Recent Changes
-- build/fix-skill-with-recording-teams-20260420: `/kiln:fix` gained Step 7 "Record the Fix" — writes a local fix record to `.kiln/fixes/<date>-<slug>.md` and spawns two short-lived teams (`fix-record` for the Obsidian note, `fix-reflect` for an optional manifest-improvement proposal). Debug loop (Steps 2b–5) stays in main chat. New helpers under `plugin-kiln/scripts/fix-recording/`; new manifest type `@manifest/types/fix.md` (staged at `specs/.../assets/manifest-types/fix.md`).
+- build/fix-skill-with-recording-teams-20260420: `/kiln:kiln-fix` gained Step 7 "Record the Fix" — writes a local fix record to `.kiln/fixes/<date>-<slug>.md` and spawns two short-lived teams (`fix-record` for the Obsidian note, `fix-reflect` for an optional manifest-improvement proposal). Debug loop (Steps 2b–5) stays in main chat. New helpers under `plugin-kiln/scripts/fix-recording/`; new manifest type `@manifest/types/fix.md` (staged at `specs/.../assets/manifest-types/fix.md`).
 - build/continuance-agent-20260331: Added Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`)

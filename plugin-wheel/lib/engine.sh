@@ -54,7 +54,7 @@ engine_init() {
 }
 
 # Kickstart the workflow by dispatching the first step inline.
-# Called by /wheel:run after state_init. For command/loop/branch steps,
+# Called by /wheel:wheel-run after state_init. For command/loop/branch steps,
 # this executes them immediately so the workflow doesn't stall waiting
 # for a hook event. For agent steps, returns the instruction as context.
 # Params: $1 = state file path (default: .wheel/state.json)

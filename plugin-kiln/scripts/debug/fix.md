@@ -1,4 +1,4 @@
-# Debug Fix (inline helper for `kiln:fix` Step 4)
+# Debug Fix (inline helper for `kiln:kiln-fix` Step 4)
 
 Apply a fix based on the diagnosis produced by `scripts/debug/diagnose.md`, then verify it works. If verification fails, revert and report.
 
