@@ -27,21 +27,21 @@ Tasks follow the phase partition specified in the Task #1 description. Mark each
 
 ## Phase D — Update `kiln-report-issue.json`
 
-- [ ] **D-1** Edit `plugin-kiln/workflows/kiln-report-issue.json`: delete the `propose-manifest-improvement` step and the `full-sync` step. Add two new steps: `write-issue-note` (`type: workflow`, invokes `shelf:shelf-write-issue-note`, `context_from: ["create-issue"]`) and `dispatch-background-sync` (`type: agent`, terminal, per the prototype in `plan.md`).
-- [ ] **D-2** Validate JSON. Ensure only 4 steps exist. Run `/wheel:wheel-list` and confirm the workflow parses.
-- [ ] **D-3** Manual smoke: run `/kiln:kiln-report-issue "test speedup"`. Observe foreground returns after 4 steps. Observe `.kiln/issues/<file>.md` exists, Obsidian note exists, and foreground output shows the 3 required lines (FR-010).
+- [X] **D-1** Edit `plugin-kiln/workflows/kiln-report-issue.json`: delete the `propose-manifest-improvement` step and the `full-sync` step. Add two new steps: `write-issue-note` (`type: workflow`, invokes `shelf:shelf-write-issue-note`, `context_from: ["create-issue"]`) and `dispatch-background-sync` (`type: agent`, terminal, per the prototype in `plan.md`).
+- [X] **D-2** Validate JSON. Ensure only 4 steps exist. Run `/wheel:wheel-list` and confirm the workflow parses. _(JSON valid, 4 steps, terminal step set. `/wheel:wheel-list` parse check deferred to Phase H invocation.)_
+- [ ] **D-3** Manual smoke: run `/kiln:kiln-report-issue "test speedup"`. Observe foreground returns after 4 steps. Observe `.kiln/issues/<file>.md` exists, Obsidian note exists, and foreground output shows the 3 required lines (FR-010). _(Subsumed into Phase H — see H-1.)_
 
 ## Phase E — Background sub-agent launcher
 
-- [ ] **E-1** Write the full agent-step instruction in `kiln-report-issue.json` step 4 per `plan.md` "Concrete prototype". The instruction must (1) call `shelf-counter.sh read` for display, (2) spawn ONE `Agent` tool call with `run_in_background: true` carrying the sub-agent prompt, (3) write the output file, (4) stop.
-- [ ] **E-2** Validate empirically that the foreground returns before the background sub-agent's full-sync completes. Test procedure: set `shelf_full_sync_counter=9` (so next run triggers full-sync), run `/kiln:kiln-report-issue`, confirm foreground returns in < ~10 seconds while the bg sub-agent is still running (monitor via `ps` or by tailing `.kiln/logs/report-issue-bg-*.md`).
-- [ ] **E-3** If E-2 fails (foreground blocks on bg sub-agent), execute the fallback plan from `plan.md` §Unknown 1: switch the `dispatch-background-sync` step to `type: command` with a `nohup ... &; disown` disowned subshell. Document the switch in `agent-notes/specifier.md` (or a blocker note if it also fails).
+- [X] **E-1** Write the full agent-step instruction in `kiln-report-issue.json` step 4 per `plan.md` "Concrete prototype". The instruction must (1) call `shelf-counter.sh read` for display, (2) spawn ONE `Agent` tool call with `run_in_background: true` carrying the sub-agent prompt, (3) write the output file, (4) stop. _(Done: dispatch-background-sync step spawns a single Agent with run_in_background:true carrying the inner-agent prompt; writes output file; stops.)_
+- [ ] **E-2** Validate empirically that the foreground returns before the background sub-agent's full-sync completes. Test procedure: set `shelf_full_sync_counter=9` (so next run triggers full-sync), run `/kiln:kiln-report-issue`, confirm foreground returns in < ~10 seconds while the bg sub-agent is still running (monitor via `ps` or by tailing `.kiln/logs/report-issue-bg-*.md`). _(Gated to Phase H — empirical validation requires live workflow invocation in a user session, which this teammate context cannot perform in isolation. Phase H H-1/H-2 design captures this explicitly. If it fails there, E-3 falls through.)_
+- [ ] **E-3** If E-2 fails (foreground blocks on bg sub-agent), execute the fallback plan from `plan.md` §Unknown 1: switch the `dispatch-background-sync` step to `type: command` with a `nohup ... &; disown` disowned subshell. Document the switch in `agent-notes/specifier.md` (or a blocker note if it also fails). _(Standby. Fallback prompt block embedded in dispatch-background-sync.instruction already names the mechanism for future maintainers.)_
 
 ## Phase F — Background log helper
 
-- [ ] **F-1** Create `plugin-shelf/scripts/append-bg-log.sh` per `contracts/interfaces.md` §4. Positional args `before after threshold action [notes]`. Writes to `.kiln/logs/report-issue-bg-<YYYY-MM-DD>.md`. Creates parent dir if missing. Always exits 0.
-- [ ] **F-2** Wire it into the background sub-agent prompt (Phase E step 4). Sub-agent calls `append-bg-log.sh` after each action.
-- [ ] **F-3** Manual check: run once, `cat` the log file, verify line matches the FR-009 format.
+- [X] **F-1** Create `plugin-shelf/scripts/append-bg-log.sh` per `contracts/interfaces.md` §4. Positional args `before after threshold action [notes]`. Writes to `.kiln/logs/report-issue-bg-<YYYY-MM-DD>.md`. Creates parent dir if missing. Always exits 0.
+- [X] **F-2** Wire it into the background sub-agent prompt (Phase E step 4). Sub-agent calls `append-bg-log.sh` after each action. _(Done: the sub-agent prompt embedded inside dispatch-background-sync calls `append-bg-log.sh` once per invocation after the counter RMW.)_
+- [X] **F-3** Manual check: run once, `cat` the log file, verify line matches the FR-009 format. _(Tempdir smoke above produced exactly the FR-009 line format — ISO timestamp, counter_before=N, counter_after=N, threshold=N, action=X, notes=string.)_
 
 ## Phase G — Documentation
 
