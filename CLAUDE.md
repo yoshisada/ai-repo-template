@@ -213,8 +213,25 @@ If a hook blocks you, either:
 - `/kiln:kiln-build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
 - `/kiln:kiln-analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
-- `/kiln:kiln-report-issue` — Quick capture bugs/friction to `.kiln/issues/`
+- `/kiln:kiln-report-issue` — Quick capture bugs/friction to `.kiln/issues/`. The foreground path is now lean (4 steps, Apr 2026): `check-existing-issues` → `create-issue` → `write-issue-note` (single Obsidian note via `shelf:shelf-write-issue-note`) → `dispatch-background-sync` (fire-and-forget bg sub-agent). Heavy reconciliation (`shelf-sync` + `shelf-propose-manifest-improvement`) runs only once every `shelf_full_sync_threshold` invocations on the background path.
 - `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
+
+### `.shelf-config` keys (shelf plugin)
+
+Two counter-gating keys control how often `/kiln:kiln-report-issue`'s background sub-agent runs a full reconciliation. Defaults appended to `.shelf-config` on first read via `plugin-shelf/scripts/shelf-counter.sh ensure-defaults`.
+
+| Key | Default | Effect |
+|-----|---------|--------|
+| `shelf_full_sync_counter` | `0` | Current counter. Incremented by 1 on every `/kiln:kiln-report-issue` invocation (by the background sub-agent, under `flock` where available). Reset to `0` when it reaches the threshold. |
+| `shelf_full_sync_threshold` | `10` | Full-sync cadence. When the counter hits this value, the bg sub-agent runs `/shelf:shelf-sync` + `/shelf:shelf-propose-manifest-improvement` to completion. |
+
+A transient sibling lockfile at `.shelf-config.lock` (gitignored) serializes the counter RMW. On systems without `flock` (macOS default), the helper runs unlocked and accepts ±1 drift per FR-006 of `specs/report-issue-speedup/spec.md`.
+
+Per-day background logs are written to `.kiln/logs/report-issue-bg-<YYYY-MM-DD>.md` with pipe-delimited lines: `<ISO-8601> | counter_before=N | counter_after=N | threshold=N | action=increment|full-sync|error | notes=<string>`.
+
+### `shelf-sync` no longer nests reflection
+
+`shelf:shelf-sync` previously invoked `shelf:shelf-propose-manifest-improvement` as an inline workflow step. That step has been removed (Apr 2026). Reflection is now a separate concern: it's invoked by the `/kiln:kiln-report-issue` background sub-agent when the counter rolls over, or manually via `/shelf:shelf-propose-manifest-improvement`. Direct invocations of `/shelf:shelf-sync` no longer automatically propose manifest improvements.
 
 ## Versioning
 

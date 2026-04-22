@@ -7,6 +7,8 @@ description: Sync issues, docs, and tech tags from GitHub and the local repo to 
 
 Pull open issues from GitHub and `.kiln/issues/` into Obsidian as individual issue notes. Updates existing notes, closes archived ones, syncs PRD summaries as doc notes, refreshes tech stack tags, and skips anything unchanged since the last sync.
 
+> **Change (Apr 2026)**: `shelf-sync` no longer nests `shelf:shelf-propose-manifest-improvement` as an inline workflow step. Reflection is a separate concern now — invoked by the `/kiln:kiln-report-issue` background sub-agent on a counter-gated cadence, or manually via `/shelf:shelf-propose-manifest-improvement`. If you previously relied on `shelf-sync` to fire reflection, invoke it directly.
+
 ## User Input
 
 ```text

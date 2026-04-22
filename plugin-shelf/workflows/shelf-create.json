@@ -68,7 +68,7 @@
     {
       "id": "write-shelf-config",
       "type": "command",
-      "command": "if [ -f .shelf-config ]; then echo 'SKIPPED: .shelf-config already exists'; cat .shelf-config; else SLUG=$(grep '^slug=' .wheel/outputs/read-shelf-config.txt 2>/dev/null | head -1 | cut -d= -f2); BASE=$(grep '^base_path=' .wheel/outputs/read-shelf-config.txt 2>/dev/null | head -1 | cut -d= -f2); SLUG=${SLUG:-$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))}; BASE=${BASE:-projects}; DASH=\"${BASE}/${SLUG}/${SLUG}.md\"; printf '# Shelf configuration — maps this repo to its Obsidian project\\nbase_path = %s\\nslug = %s\\ndashboard_path = %s\\n' \"$BASE\" \"$SLUG\" \"$DASH\" > .shelf-config; echo \"CREATED: .shelf-config\"; cat .shelf-config; fi",
+      "command": "if [ -f .shelf-config ]; then echo 'SKIPPED: .shelf-config already exists'; cat .shelf-config; else SLUG=$(grep '^slug=' .wheel/outputs/read-shelf-config.txt 2>/dev/null | head -1 | cut -d= -f2); BASE=$(grep '^base_path=' .wheel/outputs/read-shelf-config.txt 2>/dev/null | head -1 | cut -d= -f2); SLUG=${SLUG:-$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))}; BASE=${BASE:-projects}; DASH=\"${BASE}/${SLUG}/${SLUG}.md\"; printf '# Shelf configuration — maps this repo to its Obsidian project\\nbase_path = %s\\nslug = %s\\ndashboard_path = %s\\n' \"$BASE\" \"$SLUG\" \"$DASH\" > .shelf-config; echo \"CREATED: .shelf-config\"; cat .shelf-config; fi; bash \"${WORKFLOW_PLUGIN_DIR}/scripts/shelf-counter.sh\" ensure-defaults >/dev/null 2>&1 || true; echo; echo '--- after ensure-defaults ---'; cat .shelf-config",
       "output": ".wheel/outputs/write-shelf-config-result.txt",
       "terminal": true
     }
