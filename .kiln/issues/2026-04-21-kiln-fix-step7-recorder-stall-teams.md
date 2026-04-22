@@ -1,7 +1,8 @@
 ---
 type: issue
 date: 2026-04-21
-status: open
+status: prd-created
+prd: docs/features/2026-04-22-kiln-capture-fix-polish/PRD.md
 priority: medium
 repo: https://github.com/yoshisada/ai-repo-template
 tags: [kiln-fix, wheel-teams, reliability]
