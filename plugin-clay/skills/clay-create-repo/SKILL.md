@@ -191,7 +191,7 @@ This marker file is read by `clay_derive_status()` to set the product status to 
 **Next steps**:
 1. `cd <local-path>`
 2. Edit `docs/PRD.md` with your product requirements (or run `/clay:clay-new-product`)
-3. Run `/kiln:build-prd` to start building
+3. Run `/kiln:kiln-build-prd` to start building
 ```
 
 ## Submodule / Monorepo Mode

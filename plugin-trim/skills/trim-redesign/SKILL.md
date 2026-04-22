@@ -26,7 +26,7 @@ Verify that Penpot MCP tools are available.
 Delegate to the redesign wheel workflow:
 
 ```
-/wheel:run trim:trim-redesign
+/wheel:wheel-run trim:trim-redesign
 ```
 
 The workflow executes these steps in order:

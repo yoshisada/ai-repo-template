@@ -161,7 +161,7 @@ Suggest the user open the existing repo:
 > ```
 >
 > Once in the repo, you can:
-> - Run `/kiln:build-prd` to start a full build from a PRD
+> - Run `/kiln:kiln-build-prd` to start a full build from a PRD
 > - Run `/clay:clay-idea` there to explore sub-ideas within that project
 >
 > Repo URL: <repo-url>

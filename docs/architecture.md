@@ -8,9 +8,9 @@ flowchart TB
     %% ENTRY POINTS
     %% ============================================
     subgraph Entry["Entry Points"]
-        init["/init<br/>Add speckit to existing repo"]
-        createRepo["/create-repo<br/>New GitHub repo + scaffold"]
-        resume["/resume<br/>Auto-detect state, next steps"]
+        init["/kiln:kiln-init<br/>Add speckit to existing repo"]
+        createRepo["/clay:clay-create-repo<br/>New GitHub repo + scaffold"]
+        resume["/kiln:kiln-resume<br/>Auto-detect state, next steps"]
     end
 
     %% ============================================
@@ -33,8 +33,8 @@ flowchart TB
     %% PRD CREATION
     %% ============================================
     subgraph PRD["PRD Creation"]
-        createPrd["/create-prd"]
-        issueToPrd["/issue-to-prd<br/>Bundle backlog → PRD"]
+        createPrd["/kiln:kiln-create-prd"]
+        issueToPrd["/kiln:kiln-issue-to-prd<br/>Bundle backlog → PRD"]
         prdDoc["docs/PRD.md or<br/>docs/features/*/PRD.md"]
     end
 
@@ -44,7 +44,7 @@ flowchart TB
     %% ============================================
     %% BUILD-PRD PIPELINE
     %% ============================================
-    subgraph Pipeline["Build-PRD Pipeline (/build-prd)"]
+    subgraph Pipeline["Build-PRD Pipeline (/kiln:kiln-build-prd)"]
         direction TB
 
         subgraph Preflight["Pre-Flight"]
@@ -76,18 +76,18 @@ flowchart TB
             qaEngineer["QA Engineer Agent<br/>(long-lived)"]
 
             subgraph Checkpoint["Checkpoint Mode<br/>(during implementation)"]
-                qaCheckpoint["/qa-checkpoint"]
+                qaCheckpoint["/kiln:kiln-qa-checkpoint"]
                 checkpointFeedback["SendMessage → Implementer<br/>actionable feedback"]
             end
 
-            subgraph QAPipelineTeam["Final Mode: /qa-pipeline<br/>(4-agent team)"]
+            subgraph QAPipelineTeam["Final Mode: /kiln:kiln-qa-pipeline<br/>(4-agent team)"]
                 e2eAgent["e2e-agent<br/>Playwright E2E suite"]
                 chromeAgent["chrome-agent<br/>/chrome live data"]
                 uxAgent["ux-agent<br/>3-layer evaluation"]
                 qaReporterPipeline["qa-reporter<br/>MODE: pipeline"]
             end
 
-            qaFinalGate["/qa-final<br/>Quick green/red gate"]
+            qaFinalGate["/kiln:kiln-qa-final<br/>Quick green/red gate"]
         end
 
         subgraph AuditPhase["Phase 5: Audit (parallel)"]
@@ -149,7 +149,7 @@ flowchart TB
     %% ============================================
     %% STANDALONE QA (outside pipeline)
     %% ============================================
-    subgraph StandaloneQA["/qa-pass (Standalone)"]
+    subgraph StandaloneQA["/kiln:kiln-qa-pass (Standalone)"]
         e2eStandalone["e2e-agent"]
         chromeStandalone["chrome-agent"]
         uxStandalone["ux-agent"]
@@ -163,8 +163,8 @@ flowchart TB
     %% ============================================
     %% BUG FIX WORKFLOW
     %% ============================================
-    subgraph FixFlow["/fix (Bug Fix — No Spec Required)"]
-        fixEntry["/fix [issue] or /fix #42"]
+    subgraph FixFlow["/kiln:kiln-fix (Bug Fix — No Spec Required)"]
+        fixEntry["/kiln:kiln-fix [issue] or /kiln:kiln-fix #42"]
         debugger["Debugger Agent"]
         diagnose["/debug-diagnose<br/>Classify · select technique · collect evidence"]
         fixApply["/debug-fix<br/>Apply fix · verify · revert on fail"]
@@ -182,9 +182,9 @@ flowchart TB
     %% ISSUE LIFECYCLE
     %% ============================================
     subgraph IssueCycle["Issue Lifecycle"]
-        reportIssue["/report-issue"]
+        reportIssue["/kiln:kiln-report-issue"]
         backlog["docs/backlog/<br/>timestamped entries"]
-        issueToPrdCycle["/issue-to-prd<br/>Bundle → PRD"]
+        issueToPrdCycle["/kiln:kiln-issue-to-prd<br/>Bundle → PRD"]
     end
 
     ghIssuesQA --> reportIssue
@@ -213,7 +213,7 @@ flowchart TB
     %% VERSIONING
     %% ============================================
     subgraph Versioning["Versioning (release.feature.pr.edit)"]
-        versionCmd["/version<br/>Show current"]
+        versionCmd["/kiln:kiln-version<br/>Show current"]
         versionBump["scripts/version-bump.sh"]
         versionSync["Syncs to:<br/>VERSION · package.json · plugin.json"]
     end
@@ -266,8 +266,8 @@ flowchart LR
     end
 
     subgraph Loop4["Loop 4: Issues → PRD → Build"]
-        issues["GitHub Issues /<br/>docs/backlog/"] -->|"/issue-to-prd"| newPrd["New PRD"]
-        newPrd -->|"/build-prd"| pipeline["Pipeline"]
+        issues["GitHub Issues /<br/>docs/backlog/"] -->|"/kiln:kiln-issue-to-prd"| newPrd["New PRD"]
+        newPrd -->|"/kiln:kiln-build-prd"| pipeline["Pipeline"]
         pipeline -->|"retro + QA findings"| issues
     end
 ```
@@ -288,7 +288,7 @@ flowchart TB
         m2 & m3 & m4 --> m5["Auditor"] --> m6["Retrospective"]
     end
 
-    subgraph QATeam["QA Team (inside /qa-pass or /qa-pipeline)"]
+    subgraph QATeam["QA Team (inside /kiln:kiln-qa-pass or /kiln:kiln-qa-pipeline)"]
         q1["e2e-agent<br/>Playwright"] --> q4["qa-reporter"]
         q2["chrome-agent<br/>/chrome live"] --> q4
         q3["ux-agent<br/>3-layer eval"] --> q4

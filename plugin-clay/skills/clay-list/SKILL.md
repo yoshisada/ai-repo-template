@@ -107,4 +107,4 @@ For each product, suggest the next pipeline step based on its status:
 - **researched** → "Run `/clay:clay-project-naming` to find a name"
 - **named** → "Run `/clay:clay-new-product` to create a PRD"
 - **prd-created** → "Run `/clay:clay-create-repo` to create a GitHub repo"
-- **repo-created** → "Run `/kiln:build-prd` in the repo to start building"
+- **repo-created** → "Run `/kiln:kiln-build-prd` in the repo to start building"

@@ -34,7 +34,7 @@ fi
 Delegate to the design wheel workflow:
 
 ```
-/wheel:run trim:trim-design
+/wheel:wheel-run trim:trim-design
 ```
 
 The workflow executes these steps in order:

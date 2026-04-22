@@ -24,7 +24,7 @@ Check that `.shelf-config` exists in the repo root. If not, warn: "No .shelf-con
 Delegate to the shelf:shelf-repair wheel workflow:
 
 ```
-/wheel:run shelf:shelf-repair
+/wheel:wheel-run shelf:shelf-repair
 ```
 
 The workflow executes these steps in order:

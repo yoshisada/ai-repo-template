@@ -37,7 +37,7 @@ npx playwright --version 2>/dev/null
 Delegate to the verify wheel workflow:
 
 ```
-/wheel:run trim:trim-verify
+/wheel:wheel-run trim:trim-verify
 ```
 
 The workflow executes these steps in order:

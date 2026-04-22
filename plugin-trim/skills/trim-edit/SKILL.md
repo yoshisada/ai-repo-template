@@ -31,7 +31,7 @@ Verify that Penpot MCP tools are available by checking for `mcp__penpot-*` tools
 Delegate to the edit wheel workflow:
 
 ```
-/wheel:run trim:trim-edit
+/wheel:wheel-run trim:trim-edit
 ```
 
 The workflow executes these steps in order:

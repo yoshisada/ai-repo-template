@@ -69,7 +69,7 @@ Next: Run /trim:trim-library sync to auto-sync drifted components,
 Delegate to the library-sync wheel workflow:
 
 ```
-/wheel:run trim:library-sync
+/wheel:wheel-run trim:library-sync
 ```
 
 The workflow executes these steps in order:

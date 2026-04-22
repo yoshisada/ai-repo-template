@@ -12,7 +12,7 @@ Every other run, silent no-op: no file, no log line, no side effect.
 ## How to invoke
 
 ```text
-/wheel:run shelf:shelf-propose-manifest-improvement
+/wheel:wheel-run shelf:shelf-propose-manifest-improvement
 ```
 
 This skill dispatches that exactly. No arguments.

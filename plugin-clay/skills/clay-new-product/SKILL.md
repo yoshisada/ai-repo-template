@@ -211,10 +211,10 @@ After generating the PRD artifacts:
 > PRD is ready at `products/<product-slug>/`. To build this product, run `/clay:clay-create-repo <product-slug>` to scaffold a new repo seeded with this PRD, then `/kiln:kiln-build-prd` inside that repo.
 
 **Mode B** (single-product repo):
-> PRD is ready. To build this product, run `/kiln:build-prd` which will execute the full pipeline (specify → plan → tasks → implement → audit → PR).
+> PRD is ready. To build this product, run `/kiln:kiln-build-prd` which will execute the full pipeline (specify → plan → tasks → implement → audit → PR).
 
 **Mode C** (feature addition):
-> Feature PRD is ready. To build this feature, run `/kiln:build-prd <feature-slug>` to execute the full pipeline against this feature PRD.
+> Feature PRD is ready. To build this feature, run `/kiln:kiln-build-prd <feature-slug>` to execute the full pipeline against this feature PRD.
 
 ## Do Not Overwrite
 

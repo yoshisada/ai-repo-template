@@ -24,7 +24,7 @@ If the user provided a project name as an argument, note it for the workflow (th
 Delegate to the shelf:shelf-create wheel workflow:
 
 ```
-/wheel:run shelf:shelf-create
+/wheel:wheel-run shelf:shelf-create
 ```
 
 The workflow executes these steps in order:

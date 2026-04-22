@@ -31,7 +31,7 @@ fi
 Delegate to the diff wheel workflow:
 
 ```
-/wheel:run trim:trim-diff
+/wheel:wheel-run trim:trim-diff
 ```
 
 The workflow executes these steps in order:

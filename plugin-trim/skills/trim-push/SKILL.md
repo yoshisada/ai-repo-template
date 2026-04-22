@@ -33,7 +33,7 @@ fi
 Delegate to the push wheel workflow:
 
 ```
-/wheel:run trim:trim-push
+/wheel:wheel-run trim:trim-push
 ```
 
 The workflow executes these steps in order:

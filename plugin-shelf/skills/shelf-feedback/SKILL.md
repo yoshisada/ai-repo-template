@@ -61,7 +61,7 @@ For each feedback item, categorize it and suggest an action:
 | Pattern | Category | Suggested Action |
 |---------|----------|-----------------|
 | Contains "fix", "bug", "broken", "error" | Fix request | "Run `/kiln:kiln-fix {issue}` or `/shelf:shelf-sync` to track as an issue" |
-| Contains "add", "feature", "want", "need" | Feature request | "Consider adding to backlog via `/report-issue`" |
+| Contains "add", "feature", "want", "need" | Feature request | "Consider adding to backlog via `/kiln:kiln-report-issue`" |
 | Contains "scope", "plan", "rethink", "consider" | Planning note | "Note for next `/specify` or `/plan` session" |
 | Contains "urgent", "asap", "blocker" | Urgent | "Priority item — address before continuing" |
 | Other | General note | "Informational — noted for this session" |
