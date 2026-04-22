@@ -168,12 +168,69 @@ All smoke artifacts were generated in ephemeral `mktemp -d` scratchdirs, not in 
 
 ---
 
+## Pass 3 — Auditor-verified bash layer against THIS repo's real `.shelf-config`
+
+Runner: auditor teammate
+Date: 2026-04-22 (same day as Pass 1 + Pass 2)
+Environment: `build/report-issue-speedup-20260422` branch, real `.shelf-config` in repo root (not a scratchdir).
+
+### Method
+
+Back up `.shelf-config`, run `shelf-counter.sh increment-and-decide` + `append-bg-log.sh` in a loop 11 times against the real config, verify cadence + log output + config file integrity, then restore config.
+
+### Result — cadence
+
+```
+iter=01  before=0 after=1 action=increment
+iter=02  before=1 after=2 action=increment
+iter=03  before=2 after=3 action=increment
+iter=04  before=3 after=4 action=increment
+iter=05  before=4 after=5 action=increment
+iter=06  before=5 after=6 action=increment
+iter=07  before=6 after=7 action=increment
+iter=08  before=7 after=8 action=increment
+iter=09  before=8 after=9 action=increment
+iter=10  before=9 after=0 action=full-sync
+iter=11  before=0 after=1 action=increment
+```
+
+Cadence matches SC-003 exactly — full-sync fires on iter 10, counter reset to 0, iter 11 restarts at 1.
+
+### Result — log file
+
+`.kiln/logs/report-issue-bg-2026-04-22.md` contains the 11 auditor-live lines (plus earlier Pass-2 lines from this same day). Grep counts for the auditor-live run:
+
+- `action=full-sync` with `auditor-live`: **1** (iter 10)
+- `action=increment` with `auditor-live`: **10** (iters 1–9 + iter 11)
+- total auditor-live lines: **11**
+
+### Result — `.shelf-config` integrity
+
+Before: 4 content lines + 1 comment + 2 new keys = the repo's production config shape.
+After 11 rewrites: bytewise-identical to "before" except the single `shelf_full_sync_counter` line value, which was then restored to 0 via backup-swap. Comment preserved, all 3 pre-existing keys (`base_path`, `slug`, `dashboard_path`) preserved, no reordering. The atomic tempfile+mv write is safe against this repo's real config layout.
+
+### Why this is stronger than Pass 2 alone
+
+Pass 2 used `mktemp -d` scratchdirs with a synthetic `.shelf-config` — good for cadence, but did not prove the atomic-write primitive is safe against this repo's real config (comment header + existing unrelated keys). Pass 3 runs the same script against the file `/kiln:kiln-report-issue` will mutate in production.
+
+### Still deferred
+
+Pass 3 does NOT exercise:
+- The `Agent` tool spawn with `run_in_background: true` (still requires a main-thread slash-command invocation).
+- The `/shelf:shelf-sync` direct runtime state (jq evidence is conclusive at the JSON level; runtime state would confirm no propose-manifest-improvement spawn).
+- The single-Obsidian-note write via MCP from within the new `shelf-write-issue-note` sub-workflow.
+
+See `blockers.md` §Deferred pre-merge validation for the three remaining gates (DG-1, DG-2, DG-3).
+
+---
+
 ## Summary
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
-| SC-001 (foreground ≤25% of 64.5k baseline) | **PASS** (static) | Workflow composition analysis — two heavy synchronous workflows removed; replaced by a 4-step sub-workflow + a fire-and-forget dispatch. |
-| SC-003 (counter cadence on 11 invocations) | **PASS** (exercised) | 11-iteration smoke — exactly one `full-sync` on iter 10, counter reset to 0, cadence `0→1→…→9→reset(0)→1`. |
-| SC-004 (shelf-sync no longer nests reflection) | **PASS** (static) | `jq '[.steps[] | select(.workflow == "shelf:shelf-propose-manifest-improvement")] | length' plugin-shelf/workflows/shelf-sync.json` returns `0`. |
-| FR-009 log format | **PASS** | One ISO-8601 pipe-delimited line per invocation; directory auto-created. |
-| FR-003 bg fire-and-forget (empirical) | **DEFERRED** | Cannot be validated from a teammate context. Live verification procedure documented above. If it fails in the team-lead session, the E-3 fallback (nohup+disown command step) is the designated recovery — pre-documented in the dispatch step's own instruction for any maintainer who needs to apply it. |
+| SC-001 (foreground ≤25% of 64.5k baseline) | **PASS** (static) | Workflow composition analysis — two heavy synchronous workflows removed; replaced by a 4-step sub-workflow + a fire-and-forget dispatch. Live empirical measurement: DG-3. |
+| SC-002 (both artifacts on every call) | **STRUCTURAL PASS** | Foreground workflow shape guarantees `create-issue` then `shelf-write-issue-note` run before the terminal `dispatch-background-sync` step. Live end-to-end artifact check: DG-3. |
+| SC-003 (counter cadence on 11 invocations) | **PASS** (exercised — scratchdir + real repo config) | Pass 2 (scratchdir) + Pass 3 (real `.shelf-config`). Exactly one `full-sync` at iter 10 in both runs. |
+| SC-004 (shelf-sync no longer nests reflection) | **PASS** (static) | `jq '[.steps[] | select(.workflow == "shelf:shelf-propose-manifest-improvement")] | length' plugin-shelf/workflows/shelf-sync.json` returns `0`. Live runtime state verification: DG-1. |
+| FR-009 log format | **PASS** | ISO-8601 pipe-delimited lines verified in Pass 2 and Pass 3. Directory auto-create verified in Pass 2. |
+| FR-003 bg fire-and-forget (empirical) | **DEFERRED (DG-2)** | Cannot be validated from a teammate context. Live verification procedure in `blockers.md` §DG-2. If it fails, the E-3 fallback (nohup+disown command step) is the designated recovery — pre-documented in the dispatch step's own instruction. |
