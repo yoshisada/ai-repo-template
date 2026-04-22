@@ -45,9 +45,9 @@ Tasks follow the phase partition specified in the Task #1 description. Mark each
 
 ## Phase G — Documentation
 
-- [ ] **G-1** Update `CLAUDE.md` "Impact on Existing Features" — add a note that `shelf-sync` no longer nests `propose-manifest-improvement` (reflection is now on the background-sub-agent path). Note the new `.shelf-config` keys.
-- [ ] **G-2** Update `plugin-kiln/skills/report-issue/SKILL.md` (or the equivalent skill markdown — locate via `find plugin-kiln -name 'SKILL.md' -path '*report-issue*'`) with the new behavior: lean foreground, background sub-agent, counter tunable via `.shelf-config`.
-- [ ] **G-3** Update `plugin-shelf/skills/shelf-sync/SKILL.md` (locate similarly) to note the nested `propose-manifest-improvement` step was removed. Point users who want reflection to `/shelf:shelf-propose-manifest-improvement`.
+- [X] **G-1** Update `CLAUDE.md` "Impact on Existing Features" — add a note that `shelf-sync` no longer nests `propose-manifest-improvement` (reflection is now on the background-sub-agent path). Note the new `.shelf-config` keys. _(Done: added two new subsections under the /kiln:kiln-report-issue entry — `.shelf-config` keys table + "shelf-sync no longer nests reflection" callout.)_
+- [X] **G-2** Update `plugin-kiln/skills/report-issue/SKILL.md` (or the equivalent skill markdown — locate via `find plugin-kiln -name 'SKILL.md' -path '*report-issue*'`) with the new behavior: lean foreground, background sub-agent, counter tunable via `.shelf-config`. _(Done at plugin-kiln/skills/kiln-report-issue/SKILL.md.)_
+- [X] **G-3** Update `plugin-shelf/skills/shelf-sync/SKILL.md` (locate similarly) to note the nested `propose-manifest-improvement` step was removed. Point users who want reflection to `/shelf:shelf-propose-manifest-improvement`. _(Done: callout near the top of the skill.)_
 
 ## Phase H — Smoke test (SC-001, SC-003 validation)
 
