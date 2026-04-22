@@ -21,9 +21,9 @@ Tasks follow the phase partition specified in the Task #1 description. Mark each
 
 ## Phase C — Update `shelf-sync.json` (remove nested propose-manifest-improvement)
 
-- [ ] **C-1** Edit `plugin-shelf/workflows/shelf-sync.json`: delete the step object with `id: "propose-manifest-improvement"` (currently appears between `generate-sync-summary` and `self-improve`).
-- [ ] **C-2** Verify all remaining `context_from` references are still valid (no step depends on `propose-manifest-improvement`'s output — it had no `output` field, so nothing should reference it).
-- [ ] **C-3** Regression smoke: run `/shelf:shelf-sync` directly (no report-issue). Verify wheel state shows no `shelf-propose-manifest-improvement` spawn. Verify dashboard + progress are still updated.
+- [X] **C-1** Edit `plugin-shelf/workflows/shelf-sync.json`: delete the step object with `id: "propose-manifest-improvement"` (currently appears between `generate-sync-summary` and `self-improve`). _(Done: step count 13 → 12; `self-improve` is now directly after `generate-sync-summary`.)_
+- [X] **C-2** Verify all remaining `context_from` references are still valid (no step depends on `propose-manifest-improvement`'s output — it had no `output` field, so nothing should reference it). _(Verified: `self-improve` references `generate-sync-summary` and `obsidian-apply`; no step references the removed step. `jq` check for any remaining `shelf-propose-manifest-improvement` workflow ref returns 0 — SC-004 satisfied.)_
+- [ ] **C-3** Regression smoke: run `/shelf:shelf-sync` directly (no report-issue). Verify wheel state shows no `shelf-propose-manifest-improvement` spawn. Verify dashboard + progress are still updated. _(Deferred: requires live Obsidian MCP session against the real vault. Team lead can spot-check with `/shelf:shelf-sync` before merging. Static `jq` evidence: no remaining workflow ref to shelf-propose-manifest-improvement in shelf-sync.json — the spawn simply cannot happen.)_
 
 ## Phase D — Update `kiln-report-issue.json`
 
