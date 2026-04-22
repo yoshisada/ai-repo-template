@@ -27,13 +27,18 @@ main() {
   # Best-effort mkdir + append. Swallow all errors.
   mkdir -p "$BG_LOG_DIR" 2>/dev/null || true
 
-  line=$(printf '%s | counter_before=%s | counter_after=%s | threshold=%s | action=%s | notes=%s\n' \
+  # Note: printf '\n' terminator is necessary so each invocation appends a
+  # distinct line (grep/wc -l count correctly). Without it, 11 successive
+  # appends produce a single physical line with 11 concatenated entries.
+  line=$(printf '%s | counter_before=%s | counter_after=%s | threshold=%s | action=%s | notes=%s' \
            "$ts" "$before" "$after" "$threshold" "$action" "$notes")
 
-  printf '%s' "$line" >> "$logfile" 2>/dev/null || true
+  {
+    printf '%s\n' "$line"
+  } >> "$logfile" 2>/dev/null || true
 
   # Echo the line so callers can confirm (harmless if nobody reads stdout).
-  printf '%s' "$line"
+  printf '%s\n' "$line"
   return 0
 }
 
