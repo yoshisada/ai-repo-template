@@ -91,7 +91,7 @@ Each implementer marks `[X]` immediately on task completion. Commit after each p
 
 **Purpose**: Summarize the verification results so downstream audit / PR review doesn't have to re-run every SC.
 
-- [ ] T021 [last-lander] Create `specs/kiln-self-maintenance/SMOKE.md` summarizing SC-001..SC-008 results with pointers to the phase notes (`agent-notes/phase-r-inventory.md`, `phase-s-idempotency.md`, `phase-t-rewrite.md`, `phase-u-verify.md`, `phase-v-first-pass.md`) and the first-pass audit log path. One-liner per SC: `PASS | FAIL | DEFERRED` with a single-line rationale. `last-lander` = whichever implementer finishes their phase last (impl-claude-audit after Phase V, or impl-feedback-interview after Phase U — whoever is later).
+- [X] T021 [last-lander] Create `specs/kiln-self-maintenance/SMOKE.md` summarizing SC-001..SC-008 results with pointers to the phase notes (`agent-notes/phase-r-inventory.md`, `phase-s-idempotency.md`, `phase-t-rewrite.md`, `phase-u-verify.md`, `phase-v-first-pass.md`) and the first-pass audit log path. One-liner per SC: `PASS | FAIL | DEFERRED` with a single-line rationale. `last-lander` = whichever implementer finishes their phase last (impl-claude-audit after Phase V, or impl-feedback-interview after Phase U — whoever is later).
 
 **Checkpoint**: SMOKE.md committed. Commit "docs(spec): SMOKE.md — kiln-self-maintenance verification results (Phase W)".
 
