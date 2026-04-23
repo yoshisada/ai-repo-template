@@ -194,6 +194,7 @@ If a hook blocks you, either:
 - `/kiln:kiln-distill` — Bundle open items from `.kiln/feedback/` AND `.kiln/issues/` into a feature PRD. Feedback shapes the narrative (Background, Problem, Goals); issues form the tactical FR layer. Use as `/kiln:kiln-distill` or `/kiln:kiln-distill <category>` to filter.
 - `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
 - `/kiln:kiln-claude-audit` — Audit CLAUDE.md against `plugin-kiln/rubrics/claude-md-usefulness.md` and propose a git-diff-shaped drift report at `.kiln/logs/claude-md-audit-<timestamp>.md`. Never applies edits; human reviews and applies manually. Complements the cheap subcheck in `/kiln:kiln-doctor`.
+- `/kiln:kiln-hygiene` — Full structural-hygiene audit against `plugin-kiln/rubrics/structural-hygiene.md`. Walks the repo for merged-PRD-not-archived items, orphaned top-level folders, and unreferenced `.kiln/` artifacts, then writes a review preview at `.kiln/logs/structural-hygiene-<timestamp>.md`. Never applies edits. `/kiln:kiln-doctor` subcheck `3h` is the cheap-signals tripwire that points at this skill.
 
 ### `.shelf-config` keys (shelf plugin)
 

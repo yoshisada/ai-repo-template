@@ -16,7 +16,7 @@
 
 - [X] **A3**: Add rule entries `### orphaned-top-level-folder` and `### unreferenced-kiln-artifact` with full YAML + prose per contracts/interfaces.md §1. Orphaned-folder includes the three predicates from plan Decision 3 inlined as pseudocode in the prose. Unreferenced-artifact matches files under `.kiln/logs/`, `.kiln/qa/`, `.kiln/state/` that are (i) not actively produced by any running workflow (no `.wheel/state_*.json` references the file), and (ii) older than `min_age_days` (default 60). References FR-001, FR-002.
 
-- [ ] **A4**: Verify discoverability (NFR-004): `grep -rn 'plugin-kiln/rubrics/structural-hygiene.md' .` returns ≥1 hit outside the rubric itself. Minimum one reference added as part of Phase B (skill body) and one in Phase E (CLAUDE.md). This task is the verification gate — run grep and confirm ≥2 hits by end of Phase E. Update this checkbox only after Phase E lands. Commit Phase A artifacts now (`feat(kiln): structural-hygiene rubric scaffold`).
+- [X] **A4**: Verify discoverability (NFR-004): `grep -rn 'plugin-kiln/rubrics/structural-hygiene.md' .` returns ≥1 hit outside the rubric itself. Minimum one reference added as part of Phase B (skill body) and one in Phase E (CLAUDE.md). This task is the verification gate — run grep and confirm ≥2 hits by end of Phase E. Verified 2026-04-23: 28 hits outside `plugin-kiln/rubrics/structural-hygiene.md` and `plugin-kiln/skills/kiln-hygiene/SKILL.md` (including CLAUDE.md Available Commands + doctor 3h). PASS.
 
 ---
 
@@ -58,9 +58,9 @@
 
 ## Phase E — SMOKE.md + backwards-compat + discoverability
 
-- [ ] **E1**: Write `specs/kiln-structural-hygiene/SMOKE.md` codifying SC-008: `git checkout 574f220^` in a scratch worktree, invoke `/kiln:kiln-hygiene`, assert all 18 filenames from `.kiln/issues/2026-04-23-stale-prd-created-issues-not-archived.md` appear in the bundled archive block. Include exact `grep -c`/`diff`-style assertions for CI-style reproducibility. References SC-008.
+- [X] **E1**: Write `specs/kiln-structural-hygiene/SMOKE.md` codifying SC-008: `git checkout 574f220^` in a scratch worktree, invoke `/kiln:kiln-hygiene`, assert all 18 filenames from `.kiln/issues/2026-04-23-stale-prd-created-issues-not-archived.md` appear in the bundled archive block. Include exact `grep -c`/`diff`-style assertions for CI-style reproducibility. References SC-008.
 
-- [ ] **E2**: Backwards-compat + discoverability combined commit. (a) Add one fixture under `plugin-kiln/skills/kiln-hygiene/tests/fixtures/fixture-no-drift/` that runs `/kiln:kiln-cleanup --dry-run`, `/kiln:kiln-cleanup`, `/kiln:kiln-doctor --fix --dry-run`, and `/kiln:kiln-doctor --cleanup` and asserts zero new-row regressions beyond the 3h row (SC-007). (b) Add the `/kiln:kiln-hygiene` entry + rubric path reference to CLAUDE.md's `## Available Commands` block (`/kiln:kiln-hygiene — Full hygiene audit; see plugin-kiln/rubrics/structural-hygiene.md`). (c) Verify A4 gate: `grep -rn 'plugin-kiln/rubrics/structural-hygiene.md' .` returns ≥2 hits (doctor 3h + CLAUDE.md + skill body = ≥3 in practice). Mark A4 `[X]` in this commit. Commit Phase E (`feat(kiln-hygiene): SMOKE + backwards-compat + rubric discoverability`). References SC-007, NFR-003, NFR-004.
+- [X] **E2**: Backwards-compat + discoverability combined commit. (a) Add one fixture under `plugin-kiln/skills/kiln-hygiene/tests/fixtures/fixture-no-drift/` that runs `/kiln:kiln-cleanup --dry-run`, `/kiln:kiln-cleanup`, `/kiln:kiln-doctor --fix --dry-run`, and `/kiln:kiln-doctor --cleanup` and asserts zero new-row regressions beyond the 3h row (SC-007). (b) Add the `/kiln:kiln-hygiene` entry + rubric path reference to CLAUDE.md's `## Available Commands` block (`/kiln:kiln-hygiene — Full hygiene audit; see plugin-kiln/rubrics/structural-hygiene.md`). (c) Verify A4 gate: `grep -rn 'plugin-kiln/rubrics/structural-hygiene.md' .` returns ≥2 hits (doctor 3h + CLAUDE.md + skill body = ≥3 in practice). Mark A4 `[X]` in this commit. Commit Phase E (`feat(kiln-hygiene): SMOKE + backwards-compat + rubric discoverability`). References SC-007, NFR-003, NFR-004.
 
 ---
 

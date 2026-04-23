@@ -132,7 +132,7 @@ else
     # (c) mtime > min_age_days on the directory itself
     find "$dir" -maxdepth 0 -type d -mtime "+$MIN_AGE" | grep -q . || continue
     printf 'orphaned-top-level-folder\tremoval-candidate\t%s\tquiescent top-level dir, not in manifest, unreferenced, mtime > %sd\n' "$dir" "$MIN_AGE" >> "$SIGNALS_FILE"
-  done < <(find . -maxdepth 1 -mindepth 1 -type d ! -name '.git' ! -name 'node_modules' -printf '%f\n')
+  done < <(find . -maxdepth 1 -mindepth 1 -type d ! -name '.git' ! -name 'node_modules' | sed 's:^\./::')
 fi
 ```
 

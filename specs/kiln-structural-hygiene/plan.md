@@ -219,10 +219,10 @@ Fill in the `merged-prd-not-archived` predicate inside the skill body. This is t
 
 ## Progress Tracking
 
-- [ ] Phase A — Rubric + 3 rules
-- [ ] Phase B — Audit skill skeleton + cheap rules
-- [ ] Phase C — Doctor 3h subcheck
-- [ ] Phase D — merged-PRD rule implementation
-- [ ] Phase E — SMOKE + backwards-compat + discoverability
+- [X] Phase A — Rubric + 3 rules
+- [X] Phase B — Audit skill skeleton + cheap rules
+- [X] Phase C — Doctor 3h subcheck
+- [X] Phase D — merged-PRD rule implementation
+- [X] Phase E — SMOKE + backwards-compat + discoverability
 
 Commit after each phase (Constitution VIII).

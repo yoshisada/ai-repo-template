@@ -265,7 +265,7 @@ while IFS= read -r dir; do
   if grep -RlF "${dir}/" plugin-*/ templates/ 2>/dev/null | head -1 | grep -q . ; then continue; fi
   find "$dir" -maxdepth 0 -type d -mtime "+$ORPHAN_MIN_AGE" | grep -q . || continue
   HYGIENE_DRIFT_COUNT=$((HYGIENE_DRIFT_COUNT + 1))
-done < <(find . -maxdepth 1 -mindepth 1 -type d ! -name '.git' ! -name 'node_modules' -printf '%f\n')
+done < <(find . -maxdepth 1 -mindepth 1 -type d ! -name '.git' ! -name 'node_modules' | sed 's:^\./::')
 ```
 
 **`unreferenced-kiln-artifact`** (contract §7):
