@@ -62,6 +62,44 @@ When a `products/` directory exists with multiple products and Mode C applies, l
 
 ## Step 1: Read Context
 
+<!-- FR-003: Read intent: from products/<slug>/idea.md to detect simplified PRD mode. -->
+<!-- Decision 2: Missing intent is treated as `marketable` (default full pipeline). -->
+
+### Step 1.0: Detect intent (simplified-PRD mode for `internal`)
+
+If `products/$SLUG/idea.md` exists, read the `intent:` frontmatter field. If missing or unknown, treat as `marketable`.
+
+```bash
+read_frontmatter_field() {
+  local file="$1"
+  local key="$2"
+  awk -v k="$key" '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ { in_fm = !in_fm; if (!in_fm) exit; next }
+    in_fm && $1 == k":" { sub(/^[^:]+:[[:space:]]*/, ""); print; exit }
+  ' "$file"
+}
+
+INTENT=""
+if [ -n "$SLUG" ] && [ -f "products/$SLUG/idea.md" ]; then
+  INTENT=$(read_frontmatter_field "products/$SLUG/idea.md" intent)
+fi
+case "$INTENT" in
+  internal|marketable|pmf-exploration) ;;
+  *) INTENT="marketable" ;;
+esac
+```
+
+When `$INTENT = internal`, switch to **simplified PRD mode** for the rest of this skill:
+
+- Do NOT read `products/<slug>/research.md` (won't exist; don't rely on it)
+- Do NOT read `products/<slug>/naming.md` (won't exist; don't rely on it)
+- Drop these sections from the generated PRD: "Competitive Landscape", "Market Research", "Naming / Branding"
+- Keep these sections: Problem Statement, Users (single-user: the maintainer), Requirements, Tech Stack, What we are NOT building
+- User persona defaults to "the maintainer themselves"; do not ask B2B/B2C questions
+
+When `$INTENT = marketable` or `pmf-exploration` (or empty/unknown): proceed with the full Mode A / Mode B pipeline as before.
+
 ### All modes
 - Read `.specify/memory/constitution.md` if it exists — note governing constraints
 

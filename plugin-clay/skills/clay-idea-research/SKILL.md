@@ -27,7 +27,35 @@ Use when the user asks to:
 
 Do **not** use for deep technical due diligence, financial modeling, patent searches, or generic literature reviews.
 
+<!-- FR-004, NFR-002: Read intent: frontmatter from products/<slug>/idea.md. -->
+<!-- Decision 2: Missing intent is treated as `marketable` (zero regression). -->
 ## Step 1: Understand the Idea
+
+### Step 1.0: Read intent from idea.md (if present)
+
+If the caller has already created `products/<slug>/idea.md` (typically from `/clay:clay-idea`), read the `intent:` frontmatter field and use it to bias the report template (Step 5). If `idea.md` does not yet exist, or `intent:` is absent, treat as `intent: marketable` per Decision 2 / NFR-002.
+
+```bash
+read_frontmatter_field() {
+  local file="$1"
+  local key="$2"
+  awk -v k="$key" '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ { in_fm = !in_fm; if (!in_fm) exit; next }
+    in_fm && $1 == k":" { sub(/^[^:]+:[[:space:]]*/, ""); print; exit }
+  ' "$file"
+}
+
+INTENT=""
+if [ -n "$SLUG" ] && [ -f "products/$SLUG/idea.md" ]; then
+  INTENT=$(read_frontmatter_field "products/$SLUG/idea.md" intent)
+fi
+# Decision 2: empty/unknown intent -> treat as marketable
+case "$INTENT" in
+  internal|marketable|pmf-exploration) ;;
+  *) INTENT="marketable" ;;
+esac
+```
 
 If `$ARGUMENTS` is empty or too vague, ask targeted follow-up questions:
 
@@ -113,7 +141,14 @@ For each finding, include (FR-008):
 - **Pricing model** (free, freemium, paid, open-source) when available
 - **Status** (active, stale, dead) based on last update date
 
-Use this report structure:
+<!-- FR-004: Select the report structure based on $INTENT from Step 1.0. -->
+Select the report structure based on `$INTENT`:
+
+- `$INTENT = pmf-exploration` → use the **demand-validation-biased** structure below (primary findings are demand signals; competitor enumeration is a secondary section).
+- `$INTENT = marketable` or empty/unknown → use the **default competitor-focused** structure (behavior unchanged from before this PRD).
+- `$INTENT = internal` → `/clay:clay-idea-research` should not run at all for internal intent (FR-003). If it is invoked directly, fall back to the default structure and note at the top of the report that intent=internal typically skips research.
+
+### Default structure (marketable / unknown intent)
 
 ```markdown
 # Idea Research: <Idea Title>
@@ -162,6 +197,77 @@ Use this report structure:
 - **Market density**: Low / Medium / High
 - **Differentiation opportunity**: Strong / Moderate / Weak
 - **Recommendation**: GO / PROCEED WITH CAUTION / NO-GO
+- **Reasoning**: <1-3 sentences>
+```
+
+### Demand-validation-biased structure (pmf-exploration intent)
+
+```markdown
+# Idea Research: <Idea Title>
+
+**Date**: <today>
+**Slug**: <slug>
+**Intent**: pmf-exploration
+
+## Idea Summary
+
+<1-3 sentence restatement of the idea being researched>
+
+## Comparison Dimensions
+
+- **Primary user**: ...
+- **Main problem**: ...
+- **Core workflow**: ...
+- **Product model**: ...
+- **Differentiators**: ...
+
+## Findings — Demand Validation Signals
+
+### Customer discovery questions
+
+<3-7 specific questions you would ask a target user to validate pain and urgency>
+
+### Signals of existing pain
+
+<Evidence that the problem is real and unsolved: forum threads, Reddit complaints, support tickets, blog posts, job listings, abandoned projects. Include links.>
+
+### Willingness-to-pay proxies
+
+<Signals that users spend money or time on related alternatives today — paid competitors, consultant fees, time sinks, hacky workarounds, Fiverr/Upwork gigs.>
+
+### Unmet demand indicators
+
+<Where are users asking for this and not getting it? "Show HN" posts, feature requests, StackOverflow questions, waitlists.>
+
+## Competitive Landscape (secondary)
+
+### Exact Matches
+
+<list or "None found">
+
+### Close Competitors
+
+<list>
+
+### Adjacent Alternatives
+
+<list>
+
+### Slightly Similar
+
+<list>
+
+## Gap Analysis
+
+<Where is real demand + weak supply? What is the riskiest assumption?>
+
+## Recommendation
+
+- **Demand signal strength**: Strong / Moderate / Weak
+- **Willingness-to-pay evidence**: Strong / Moderate / Weak
+- **Market density** (competitive crowdedness): Low / Medium / High
+- **Recommendation**: GO / PROCEED WITH CAUTION / NO-GO
+- **Next validation step**: <1 concrete experiment to run before building — e.g., landing page + waitlist, 5 discovery calls, paid ad smoke test>
 - **Reasoning**: <1-3 sentences>
 ```
 
