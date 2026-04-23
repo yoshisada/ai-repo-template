@@ -193,6 +193,7 @@ If a hook blocks you, either:
 - `/kiln:kiln-feedback` — Log strategic product feedback (mission, scope, ergonomics, architecture, direction) to `.kiln/feedback/`. Distinct from `/kiln:kiln-report-issue` (tactical bugs/friction). No wheel workflow, no Obsidian write — just writes the local file and exits. `/kiln:kiln-distill` picks it up on the next run and leads PRD narratives with it.
 - `/kiln:kiln-distill` — Bundle open items from `.kiln/feedback/` AND `.kiln/issues/` into a feature PRD. Feedback shapes the narrative (Background, Problem, Goals); issues form the tactical FR layer. Use as `/kiln:kiln-distill` or `/kiln:kiln-distill <category>` to filter.
 - `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
+- `/kiln:kiln-claude-audit` — Audit CLAUDE.md against `plugin-kiln/rubrics/claude-md-usefulness.md` and propose a git-diff-shaped drift report at `.kiln/logs/claude-md-audit-<timestamp>.md`. Never applies edits; human reviews and applies manually. Complements the cheap subcheck in `/kiln:kiln-doctor`.
 
 ### `.shelf-config` keys (shelf plugin)
 
@@ -240,7 +241,6 @@ Trimmed to the 5 most recent feature branches per `plugin-kiln/rubrics/claude-md
 - Bash 5.x + jq (JSON parsing), Claude Code agent teams API (TeamCreate, TaskCreate, TaskList, TaskUpdate, TeamDelete, Agent, SendMessage) (build/wheel-team-primitives-20260409)
 - File-based JSON state (`.wheel/state_*.json`) (build/wheel-team-primitives-20260409)
 - Bash 5.x (command step scripts); Markdown + JSON (workflow + skill definitions). + wheel engine (`plugin-wheel/`), Obsidian MCP (`mcp__claude_ai_obsidian-manifest__*` for `@inbox/`), `jq` for JSON parsing, standard POSIX utilities (`grep -F` for verbatim match, `date` for ISO dates, `sed`/`tr` for slug derivation). (build/manifest-improvement-subroutine-20260416)
-- File-based — reflect output at `.wheel/outputs/propose-manifest-improvement.json` (internal, not user-visible); proposal file at `@inbox/open/<YYYY-MM-DD>-manifest-improvement-<slug>.md` written via MCP. (build/manifest-improvement-subroutine-20260416)
 
 ## Recent Changes
 - build/fix-skill-with-recording-teams-20260420: `/kiln:kiln-fix` gained Step 7 "Record the Fix" — writes a local fix record to `.kiln/fixes/<date>-<slug>.md` and spawns two short-lived teams (`fix-record` for the Obsidian note, `fix-reflect` for an optional manifest-improvement proposal). Debug loop (Steps 2b–5) stays in main chat. New helpers under `plugin-kiln/scripts/fix-recording/`; new manifest type `@manifest/types/fix.md` (staged at `specs/.../assets/manifest-types/fix.md`).
