@@ -3,7 +3,9 @@ id: 2026-04-23-claude-md-should-be-refreshed-audited
 title: CLAUDE.md needs a refresh/audit mechanism — source and consumer template
 type: feedback
 date: 2026-04-23
-status: prd-created
+status: completed
+completed_date: 2026-04-23
+pr: #141
 prd: docs/features/2026-04-23-kiln-self-maintenance/PRD.md
 severity: high
 area: architecture

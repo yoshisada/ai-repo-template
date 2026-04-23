@@ -3,7 +3,9 @@ id: 2026-04-23-feedback-should-interview-me-about
 title: /kiln:kiln-feedback should interview the user before writing
 type: feedback
 date: 2026-04-23
-status: prd-created
+status: completed
+completed_date: 2026-04-23
+pr: #141
 prd: docs/features/2026-04-23-kiln-self-maintenance/PRD.md
 severity: medium
 area: ergonomics

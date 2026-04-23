@@ -1,0 +1,95 @@
+{
+  "workflow_name": "kiln-report-issue",
+  "workflow_version": "3.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/kiln/000.001.005.000/workflows/kiln-report-issue.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "e89bfe66-b048-44ab-a729-9c546fac2241",
+  "owner_agent_id": "",
+  "started_at": "2026-04-23T22:47:00.000Z",
+  "updated_at": "2026-04-23T22:49:53.000Z",
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-23T22:47:00.000Z",
+      "completed_at": "2026-04-23T22:47:00.000Z",
+      "output": ".wheel/outputs/check-existing-issues.txt",
+      "command_log": [
+        {
+          "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:47:00.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-23T22:47:01.000Z",
+      "completed_at": "2026-04-23T22:47:48.000Z",
+      "output": ".wheel/outputs/create-issue-result.md",
+      "command_log": [
+        {
+          "command": "echo \"Workflow started. Hooks are now active.\"; echo \"Run /wheel:wheel-status to check progress, /wheel:wheel-stop to deactivate.\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:47:05.000Z"
+        },
+        {
+          "command": "ls .kiln/issues/ 2>/dev/null | grep -i -E \"claude.md|claude-md|audit\" | head -20; echo \"---\"; gh repo view --json url -q '.url' 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:47:19.000Z"
+        },
+        {
+          "command": "ls .kiln/issues/ 2>/dev/null | tail -20",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:47:28.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-issue-note",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-23T22:47:54.000Z",
+      "completed_at": "2026-04-23T22:49:08.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "dispatch-background-sync",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-23T22:49:13.000Z",
+      "completed_at": "2026-04-23T22:49:53.000Z",
+      "output": ".wheel/outputs/dispatch-background-sync.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/shelf-counter.sh\" read 2>&1; echo \"---\"; jq -r '.issue_file // .issue_path // \"unknown\", .obsidian_path // \"unknown\"' .wheel/outputs/shelf-write-issue-note-result.json 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:49:19.000Z"
+        },
+        {
+          "command": "ls /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/*/scripts/shelf-counter.sh 2>/dev/null | head -5; echo \"---\"; ls /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/kiln/*/scripts/shelf-counter.sh 2>/dev/null | head -5",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:49:25.000Z"
+        },
+        {
+          "command": "bash /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.005.000/scripts/shelf-counter.sh read",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T22:49:30.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}
