@@ -1,0 +1,53 @@
+{
+  "workflow_name": "propose-manifest-improvement",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.000.167/workflows/propose-manifest-improvement.json",
+  "status": "running",
+  "cursor": 2,
+  "owner_session_id": "0d6a0a14-fdb1-49bf-8f97-c18f7761b041",
+  "owner_agent_id": "",
+  "started_at": "2026-04-21T08:53:13.000Z",
+  "updated_at": "2026-04-21T08:53:33.000Z",
+  "steps": [
+    {
+      "id": "reflect",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-21T08:53:16.000Z",
+      "completed_at": "2026-04-21T08:53:24.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-dispatch",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-21T08:53:24.000Z",
+      "completed_at": "2026-04-21T08:53:24.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement-dispatch.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/write-proposal-dispatch.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-21T08:53:24.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-mcp",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-21T08:53:24.000Z",
+      "completed_at": "2026-04-21T08:53:33.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement-mcp.txt",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_0d6a0a14-fdb1-49bf-8f97-c18f7761b041_1776761524_15961.json"
+}

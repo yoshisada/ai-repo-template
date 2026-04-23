@@ -1,0 +1,47 @@
+{
+  "workflow_name": "propose-manifest-improvement",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.000.167/workflows/propose-manifest-improvement.json",
+  "status": "running",
+  "cursor": 0,
+  "owner_session_id": "0d6a0a14-fdb1-49bf-8f97-c18f7761b041",
+  "owner_agent_id": "",
+  "started_at": "2026-04-21T08:55:23.000Z",
+  "updated_at": "2026-04-21T08:55:23.000Z",
+  "steps": [
+    {
+      "id": "reflect",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-dispatch",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-mcp",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_child_shelf:sync_1776761614_28311.json"
+}

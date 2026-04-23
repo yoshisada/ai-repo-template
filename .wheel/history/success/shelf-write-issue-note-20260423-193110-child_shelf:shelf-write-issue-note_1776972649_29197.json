@@ -1,0 +1,76 @@
+{
+  "workflow_name": "shelf-write-issue-note",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.002.001/workflows/shelf-write-issue-note.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "31541d9f-e838-42c3-81e2-39f3bd4154e9",
+  "owner_agent_id": "",
+  "started_at": "2026-04-23T19:30:49.000Z",
+  "updated_at": "2026-04-23T19:31:10.000Z",
+  "steps": [
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-23T19:30:49.000Z",
+      "completed_at": "2026-04-23T19:30:50.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "if [ -f .shelf-config ]; then cat .shelf-config; else echo 'No .shelf-config — using defaults'; echo \"slug=$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))\"; echo 'base_path=projects'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T19:30:50.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "parse-create-issue-output",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-23T19:30:50.000Z",
+      "completed_at": "2026-04-23T19:30:50.000Z",
+      "output": ".wheel/outputs/parse-create-issue-output.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-create-issue-output.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T19:30:50.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-write",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-23T19:30:51.000Z",
+      "completed_at": "2026-04-23T19:31:09.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-result.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "finalize-result",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-23T19:31:09.000Z",
+      "completed_at": "2026-04-23T19:31:10.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-finalize.txt",
+      "command_log": [
+        {
+          "command": "RESULT=\".wheel/outputs/shelf-write-issue-note-result.json\"; if [ ! -s \"$RESULT\" ] || ! jq -e . \"$RESULT\" >/dev/null 2>&1; then printf '{\"issue_file\":\"\",\"obsidian_path\":\"\",\"action\":\"failed\",\"errors\":[\"obsidian-write agent produced empty or invalid result JSON\"]}\\n' > \"$RESULT\"; fi; echo '## shelf-write-issue-note result'; jq . \"$RESULT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-23T19:31:10.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_31541d9f-e838-42c3-81e2-39f3bd4154e9_1776972589_13337.json"
+}

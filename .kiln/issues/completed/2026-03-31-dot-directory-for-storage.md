@@ -5,7 +5,8 @@ severity: medium
 category: scaffold
 source: manual
 github_issue: null
-status: prd-created
+status: completedcompleted_date: 2026-04-23
+pr: merged-pre-tracking
 date: 2026-03-31
 ---
 
