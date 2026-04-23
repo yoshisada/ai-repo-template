@@ -73,7 +73,7 @@ Total: 22 tasks across 6 phases. Tracks run in parallel after this task file lan
 
 ## Phase F — Smoke-test documentation (last implementer, 1 task)
 
-- [ ] **T022** (SC-001..SC-006) — Create `specs/kiln-capture-fix-polish/SMOKE.md` documenting the six smoke checks from `plan.md` §Smoke test plan, one command per SC. Include expected pass output for each. This is documentation only — no code change.
+- [X] **T022** (SC-001..SC-006) — Create `specs/kiln-capture-fix-polish/SMOKE.md` documenting the six smoke checks from `plan.md` §Smoke test plan, one command per SC. Include expected pass output for each. This is documentation only — no code change.
 
 ---
 
