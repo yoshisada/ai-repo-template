@@ -203,6 +203,34 @@ Verified by: [test/command that confirms]"
 - Files changed: [list]
 ```
 
+5. **Append the What's Next? block** (FR-007, FR-008). This block MUST appear on every successful terminal path — it is the last thing the user sees. Select bullets per the policy in Step 8 below.
+
+   For the success path (commit landed), the selection is:
+   - UI-adjacent fix (files_changed matches `.tsx|.jsx|.vue|.svelte|.css` OR a path under `components/|pages/|views/|layouts/|app/`): lead with `/kiln:kiln-qa-final`, then `/kiln:kiln-next`.
+   - Non-UI fix: lead with `/kiln:kiln-next`.
+   - If this run created a PR: include `review and ship the PR` as a bullet.
+   - Always include a closing bullet such as `nothing urgent — you're done` when the above leave fewer than 2 bullets.
+
+   Example (UI-adjacent success, no PR this run):
+
+   ```
+   ## What's Next?
+
+   - `/kiln:kiln-qa-final` — re-run the full Playwright suite to catch regressions from the UI fix
+   - `/kiln:kiln-next` — pick up where you left off
+   - `/kiln:kiln-report-issue <follow-up>` — capture anything you noticed during the fix
+   ```
+
+   Example (non-UI success with a PR created this run):
+
+   ```
+   ## What's Next?
+
+   - `/kiln:kiln-next` — pick up where you left off
+   - review and ship the PR — it's on the feature branch, ready for review
+   - `nothing urgent — you're done`
+   ```
+
 ## Step 6: Handle Escalation
 
 If the debug loop exhausts all strategies (9 attempts), present the user with everything collected:
@@ -226,6 +254,22 @@ If the debug loop exhausts all strategies (9 attempts), present the user with ev
 
 ### My Recommendation
 [What the user should try manually, or whether this needs a spec update]
+```
+
+Append the `## What's Next?` block to the escalation report (FR-007, FR-008). For the escalation path, the selection is:
+
+- Lead with `/kiln:kiln-report-issue <follow-up>` — capture the unresolved issue as a backlog entry so distill can pick it up later.
+- Then `/kiln:kiln-next` — re-orient on what else is in flight.
+- Optionally `nothing urgent — you're done` as a closing bullet.
+
+Example:
+
+```
+## What's Next?
+
+- `/kiln:kiln-report-issue <one-line follow-up>` — log what remained unresolved so it can be re-attacked later
+- `/kiln:kiln-next` — re-orient on the next-priority work
+- `nothing urgent — you're done`
 ```
 
 ## Step 7: Record the Fix (NON-NEGOTIABLE)
@@ -470,9 +514,9 @@ rm -f .kiln/fixes/.reflect-output-*.json
 
 The local record at `$local_record_path` is NOT deleted — it persists alongside the Obsidian note.
 
-### 7.8 User-facing report (extends Step 5)
+### 7.8 User-facing report (extends Step 5 or Step 6)
 
-Append these lines to the Step 5 report:
+Append these lines to whichever terminal report template was emitted (Step 5 "Bug Fixed" or Step 6 "Debug Report"):
 
 ```
 Local record: <local_record_path>
@@ -480,7 +524,11 @@ Obsidian note: <obsidian_note_result>
 Manifest proposal: <proposal_result>
 ```
 
-Then render the `## What's Next?` block defined in Step 8 below.
+Then render the `## What's Next?` block per the policy in Step 8 (FR-007). On the Obsidian-skipped terminal path (either `skipped (MCP unavailable)` or `skipped (project_name null)` for the fix note, or `skipped (MCP unavailable)` for the proposal), add ONE bullet noting the skip so the user knows what to do about it:
+
+- If MCP was unavailable this run, include `\`/kiln:kiln-fix\` — retry after MCP reconnects` as an extra bullet (still within the 4-bullet cap).
+- If `project_name` was null (the project isn't registered in the vault), include `register this project in the Obsidian vault and re-run` as a prose bullet.
+- If everything wrote cleanly, no extra bullet is added for Step 7 — just the normal Step 5 or Step 6 `## What's Next?` block.
 
 ### Constraints enforced by this step (cross-reference)
 
@@ -491,6 +539,48 @@ Then render the `## What's Next?` block defined in Step 8 below.
 - FR-020: Steps 2b–5 complete in main chat first; no vault write or teammate message is issued before 7.6.
 - FR-023: No wheel workflow is added or modified by this step.
 - FR-025: All script paths come from `$SHELF_SCRIPTS_DIR` / `$FIX_RECORDING_DIR`; no repo-relative plugin path literal appears anywhere in the live substitution values.
+
+## Step 8: What's Next? (selection policy — FR-007, FR-008)
+
+Every terminal path of this skill — success (Step 5), escalation (Step 6), Obsidian-skipped (Step 7.8) — MUST end its final report with a `## What's Next?` block shaped per `specs/kiln-capture-fix-polish/contracts/interfaces.md` Contract 4:
+
+- Minimum 2 bullets, maximum 4.
+- Each bullet's primary command (or action phrase) MUST come from this allowed set:
+  - `/kiln:kiln-next`
+  - `/kiln:kiln-qa-final`
+  - `/kiln:kiln-report-issue <follow-up>`
+  - `/kiln:kiln-fix` (for the MCP-unavailable retry case only)
+  - `/kiln:kiln-distill` (only when the backlog has 3+ open items)
+  - `review and ship the PR` (only when this run created a PR)
+  - `nothing urgent — you're done`
+
+### Selection policy (dynamic)
+
+Evaluate these branches in order; the first matching branch sets the lead bullet.
+
+| Terminal path               | Lead bullet                              | Trailing bullets (pick 1–3 from allowed set)                                                   |
+|-----------------------------|------------------------------------------|-----------------------------------------------------------------------------------------------|
+| Escalation (Step 6)         | `/kiln:kiln-report-issue <follow-up>`    | `/kiln:kiln-next`, optionally `nothing urgent — you're done`                                   |
+| UI-adjacent success         | `/kiln:kiln-qa-final`                    | `/kiln:kiln-next`, `/kiln:kiln-report-issue <follow-up>` if you noticed anything tangential    |
+| Default success             | `/kiln:kiln-next`                        | `review and ship the PR` if a PR was created this run; `/kiln:kiln-report-issue <follow-up>`; `nothing urgent — you're done` |
+| Obsidian-skipped (MCP down) | same as above, prepend skip-note bullet  | `\`/kiln:kiln-fix\` — retry after MCP reconnects`                                             |
+| Obsidian-skipped (no project)| same as above, prepend skip-note bullet | register the project in the vault and re-run                                                   |
+
+**UI-adjacent detection** — treat the fix as UI-adjacent if any entry in `envelope.files_changed` matches:
+
+- Extensions: `.tsx`, `.jsx`, `.vue`, `.svelte`, `.css`.
+- Paths: any segment of `components/`, `pages/`, `views/`, `layouts/`, `app/`.
+
+If `envelope.files_changed` is empty (common on the escalation path), skip the UI detection and use the escalation-path branch.
+
+**PR detection** — if this run created a PR (e.g., via `gh pr create`), include the `review and ship the PR` bullet. If no PR was created, omit it.
+
+### Rendering rules
+
+- Each bullet is a single line.
+- Commands go in backticks; prose bullets (`nothing urgent — you're done`, `review and ship the PR`) are plain text.
+- Add a short trailing clause (after an em dash) explaining why the command is relevant *this* run — no generic filler.
+- Do not exceed 4 bullets total. If you have more candidates than slots, keep the lead bullet and drop the least-relevant trailing ones.
 
 ## UI Issues — QA Engineer is MANDATORY (NON-NEGOTIABLE)
 

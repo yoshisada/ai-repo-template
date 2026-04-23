@@ -35,11 +35,11 @@ Total: 22 tasks across 6 phases. Tracks run in parallel after this task file lan
 
 ## Phase B — `/kiln:kiln-fix` "What's Next?" block (impl-fix-polish, 3 tasks)
 
-- [ ] **T007** (FR-007, FR-008) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 5 ("Verify and Commit"), append a `## What's Next?` block to the "Report to the user" template. Use the dynamic selection policy from `contracts/interfaces.md` Contract 4: UI-adjacent → `/kiln:kiln-qa-final` first; else → `/kiln:kiln-next` first. Include "review and ship the PR" bullet when a PR was created this run.
+- [X] **T007** (FR-007, FR-008) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 5 ("Verify and Commit"), append a `## What's Next?` block to the "Report to the user" template. Use the dynamic selection policy from `contracts/interfaces.md` Contract 4: UI-adjacent → `/kiln:kiln-qa-final` first; else → `/kiln:kiln-next` first. Include "review and ship the PR" bullet when a PR was created this run.
 
-- [ ] **T008** (FR-007, FR-008) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 6 ("Handle Escalation"), append a `## What's Next?` block to the escalation report template. Selection: `/kiln:kiln-report-issue <follow-up>` first, then `/kiln:kiln-next`, optionally "nothing urgent — you're done".
+- [X] **T008** (FR-007, FR-008) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 6 ("Handle Escalation"), append a `## What's Next?` block to the escalation report template. Selection: `/kiln:kiln-report-issue <follow-up>` first, then `/kiln:kiln-next`, optionally "nothing urgent — you're done".
 
-- [ ] **T009** (FR-006, FR-007) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 7.9 (user-facing report), extend the report template so the `## What's Next?` block appears on the Obsidian-skipped terminal path too. If MCP was unavailable this run, include a bullet suggesting `/kiln:kiln-fix` (retry after MCP reconnect) or `nothing urgent — you're done`.
+- [X] **T009** (FR-006, FR-007) — In `plugin-kiln/skills/kiln-fix/SKILL.md` Step 7.9 (user-facing report), extend the report template so the `## What's Next?` block appears on the Obsidian-skipped terminal path too. If MCP was unavailable this run, include a bullet suggesting `/kiln:kiln-fix` (retry after MCP reconnect) or `nothing urgent — you're done`.
 
 ## Phase C — `/kiln:kiln-feedback` skill (impl-feedback-distill, 4 tasks)
 
