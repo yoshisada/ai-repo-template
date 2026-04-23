@@ -17,6 +17,57 @@ Check if the `products/` directory exists. If it does not exist, tell the user:
 
 If it exists, list all subdirectories under `products/`.
 
+<!-- FR-009: Classify each top-level slug as parent / flat / sub-idea for nested rendering. -->
+<!-- NFR-002: Flat products without parent/sub markers render unchanged. -->
+<!-- Contracts §3, §4: is_parent_product() + list_sub_ideas() inlined here. -->
+
+For each top-level slug, classify it:
+
+```bash
+# is_parent_product — slug has about.md AND ≥1 sub-folder with idea.md or PRD.md
+is_parent_product() {
+  local slug="$1"
+  local parent_dir="products/$slug"
+  [ -f "$parent_dir/about.md" ] || return 1
+  for sub in "$parent_dir"/*/; do
+    [ -d "$sub" ] || continue
+    if [ -f "$sub/idea.md" ] || [ -f "$sub/PRD.md" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# list_sub_ideas — enumerate immediate sub-folders that contain idea.md or PRD.md
+list_sub_ideas() {
+  local parent_slug="$1"
+  local parent_dir="products/$parent_slug"
+  for sub in "$parent_dir"/*/; do
+    [ -d "$sub" ] || continue
+    if [ -f "$sub/idea.md" ] || [ -f "$sub/PRD.md" ]; then
+      basename "$sub"
+    fi
+  done
+}
+
+# read_frontmatter_field — used to detect misplaced sub-ideas at top level
+read_frontmatter_field() {
+  local file="$1"
+  local key="$2"
+  awk -v k="$key" '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ { in_fm = !in_fm; if (!in_fm) exit; next }
+    in_fm && $1 == k":" { sub(/^[^:]+:[[:space:]]*/, ""); print; exit }
+  ' "$file"
+}
+```
+
+Classification rules:
+
+- **parent** — `is_parent_product "$slug"` returns true. Render the parent row; then render each sub-idea from `list_sub_ideas "$slug"` indented two spaces beneath.
+- **sub-idea (misplaced)** — `products/$slug/idea.md` or `PRD.md` has `parent:` frontmatter non-empty. Sub-ideas are normally nested under parents, so hitting this branch at the top level means a misplaced file; render it with a warning marker (e.g., `(orphaned sub-idea, parent: <parent>)`).
+- **flat** — everything else (no `about.md`, or `about.md` but no qualifying sub-folders, and no `parent:` frontmatter). Renders exactly as today (NFR-002).
+
 ### Step 1.5: Read Clay Config
 
 <!-- FR-011, FR-014: Read clay.config for repo URLs and local paths -->
@@ -56,7 +107,18 @@ For each product, count how many of these artifacts exist:
 
 ### Step 4: Display table
 
+<!-- FR-009: Render parents first with sub-ideas indented two spaces. Flat products unchanged. -->
+<!-- NFR-002: Flat products (pre-nesting layout) render identically to pre-PRD behavior. -->
+
 Output a formatted table to the user. The table format depends on whether `clay.config` was found in Step 1.5.
+
+**Rendering order**:
+
+1. Group top-level slugs into **parents** (with sub-ideas) and **flat** products (no nesting).
+2. Render parents first. For each parent: emit the parent row, then for each sub-idea from `list_sub_ideas "<parent>"`, emit a row where the Product column is prefixed with two spaces (`  <sub-slug>`).
+3. Render flat products after all parents. Flat rows have no indentation — identical to today.
+4. Sub-idea status/artifact derivation uses the same logic as flat products (Step 2/3), operating on the path `products/<parent>/<sub-slug>/...`.
+5. If a misplaced top-level sub-idea exists (top-level slug with `parent:` frontmatter), render it as a flat row with a trailing marker `(orphaned sub-idea, parent: <parent>)` in the Status column.
 
 **When `HAS_CLAY_CONFIG` is true** — include Repo URL and Local Path columns:
 
@@ -64,16 +126,20 @@ Output a formatted table to the user. The table format depends on whether `clay.
 Product Portfolio
 =================
 
-| Product        | Status       | Artifacts | Repo URL                              | Local Path     |
-|----------------|--------------|-----------|---------------------------------------|----------------|
-| my-product     | repo-created | 5/6       | https://github.com/user/my-product    | ../my-product  |
-| another-idea   | researched   | 1/6       | —                                     | —              |
-| quick-thought  | idea         | 0/6       | —                                     | —              |
+| Product                 | Status       | Artifacts | Repo URL                                       | Local Path              |
+|-------------------------|--------------|-----------|------------------------------------------------|-------------------------|
+| personal-automations    | —            | —         | https://github.com/user/personal-automations   | ../personal-automations |
+|   email-digest          | prd-created  | 4/6       | (shared: personal-automations)                 | (shared)                |
+|   morning-briefing      | idea         | 1/6       | (shared: personal-automations)                 | (shared)                |
+| standalone-tool         | researched   | 1/6       | —                                              | —                       |
+| my-product              | repo-created | 5/6       | https://github.com/user/my-product             | ../my-product           |
 
-Total: 3 products
+Total: 4 products (1 parent with 2 sub-ideas, 2 flat)
 ```
 
-For each product, look up its slug in the clay.config map from Step 1.5. If found, show the repo URL and local path. If not found, show "—" in both columns.
+For parent rows: if the parent itself has no repo yet, show `—` in the repo columns; if there is a shared repo for the parent (set in Phase D when `/clay:clay-create-repo` creates one), show its URL on the parent row. Sub-idea rows show `(shared: <parent>)` when their `.repo-url` points at the parent's shared repo; otherwise they show their own repo URL.
+
+For each non-nested product, look up its slug in the clay.config map from Step 1.5. If found, show the repo URL and local path. If not found, show "—" in both columns.
 
 **When `HAS_CLAY_CONFIG` is false** — render the table without repo columns:
 
@@ -81,14 +147,18 @@ For each product, look up its slug in the clay.config map from Step 1.5. If foun
 Product Portfolio
 =================
 
-| Product        | Status       | Artifacts |
-|----------------|--------------|-----------|
-| my-product     | prd-created  | 4/6       |
-| another-idea   | researched   | 1/6       |
-| quick-thought  | idea         | 0/6       |
+| Product                 | Status       | Artifacts |
+|-------------------------|--------------|-----------|
+| personal-automations    | —            | —         |
+|   email-digest          | prd-created  | 4/6       |
+|   morning-briefing      | idea         | 1/6       |
+| standalone-tool         | researched   | 1/6       |
+| my-product              | prd-created  | 4/6       |
 
-Total: 3 products
+Total: 4 products (1 parent with 2 sub-ideas, 2 flat)
 ```
+
+Parent rows without their own artifacts show `—` in Status and Artifacts (the parent's status is derived from its children, not from direct PRD files at `products/<parent>/`).
 
 <!-- FR-037: directory structure convention -->
 Each product directory follows the structure:

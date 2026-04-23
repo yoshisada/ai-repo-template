@@ -15,6 +15,44 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+<!-- FR-012: Parse --parent=<slug> flag for programmatic sub-idea creation. -->
+<!-- Contracts §8: flag parsing idiom, validation rule, error text. -->
+## Step 0a: Parse `--parent=<slug>` Flag
+
+Before mode detection, parse `$ARGUMENTS` for a `--parent=<slug>` flag. This is a programmatic callpath distinct from `/clay:clay-idea`'s intent prompt — the two flows are independent.
+
+```bash
+PARENT_SLUG=""
+REMAINING_ARGS=""
+for arg in $ARGUMENTS; do
+  case "$arg" in
+    --parent=*) PARENT_SLUG="${arg#--parent=}" ;;
+    *) REMAINING_ARGS="$REMAINING_ARGS $arg" ;;
+  esac
+done
+REMAINING_ARGS="${REMAINING_ARGS# }"  # trim leading space
+
+# Validate parent if --parent was provided
+if [ -n "$PARENT_SLUG" ]; then
+  if [ ! -f "products/$PARENT_SLUG/about.md" ]; then
+    echo "--parent=$PARENT_SLUG provided but products/$PARENT_SLUG/about.md does not exist."
+    exit 1
+  fi
+  # Output base for every artifact this skill writes: nest under the parent
+  # The <sub-slug> is derived later in the normal slug derivation step, then used as:
+  #   OUTPUT_BASE="products/$PARENT_SLUG/$SUB_SLUG"
+  # Mode A artifacts land in $OUTPUT_BASE/; Mode C features land in $OUTPUT_BASE/features/<dated>/.
+  IS_SUB_IDEA=true
+else
+  IS_SUB_IDEA=false
+fi
+
+# Remaining args replace $ARGUMENTS for the rest of the skill
+ARGUMENTS="$REMAINING_ARGS"
+```
+
+When `IS_SUB_IDEA=true`, every generated PRD file (Mode A or Mode C) must also inject `parent: $PARENT_SLUG` into its frontmatter (see Step 4 below).
+
 ## Step 0: Detect Mode
 
 Determine how to organize the output by inspecting the workspace.
@@ -61,6 +99,44 @@ If ambiguous, ask: "Is this a new product or a feature addition to an existing p
 When a `products/` directory exists with multiple products and Mode C applies, list existing products and ask which one the feature belongs to.
 
 ## Step 1: Read Context
+
+<!-- FR-003: Read intent: from products/<slug>/idea.md to detect simplified PRD mode. -->
+<!-- Decision 2: Missing intent is treated as `marketable` (default full pipeline). -->
+
+### Step 1.0: Detect intent (simplified-PRD mode for `internal`)
+
+If `products/$SLUG/idea.md` exists, read the `intent:` frontmatter field. If missing or unknown, treat as `marketable`.
+
+```bash
+read_frontmatter_field() {
+  local file="$1"
+  local key="$2"
+  awk -v k="$key" '
+    BEGIN { in_fm=0 }
+    /^---[[:space:]]*$/ { in_fm = !in_fm; if (!in_fm) exit; next }
+    in_fm && $1 == k":" { sub(/^[^:]+:[[:space:]]*/, ""); print; exit }
+  ' "$file"
+}
+
+INTENT=""
+if [ -n "$SLUG" ] && [ -f "products/$SLUG/idea.md" ]; then
+  INTENT=$(read_frontmatter_field "products/$SLUG/idea.md" intent)
+fi
+case "$INTENT" in
+  internal|marketable|pmf-exploration) ;;
+  *) INTENT="marketable" ;;
+esac
+```
+
+When `$INTENT = internal`, switch to **simplified PRD mode** for the rest of this skill:
+
+- Do NOT read `products/<slug>/research.md` (won't exist; don't rely on it)
+- Do NOT read `products/<slug>/naming.md` (won't exist; don't rely on it)
+- Drop these sections from the generated PRD: "Competitive Landscape", "Market Research", "Naming / Branding"
+- Keep these sections: Problem Statement, Users (single-user: the maintainer), Requirements, Tech Stack, What we are NOT building
+- User persona defaults to "the maintainer themselves"; do not ask B2B/B2C questions
+
+When `$INTENT = marketable` or `pmf-exploration` (or empty/unknown): proceed with the full Mode A / Mode B pipeline as before.
 
 ### All modes
 - Read `.specify/memory/constitution.md` if it exists — note governing constraints
@@ -148,6 +224,22 @@ Rules:
 - In the PRD, always treat the tech stack as the highest priority absolute must
 
 ## Step 4: Generate PRD Artifacts
+
+<!-- FR-008, FR-012: When IS_SUB_IDEA=true (from Step 0a), all generated PRD files must carry `parent: $PARENT_SLUG` frontmatter and land under `products/$PARENT_SLUG/$SUB_SLUG/`. -->
+<!-- Contracts §2: parent: value must equal the immediate-parent directory name on disk. -->
+
+**Nested output (sub-idea) path**: When `$IS_SUB_IDEA=true`, override the Mode A / Mode C output paths as follows:
+
+- Mode A nested: write to `products/$PARENT_SLUG/$SUB_SLUG/PRD.md`, `.../PRD-MVP.md`, `.../PRD-Phases.md`
+- Mode C nested: write to `products/$PARENT_SLUG/$SUB_SLUG/features/<YYYY-MM-DD>-<feature-slug>/PRD.md`
+
+Inject this frontmatter field into EVERY generated file when `$IS_SUB_IDEA=true`:
+
+```yaml
+parent: <PARENT_SLUG>
+```
+
+Validation rule (contracts §2): the `parent:` value MUST equal the immediate-parent directory name on disk. If the computed output path is not nested under `products/$PARENT_SLUG/`, stop and report the inconsistency.
 
 Do NOT create any files until the user has answered the clarifying questions (or explicitly approved TBDs).
 
