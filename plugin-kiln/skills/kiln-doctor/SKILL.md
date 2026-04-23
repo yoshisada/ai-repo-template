@@ -227,6 +227,78 @@ Append ONE row to the diagnosis table (Step 3e):
 
 Doctor does NOT write an audit log. That's exclusively the `/kiln:kiln-claude-audit` skill's job. Doctor's subcheck is a tripwire pointing at the dedicated skill.
 
+### 3h: Structural hygiene drift (cheap signals only)
+
+Run the `cost: cheap` subset of the `plugin-kiln/rubrics/structural-hygiene.md` rubric against the repo's structural state and report a single row in the diagnosis table. Performance budget: **<2s** (cheap-greppy only, no `gh`, no LLM). For the full rubric — including the editorial `merged-prd-not-archived` rule that needs `gh` — invoke `/kiln:kiln-hygiene` directly.
+
+Resolution logic for the rubric path mirrors 3g:
+
+```bash
+RUBRIC_PATH=$(find . -path "*/kiln/rubrics/structural-hygiene.md" -o -path "*/node_modules/@yoshisada/kiln/rubrics/structural-hygiene.md" 2>/dev/null | head -1)
+if [ -z "$RUBRIC_PATH" ] && [ -f "plugin-kiln/rubrics/structural-hygiene.md" ]; then
+  RUBRIC_PATH="plugin-kiln/rubrics/structural-hygiene.md"
+fi
+```
+
+If `RUBRIC_PATH` cannot be resolved OR `.kiln/` does not exist at the repo root: emit one row with `| Structural hygiene drift | N/A | rubric or .kiln/ not found — skipped |` and continue. This is NOT an error — doctor keeps running (parity with 3g N/A pattern).
+
+Otherwise, run ONLY the cheap rules (identified by `cost: cheap` in the rubric YAML-ish block). Today: `orphaned-top-level-folder` + `unreferenced-kiln-artifact`. NOT `merged-prd-not-archived` (its cost is editorial — needs `gh`). New rules added to the rubric are auto-included if their `cost: cheap` YAML flag is set.
+
+**`orphaned-top-level-folder`** (contract §6 of `specs/kiln-structural-hygiene/`):
+
+```bash
+HYGIENE_DRIFT_COUNT=0
+
+# Manifest resolution (reuse Step 2 manifest path)
+MANIFEST_DIRS=$(jq -r '.directories | keys[]' "$MANIFEST_PATH" 2>/dev/null | sed 's:^\./::; s:/*$::')
+TOP_LEVEL_MANIFEST=$(echo "$MANIFEST_DIRS" | awk -F/ '{print $1}' | sort -u)
+
+ORPHAN_MIN_AGE=30
+if [ -f ".kiln/structural-hygiene.config" ]; then
+  OVR=$(grep -E '^orphaned-top-level-folder\.min_age_days' .kiln/structural-hygiene.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+  [ -n "$OVR" ] && ORPHAN_MIN_AGE="$OVR"
+fi
+
+while IFS= read -r dir; do
+  [ -z "$dir" ] && continue
+  echo "$TOP_LEVEL_MANIFEST" | grep -Fxq "$dir" && continue
+  if grep -RlF "${dir}/" plugin-*/ templates/ 2>/dev/null | head -1 | grep -q . ; then continue; fi
+  find "$dir" -maxdepth 0 -type d -mtime "+$ORPHAN_MIN_AGE" | grep -q . || continue
+  HYGIENE_DRIFT_COUNT=$((HYGIENE_DRIFT_COUNT + 1))
+done < <(find . -maxdepth 1 -mindepth 1 -type d ! -name '.git' ! -name 'node_modules' -printf '%f\n')
+```
+
+**`unreferenced-kiln-artifact`** (contract §7):
+
+```bash
+UNREF_MIN_AGE=60
+if [ -f ".kiln/structural-hygiene.config" ]; then
+  OVR=$(grep -E '^unreferenced-kiln-artifact\.min_age_days' .kiln/structural-hygiene.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+  [ -n "$OVR" ] && UNREF_MIN_AGE="$OVR"
+fi
+
+for art_dir in .kiln/logs .kiln/qa/test-results .kiln/qa/playwright-report .kiln/qa/videos .kiln/qa/traces .kiln/qa/screenshots .kiln/qa/results .kiln/state; do
+  [ -d "$art_dir" ] || continue
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    base=$(basename "$file")
+    case "$base" in .gitkeep|README.md) continue ;; esac
+    if compgen -G ".wheel/state_*.json" >/dev/null 2>&1; then
+      if grep -lF "$base" .wheel/state_*.json 2>/dev/null | head -1 | grep -q . ; then continue; fi
+    fi
+    HYGIENE_DRIFT_COUNT=$((HYGIENE_DRIFT_COUNT + 1))
+  done < <(find "$art_dir" -type f -mtime "+$UNREF_MIN_AGE" 2>/dev/null)
+done
+```
+
+Append ONE row to the diagnosis table (Step 3e):
+
+- `HYGIENE_DRIFT_COUNT == 0`: `| Structural hygiene drift | OK    | No cheap signals triggered |`
+- `HYGIENE_DRIFT_COUNT > 0`:  `| Structural hygiene drift | DRIFT | N cheap signals; run /kiln:kiln-hygiene |`
+- rubric or `.kiln/` missing: `| Structural hygiene drift | N/A   | rubric or .kiln/ not found — skipped |`
+
+Doctor does NOT render the full hygiene preview. That is exclusively the `/kiln:kiln-hygiene` skill's job; 3h is a tripwire pointing at it. Performance contract: the 3h block alone MUST run <2 s on a real-repo fixture (SC-004 of `specs/kiln-structural-hygiene/`). Enforced by: no `gh` call here, grep surface capped at `plugin-*/` + `templates/` + `.kiln/` artifact dirs, no recursion into `node_modules/` or `.git/`.
+
 ### 3f: Stale prd-created Issue Detection — FR-010
 
 Scan `.kiln/issues/` for issues that were bundled into a PRD but never built:
@@ -272,6 +344,9 @@ Display results as a table:
 | plugin/package.json version | OK | Matches VERSION |
 | .kiln/issues/ stale prd-created | STALE | 2 issues bundled into PRD but never built |
 | CLAUDE.md drift | DRIFT | 3 cheap signals; run /kiln:kiln-claude-audit |
+| Structural hygiene drift | OK    | No cheap signals triggered |
+| Structural hygiene drift | DRIFT | 2 cheap signals; run /kiln:kiln-hygiene |
+| Structural hygiene drift | N/A   | rubric or .kiln/ not found — skipped |
 
 Summary: N issues found
 ```

@@ -38,9 +38,9 @@
 
 ## Phase C — kiln-doctor subcheck 3h
 
-- [ ] **C1**: Edit `plugin-kiln/skills/kiln-doctor/SKILL.md`: insert the `### 3h: Structural hygiene drift (cheap signals only)` section with the exact intro paragraph from plan Decision 5. Place it AFTER `### 3g` and BEFORE `### 3f` (preserving the existing 3a → 3b → 3c → 3d → 3g → 3f → 3e order the file currently uses). Subcheck body resolves the rubric via the same two-step `find` + source-repo fallback used in 3g, runs ONLY the `cost: cheap` predicates (= `orphaned-top-level-folder` + `unreferenced-kiln-artifact`; not `merged-prd-not-archived`), and increments a `HYGIENE_DRIFT_COUNT` counter. References FR-004, Decision 5.
+- [X] **C1**: Edit `plugin-kiln/skills/kiln-doctor/SKILL.md`: insert the `### 3h: Structural hygiene drift (cheap signals only)` section with the exact intro paragraph from plan Decision 5. Place it AFTER `### 3g` and BEFORE `### 3f` (preserving the existing 3a → 3b → 3c → 3d → 3g → 3f → 3e order the file currently uses). Subcheck body resolves the rubric via the same two-step `find` + source-repo fallback used in 3g, runs ONLY the `cost: cheap` predicates (= `orphaned-top-level-folder` + `unreferenced-kiln-artifact`; not `merged-prd-not-archived`), and increments a `HYGIENE_DRIFT_COUNT` counter. References FR-004, Decision 5.
 
-- [ ] **C2**: Edit the Step 3e diagnosis-table example in the same file to include one new row per the three shapes in plan Decision 5 (`OK` / `DRIFT` / `N/A`). Ensure no 3a..3g rows are renumbered or altered. Add the Subchecks ordering reference to the Rules section at bottom if the existing section enumerates subchecks. Commit Phase C (`feat(kiln-doctor): add 3h structural hygiene subcheck`). References NFR-003, SC-007.
+- [X] **C2**: Edit the Step 3e diagnosis-table example in the same file to include one new row per the three shapes in plan Decision 5 (`OK` / `DRIFT` / `N/A`). Ensure no 3a..3g rows are renumbered or altered. Add the Subchecks ordering reference to the Rules section at bottom if the existing section enumerates subchecks. Commit Phase C (`feat(kiln-doctor): add 3h structural hygiene subcheck`). References NFR-003, SC-007.
 
 ---
 
