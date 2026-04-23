@@ -53,9 +53,9 @@ Each implementer marks `[X]` immediately on task completion. Commit after each p
 
 **Purpose**: One-time rewrite of the consumer-repo scaffold to the minimal skeleton shape.
 
-- [ ] T010 [impl-claude-audit] Rewrite `plugin-kiln/scaffold/CLAUDE.md` from scratch per `contracts/interfaces.md` §4 exact skeleton. Target ≤40 lines. Remove the explicitly-excluded sections listed in §4.
-- [ ] T011 [impl-claude-audit] Verify: run the new audit skill against the new scaffold, confirm an empty-diff output (§4 audit-clean verification). If drift appears, either adjust the skeleton or adjust the rubric (update contracts/interfaces.md FIRST per plan Decision 3 / constitution VII).
-- [ ] T012 [impl-claude-audit] Verify SC-003: `git diff --stat plugin-kiln/scaffold/CLAUDE.md` shows >50% of original lines changed. Record the stat in `specs/kiln-self-maintenance/agent-notes/phase-t-rewrite.md`.
+- [X] T010 [impl-claude-audit] Rewrite `plugin-kiln/scaffold/CLAUDE.md` from scratch per `contracts/interfaces.md` §4 exact skeleton. Target ≤40 lines. Remove the explicitly-excluded sections listed in §4.
+- [X] T011 [impl-claude-audit] Verify: run the new audit skill against the new scaffold, confirm an empty-diff output (§4 audit-clean verification). If drift appears, either adjust the skeleton or adjust the rubric (update contracts/interfaces.md FIRST per plan Decision 3 / constitution VII).
+- [X] T012 [impl-claude-audit] Verify SC-003: `git diff --stat plugin-kiln/scaffold/CLAUDE.md` shows >50% of original lines changed. Record the stat in `specs/kiln-self-maintenance/agent-notes/phase-t-rewrite.md`.
 
 **Checkpoint**: scaffold rewritten, audit-clean, SC-003 satisfied. Commit "feat(kiln): rewrite plugin-kiln/scaffold/CLAUDE.md as minimal skeleton (Phase T)".
 
