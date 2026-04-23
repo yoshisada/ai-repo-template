@@ -34,7 +34,7 @@ flowchart TB
     %% ============================================
     subgraph PRD["PRD Creation"]
         createPrd["/kiln:kiln-create-prd"]
-        issueToPrd["/kiln:kiln-issue-to-prd<br/>Bundle backlog → PRD"]
+        issueToPrd["/kiln:kiln-distill<br/>Bundle backlog + feedback → PRD"]
         prdDoc["docs/PRD.md or<br/>docs/features/*/PRD.md"]
     end
 
@@ -184,7 +184,7 @@ flowchart TB
     subgraph IssueCycle["Issue Lifecycle"]
         reportIssue["/kiln:kiln-report-issue"]
         backlog["docs/backlog/<br/>timestamped entries"]
-        issueToPrdCycle["/kiln:kiln-issue-to-prd<br/>Bundle → PRD"]
+        issueToPrdCycle["/kiln:kiln-distill<br/>Bundle → PRD"]
     end
 
     ghIssuesQA --> reportIssue
@@ -266,7 +266,7 @@ flowchart LR
     end
 
     subgraph Loop4["Loop 4: Issues → PRD → Build"]
-        issues["GitHub Issues /<br/>docs/backlog/"] -->|"/kiln:kiln-issue-to-prd"| newPrd["New PRD"]
+        issues["GitHub Issues /<br/>docs/backlog/"] -->|"/kiln:kiln-distill"| newPrd["New PRD"]
         newPrd -->|"/kiln:kiln-build-prd"| pipeline["Pipeline"]
         pipeline -->|"retro + QA findings"| issues
     end

@@ -245,7 +245,7 @@ After mapping findings to commands, filter ALL recommendations through these rul
 
 **Allowed commands** (whitelist — only these may appear in output):
 `/kiln:kiln-build-prd`, `/kiln:kiln-fix`, `/kiln:kiln-qa-pass`, `/kiln:kiln-create-prd`, `/clay:clay-create-repo`, `/kiln:kiln-init`,
-`/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-issue-to-prd`,
+`/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-feedback`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-distill`,
 `/kiln:kiln-next`, `/kiln:kiln-todo`, `/kiln:kiln-roadmap`
 
 **Blocked commands** (NEVER show these in output):
@@ -339,7 +339,7 @@ After the recommendations list (or after the project state summary if no recomme
 ```markdown
 ---
 
-> **Suggested next**: Nothing urgent — check the backlog with `/kiln:kiln-issue-to-prd`
+> **Suggested next**: Nothing urgent — check the backlog with `/kiln:kiln-distill`
 ```
 
 - The "Suggested next" line MUST appear in **both** normal and `--brief` modes — it is never suppressed.

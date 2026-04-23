@@ -66,7 +66,7 @@ Every finding MUST map to a specific, executable kiln command from the **allowed
 
 **Allowed commands** (whitelist — only these may appear in output):
 `/kiln:kiln-build-prd`, `/kiln:kiln-fix`, `/kiln:kiln-qa-pass`, `/kiln:kiln-create-prd`, `/clay:clay-create-repo`, `/kiln:kiln-init`,
-`/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-issue-to-prd`,
+`/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-feedback`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-distill`,
 `/kiln:kiln-next`, `/kiln:kiln-todo`, `/kiln:kiln-roadmap`
 
 **Blocked commands** (NEVER show these — they are internal pipeline steps):
