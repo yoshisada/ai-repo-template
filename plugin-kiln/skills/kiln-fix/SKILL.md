@@ -230,17 +230,19 @@ If the debug loop exhausts all strategies (9 attempts), present the user with ev
 
 ## Step 7: Record the Fix (NON-NEGOTIABLE)
 
-Steps 2b–5 MUST complete in main chat before this step begins (FR-020 — the debug loop stays in main chat; no `TeamCreate`, `TaskCreate`, `SendMessage` to a teammate, or wheel-activate call MUST occur before the commit or escalation step is reached). Step 7 is the first and only place in this skill that spawns teams.
+Steps 2b–5 MUST complete in main chat before this step begins (FR-020 — the debug loop stays in main chat; no `SendMessage` to a teammate, no wheel-activate call, and no MCP vault write MUST occur before the commit or escalation step is reached). Step 7 is the ONLY place in this skill that talks to the Obsidian vault.
 
-This step composes a durable record of the fix, writes it locally, and spawns two parallel short-lived teams that file the Obsidian note and (optionally) a manifest-improvement proposal. It runs whether the debug loop succeeded (commit landed) OR escalated (9 attempts exhausted). Do NOT skip it.
+This step composes a durable record of the fix, writes it locally, files the Obsidian fix note via a direct inline MCP call, and — if the reflect gate fires — files a single manifest-improvement proposal via a second inline MCP call. It runs whether the debug loop succeeded (commit landed) OR escalated (9 attempts exhausted). Do NOT skip it.
+
+**Shape:** everything runs inline in the main chat — no team-spawn tool calls (the prior implementation's team primitives have been removed per FR-001/FR-005). The fix-note and reflect-proposal writes are two independent direct `mcp__claude_ai_obsidian-*__create_file` calls.
 
 ### 7.1 Determine status and commit_hash
 
 Compare `git rev-parse HEAD` at skill start vs now. If HEAD advanced, the debug loop landed a commit: `STATUS=fixed` and `COMMIT_HASH=$(git rev-parse HEAD)`. If HEAD is unchanged and the debug loop exhausted 9 attempts: `STATUS=escalated` and `COMMIT_HASH=""` (null in the envelope).
 
-### 7.2 Resolve SHELF_SCRIPTS_DIR (plugin portability, FR-025)
+### 7.2 Resolve SHELF_SCRIPTS_DIR and FIX_RECORDING_DIR (plugin portability, FR-025)
 
-Export `SHELF_SCRIPTS_DIR` before any helper or team invocation, via the three-step fallback below. This variable is the ONLY way team briefs reference shelf scripts — hardcoding a repo-relative shelf script path is a portability bug per `CLAUDE.md`.
+Export `SHELF_SCRIPTS_DIR` before invoking any shelf reflect-gate helper (`validate-reflect-output.sh`, `check-manifest-target-exists.sh`, `derive-proposal-slug.sh`). Hardcoding a repo-relative shelf path is a portability bug per `CLAUDE.md`.
 
 ```bash
 SHELF_SCRIPTS_DIR="${WORKFLOW_PLUGIN_DIR:-}"
@@ -254,7 +256,7 @@ fi
 export SHELF_SCRIPTS_DIR
 ```
 
-Also resolve `FIX_RECORDING_DIR` pointing at this plugin's `scripts/fix-recording/` directory (the kiln-internal helpers). Same fallback logic, but looking for `plugin-kiln/scripts/fix-recording`.
+Also resolve `FIX_RECORDING_DIR` pointing at this plugin's `scripts/fix-recording/` directory (the kiln-internal helpers: `compose-envelope.sh`, `write-local-record.sh`).
 
 ```bash
 FIX_RECORDING_DIR="${WORKFLOW_PLUGIN_DIR:-}"
@@ -297,17 +299,17 @@ bash "$FIX_RECORDING_DIR/compose-envelope.sh" \
   > "$envelope_path"
 ```
 
-### 7.4 Write the local record (inline, before team spawn — FR-002, FR-020)
+### 7.4 Write the local record (inline — FR-002, FR-020)
 
 ```bash
 local_record_path=$(bash "$FIX_RECORDING_DIR/write-local-record.sh" "$envelope_path")
 ```
 
-Capture `local_record_path` — the final user report in 7.10 references it.
+Capture `local_record_path` — the final user report in 7.8 references it.
 
-### 7.5 Render both team briefs
+### 7.5 Derive fix-note variables from the envelope
 
-Both briefs are static files shipped with this skill under `team-briefs/`. Render them via `render-team-brief.sh` to substitute the six placeholders (`ENVELOPE_PATH`, `SCRIPTS_DIR`, `SLUG`, `DATE`, `PROJECT_NAME`, `TEAM_KIND`).
+The downstream inline MCP call writes the Obsidian fix note. Derive the four variables it needs — `today`, `slug`, `project_name`, `abs_envelope` — from the envelope and the local record path composed above.
 
 ```bash
 today=$(date -u +%Y-%m-%d)
@@ -315,45 +317,151 @@ slug=$(basename "$local_record_path" .md | sed "s/^${today}-//; s/-[0-9]*$//")
 project_name=$(jq -r '.project_name // ""' "$envelope_path")
 abs_envelope=$(cd "$(dirname "$envelope_path")" && printf '%s/%s\n' "$(pwd)" "$(basename "$envelope_path")")
 
-record_brief_src="$FIX_RECORDING_DIR/../../skills/fix/team-briefs/fix-record.md"
-reflect_brief_src="$FIX_RECORDING_DIR/../../skills/fix/team-briefs/fix-reflect.md"
-
-record_brief=$(bash "$FIX_RECORDING_DIR/render-team-brief.sh" \
-  --envelope-path "$abs_envelope" \
-  --scripts-dir   "$SHELF_SCRIPTS_DIR" \
-  --slug          "$slug" \
-  --date          "$today" \
-  --project-name  "$project_name" \
-  --team-kind     "fix-record" \
-  < "$record_brief_src")
-
-reflect_brief=$(bash "$FIX_RECORDING_DIR/render-team-brief.sh" \
-  --envelope-path "$abs_envelope" \
-  --scripts-dir   "$SHELF_SCRIPTS_DIR" \
-  --slug          "$slug" \
-  --date          "$today" \
-  --project-name  "$project_name" \
-  --team-kind     "fix-reflect" \
-  < "$reflect_brief_src")
+issue=$(jq -r '.issue // ""' "$envelope_path")
+root_cause=$(jq -r '.root_cause // ""' "$envelope_path")
+fix_summary=$(jq -r '.fix_summary // ""' "$envelope_path")
+status_val=$(jq -r '.status // ""' "$envelope_path")
+commit_hash=$(jq -r '.commit_hash // ""' "$envelope_path")
+resolves_issue=$(jq -r '.resolves_issue // ""' "$envelope_path")
+feature_spec_path=$(jq -r '.feature_spec_path // ""' "$envelope_path")
+files_changed=$(jq -r '.files_changed // [] | .[]' "$envelope_path")
 ```
 
-### 7.6 Spawn both teams in parallel (FR-003 — same tool-call batch)
+### 7.6 Write the Obsidian fix note (inline MCP call)
 
-Issue **both** `TeamCreate` + `TaskCreate` pairs in the same assistant message, as a single batch of tool calls (Decision R2). This is what "parallel" means here — both teams are created before either finishes.
+If `project_name` is empty, skip this sub-step silently and record `obsidian_note_result="skipped (project_name null)"` — `resolve-project-name.sh` already returned null, which means the project is not registered in the vault (FR-013 case 3).
 
-- `TeamCreate` name `fix-record-<timestamp>`, teammate `recorder` (model: `haiku`), task brief = rendered `record_brief`.
-- `TeamCreate` name `fix-reflect-<timestamp>`, teammate `reflector` (model: `sonnet`), task brief = rendered `reflect_brief`.
-- `TaskCreate` for each team, passing the rendered brief as the task description.
+Otherwise, issue ONE direct `mcp__claude_ai_obsidian-projects__create_file` call from main chat (NOT via a spawned teammate) with:
 
-### 7.7 Poll to completion
+- **path**: `@projects/<project_name>/fixes/<today>-<slug>.md`. On collision (target already exists), retry with `<today>-<slug>-2.md`, `<today>-<slug>-3.md`, … up to 9 attempts (FR-015). Use the `mcp__claude_ai_obsidian-projects__list_files` primitive on the parent folder to pre-check when available; otherwise rely on `create_file`'s "already exists" error signal.
+- **content**: the body shape below, derived from the envelope variables set in 7.5.
 
-Use `TaskList` to poll both teams until each task reaches `completed`. If a teammate uses `SendMessage` to escape for path ambiguity (FR-010 / FR-011) or MCP unavailability (FR-016), handle the reply inline — one short message per escape. Keep main-chat traffic minimal (SC-004 budget: ≤3k tokens per invocation).
+```markdown
+---
+type: fix
+date: <today>
+status: <status_val>
+commit: <commit_hash or null>
+resolves_issue: <resolves_issue or null>
+files_changed:
+  - <path>
+  - ...
+tags:
+  - fix/<class>                # pick exactly one: fix/runtime-error, fix/regression,
+                               # fix/test-failure, fix/build-failure, fix/ui,
+                               # fix/performance, fix/documentation
+  - topic/<topic>              # at least one, free-form (topic/auth, topic/routing, …)
+  - <stack-axis-tag>           # exactly one of language/*, framework/*, lib/*, infra/*, testing/*
+---
 
-### 7.8 TeamDelete regardless of outcome (FR-017)
+## Issue
+<issue>
 
-After both tasks reach any terminal state — success, silent skip, MCP-unavailable warn, or internal error — issue `TeamDelete` for `fix-record-<timestamp>` and `fix-reflect-<timestamp>`. No orphans MUST remain when the skill returns control to the user.
+(if resolves_issue non-null) Resolves [[#<resolves_issue>]] or <URL>.
+(if feature_spec_path non-null) Related spec: [[<feature_spec_path>]].
+(if commit_hash non-null) Commit: <commit_hash>    # plain text — not a wikilink (commits live outside the vault, FR-007).
 
-### 7.9 Cleanup transient scratch
+## Root cause
+<root_cause>
+
+## Fix
+<fix_summary>
+
+## Files changed
+- <path>
+- ...
+(or `_none_` when files_changed is empty)
+
+## Escalation notes
+_none_     (when status_val == fixed)
+<multi-line notes>     (when status_val == escalated — derive from fix_summary + any techniques tried)
+```
+
+Record the outcome:
+
+- Success → `obsidian_note_result="@projects/<project_name>/fixes/<today>-<slug>.md"` (with suffix applied on collision).
+- MCP unavailable (FR-006 / FR-016) → `obsidian_note_result="skipped (MCP unavailable)"`. Do NOT retry more than once. Local record is the sole artifact.
+- `project_name` empty → `obsidian_note_result="skipped (project_name null)"`. No MCP call attempted.
+
+### 7.7 Reflect gate (deterministic) and optional manifest proposal
+
+Evaluate the reflect gate against the envelope. Gate fires if ANY of the three conditions in `specs/kiln-capture-fix-polish/contracts/interfaces.md` Contract 2 holds:
+
+1. Any `envelope.files_changed` entry matches regex `^plugin-[^/]+/(templates/|skills/[^/]+/SKILL\.md$)` — a template file or a skill definition was touched.
+2. `envelope.issue` OR `envelope.root_cause` contains (case-insensitive) substring `@manifest/` OR `manifest/types/`.
+3. `envelope.fix_summary` contains a template path — regex `plugin-[^/]+/templates/` OR whole-word `templates/` preceded by `^` or a non-alphanumeric.
+
+```bash
+reflect_fires() {
+  local env="$1"
+  if jq -e '.files_changed[]? | select(test("^plugin-[^/]+/(templates/|skills/[^/]+/SKILL\\.md$)"))' "$env" >/dev/null 2>&1; then
+    return 0
+  fi
+  if jq -e '(.issue, .root_cause) | test("@manifest/|manifest/types/"; "i")' "$env" >/dev/null 2>&1; then
+    return 0
+  fi
+  if jq -e '.fix_summary | test("plugin-[^/]+/templates/|(^|[^a-zA-Z])templates/")' "$env" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
+}
+
+if reflect_fires "$envelope_path"; then
+  reflect_verdict="write"
+else
+  reflect_verdict="skip"
+fi
+```
+
+If `reflect_verdict="skip"`: set `proposal_result="none (no gap identified)"` and proceed to 7.8. Do NOT emit any user-visible log.
+
+If `reflect_verdict="write"`: identify the concrete `@manifest/types/*.md` or `@manifest/templates/*.md` target that this fix improves, read its verbatim `current` text via `mcp__claude_ai_obsidian-manifest__read_file` (read-only, exactly once on the target), compose `proposed` and a one-sentence `why` grounded in the envelope (cite `issue`, `commit_hash`, a `files_changed` entry, a phrase from `root_cause`, or `feature_spec_path`), then run the exact-patch gate and write the proposal:
+
+```bash
+reflect_output=".kiln/fixes/.reflect-output-$(date +%s).json"
+# Compose the reflect output JSON with {skip:false, target, section, current, proposed, why}
+# then validate:
+bash "$SHELF_SCRIPTS_DIR/validate-reflect-output.sh" "$reflect_output"
+# If verdict is "write", verify the target file+current still exists verbatim:
+current_tmp=$(mktemp)
+jq -r '.current' "$reflect_output" > "$current_tmp"
+target=$(jq -r '.target' "$reflect_output")
+bash "$SHELF_SCRIPTS_DIR/check-manifest-target-exists.sh" "$target" "$current_tmp"  # exit 0 = ok; exit 1 = force-skip
+why=$(jq -r '.why' "$reflect_output")
+proposal_slug=$(printf '%s\n' "$why" | bash "$SHELF_SCRIPTS_DIR/derive-proposal-slug.sh")
+proposal_path="@inbox/open/${today}-manifest-improvement-${proposal_slug}.md"
+```
+
+If `check-manifest-target-exists.sh` exits 1 (force-skip), set `proposal_result="none (no gap identified)"` and proceed to 7.8 — no MCP write.
+
+Otherwise, issue ONE direct `mcp__claude_ai_obsidian-manifest__create_file` call with `path=<proposal_path>` and content matching the four-section proposal shape:
+
+```markdown
+---
+type: proposal
+target: <@manifest/types/<file>.md or @manifest/templates/<file>.md>
+date: <today>
+---
+
+## Target
+<target path>
+
+## Current
+<verbatim current text>
+
+## Proposed
+<verbatim proposed text>
+
+## Why
+<one-sentence citation grounded in envelope>
+```
+
+Record the outcome:
+
+- Success → `proposal_result="<proposal_path>"`.
+- MCP unavailable (FR-006) → `proposal_result="skipped (MCP unavailable)"`. Do NOT retry beyond once.
+
+Cleanup:
 
 ```bash
 rm -f "$envelope_path"
@@ -362,23 +470,27 @@ rm -f .kiln/fixes/.reflect-output-*.json
 
 The local record at `$local_record_path` is NOT deleted — it persists alongside the Obsidian note.
 
-### 7.10 User-facing report (extends Step 5)
+### 7.8 User-facing report (extends Step 5)
 
 Append these lines to the Step 5 report:
 
 ```
 Local record: <local_record_path>
-Obsidian note: <@projects/<project>/fixes/<date>-<slug>.md OR "skipped (MCP unavailable)" OR "skipped (project_name null)">
-Manifest proposal: <@inbox/open/... OR "none (no gap identified)">
+Obsidian note: <obsidian_note_result>
+Manifest proposal: <proposal_result>
 ```
+
+Then render the `## What's Next?` block defined in Step 8 below.
 
 ### Constraints enforced by this step (cross-reference)
 
-- FR-019: Step 7 MUST NOT invoke `shelf:shelf-sync` or any wheel workflow. The Obsidian write in Step 7.6 is the only vault-write mechanism.
-- FR-020: Steps 2b–5 complete in main chat first; no team-spawn before 7.6.
+- FR-001: Step 7 runs inline in main chat; no team-spawn primitives are invoked anywhere in this skill.
+- FR-005: All recording logic — envelope compose, local record, Obsidian fix-note write, reflect gate, optional manifest proposal — happens inline. No team-briefs, no teammate spawn.
+- FR-006: On MCP unavailability, the local record is preserved and the report line reads `skipped (MCP unavailable)`. No crash, no retry loop.
+- FR-019: Step 7 MUST NOT invoke `shelf:shelf-sync` or any wheel workflow. The two direct MCP `create_file` calls in 7.6 and 7.7 are the only vault-write mechanisms.
+- FR-020: Steps 2b–5 complete in main chat first; no vault write or teammate message is issued before 7.6.
 - FR-023: No wheel workflow is added or modified by this step.
 - FR-025: All script paths come from `$SHELF_SCRIPTS_DIR` / `$FIX_RECORDING_DIR`; no repo-relative plugin path literal appears anywhere in the live substitution values.
-- FR-017: `TeamDelete` runs for both teams on every terminal outcome — success, silent skip, MCP-unavailable warn, or internal error. No early return skips 7.8.
 
 ## UI Issues — QA Engineer is MANDATORY (NON-NEGOTIABLE)
 
