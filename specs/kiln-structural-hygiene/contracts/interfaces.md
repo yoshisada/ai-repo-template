@@ -244,11 +244,14 @@ command -v gh >/dev/null 2>&1 || GH_AVAILABLE=false
 
 ```bash
 # Top-level dirs only (maxdepth 1), excluding gitignore/obvious noise.
-for dir in $(find . -maxdepth 1 -mindepth 1 -type d \
-              ! -name '.git' ! -name 'node_modules' \
-              -printf '%f\n'); do
+# BSD-portable: `find -printf` is GNU-only (missing on macOS default find),
+# so we strip the leading `./` via sed instead. Both 3h (kiln-doctor) and the
+# full kiln-hygiene predicate use this exact form.
+while IFS= read -r dir; do
   ...
-done
+done < <(find . -maxdepth 1 -mindepth 1 -type d \
+              ! -name '.git' ! -name 'node_modules' \
+              | sed 's:^\./::')
 ```
 
 **Manifest-absent check (a)**:
