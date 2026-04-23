@@ -157,6 +157,76 @@ Compare each extracted version against `canonical_version`. Report mismatches:
 | plugin/package.json | OK | Matches VERSION |
 ```
 
+### 3g: CLAUDE.md Drift Check (cheap signals only)
+
+Run the `cost: cheap` subset of the `plugin-kiln/rubrics/claude-md-usefulness.md` rubric against the repo's `CLAUDE.md` and report a single row in the diagnosis table. Performance budget: **<2s** (cheap-greppy only, no LLM). For the full rubric — including editorial signals and a proposed diff — invoke `/kiln:kiln-claude-audit` directly.
+
+Resolution logic for the rubric path mirrors the manifest resolution above:
+
+```bash
+# Try the plugin install paths first; fall back to source-repo layout.
+RUBRIC_PATH=$(find . -path "*/kiln/rubrics/claude-md-usefulness.md" -o -path "*/node_modules/@yoshisada/kiln/rubrics/claude-md-usefulness.md" 2>/dev/null | head -1)
+if [ -z "$RUBRIC_PATH" ] && [ -f "plugin-kiln/rubrics/claude-md-usefulness.md" ]; then
+  RUBRIC_PATH="plugin-kiln/rubrics/claude-md-usefulness.md"
+fi
+```
+
+If `RUBRIC_PATH` cannot be resolved OR `CLAUDE.md` does not exist at the repo root: emit one row with `| CLAUDE.md drift | N/A | rubric or CLAUDE.md not found — skipped |` and continue. This is NOT an error — doctor keeps running.
+
+Otherwise, run ONLY the cheap rules (identified by `cost: cheap` in the rubric YAML-ish block):
+
+**`load-bearing-section`** — does not count toward drift; it only protects sections from being falsely flagged by other rules.
+
+**`stale-migration-notice`**:
+```bash
+if grep -q -E '^> \*\*Migration Notice\*\*|^> Old skill names|renamed from' CLAUDE.md; then
+  # Check blockquote age from git log
+  MIG_AGE_DAYS=$(( ( $(date +%s) - $(git log --reverse --format=%at -- CLAUDE.md | head -1) ) / 86400 ))
+  MIG_MAX_AGE=60  # default; override from .kiln/claude-md-audit.config if present
+  if [ -f ".kiln/claude-md-audit.config" ]; then
+    OVR=$(grep -E '^migration_notice_max_age_days' .kiln/claude-md-audit.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+    [ -n "$OVR" ] && MIG_MAX_AGE="$OVR"
+  fi
+  if [ "$MIG_AGE_DAYS" -gt "$MIG_MAX_AGE" ]; then
+    DRIFT_COUNT=$((DRIFT_COUNT + 1))
+  fi
+fi
+```
+
+**`recent-changes-overflow`**:
+```bash
+# Count bullets under "## Recent Changes" (lines starting with "- " within the section).
+RC_COUNT=$(awk '/^## Recent Changes/{flag=1;next} /^## /{flag=0} flag && /^- /' CLAUDE.md | wc -l | tr -d ' ')
+RC_LIMIT=5
+if [ -f ".kiln/claude-md-audit.config" ]; then
+  OVR=$(grep -E '^recent_changes_keep_last_n' .kiln/claude-md-audit.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+  [ -n "$OVR" ] && RC_LIMIT="$OVR"
+fi
+if [ "$RC_COUNT" -gt "$RC_LIMIT" ]; then
+  DRIFT_COUNT=$((DRIFT_COUNT + 1))
+fi
+```
+
+**`active-technologies-overflow`**:
+```bash
+AT_COUNT=$(awk '/^## Active Technologies/{flag=1;next} /^## /{flag=0} flag && /^- /' CLAUDE.md | wc -l | tr -d ' ')
+AT_LIMIT=5
+if [ -f ".kiln/claude-md-audit.config" ]; then
+  OVR=$(grep -E '^active_technologies_keep_last_n' .kiln/claude-md-audit.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+  [ -n "$OVR" ] && AT_LIMIT="$OVR"
+fi
+if [ "$AT_COUNT" -gt "$AT_LIMIT" ]; then
+  DRIFT_COUNT=$((DRIFT_COUNT + 1))
+fi
+```
+
+Append ONE row to the diagnosis table (Step 3e):
+
+- `DRIFT_COUNT == 0`: `| CLAUDE.md drift | OK | No cheap signals triggered |`
+- `DRIFT_COUNT > 0`: `| CLAUDE.md drift | DRIFT | N cheap signals; run /kiln:kiln-claude-audit |`
+
+Doctor does NOT write an audit log. That's exclusively the `/kiln:kiln-claude-audit` skill's job. Doctor's subcheck is a tripwire pointing at the dedicated skill.
+
 ### 3f: Stale prd-created Issue Detection — FR-010
 
 Scan `.kiln/issues/` for issues that were bundled into a PRD but never built:
@@ -201,6 +271,7 @@ Display results as a table:
 | package.json version | MISMATCH | Has 0.5.0, expected 001.002.000.042 |
 | plugin/package.json version | OK | Matches VERSION |
 | .kiln/issues/ stale prd-created | STALE | 2 issues bundled into PRD but never built |
+| CLAUDE.md drift | DRIFT | 3 cheap signals; run /kiln:kiln-claude-audit |
 
 Summary: N issues found
 ```
