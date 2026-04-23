@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/wheel",
-  "version": "000.001.004.000",
+  "version": "000.001.004.005",
   "description": "Hook-based workflow engine for Claude Code agent pipelines",
   "author": "yoshisada",
   "license": "MIT",
