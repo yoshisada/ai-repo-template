@@ -81,9 +81,49 @@ Inspect `$ARGUMENTS` and classify:
 
 **If either classification is ambiguous, ASK the user — do not guess.** This is a hard rule (Contract 1 validation). Only proceed after both values are confirmed.
 
+## Step 4a: Offer Skip / Run Interview
+
+After classification resolves, run a short interview by default. The interview is 3 default questions + up to 2 area-specific add-ons (5 max; `other` area gets 0 add-ons → 3 total).
+
+**Skip option** (Decision 5 / FR-010): at EVERY interview prompt, the LAST option is verbatim:
+
+```
+skip interview — just capture the one-liner
+```
+
+Picking skip at any prompt (first or mid-interview) immediately ends the interview. Any partial answers already given are DROPPED — skip is all-or-nothing. The skill proceeds directly to Step 5 with no `## Interview` section. There is NO CLI flag equivalent; the in-prompt opt-out is the only skip surface (matches `clay-ideation-polish` precedent — interactive skills don't get flags).
+
+## Step 4b: Interview
+
+Ask the 3 default questions, in order, verbatim. For each question, present two options: "type your answer" and the skip option as described in Step 4a.
+
+**Default questions** (asked for every area, including `other`):
+
+1. `What does "done" look like for this feedback? Describe the observable outcome.`
+2. `Who triggers the change, and when? (ad-hoc skill, hook, background agent, part of an existing skill, human maintainer decision…)`
+3. `What's the scope? Just this repo, consumer repos too, or other plugins as well?`
+
+**Area-specific add-ons** (asked AFTER the 3 defaults, based on `area` classified in Step 4):
+
+| area | Qa | Qb |
+|---|---|---|
+| `mission` | `Which part of the stated mission does this change, extend, or contradict?` | `Who does this change the product FOR — and does that change the target user?` |
+| `scope` | `What's newly in scope after this change, and what (if anything) moves out of scope?` | `Is there an existing feature or plugin this supersedes or narrows?` |
+| `ergonomics` | `Which existing friction point does this resolve, and how will you know it's gone?` | `Is there a paired tactical backlog entry in .kiln/issues/ that this feedback pairs with? (path, or "none")` |
+| `architecture` | `What structural boundary or plugin shape does this change?` | `What does the rollout look like — one PR, staged, or a migration?` |
+| `other` | *(no add-on — skip Qa)* | *(no add-on — skip Qb)* |
+
+For `area == other`, the interview is exactly 3 questions total. For every other area, it is exactly 5 questions total.
+
+**Blank answer handling**: if the user types nothing (empty string or whitespace only), re-prompt ONCE with the same question text. If the second answer is also blank, record the literal string `(no answer)` for that question and continue to the next one. A blank answer is NOT a skip — only the explicit last-option choice ends the interview.
+
+**Collecting answers**: maintain an ordered list of `(question-text, answer-text)` tuples. Order is Q1, Q2, Q3, then Qa, Qb for the classified area (omit Qa/Qb entirely for `other`). This ordering is the invariant written to the body in Step 5.
+
+**Skip mid-interview**: if skip is selected at any question (including Q1), discard any answers already collected and jump to Step 5 with an empty answer list (signals no `## Interview` section).
+
 ## Step 5: Write the File
 
-Write the file to `.kiln/feedback/${today}-${slug}.md` with frontmatter matching Contract 1 exactly:
+Write the file to `.kiln/feedback/${today}-${slug}.md` with frontmatter matching Contract 1 exactly. Frontmatter is byte-identical to today's shape (NFR-003 Contract 1) — the interview changes ONLY the body, not the frontmatter.
 
 ```yaml
 ---
@@ -99,8 +139,37 @@ files:
   - <path>      # omit entire `files:` block if none detected
 ---
 
-<$ARGUMENTS verbatim as the body>
+<$ARGUMENTS verbatim>
+
+## Interview                 # ONLY when Step 4b completed (not skipped)
+
+### <Q1 text verbatim>
+
+<Q1 answer, or literal `(no answer)` if re-prompt also blank>
+
+### <Q2 text verbatim>
+
+<Q2 answer>
+
+### <Q3 text verbatim>
+
+<Q3 answer>
+
+### <Qa text verbatim>       # omit Qa + Qb heading+body for area == other
+
+<Qa answer>
+
+### <Qb text verbatim>
+
+<Qb answer>
 ```
+
+**Body shape rules**:
+
+- If the interview was SKIPPED (at any prompt), the body equals `$ARGUMENTS` verbatim with NO `## Interview` section. Shape identical to today's skill output.
+- If the interview COMPLETED, append a blank line after `$ARGUMENTS`, then the `## Interview` heading, then one `### <question-text>` sub-heading per collected answer, in the order Q1, Q2, Q3, Qa, Qb (Qa/Qb omitted for `other`). Each question text is the exact verbatim wording from Step 4b — no paraphrasing.
+- The `## Interview` heading appears EXACTLY ONCE when present (SC-006 invariant).
+- Blank answers that re-prompted and stayed blank are written as the literal string `(no answer)` under that question's sub-heading.
 
 Required keys (MUST all be present, non-empty except `repo` which may be literal `null`): `id`, `title`, `type`, `date`, `status`, `severity`, `area`, `repo`. Optional keys (omit when absent): `prd`, `files`.
 
@@ -124,8 +193,10 @@ Do NOT write to Obsidian. Do NOT run a wheel workflow. Do NOT spawn a background
 
 ## Rules
 
-- No MCP writes, no wheel workflow, no Obsidian sync — just write the local file and exit.
-- Classification is a hard gate: if `severity` or `area` is ambiguous from the description, ASK before writing.
+- No MCP writes, no wheel workflow, no Obsidian sync — just write the local file and exit. Interview runs inline in main chat; it does NOT break this rule.
+- Classification is a hard gate: if `severity` or `area` is ambiguous from the description, ASK before writing. Classification gate fires BEFORE the interview (Step 4 before Step 4b).
+- Interview runs by default — skip is the escape hatch, not the default. The skip option is a single in-prompt opt-out (verbatim `skip interview — just capture the one-liner`), always the last option at every prompt. No CLI flag.
+- Interview answers go in the BODY (NFR-003 Contract 2 / FR-009), never in the frontmatter. Frontmatter shape is byte-identical to today.
 - `type:` is always the literal `feedback` — never let the user override.
 - The `.kiln/feedback/` directory is committed (not gitignored), matching `.kiln/issues/` policy.
 - `/kiln:kiln-distill` picks up open feedback files on its next run and leads PRD narratives with them (FR-012).
