@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/clay",
-  "version": "000.001.002.006",
+  "version": "000.001.002.011",
   "description": "Idea-to-project pipeline for Claude Code. Market research, naming, PRD creation, and repo scaffolding.",
   "author": "yoshisada",
   "license": "MIT",
