@@ -173,7 +173,84 @@ done
 
 ### Step 5c — `merged-prd-not-archived` (editorial)
 
-> **Filled in by Phase D.** This step is a no-op in the Phase B scaffold commit. See Phase D of `specs/kiln-structural-hygiene/tasks.md` for the gh-bulk-lookup + per-item predicate; contract §5 is the authoritative signature.
+Contract §5. Single bulk `gh` call, in-memory associative array keyed by derived slug, per-item O(1) predicate. ZERO per-item `gh` calls.
+
+```bash
+MERGED_PRD_GH_LIMIT="${MERGED_PRD_GH_LIMIT:-500}"
+declare -A MERGED_BY_SLUG
+GH_TSV=""
+
+if [ "$GH_AVAILABLE" = true ]; then
+  GH_TSV=$(mktemp -t gh-merged-prs.XXXXXX.tsv)
+  if ! gh pr list --state merged --limit "$MERGED_PRD_GH_LIMIT" \
+       --json number,headRefName,title,mergedAt \
+       --jq '.[] | "\(.headRefName)\t\(.number)\t\(.mergedAt)"' \
+       > "$GH_TSV" 2>/dev/null; then
+    GH_AVAILABLE=false
+  fi
+fi
+
+if [ "$GH_AVAILABLE" = true ] && [ -f "$GH_TSV" ]; then
+  # Populate map keyed by derived slug (build/<slug>-<YYYYMMDD> → <slug>).
+  # gh orders merged PRs by mergedAt DESC — first occurrence wins on collision
+  # (most-recent-merge semantics per contract §5 and spec Edge Cases).
+  while IFS=$'\t' read -r branch num merged_at; do
+    slug=$(echo "$branch" | sed -E 's:^build/::; s:-[0-9]{8}$::')
+    [ -z "$slug" ] && continue
+    if [ -z "${MERGED_BY_SLUG[$slug]:-}" ]; then
+      MERGED_BY_SLUG[$slug]="$num	$merged_at	$branch"
+    fi
+  done < "$GH_TSV"
+
+  # Truncation check (contract §9 exact error string — grep-anchored in tests)
+  GH_LINE_COUNT=$(wc -l < "$GH_TSV" | tr -d ' ')
+  if [ "$GH_LINE_COUNT" = "$MERGED_PRD_GH_LIMIT" ]; then
+    NOTES+=("merged-prd-not-archived: gh pr list returned ${GH_LINE_COUNT} entries — possible truncation; raise merged-prd-not-archived.gh_limit in .kiln/structural-hygiene.config if needed")
+  fi
+else
+  # gh-unavailable path (FR-006). Exact string from contract §9.
+  NOTES+=("merged-prd-not-archived: gh unavailable — marked inconclusive")
+fi
+
+# Walk candidates under .kiln/issues/*.md + .kiln/feedback/*.md.
+# DO NOT scan .kiln/issues/completed/ — those are already archived.
+for scan_dir in .kiln/issues .kiln/feedback; do
+  [ -d "$scan_dir" ] || continue
+  for file in "$scan_dir"/*.md; do
+    [ -f "$file" ] || continue
+
+    status=$(awk -F: '/^status:/ {sub(/^[ \t]+/, "", $2); sub(/[ \t]+$/, "", $2); print $2; exit}' "$file" | tr -d ' ')
+    [ "$status" = "prd-created" ] || continue
+
+    prd_path=$(awk -F: '/^prd:/ {sub(/^[ \t]+/, "", $2); sub(/[ \t]+$/, "", $2); print $2; exit}' "$file" | tr -d ' ')
+
+    # FR-008: empty / missing prd: field, or points at a non-existent file.
+    if [ -z "$prd_path" ] || [ ! -f "$prd_path" ]; then
+      printf 'merged-prd-not-archived\tneeds-review\t%s\tprd: field empty or points at missing file\n' "$file" >> "$SIGNALS_FILE"
+      continue
+    fi
+
+    # Feature-slug derivation (contract §5). Handles BOTH:
+    #   docs/features/YYYY-MM-DD-<slug>/PRD.md → <slug>
+    #   products/<slug>/PRD.md                → <slug>
+    prd_dir=$(dirname "$prd_path")
+    slug=$(basename "$prd_dir" | sed -E 's:^[0-9]{4}-[0-9]{2}-[0-9]{2}-::')
+
+    if [ "$GH_AVAILABLE" = false ]; then
+      printf 'merged-prd-not-archived\tinconclusive\t%s\tgh unavailable\n' "$file" >> "$SIGNALS_FILE"
+    elif [ -z "${MERGED_BY_SLUG[$slug]:-}" ]; then
+      # FR-008: prd: points at a PRD whose branch doesn't appear in the bulk lookup.
+      printf 'merged-prd-not-archived\tneeds-review\t%s\tno merged PR matching slug %s\n' "$file" "$slug" >> "$SIGNALS_FILE"
+    else
+      IFS=$'\t' read -r pr_num merged_at branch <<< "${MERGED_BY_SLUG[$slug]}"
+      merged_date="${merged_at%%T*}"  # YYYY-MM-DD
+      printf 'merged-prd-not-archived\tarchive-candidate\t%s\tPR #%s merged %s\n' "$file" "$pr_num" "$merged_date" >> "$SIGNALS_FILE"
+    fi
+  done
+done
+
+[ -f "$GH_TSV" ] && rm -f "$GH_TSV"
+```
 
 ## Step 6 — Render preview
 
@@ -221,7 +298,39 @@ Write `OUTPUT_PATH` using the exact shape from contract §2:
 - Override rules applied: <list of rule_ids, or "none">
 ```
 
-**Bundled merged-PRD section** (FR-007 / Decision 4): filled in by Phase D. In the Phase B scaffold, the bundled section is always OMITTED because Step 5c emits no signals yet.
+**Bundled merged-PRD section** (FR-007 / Decision 4, contract §4):
+
+If `ARCHIVE_CANDIDATES > 0`, render a single section:
+
+```markdown
+## Bundled: merged-prd-not-archived (<N> items)
+
+> **Accept or reject as a unit.** Per-item cherry-pick is out of scope for v1 — if the `merged-prd-not-archived` invariant holds for one item, it holds for all. To exclude a specific item, move it to `status: in-progress` manually and re-run the audit.
+
+` ``diff
+<one unified-diff hunk per archive-candidate signal, sorted by filename ASC>
+` ``
+```
+
+Each hunk shape (copy the pattern exactly; `git apply` must accept the concatenated block):
+
+```
+# rule_id: merged-prd-not-archived — PR #<N> merged <YYYY-MM-DD>
+diff --git a/.kiln/issues/<file> b/.kiln/issues/completed/<file>
+rename from .kiln/issues/<file>
+rename to .kiln/issues/completed/<file>
+--- a/.kiln/issues/<file>
++++ b/.kiln/issues/completed/<file>
+@@ <frontmatter>
+-status: prd-created
++status: completed
++completed_date: <YYYY-MM-DD from gh mergedAt>
++pr: #<N>
+```
+
+(For `.kiln/feedback/*.md` candidates, substitute `feedback` for `issues` in both `diff --git` paths and the `rename` lines.)
+
+If `ARCHIVE_CANDIDATES == 0`, the entire `## Bundled: merged-prd-not-archived` section is OMITTED. Do NOT render an empty bundle header.
 
 **Per-rule sections for cheap rules**:
 
