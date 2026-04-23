@@ -26,9 +26,9 @@ Each implementer marks `[X]` immediately on task completion. Commit after each p
 
 **Purpose**: Ground the audit mechanism in a versioned rubric before any skill writes a line.
 
-- [ ] T001 [impl-claude-audit] Inventory CLAUDE.md references by grepping `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, and `templates/` for section headers + phrase citations. Record the load-bearing set in `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` (scratch; not shipped).
-- [ ] T002 [impl-claude-audit] Create `plugin-kiln/rubrics/claude-md-usefulness.md` with preamble + the 7 required rule entries listed in `contracts/interfaces.md` §1, using the per-entry field shape. Include the 3 configurable thresholds with their defaults.
-- [ ] T003 [impl-claude-audit] Self-check: grep the rubric path from at least one non-skill location in the repo (spec.md already references it — confirm NFR-004 with `grep -rn plugin-kiln/rubrics/claude-md-usefulness.md specs/ plugin-*/ docs/` and record the hit count in the phase-r notes).
+- [X] T001 [impl-claude-audit] Inventory CLAUDE.md references by grepping `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, and `templates/` for section headers + phrase citations. Record the load-bearing set in `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` (scratch; not shipped).
+- [X] T002 [impl-claude-audit] Create `plugin-kiln/rubrics/claude-md-usefulness.md` with preamble + the 7 required rule entries listed in `contracts/interfaces.md` §1, using the per-entry field shape. Include the 3 configurable thresholds with their defaults.
+- [X] T003 [impl-claude-audit] Self-check: grep the rubric path from at least one non-skill location in the repo (spec.md already references it — confirm NFR-004 with `grep -rn plugin-kiln/rubrics/claude-md-usefulness.md specs/ plugin-*/ docs/` and record the hit count in the phase-r notes).
 
 **Checkpoint**: rubric exists, is discoverable, conforms to §1 schema. Commit "feat(kiln): claude-md usefulness rubric (Phase R)".
 
@@ -65,11 +65,11 @@ Each implementer marks `[X]` immediately on task completion. Commit after each p
 
 **Purpose**: Extend `/kiln:kiln-feedback` with the inline interview between the classification gate and the file write. Fully independent of Phases R/S/T.
 
-- [ ] T013 [impl-feedback-interview] Edit `plugin-kiln/skills/kiln-feedback/SKILL.md`: insert Step 4a "Offer Skip" and Step 4b "Interview" between existing Step 4 (Classify) and Step 5 (Write). Preserve all existing steps and the NFR-003 contracts (no wheel, no MCP, no background sync).
-- [ ] T014 [impl-feedback-interview] Implement the 3 default questions in Step 4b using the exact wording from `contracts/interfaces.md` §5 table. Implement the last-option-skip (exact wording `skip interview — just capture the one-liner`) at every prompt.
-- [ ] T015 [impl-feedback-interview] Implement the area → add-on dispatcher in Step 4b: read the `area` value classified in Step 4, look up the Qa/Qb wording from the §5 area map, ask them in order. For area `other`, skip add-ons (total = 3 questions).
-- [ ] T016 [impl-feedback-interview] Implement blank-answer handling per §5: re-prompt once on empty input; write `(no answer)` on the second blank. Implement mid-interview skip semantics per Decision 5: skip at ANY prompt drops all partial answers and proceeds with no `## Interview` section.
-- [ ] T017 [impl-feedback-interview] Extend Step 5 to write the `## Interview` body section per `contracts/interfaces.md` §6 when the interview completed, or omit the section entirely on skip. Frontmatter stays byte-identical to today (NFR-003). Verify SC-005, SC-006, SC-007 by scripted invocation; record results in `specs/kiln-self-maintenance/agent-notes/phase-u-verify.md`.
+- [X] T013 [impl-feedback-interview] Edit `plugin-kiln/skills/kiln-feedback/SKILL.md`: insert Step 4a "Offer Skip" and Step 4b "Interview" between existing Step 4 (Classify) and Step 5 (Write). Preserve all existing steps and the NFR-003 contracts (no wheel, no MCP, no background sync).
+- [X] T014 [impl-feedback-interview] Implement the 3 default questions in Step 4b using the exact wording from `contracts/interfaces.md` §5 table. Implement the last-option-skip (exact wording `skip interview — just capture the one-liner`) at every prompt.
+- [X] T015 [impl-feedback-interview] Implement the area → add-on dispatcher in Step 4b: read the `area` value classified in Step 4, look up the Qa/Qb wording from the §5 area map, ask them in order. For area `other`, skip add-ons (total = 3 questions).
+- [X] T016 [impl-feedback-interview] Implement blank-answer handling per §5: re-prompt once on empty input; write `(no answer)` on the second blank. Implement mid-interview skip semantics per Decision 5: skip at ANY prompt drops all partial answers and proceeds with no `## Interview` section.
+- [X] T017 [impl-feedback-interview] Extend Step 5 to write the `## Interview` body section per `contracts/interfaces.md` §6 when the interview completed, or omit the section entirely on skip. Frontmatter stays byte-identical to today (NFR-003). Verify SC-005, SC-006, SC-007 by scripted invocation; record results in `specs/kiln-self-maintenance/agent-notes/phase-u-verify.md`.
 
 **Checkpoint**: feedback skill runs the interview by default, captures answers in the body, honors the skip option. Commit "feat(kiln): /kiln:kiln-feedback interview mode (Phase U)".
 
