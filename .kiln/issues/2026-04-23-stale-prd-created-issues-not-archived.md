@@ -3,7 +3,8 @@ title: 18 stale prd-created issues never archived after their PRDs merged — bu
 type: bug
 severity: high
 category: workflow
-status: open
+status: prd-created
+prd: docs/features/2026-04-23-kiln-structural-hygiene/PRD.md
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-build-prd/SKILL.md
