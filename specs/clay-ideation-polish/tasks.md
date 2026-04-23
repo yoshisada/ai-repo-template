@@ -56,7 +56,7 @@ Mark each task `[X]` immediately after completion. Commit after each phase.
 - [X] All 3 NFRs verified (no new deps, backwards-compat preserved on existing flat products, intent prompt is one round-trip).
 - [X] All 6 SCs have a corresponding smoke command in `SMOKE.md`.
 - [X] Each phase committed separately per CLAUDE.md "incremental progress" rule.
-- [ ] PRD audit run after Phase E (auditor task #3).
+- [X] PRD audit run after Phase E (auditor task #3).
 
 ## Notes for Implementer
 
