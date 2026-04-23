@@ -214,6 +214,8 @@ If a hook blocks you, either:
 - `/kiln:kiln-analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
 - `/issue [#N]` — Analyze a GitHub issue and propose improvements
 - `/kiln:kiln-report-issue` — Quick capture bugs/friction to `.kiln/issues/`. The foreground path is now lean (4 steps, Apr 2026): `check-existing-issues` → `create-issue` → `write-issue-note` (single Obsidian note via `shelf:shelf-write-issue-note`) → `dispatch-background-sync` (fire-and-forget bg sub-agent). Heavy reconciliation (`shelf-sync` + `shelf-propose-manifest-improvement`) runs only once every `shelf_full_sync_threshold` invocations on the background path.
+- `/kiln:kiln-feedback` — Log strategic product feedback (mission, scope, ergonomics, architecture, direction) to `.kiln/feedback/`. Distinct from `/kiln:kiln-report-issue` (tactical bugs/friction). No wheel workflow, no Obsidian write — just writes the local file and exits. `/kiln:kiln-distill` picks it up on the next run and leads PRD narratives with it.
+- `/kiln:kiln-distill` — Bundle open items from `.kiln/feedback/` AND `.kiln/issues/` into a feature PRD. Feedback shapes the narrative (Background, Problem, Goals); issues form the tactical FR layer. Use as `/kiln:kiln-distill` or `/kiln:kiln-distill <category>` to filter.
 - `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
 
 ### `.shelf-config` keys (shelf plugin)

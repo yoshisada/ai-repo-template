@@ -65,11 +65,11 @@ Total: 22 tasks across 6 phases. Tracks run in parallel after this task file lan
 
 ## Phase E — Cross-reference sweep (impl-feedback-distill, 3 tasks)
 
-- [ ] **T019** (FR-014, SC-006) — Update `plugin-kiln/skills/kiln-next/SKILL.md:248` and `:342`: replace `/kiln:kiln-issue-to-prd` with `/kiln:kiln-distill`. Update `plugin-kiln/agents/continuance.md:69`: same replacement. Re-grep `plugin-kiln/` and `plugin-shelf/` for any other live references — these are the known ones but the grep must be rerun to catch anything added between plan and implementation.
+- [X] **T019** (FR-014, SC-006) — Update `plugin-kiln/skills/kiln-next/SKILL.md:248` and `:342`: replace `/kiln:kiln-issue-to-prd` with `/kiln:kiln-distill`. Update `plugin-kiln/agents/continuance.md:69`: same replacement. Re-grep `plugin-kiln/` and `plugin-shelf/` for any other live references — these are the known ones but the grep must be rerun to catch anything added between plan and implementation.
 
-- [ ] **T020** (FR-014, SC-006) — Update `docs/architecture.md` lines `37`, `187`, `269`: replace `/kiln:kiln-issue-to-prd` with `/kiln:kiln-distill`. Verify the diagram labels and surrounding prose still read correctly.
+- [X] **T020** (FR-014, SC-006) — Update `docs/architecture.md` lines `37`, `187`, `269`: replace `/kiln:kiln-issue-to-prd` with `/kiln:kiln-distill`. Verify the diagram labels and surrounding prose still read correctly.
 
-- [ ] **T021** (FR-014, SC-006) — Re-run `grep -rn 'kiln-issue-to-prd' plugin-*/ CLAUDE.md docs/architecture.md` after T014/T019/T020 land. Expected result: ONLY hits inside historical paths — PRD files, spec bodies under `specs/kiln-capture-fix-polish/`, `.kiln/issues/` entries, retrospective notes. Zero live hits in skills/agents/architecture docs.
+- [X] **T021** (FR-014, SC-006) — Re-run `grep -rn 'kiln-issue-to-prd' plugin-*/ CLAUDE.md docs/architecture.md` after T014/T019/T020 land. Expected result: ONLY hits inside historical paths — PRD files, spec bodies under `specs/kiln-capture-fix-polish/`, `.kiln/issues/` entries, retrospective notes. Zero live hits in skills/agents/architecture docs.
 
 ## Phase F — Smoke-test documentation (last implementer, 1 task)
 
