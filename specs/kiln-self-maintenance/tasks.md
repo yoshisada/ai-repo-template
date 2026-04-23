@@ -79,9 +79,9 @@ Each implementer marks `[X]` immediately on task completion. Commit after each p
 
 **Purpose**: Prove the mechanism on real accumulated bloat and commit the pruning in the same PR.
 
-- [ ] T018 [impl-claude-audit] Run `/kiln:kiln-claude-audit` against the current source-repo `CLAUDE.md` (and the freshly-rewritten scaffold — which should be clean). Review the resulting `.kiln/logs/claude-md-audit-<timestamp>.md`. Confirm it flags at least: (a) the speckit-harness → kiln Migration Notice, (b) Recent-Changes entries beyond the rubric's `recent_changes_keep_last_n` threshold, (c) at least one section duplicated vs. docs/PRD.md or the constitution (SC-002).
-- [ ] T019 [impl-claude-audit] Apply non-controversial edits from the audit diff to the source-repo `CLAUDE.md`. "Non-controversial" = the three SC-002 categories plus any other high-confidence removals the diff marked. Leave editorial LLM calls that were marked `inconclusive` untouched — those go into the phase-v notes for later human review.
-- [ ] T020 [impl-claude-audit] Commit the CLAUDE.md edits (SC-008). Save the audit log under `.kiln/logs/` (keep it — this is the baseline). Record accepted/deferred signals in `specs/kiln-self-maintenance/agent-notes/phase-v-first-pass.md`.
+- [X] T018 [impl-claude-audit] Run `/kiln:kiln-claude-audit` against the current source-repo `CLAUDE.md` (and the freshly-rewritten scaffold — which should be clean). Review the resulting `.kiln/logs/claude-md-audit-<timestamp>.md`. Confirm it flags at least: (a) the speckit-harness → kiln Migration Notice, (b) Recent-Changes entries beyond the rubric's `recent_changes_keep_last_n` threshold, (c) at least one section duplicated vs. docs/PRD.md or the constitution (SC-002).
+- [X] T019 [impl-claude-audit] Apply non-controversial edits from the audit diff to the source-repo `CLAUDE.md`. "Non-controversial" = the three SC-002 categories plus any other high-confidence removals the diff marked. Leave editorial LLM calls that were marked `inconclusive` untouched — those go into the phase-v notes for later human review.
+- [X] T020 [impl-claude-audit] Commit the CLAUDE.md edits (SC-008). Save the audit log under `.kiln/logs/` (keep it — this is the baseline). Record accepted/deferred signals in `specs/kiln-self-maintenance/agent-notes/phase-v-first-pass.md`.
 
 **Checkpoint**: SC-002 and SC-008 satisfied; first-pass commit present. Commit "chore(claude-md): apply first audit pass pruning (Phase V)".
 

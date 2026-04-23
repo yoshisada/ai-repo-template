@@ -43,7 +43,7 @@ Followed by a short prose block under the fenced header elaborating the rule (wh
 
 - `recent_changes_keep_last_n` — default `5`
 - `active_technologies_keep_last_n` — default `5`
-- `migration_notice_max_age_days` — default `60`
+- `migration_notice_max_age_days` — default `14` (tightened from the initial 60 in the Phase V rubric-coverage fix — see `specs/kiln-self-maintenance/agent-notes/phase-v-first-pass.md`)
 
 ---
 
@@ -249,7 +249,7 @@ Each prompt presents the question text, then immediately below lists answer opti
 # Threshold overrides
 recent_changes_keep_last_n = 10
 active_technologies_keep_last_n = 8
-migration_notice_max_age_days = 120
+migration_notice_max_age_days = 90
 
 # Disable a rule entirely
 duplicated-in-constitution.enabled = false

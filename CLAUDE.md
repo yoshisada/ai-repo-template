@@ -6,10 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
 
-> **Migration Notice**: This plugin was renamed from `speckit-harness` to `kiln`.
-> Old skill names (`/speckit-harness:speckit-*`) are no longer available.
-> Use the new names: `/specify`, `/plan`, `/tasks`, `/implement`, `/audit`, etc.
-
 **This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin-kiln/bin/init.mjs`.
 
 ## Quick Start
@@ -151,31 +147,11 @@ Tests pass, build succeeds, coverage >=80%, PRD audit passed (or blockers acknow
 
 ## Implementation Rules
 
-### Incremental Progress (NON-NEGOTIABLE)
-- Mark each task `[X]` in tasks.md **immediately** after completing it
-- Commit after each completed phase, not at the end
-- If a task fails, leave it `[ ]` and document why before moving on
-
-### Interface Contract Compliance
-- Every exported function signature MUST match `contracts/interfaces.md`
-- If you need to change a signature, update `contracts/interfaces.md` FIRST
-- No `async` unless the contract says `async`. No renamed functions. No changed return types.
-
-### Sub-Agent Coordination
-- Give every agent the `contracts/interfaces.md` file
-- Each agent owns specific files — no two agents write to the same file
-- Agent output is verified against the contracts before merging
+See `.specify/memory/constitution.md` Articles VII (Interface Contracts) and VIII (Incremental Task Completion).
 
 ## Hooks Enforcement (4 Gates)
 
-PreToolUse hooks that run on every Edit/Write:
-- **Gate 1**: Block edits to `src/` unless `specs/*/spec.md` exists
-- **Gate 2**: Block edits to `src/` unless `specs/*/plan.md` exists
-- **Gate 3**: Block edits to `src/` unless `specs/*/tasks.md` exists
-- **Gate 4**: Block edits to `src/` unless tasks.md has at least one `[X]` mark
-- **Always block** commits that include .env files
-- **Auto-increment** VERSION 4th segment on code file edits
-- **Always allow** edits to docs, specs, config, scripts, and tests
+Hooks block `src/` edits until spec + plan + tasks + at least one `[X]` task exist, and always block `.env` commits. See constitution Article IV.
 
 If a hook blocks you, either:
 - Complete the full kiln workflow: specify → plan → tasks → implement (for new features)
@@ -256,36 +232,9 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - QA credentials go in `.kiln/qa/.env.test` (gitignored)
 
 ## Active Technologies
-- Markdown (skill/agent definitions) + Bash (shell commands within skills) + None new — uses existing kiln plugin infrastructure, GitHub CLI (`gh`) (build/continuance-agent-20260331)
-- Filesystem — `.kiln/logs/` for reports, `.kiln/issues/` for backlog items (build/continuance-agent-20260331)
-- Markdown (skill/agent definitions), Bash (shell commands within skills), Node.js (init.mjs scaffold) + None — uses existing kiln plugin infrastructure (001-kiln-polish)
-- Filesystem — `.kiln/qa/` for QA artifacts (001-kiln-polish)
-- Markdown (skill definition) + Bash (shell commands within skill via `gh` CLI) + `gh` CLI (GitHub CLI), existing `/report-issue` skill (build/analyze-issues-20260401)
-- N/A (labels applied to GitHub issues, backlog items written to `.kiln/issues/`) (build/analyze-issues-20260401)
-- Bash 5.x (hook scripts), Markdown (skill/agent definitions) + git CLI, jq (JSON parsing in hooks), Docker CLI (for container-aware projects) (build/pipeline-reliability-20260401)
-- N/A — file-based lock and marker files only (build/pipeline-reliability-20260401)
-- Markdown (skill/agent definitions), Bash 5.x (hook scripts), Node.js 18+ (init.mjs), JSON (configs) + Claude Code plugin system, GitHub CLI (`gh`), Playwright (QA config changes) (build/qa-tooling-templates-20260401)
-- Filesystem — `.kiln/` directory tree, `specs/` artifacts (build/qa-tooling-templates-20260401)
-- Markdown (skill definitions), Bash 5.x (hooks), Node.js 18+ (init.mjs scaffold) + `jq` (JSON parsing in hooks), `bash -n` (syntax checking), `gh` CLI (GitHub operations) (build/pipeline-workflow-polish-20260401)
-- Filesystem — `.kiln/` directory tree for issues, logs, roadmap, QA artifacts (build/pipeline-workflow-polish-20260401)
-- Markdown (skill definitions) + Bash (inline shell commands in skills) + None — shelf plugin skills are Markdown files with embedded shell/MCP instructions (build/shelf-config-artifact-20260403)
-- `.shelf-config` plain-text key-value file at repo roo (build/shelf-config-artifact-20260403)
-- Bash 5.x + `jq` (JSON parsing), existing wheel engine libs (state.sh, workflow.sh, dispatch.sh, engine.sh, context.sh, lock.sh) (build/wheel-session-guard-20260405)
-- `.wheel/state.json` (file-based JSON state) (build/wheel-session-guard-20260405)
-- Bash 5.x (shell commands in SKILL.md), Markdown (skill definition) + `jq` (JSON generation/validation), existing wheel engine libs (`plugin-wheel/lib/workflow.sh`) (build/wheel-create-workflow-20260406)
-- Filesystem — `workflows/<name>.json` at repo roo (build/wheel-create-workflow-20260406)
-- Bash 5.x + jq (JSON parsing), existing wheel engine libs (state.sh, workflow.sh, dispatch.sh, engine.sh, context.sh, lock.sh, guard.sh) (build/wheel-workflow-composition-20260407)
-- File-based JSON state in `.wheel/state_*.json` (build/wheel-workflow-composition-20260407)
-- Bash 5.x, Markdown (skill definitions) + jq (JSON parsing), existing wheel engine libs (`plugin-wheel/lib/workflow.sh`) (build/developer-tooling-polish-20260407)
-- Filesystem — reads `workflows/*.json`, writes `.kiln/qa/test-audit-report.md` (build/developer-tooling-polish-20260407)
-- Bash 5.x (workflow shell commands), Markdown (skill definitions, status labels config) + Wheel workflow engine (`plugin-wheel/`), Obsidian MCP tools (`mcp__obsidian-projects__*`), `jq` (JSON parsing in command steps), `gh` CLI (GitHub operations) (build/shelf-skills-polish-20260408)
-- File-based JSON workflows in `plugin-shelf/workflows/`, `.wheel/outputs/` for step outputs, `.wheel/state_*.json` for workflow state (build/shelf-skills-polish-20260408)
-- Bash 5.x (hook/command scripts), Markdown (skill/agent definitions), JSON (workflow definitions, config files) + Penpot MCP tools, wheel engine (`plugin-wheel/`), `jq` (JSON parsing in command steps), `gh` CLI (optional, for issue filing) (build/trim-20260409)
-- File-based — `.trim-config` (key-value), `.trim-components.json` (JSON), `.wheel/outputs/` (step outputs) (build/trim-20260409)
-- Markdown (skill definitions), Bash 5.x (inline shell in skills/workflows), JSON (workflow definitions) + Wheel workflow engine (`plugin-wheel/`), Penpot MCP tools, Playwright (headless browser), /chrome MCP (optional fallback) (build/trim-design-lifecycle-20260409)
-- File-based — `.trim-changes.md`, `.trim-flows.json`, `.trim-verify/` (gitignored screenshots), `.wheel/outputs/` (build/trim-design-lifecycle-20260409)
-- Markdown (skill definitions), Bash (inline shell in workflows), JSON (workflow definitions) + Wheel workflow engine, Penpot MCP tools, `jq` for JSON manipulation (build/trim-penpot-layout-20260409)
-- File-based — `.trim/flows.json`, `.trim/components.json`, workflow JSON files (build/trim-penpot-layout-20260409)
+
+Trimmed to the 5 most recent feature branches per `plugin-kiln/rubrics/claude-md-usefulness.md` (`active_technologies_keep_last_n`, default 5). Older entries remain in git history via `git log CLAUDE.md`.
+
 - Node.js 18+ (init.mjs), Bash 5.x (hooks, workflows), Markdown (skills/agents) + jq, gh CLI (optional), Penpot MCP tools (for trim), wheel engine (build/plugin-polish-and-skill-ux-20260409)
 - File-based (JSON workflows, markdown skills/templates, `.wheel/` state) (build/plugin-polish-and-skill-ux-20260409)
 - Bash 5.x + jq (JSON parsing), Claude Code agent teams API (TeamCreate, TaskCreate, TaskList, TaskUpdate, TeamDelete, Agent, SendMessage) (build/wheel-team-primitives-20260409)

@@ -14,7 +14,7 @@ These live under rule entries that reference them. Overridable from `.kiln/claud
 
 - `recent_changes_keep_last_n` — default `5`. Consumed by `recent-changes-overflow`.
 - `active_technologies_keep_last_n` — default `5`. Consumed by `active-technologies-overflow`.
-- `migration_notice_max_age_days` — default `60`. Consumed by `stale-migration-notice`.
+- `migration_notice_max_age_days` — default `14`. Consumed by `stale-migration-notice`. Rationale: the cutover window for a plugin rename is measured in days, not months — keeping the notice past two weeks means every future reader wastes attention on stale guidance. Override upward if your rename has a longer tail (e.g. `migration_notice_max_age_days = 90` for a staged multi-repo rollout).
 
 ---
 
@@ -42,7 +42,7 @@ Known false-positive shape: a plugin that greps the literal string `CLAUDE.md` a
 rule_id: stale-migration-notice
 signal_type: freshness
 cost: cheap
-match_rule: presence of a blockquote containing "Migration Notice" OR "renamed from" older than migration_notice_max_age_days (default 60)
+match_rule: presence of a blockquote containing "Migration Notice" OR "renamed from" older than migration_notice_max_age_days (default 14)
 action: removal-candidate
 rationale: Migration notices age out — once the cutover window passes, they become noise that every future reader has to skim past.
 cached: false
@@ -50,7 +50,7 @@ cached: false
 
 Triggers when the file contains a `> **Migration Notice**:` blockquote or a line matching `renamed from .* to .*`. Staleness is measured from `git log --follow -1 --format=%at -- CLAUDE.md` intersected with the blockquote's surrounding context (the introducing commit). When the blockquote is older than `migration_notice_max_age_days` days, propose removal of the full blockquote plus any orphan blank lines.
 
-Known false-positive shape: an active, near-term migration (e.g. a rename that's mid-flight for the current release cycle). The default 60-day threshold is meant to accommodate a normal cutover; the override exists for longer transitions.
+Known false-positive shape: an active, near-term migration (e.g. a rename that's mid-flight for the current release cycle). The default 14-day threshold assumes a quick cutover; override upward for longer transitions.
 
 ### recent-changes-overflow
 
