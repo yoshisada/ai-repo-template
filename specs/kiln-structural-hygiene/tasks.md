@@ -22,17 +22,17 @@
 
 ## Phase B — Audit skill `/kiln:kiln-hygiene`
 
-- [ ] **B1**: Create directory `plugin-kiln/skills/kiln-hygiene/` with empty `tests/fixtures/` tree (`fixture-no-drift/`, `fixture-all-rules-fire/`, `fixture-gh-unavailable/`).
+- [X] **B1**: Create directory `plugin-kiln/skills/kiln-hygiene/` with empty `tests/fixtures/` tree (`fixture-no-drift/`, `fixture-all-rules-fire/`, `fixture-gh-unavailable/`).
 
-- [ ] **B2**: Write `plugin-kiln/skills/kiln-hygiene/SKILL.md` Step 1–3: parse `--config <path>` arg; resolve `RUBRIC_PATH` using the same 4-step fallback as `/kiln:kiln-claude-audit` Step 1 (CLAUDE_PLUGIN_ROOT → source repo → ~/.claude cache → npm root -g); resolve `OVERRIDE_PATH`; set `TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)`; set `OUTPUT_PATH=.kiln/logs/structural-hygiene-${TIMESTAMP}.md`; ensure `.kiln/logs/` exists. References FR-001, FR-003.
+- [X] **B2**: Write `plugin-kiln/skills/kiln-hygiene/SKILL.md` Step 1–3: parse `--config <path>` arg; resolve `RUBRIC_PATH` using the same 4-step fallback as `/kiln:kiln-claude-audit` Step 1 (CLAUDE_PLUGIN_ROOT → source repo → ~/.claude cache → npm root -g); resolve `OVERRIDE_PATH`; set `TIMESTAMP=$(date +%Y-%m-%d-%H%M%S)`; set `OUTPUT_PATH=.kiln/logs/structural-hygiene-${TIMESTAMP}.md`; ensure `.kiln/logs/` exists. References FR-001, FR-003.
 
-- [ ] **B3**: Write SKILL.md Step 4 — load rubric, parse `### <rule_id>` entries with their YAML blocks, merge overrides from `OVERRIDE_PATH`. Use the same malformed-override fallback as claude-audit Step 2 (`structural-hygiene.config: unparseable at line N; falling back to plugin defaults` — exit 0, warn only). References FR-002, spec Edge Cases.
+- [X] **B3**: Write SKILL.md Step 4 — load rubric, parse `### <rule_id>` entries with their YAML blocks, merge overrides from `OVERRIDE_PATH`. Use the same malformed-override fallback as claude-audit Step 2 (`structural-hygiene.config: unparseable at line N; falling back to plugin defaults` — exit 0, warn only). References FR-002, spec Edge Cases.
 
-- [ ] **B4**: Write SKILL.md Step 5a — `orphaned-top-level-folder` cheap rule predicate. Implementation: enumerate top-level dirs (exclude `.git`, `node_modules`, manifest entries); for each, check predicates (a) (b) (c) from plan Decision 3. Record a signal per fired dir. References FR-001.
+- [X] **B4**: Write SKILL.md Step 5a — `orphaned-top-level-folder` cheap rule predicate. Implementation: enumerate top-level dirs (exclude `.git`, `node_modules`, manifest entries); for each, check predicates (a) (b) (c) from plan Decision 3. Record a signal per fired dir. References FR-001.
 
-- [ ] **B5**: Write SKILL.md Step 5b — `unreferenced-kiln-artifact` cheap rule predicate. Walk `.kiln/logs/`, `.kiln/qa/` artifact dirs, `.kiln/state/` (if present); for each file, check mtime > `min_age_days` (default 60) AND no match in any `.wheel/state_*.json`. Record signals. References FR-001.
+- [X] **B5**: Write SKILL.md Step 5b — `unreferenced-kiln-artifact` cheap rule predicate. Walk `.kiln/logs/`, `.kiln/qa/` artifact dirs, `.kiln/state/` (if present); for each file, check mtime > `min_age_days` (default 60) AND no match in any `.wheel/state_*.json`. Record signals. References FR-001.
 
-- [ ] **B6**: Write SKILL.md Step 6 — render preview at `OUTPUT_PATH` using the shape from contracts §2: header with timestamp, Signal Summary table (sorted per NFR-002), Proposed-Actions body (per-rule sections, with the bundled merged-PRD block reserved for Phase D), Notes. Implement the `**Result**: no drift` marker (empty body → that exact phrase). Print the one-line summary to stdout. Exit 0 regardless of signal count. Commit Phase B (`feat(kiln-hygiene): skill scaffold + cheap rules`). References FR-003, NFR-002, SC-005.
+- [X] **B6**: Write SKILL.md Step 6 — render preview at `OUTPUT_PATH` using the shape from contracts §2: header with timestamp, Signal Summary table (sorted per NFR-002), Proposed-Actions body (per-rule sections, with the bundled merged-PRD block reserved for Phase D), Notes. Implement the `**Result**: no drift` marker (empty body → that exact phrase). Print the one-line summary to stdout. Exit 0 regardless of signal count. Commit Phase B (`feat(kiln-hygiene): skill scaffold + cheap rules`). References FR-003, NFR-002, SC-005.
 
 ---
 
