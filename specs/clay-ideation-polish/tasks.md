@@ -40,22 +40,22 @@ Mark each task `[X]` immediately after completion. Commit after each phase.
 
 ## Phase E — Smoke fixtures + docs (SC-002, SC-003, SC-005, SC-006)
 
-- [ ] **E1.** Create three fixture directories under `specs/clay-ideation-polish/fixtures/`:
+- [X] **E1.** Create three fixture directories under `specs/clay-ideation-polish/fixtures/`:
   - `flat-product/products/standalone-tool/idea.md` (flat, intent absent — backwards-compat)
   - `parent-with-one-sub/products/personal-automations/about.md` + `.../email-digest/idea.md` (parent + one sub for parent-detection smoke)
   - `parent-with-two-subs/products/personal-automations/about.md` + `.../email-digest/idea.md` + `.../morning-briefing/idea.md` (parent + two subs for shared-repo smoke)
 
   Each `idea.md` carries the full frontmatter per contracts §1 and §2. The fixtures are README-style — they are NOT real products, just shape examples.
-- [ ] **E2.** Create `specs/clay-ideation-polish/SMOKE.md` documenting the 6 manual commands that verify SC-001..SC-006, each pointing at the relevant fixture. Commit Phase E: `git add specs/clay-ideation-polish && git commit -m "docs(clay-ideation-polish): Phase E — smoke fixtures + SMOKE.md"`. Mark E1 `[X]`, then this task `[X]`.
+- [X] **E2.** Create `specs/clay-ideation-polish/SMOKE.md` documenting the 6 manual commands that verify SC-001..SC-006, each pointing at the relevant fixture. Commit Phase E: `git add specs/clay-ideation-polish && git commit -m "docs(clay-ideation-polish): Phase E — smoke fixtures + SMOKE.md"`. Mark E1 `[X]`, then this task `[X]`.
 
 ---
 
 ## Definition of Done
 
-- [ ] All 5 affected skills updated; each FR (FR-001..FR-012) traceable to a specific edit.
-- [ ] All 3 NFRs verified (no new deps, backwards-compat preserved on existing flat products, intent prompt is one round-trip).
-- [ ] All 6 SCs have a corresponding smoke command in `SMOKE.md`.
-- [ ] Each phase committed separately per CLAUDE.md "incremental progress" rule.
+- [X] All 5 affected skills updated; each FR (FR-001..FR-012) traceable to a specific edit.
+- [X] All 3 NFRs verified (no new deps, backwards-compat preserved on existing flat products, intent prompt is one round-trip).
+- [X] All 6 SCs have a corresponding smoke command in `SMOKE.md`.
+- [X] Each phase committed separately per CLAUDE.md "incremental progress" rule.
 - [ ] PRD audit run after Phase E (auditor task #3).
 
 ## Notes for Implementer
