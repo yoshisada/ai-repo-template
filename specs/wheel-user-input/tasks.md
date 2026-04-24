@@ -70,8 +70,8 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 4: Skip skill
 
-- [ ] T016 Create `plugin-wheel/skills/wheel-skip/SKILL.md` per contracts §7 — frontmatter + short bash body implementing the five-step logic. Include FR-011 comment in the body.
-- [ ] T017 Write `plugin-wheel/tests/unit/test_wheel_user_input_skip_skill.sh` — three cases per contracts §7: flag-set → sentinel written + flag cleared; no flag → friendly message + exit 0; no workflow → friendly message + exit 0. Covers US4.
+- [X] T016 Create `plugin-wheel/skills/wheel-skip/SKILL.md` per contracts §7 — frontmatter + short bash body implementing the five-step logic. Include FR-011 comment in the body. (Logic lives in `plugin-wheel/bin/wheel-skip` for testability; skill body invokes the bin.)
+- [X] T017 Write `plugin-wheel/tests/unit/test_wheel_user_input_skip_skill.sh` — three cases per contracts §7: flag-set → sentinel written + flag cleared; no flag → friendly message + exit 0; no workflow → friendly message + exit 0. Covers US4.
 
 **Phase 4 exit gate**: T016–T017 `[X]`; test passes. Commit `feat(wheel-user-input): phase 4 — /wheel:wheel-skip skill`.
 

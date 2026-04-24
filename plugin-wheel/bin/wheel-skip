@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# wheel-skip — Abandon a stalled interactive wheel step.
+#
+# FR-011/FR-012 (wheel-user-input): See contracts/interfaces.md §7.
+#
+# Writes `.wheel/outputs/<step-id>.json` with the cancel sentinel, then
+# clears awaiting_user_input on the current step. Next Stop hook fire
+# advances the workflow past the cancelled step.
+#
+# No-ops (exit 0 with a friendly message):
+#   - no active workflow
+#   - current step is not awaiting user input
+#
+# Failures (exit 1, error on stderr):
+#   - sentinel write failed
+#   - state clear failed
+set -euo pipefail
+
+_SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$_SCRIPT_PATH" ]]; do
+  _SCRIPT_PATH="$(readlink "$_SCRIPT_PATH")"
+done
+_BIN_DIR="$(cd "$(dirname "$_SCRIPT_PATH")" && pwd)"
+PLUGIN_DIR="$(cd "${_BIN_DIR}/.." && pwd)"
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+
+# shellcheck source=../lib/log.sh
+source "${PLUGIN_DIR}/lib/log.sh"
+# shellcheck source=../lib/state.sh
+source "${PLUGIN_DIR}/lib/state.sh"
+# shellcheck source=../lib/guard.sh
+source "${PLUGIN_DIR}/lib/guard.sh"
+
+wheel_log_init "wheel-skip" ""
+wheel_log "enter" ""
+
+STATE_FILE=$(resolve_active_state_file_nohook ".wheel" 2>/dev/null) || true
+if [[ -z "${STATE_FILE:-}" ]]; then
+  echo "no interactive step to skip"
+  wheel_log "exit" "result=no-active-workflow"
+  exit 0
+fi
+wheel_log_set_state "$STATE_FILE"
+
+CURSOR=$(jq -r '.cursor // 0' "$STATE_FILE")
+AWAITING=$(jq -r --argjson idx "$CURSOR" '.steps[$idx].awaiting_user_input // false' "$STATE_FILE")
+if [[ "$AWAITING" != "true" ]]; then
+  echo "no interactive step to skip"
+  wheel_log "exit" "result=no-flag-set"
+  exit 0
+fi
+
+STEP_ID=$(jq -r --argjson idx "$CURSOR" '.steps[$idx].id // "unknown"' "$STATE_FILE")
+OUTPUTS_DIR=".wheel/outputs"
+mkdir -p "$OUTPUTS_DIR"
+OUTPUT_FILE="${OUTPUTS_DIR}/${STEP_ID}.json"
+TMP_FILE="$(mktemp "${OUTPUT_FILE}.tmp.XXXXXX")" || {
+  echo "failed to allocate tmp file for sentinel" >&2
+  exit 1
+}
+printf '{"cancelled": true, "reason": "user-skipped"}\n' > "$TMP_FILE" || {
+  rm -f "$TMP_FILE"
+  echo "failed to write sentinel" >&2
+  exit 1
+}
+mv "$TMP_FILE" "$OUTPUT_FILE" || {
+  rm -f "$TMP_FILE"
+  echo "failed to finalize sentinel write" >&2
+  exit 1
+}
+wheel_log "written" "output=${OUTPUT_FILE}"
+
+if ! state_clear_awaiting_user_input "$STATE_FILE" "$CURSOR"; then
+  echo "failed to clear awaiting_user_input on state file" >&2
+  exit 1
+fi
+wheel_log "cleared" "step=${STEP_ID}"
+
+echo "skipped step '${STEP_ID}' — workflow will advance on next hook fire"
+wheel_log "exit" "result=ok"
+exit 0
