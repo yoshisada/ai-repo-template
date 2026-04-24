@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit` against the fixtures. The fixture `CLAUDE.md` carries a distinctive marker string in its body: `FIXTURE_CANARY_DO_NOT_EDIT`. After the audit completes, the `CLAUDE.md` file MUST still contain that exact canary line — propose-don't-apply (FR-016). Reply empty to any prompts.

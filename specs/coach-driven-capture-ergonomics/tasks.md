@@ -103,19 +103,19 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 ### Tests
 
-- [ ] **T029** `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-project-context/` with CLAUDE.md referencing an old phase. Assert preview log grep-finds phase drift citation + external best-practices subsection.
-- [ ] **T030** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-cache-stale/` with cache `fetched:` date >30 days old. Assert staleness flag in preview.
-- [ ] **T031** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-network-fallback/` with simulated WebFetch failure. Assert `cache used, network unreachable` note in preview.
-- [ ] **T032** `[P]` `[impl-vision-audit]` Assert no edits applied to CLAUDE.md in any of the above fixtures (propose-don't-apply).
+- [X] **T029** `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-project-context/` with CLAUDE.md referencing an old phase. Assert preview log grep-finds phase drift citation + external best-practices subsection.
+- [X] **T030** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-cache-stale/` with cache `fetched:` date >30 days old. Assert staleness flag in preview.
+- [X] **T031** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/claude-audit-network-fallback/` with simulated WebFetch failure. Assert `cache used, network unreachable` note in preview.
+- [X] **T032** `[P]` `[impl-vision-audit]` Assert no edits applied to CLAUDE.md in any of the above fixtures (propose-don't-apply). _(Implemented as a dedicated fixture `plugin-kiln/tests/claude-audit-propose-dont-apply/` with a canary string + assertion.)_
 
 ### Implementation
 
-- [ ] **T033** `[impl-vision-audit]` Create `plugin-kiln/rubrics/claude-md-best-practices.md` with frontmatter (`source_url`, `fetched: 2026-04-24`, `cache_ttl_days: 30`) + hand-curated body excerpting the referenced Anthropic guidance. **Implements**: FR-014 (cache scaffold).
-- [ ] **T034** `[impl-vision-audit]` Update `plugin-kiln/skills/kiln-claude-audit/SKILL.md`: invoke reader, extract commands/tech-stack/phase/gotchas, cite at least one signal in the preview log. **Implements**: FR-013.
-- [ ] **T035** `[impl-vision-audit]` Add best-practices evaluation subsection to the preview log with at least one finding (or explicit "no deltas found" note). Include `WebFetch` attempt + cache write on success. **Implements**: FR-014.
-- [ ] **T036** `[impl-vision-audit]` Add cache-fallback + staleness-flag paths. **Implements**: FR-015 + spec Clarification #3.
-- [ ] **T037** `[impl-vision-audit]` Confirm skill remains propose-don't-apply (no `CLAUDE.md` edits). **Implements**: FR-016.
-- [ ] **T038** `[impl-vision-audit]` Make T029–T032 pass. Commit with phase-complete message.
+- [X] **T033** `[impl-vision-audit]` Create `plugin-kiln/rubrics/claude-md-best-practices.md` with frontmatter (`source_url`, `fetched: 2026-04-24`, `cache_ttl_days: 30`) + hand-curated body excerpting the referenced Anthropic guidance. **Implements**: FR-014 (cache scaffold).
+- [X] **T034** `[impl-vision-audit]` Update `plugin-kiln/skills/kiln-claude-audit/SKILL.md`: invoke reader, extract commands/tech-stack/phase/gotchas, cite at least one signal in the preview log. **Implements**: FR-013.
+- [X] **T035** `[impl-vision-audit]` Add best-practices evaluation subsection to the preview log with at least one finding (or explicit "no deltas found" note). Include `WebFetch` attempt + cache write on success. **Implements**: FR-014.
+- [X] **T036** `[impl-vision-audit]` Add cache-fallback + staleness-flag paths. **Implements**: FR-015 + spec Clarification #3.
+- [X] **T037** `[impl-vision-audit]` Confirm skill remains propose-don't-apply (no `CLAUDE.md` edits). **Implements**: FR-016.
+- [X] **T038** `[impl-vision-audit]` Make T029–T032 pass. Commit with phase-complete message.
 
 **Checkpoint**: Track B complete.
 
@@ -130,17 +130,17 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 ### Tests
 
 - [ ] **T039** `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-basic/`: 3 themes, user picks 2. Assert 2 PRDs emitted, each with correct `derived_from:` partition, no cross-contamination.
-- [ ] **T040** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-slug-collision/`: 2 selected themes share date+slug. Assert second directory gets `-2` suffix.
-- [ ] **T041** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-run-plan/`: 2 PRDs emitted. Assert run-plan block appears at end of stdout with 2 ordered lines + rationales.
+- [X] **T040** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-slug-collision/`: 2 selected themes share date+slug. Assert second directory gets `-2` suffix.
+- [X] **T041** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-run-plan/`: 2 PRDs emitted. Assert run-plan block appears at end of stdout with 2 ordered lines + rationales.
 - [ ] **T042** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-single-theme-no-regression/`: 1 theme only. Assert output is byte-identical to pre-change baseline; no run-plan block.
-- [ ] **T043** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-determinism/`: re-run same fixture twice. Assert byte-identical per-PRD output both runs. **Validates**: NFR-003, SC-005.
+- [X] **T043** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-determinism/`: re-run same fixture twice. Assert byte-identical per-PRD output both runs. **Validates**: NFR-003, SC-005.
 - [ ] **T044** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-state-flip-isolation/`: source entry in Theme A only. Select A + B. Assert entry's state flips once (A's run), unchanged by B's run. **Validates**: FR-019.
 
 ### Implementation
 
-- [ ] **T045** `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/select-themes.sh` per contract. **Implements**: FR-017 (picker).
-- [ ] **T046** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/disambiguate-slug.sh` per contract (+ pre-existing-directory check). **Implements**: FR-017 (slug disambiguation) + spec Clarification #1.
-- [ ] **T047** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/emit-run-plan.sh` per contract. **Implements**: FR-018.
+- [X] **T045** `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/select-themes.sh` per contract. **Implements**: FR-017 (picker).
+- [X] **T046** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/disambiguate-slug.sh` per contract (+ pre-existing-directory check). **Implements**: FR-017 (slug disambiguation) + spec Clarification #1.
+- [X] **T047** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/emit-run-plan.sh` per contract. **Implements**: FR-018.
 - [ ] **T048** `[impl-distill-multi]` Update `plugin-kiln/skills/kiln-distill/SKILL.md`: insert multi-select picker between theme-grouping and emit-PRD; loop emit-PRD per selected theme; scope state flips per-PRD with assertion guard. **Implements**: FR-017, FR-019.
 - [ ] **T049** `[impl-distill-multi]` Ensure per-PRD `derived_from:` three-group sort + filename-ASC determinism. Confirm T043 passes. **Implements**: FR-020, NFR-003.
 - [ ] **T050** `[impl-distill-multi]` Wire run-plan emission at end of output when N≥2. **Implements**: FR-018.

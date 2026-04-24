@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "WebFetch simulated failure. Audit MUST fall back to cached rubric and log 'cache used, network unreachable' (FR-015 + NFR-004). Validates: spec Edge Case 'Network unreachable during best-practices fetch'."
+timeout-override: 900

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit` against the fixtures. The cached rubric at `plugin-kiln/rubrics/claude-md-best-practices.md` has `fetched: 2025-01-01` — well over 30 days old. The audit MUST flag cache staleness in the preview log (FR-015 + Clarification #3). A WebFetch attempt may also be logged; don't fail if it succeeds or fails. Reply empty to any prompts.

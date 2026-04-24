@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "Audit MUST NOT edit CLAUDE.md — findings stay in the preview log (FR-016). Validates: User Story 3 Scenario 4. Cross-cuts T029/T030/T031."
+timeout-override: 900
