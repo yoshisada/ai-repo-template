@@ -67,7 +67,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase C — Hygiene rule: frontmatter-walk primary + fallback + rubric text (FR-007, FR-008)
 
-- [ ] **T03-1** Add the frontmatter-walk primary path to `plugin-kiln/skills/kiln-hygiene/SKILL.md` Step 5c.
+- [X] **T03-1** Add the frontmatter-walk primary path to `plugin-kiln/skills/kiln-hygiene/SKILL.md` Step 5c.
   - Insert the contracts §3.1 block BEFORE the existing walk-backlog loop (SKILL.md ~line 215).
   - Declare `declare -A PROCESSED_PRDS` near the top of Step 5c (after `declare -A MERGED_BY_SLUG`).
   - Reuse the same `read_derived_from()` helper shape (contracts §2.1); if the hygiene skill doesn't already have it, paste it into a sourceable location (either inline in Step 5c OR shared between build-prd and hygiene — implementer's choice, but MUST live under `plugin-kiln/` to satisfy NFR-002).
@@ -76,7 +76,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-007.
   - **Files**: `plugin-kiln/skills/kiln-hygiene/SKILL.md`.
 
-- [ ] **T03-2** Narrow the walk-backlog fallback and update the rubric.
+- [X] **T03-2** Narrow the walk-backlog fallback and update the rubric.
   - Add the `PROCESSED_PRDS` skip predicate to the existing walk-backlog loop (contracts §3.2) — each per-file iteration checks `[ -n "${PROCESSED_PRDS[$prd_path]:-}" ] && continue` after reading `prd_path`.
   - Validate: output for pre-migration PRDs (no `derived_from:`) is byte-identical to today's output. Diff against a pre-change golden fixture OR run `SMOKE.md §5.3` with an unmigrated-only PRD and compare signals.
   - Update `plugin-kiln/rubrics/structural-hygiene.md` — insert the contracts §3.3 paragraph into the `merged-prd-not-archived` rule narrative (between the "Fires against..." list and the "Bulk-lookup strategy" paragraph).
