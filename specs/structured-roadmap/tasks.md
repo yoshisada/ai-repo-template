@@ -64,20 +64,20 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 2C — Skill rewrite (US1, US2, US3, US4, US6, US7, US8, US9, US10)
 
-- [ ] T016 [impl-roadmap] [US1, US4] Rewrite `plugin-kiln/skills/kiln-roadmap/SKILL.md` — skeleton (Step 0 first-run bootstrap → Step 1 cross-surface routing FR-014/FR-014b → Step 2 kind detection FR-014a → Step 3 multi-item prompt FR-018a/b). Calls helpers from T014/T015. The hand-off path MUST invoke target skills via the `Skill` tool (FR-014b, FR-036).
-- [ ] T017 [impl-roadmap] [US1] Add Step 4 "Adversarial interview" to the SKILL.md — implements §6.1 question bank for `feature` + §6.7 sizing questions; ≤5 questions, individually skippable. FR-015, FR-017.
-- [ ] T018 [impl-roadmap] [US2] Add §6.2 critique-specific interview branch to SKILL.md, including REQUIRED `proof_path` re-prompt loop. FR-011, FR-015.
-- [ ] T019 [impl-roadmap] [US1, US2] Add §6.3–§6.6 interview branches (research / goal / constraint / non-goal / milestone) to SKILL.md. FR-015.
-- [ ] T020 [impl-roadmap] [US1] Add Step 5 "Write item file" — composes frontmatter per §1.3, runs `validate-item-frontmatter.sh` BEFORE write, calls `shelf:shelf-write-roadmap-note` workflow for Obsidian mirror. FR-007, FR-030, FR-037.
-- [ ] T021 [impl-roadmap] [US1] Add Step 6 "Update phase file" — appends item-id to `phases/<phase>.md` `## Items` list via `update-phase-status.sh` (no status change, just item registration). FR-006.
-- [ ] T022 [impl-roadmap] [US3] Add `--quick` flag handling — bypasses Steps 4–6 interview, writes minimal item to `phase: unsorted`, suppresses follow-up loop. Auto-detect non-interactive shell. FR-018.
-- [ ] T023 [impl-roadmap] [US7] Add `--phase start | complete | create` subcommand. Calls `update-phase-status.sh`. Refuses concurrent `in-progress`. FR-020.
-- [ ] T024 [impl-roadmap] [US6] Add `--vision` subcommand — show current `.kiln/vision.md`, run short interview, write update, dispatch shelf workflow with `obsidian_subpath: vision.md` for `patch_file` mirror. FR-019, FR-031.
-- [ ] T025 [impl-roadmap] Add `--check` subcommand — runs `list-items.sh` + cross-references with phase status / spec / PR existence; reports inconsistencies. FR-022.
-- [ ] T026 [impl-roadmap] Add `--reclassify` subcommand — walks all `phase: unsorted` items through the interview to promote them to a real phase + kind. FR-028 follow-up.
-- [ ] T027 [impl-roadmap] [US10] Add Step 7 "Follow-up loop" — after each successful capture, ask "anything else on your mind?"; loop back through Step 1 routing. Skip on `--quick` / non-interactive. Exit on `no` / empty. Print per-surface session summary. FR-018c, FR-039.
-- [ ] T028 [impl-roadmap] [US8] First-run bootstrap (Step 0 of SKILL.md): create `.kiln/vision.md` + `.kiln/roadmap/{phases,items}/`, run `migrate-legacy-roadmap.sh`, run `seed-critiques.sh`, print summary. FR-001, FR-002, FR-028, FR-029.
-- [ ] T029 [impl-roadmap] [FR-040] When `.shelf-config` is missing or partial, print one-line warning + continue with `.kiln/` writes only. Skill MUST NOT fail.
+- [X] T016 [impl-roadmap] [US1, US4] Rewrite `plugin-kiln/skills/kiln-roadmap/SKILL.md` — skeleton (Step 0 first-run bootstrap → Step 1 cross-surface routing FR-014/FR-014b → Step 2 kind detection FR-014a → Step 3 multi-item prompt FR-018a/b). Calls helpers from T014/T015. The hand-off path MUST invoke target skills via the `Skill` tool (FR-014b, FR-036).
+- [X] T017 [impl-roadmap] [US1] Add Step 4 "Adversarial interview" to the SKILL.md — implements §6.1 question bank for `feature` + §6.7 sizing questions; ≤5 questions, individually skippable. FR-015, FR-017.
+- [X] T018 [impl-roadmap] [US2] Add §6.2 critique-specific interview branch to SKILL.md, including REQUIRED `proof_path` re-prompt loop. FR-011, FR-015.
+- [X] T019 [impl-roadmap] [US1, US2] Add §6.3–§6.6 interview branches (research / goal / constraint / non-goal / milestone) to SKILL.md. FR-015.
+- [X] T020 [impl-roadmap] [US1] Add Step 5 "Write item file" — composes frontmatter per §1.3, runs `validate-item-frontmatter.sh` BEFORE write, calls `shelf:shelf-write-roadmap-note` workflow for Obsidian mirror. FR-007, FR-030, FR-037.
+- [X] T021 [impl-roadmap] [US1] Add Step 6 "Update phase file" — appends item-id to `phases/<phase>.md` `## Items` list via `update-phase-status.sh` (no status change, just item registration). FR-006.
+- [X] T022 [impl-roadmap] [US3] Add `--quick` flag handling — bypasses Steps 4–6 interview, writes minimal item to `phase: unsorted`, suppresses follow-up loop. Auto-detect non-interactive shell. FR-018.
+- [X] T023 [impl-roadmap] [US7] Add `--phase start | complete | create` subcommand. Calls `update-phase-status.sh`. Refuses concurrent `in-progress`. FR-020.
+- [X] T024 [impl-roadmap] [US6] Add `--vision` subcommand — show current `.kiln/vision.md`, run short interview, write update, dispatch shelf workflow with `obsidian_subpath: vision.md` for `patch_file` mirror. FR-019, FR-031.
+- [X] T025 [impl-roadmap] Add `--check` subcommand — runs `list-items.sh` + cross-references with phase status / spec / PR existence; reports inconsistencies. FR-022.
+- [X] T026 [impl-roadmap] Add `--reclassify` subcommand — walks all `phase: unsorted` items through the interview to promote them to a real phase + kind. FR-028 follow-up.
+- [X] T027 [impl-roadmap] [US10] Add Step 7 "Follow-up loop" — after each successful capture, ask "anything else on your mind?"; loop back through Step 1 routing. Skip on `--quick` / non-interactive. Exit on `no` / empty. Print per-surface session summary. FR-018c, FR-039.
+- [X] T028 [impl-roadmap] [US8] First-run bootstrap (Step 0 of SKILL.md): create `.kiln/vision.md` + `.kiln/roadmap/{phases,items}/`, run `migrate-legacy-roadmap.sh`, run `seed-critiques.sh`, print summary. FR-001, FR-002, FR-028, FR-029.
+- [X] T029 [impl-roadmap] [FR-040] When `.shelf-config` is missing or partial, print one-line warning + continue with `.kiln/` writes only. Skill MUST NOT fail.
 
 ### 2D — Tests (impl-roadmap side)
 
