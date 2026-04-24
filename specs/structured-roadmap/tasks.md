@@ -102,8 +102,8 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 3A — Shelf workflow + helper
 
-- [ ] T040 [impl-integration] Implement `plugin-shelf/scripts/parse-roadmap-input.sh` per §2.11 — parses skill output into the agent-step input JSON with `obsidian_subpath`. FR-035.
-- [ ] T041 [impl-integration] Author `plugin-shelf/workflows/shelf-write-roadmap-note.json` per §3 — 4 steps, MCP scope locked to `create_file` + `patch_file`, decision rule per §3.2, action selection per §3.3, finalize-result JSON per §3.4. Mirrors `shelf-write-issue-note.json`. FR-030, FR-035.
+- [X] T040 [impl-integration] Implement `plugin-shelf/scripts/parse-roadmap-input.sh` per §2.11 — parses skill output into the agent-step input JSON with `obsidian_subpath`. FR-035.
+- [X] T041 [impl-integration] Author `plugin-shelf/workflows/shelf-write-roadmap-note.json` per §3 — 4 steps, MCP scope locked to `create_file` + `patch_file`, decision rule per §3.2, action selection per §3.3, finalize-result JSON per §3.4. Mirrors `shelf-write-issue-note.json`. FR-030, FR-035.
 - [ ] T042 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-shelf-mirror-paths/` — fixtures with full `.shelf-config` and partial `.shelf-config`; assert `path_source` literal strings + `obsidian_path` shape per §3.2. FR-004.
 
 ### 3B — Distill extension (US5)
