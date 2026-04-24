@@ -141,7 +141,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase F — Backwards-compat verification (NFR-001, NFR-005, SC-007)
 
-- [ ] **T06-1** Run SC-007 end-to-end and log the result in `specs/prd-derived-from-frontmatter/agent-notes/implementer.md`.
+- [X] **T06-1** Run SC-007 end-to-end and log the result in `specs/prd-derived-from-frontmatter/agent-notes/implementer.md`.
   - Target PRD: `docs/features/2026-04-23-pipeline-input-completeness/PRD.md` (pre-migration; no `derived_from:`).
   - In a verification sandbox (branch or scratch worktree — DO NOT commit the verification run's state to the feature branch), run `/kiln:kiln-build-prd` against the target PRD (or manually trigger Step 4b with the appropriate `$PRD_PATH` + `$PR_NUMBER`).
   - Capture the diagnostic line from stdout AND from `.kiln/logs/build-prd-step4b-<TODAY>.md`.
