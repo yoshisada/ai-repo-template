@@ -28,11 +28,11 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 
 ### Tests (this phase IS the test — the hook is already implemented)
 
-- [ ] **T001** `[impl-governance]` Create fixture directory `plugin-kiln/tests/require-feature-branch-build-prefix/` with `fixture/`, `expected/`, and `run.sh`.
-- [ ] **T002** `[P]` `[impl-governance]` Author `plugin-kiln/tests/require-feature-branch-build-prefix/run.sh` with the 5 test cases from `contracts/interfaces.md` Module 4 (positive `build/*`, negative `main`, negative `feature/foo`, negative random, performance guard). **Validates**: FR-001, FR-002, FR-003, NFR-001.
-- [ ] **T003** `[P]` `[impl-governance]` Author fixture git state under `plugin-kiln/tests/require-feature-branch-build-prefix/fixture/` — minimal `.git/` with pre-seeded branches `build/workflow-governance-20260424`, `main`, `feature/foo`, `randomstring`, and a `.specify/memory/constitution.md` stub so the hook's other gates pass.
-- [ ] **T004** `[impl-governance]` Capture baseline hook runtime (median of 10 runs, positive case only) and store at `plugin-kiln/tests/require-feature-branch-build-prefix/fixture/baseline-ms.txt`. **Validates**: NFR-001.
-- [ ] **T005** `[impl-governance]` Run the fixture via `/kiln:kiln-test plugin-kiln require-feature-branch-build-prefix` and assert all 5 cases pass. Commit Phase 1 with message `test(workflow-governance): add require-feature-branch-build-prefix fixture (FR-003)`.
+- [X] **T001** `[impl-governance]` Create fixture directory `plugin-kiln/tests/require-feature-branch-build-prefix/` with `fixture/`, `expected/`, and `run.sh`.
+- [X] **T002** `[P]` `[impl-governance]` Author `plugin-kiln/tests/require-feature-branch-build-prefix/run.sh` with the 5 test cases from `contracts/interfaces.md` Module 4 (positive `build/*`, negative `main`, negative `feature/foo`, negative random, performance guard). **Validates**: FR-001, FR-002, FR-003, NFR-001.
+- [X] **T003** `[P]` `[impl-governance]` Author fixture git state under `plugin-kiln/tests/require-feature-branch-build-prefix/fixture/` — minimal `.git/` with pre-seeded branches `build/workflow-governance-20260424`, `main`, `feature/foo`, `randomstring`, and a `.specify/memory/constitution.md` stub so the hook's other gates pass. **Implementation note**: `run.sh` creates a disposable `mktemp -d` git repo on each invocation (portable across macOS/Linux; no pre-committed `.git/` blob to maintain). FR-003 requirement of "simulated branches" is satisfied by `git branch <name>` calls inside `run.sh`.
+- [X] **T004** `[impl-governance]` Capture baseline hook runtime (median of 10 runs, positive case only) and store at `plugin-kiln/tests/require-feature-branch-build-prefix/fixture/baseline-ms.txt`. **Validates**: NFR-001.
+- [X] **T005** `[impl-governance]` Run the fixture and assert all 5 cases pass. Invoked directly via `bash plugin-kiln/tests/require-feature-branch-build-prefix/run.sh` (harness-type `static` — the `/kiln:kiln-test` harness v1 only wires `plugin-skill`, so direct bash invocation is the working path). Commit Phase 1 with message `test(workflow-governance): add require-feature-branch-build-prefix fixture (FR-003)`.
 
 **Checkpoint**: Hook regression boundary locked. Track A continues to Phase 2.
 
