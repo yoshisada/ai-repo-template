@@ -1,0 +1,7 @@
+Two tests in sequence, both by invoking the helper scripts directly (deterministic, no interview).
+
+1. Run `bash plugin-kiln/scripts/roadmap/update-phase-status.sh current in-progress` and write the output to `phase-conflict.json`. Since `next` is already `in-progress`, this MUST exit 5 and emit a JSON error naming the conflicting phase (FR-020).
+
+2. Now run `bash plugin-kiln/scripts/roadmap/update-phase-status.sh next complete` to free the in-progress slot, then run `bash plugin-kiln/scripts/roadmap/update-phase-status.sh current in-progress --cascade-items` and write the output to `phase-cascade.json`. The cascade MUST flip the pre-existing item's state from `planned` → `in-phase` (FR-021).
+
+Run these with bash only; no interview prompts are expected.

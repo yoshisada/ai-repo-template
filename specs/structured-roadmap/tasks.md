@@ -81,16 +81,16 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 2D — Tests (impl-roadmap side)
 
-- [ ] T030 [P] [impl-roadmap] [US1] Author `plugin-kiln/tests/structured-roadmap-capture-feature/` (skill test fixture + expected-output assertions). Test = US1 acceptance scenarios 1–3.
-- [ ] T031 [P] [impl-roadmap] [US2] Author `plugin-kiln/tests/structured-roadmap-capture-critique/` — asserts `kind: critique`, `proof_path` required, `status: open`. Test = US2 acceptance scenarios 1, 3.
-- [ ] T032 [P] [impl-roadmap] [US3] Author `plugin-kiln/tests/structured-roadmap-quick-path/` — asserts no interview, `phase: unsorted`, no follow-up prompt. Test = US3 acceptance scenarios 1–3.
-- [ ] T033 [P] [impl-roadmap] [US4] Author `plugin-kiln/tests/structured-roadmap-cross-surface-routing/` — asserts routing prompt shown for tactical input AND that picking `(b)` invokes `/kiln:kiln-report-issue` via Skill tool (FR-036). Test = US4 acceptance scenarios 1, 2.
-- [ ] T034 [P] [impl-roadmap] [US7] Author `plugin-kiln/tests/structured-roadmap-phase-mgmt/` — asserts single-in-progress refusal + cascade item state. Test = US7 acceptance scenarios 1, 2.
-- [ ] T035 [P] [impl-roadmap] [US8] Author `plugin-kiln/tests/structured-roadmap-migration-legacy/` — fixture has 3 bullets in `.kiln/roadmap.md`; assert 3 item files + `.kiln/roadmap.legacy.md` + idempotency on re-run. Test = US8 acceptance scenarios 1, 2.
-- [ ] T036 [P] [impl-roadmap] Author `plugin-kiln/tests/structured-roadmap-seed-critiques/` — asserts three seed files appear ONLY when items dir empty. FR-029.
-- [ ] T037 [P] [impl-roadmap] Author `plugin-kiln/tests/structured-roadmap-validator-rejects-forbidden/` — fixture items containing `human_time`, `t_shirt_size`, `effort_days`; assert validator returns `ok: false` for each. FR-008, SC-006.
-- [ ] T038 [P] [impl-roadmap] [US9] Author `plugin-kiln/tests/structured-roadmap-multi-item/` — input with "and also" yields 2 item files with shared phase. FR-018a, FR-018b.
-- [ ] T039 [P] [impl-roadmap] [US10] Author `plugin-kiln/tests/structured-roadmap-followup-loop/` — answer "yes" to follow-up with tactical description, assert `/kiln:kiln-report-issue` invocation + final session summary. FR-018c, FR-039.
+- [X] T030 [P] [impl-roadmap] [US1] Author `plugin-kiln/tests/structured-roadmap-capture-feature/` (skill test fixture + expected-output assertions). Test = US1 acceptance scenarios 1–3.
+- [X] T031 [P] [impl-roadmap] [US2] Author `plugin-kiln/tests/structured-roadmap-capture-critique/` — asserts `kind: critique`, `proof_path` required, `status: open`. Test = US2 acceptance scenarios 1, 3.
+- [X] T032 [P] [impl-roadmap] [US3] Author `plugin-kiln/tests/structured-roadmap-quick-path/` — asserts no interview, `phase: unsorted`, no follow-up prompt. Test = US3 acceptance scenarios 1–3.
+- [X] T033 [P] [impl-roadmap] [US4] Author `plugin-kiln/tests/structured-roadmap-cross-surface-routing/` — asserts routing prompt shown for tactical input AND that picking `(b)` invokes `/kiln:kiln-report-issue` via Skill tool (FR-036). Test = US4 acceptance scenarios 1, 2.
+- [X] T034 [P] [impl-roadmap] [US7] Author `plugin-kiln/tests/structured-roadmap-phase-mgmt/` — asserts single-in-progress refusal + cascade item state. Test = US7 acceptance scenarios 1, 2.
+- [X] T035 [P] [impl-roadmap] [US8] Author `plugin-kiln/tests/structured-roadmap-migration-legacy/` — fixture has 3 bullets in `.kiln/roadmap.md`; assert 3 item files + `.kiln/roadmap.legacy.md` + idempotency on re-run. Test = US8 acceptance scenarios 1, 2.
+- [X] T036 [P] [impl-roadmap] Author `plugin-kiln/tests/structured-roadmap-seed-critiques/` — asserts three seed files appear ONLY when items dir empty. FR-029.
+- [X] T037 [P] [impl-roadmap] Author `plugin-kiln/tests/structured-roadmap-validator-rejects-forbidden/` — fixture items containing `human_time`, `t_shirt_size`, `effort_days`; assert validator returns `ok: false` for each. FR-008, SC-006.
+- [X] T038 [P] [impl-roadmap] [US9] Author `plugin-kiln/tests/structured-roadmap-multi-item/` — input with "and also" yields 2 item files with shared phase. FR-018a, FR-018b.
+- [X] T039 [P] [impl-roadmap] [US10] Author `plugin-kiln/tests/structured-roadmap-followup-loop/` — answer "yes" to follow-up with tactical description, assert `/kiln:kiln-report-issue` invocation + final session summary. FR-018c, FR-039.
 
 **Checkpoint**: capture flow + interview + lifecycle + migration + tests all green. impl-roadmap scope complete.
 

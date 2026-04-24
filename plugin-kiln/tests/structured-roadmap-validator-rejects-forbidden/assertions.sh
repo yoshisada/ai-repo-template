@@ -23,7 +23,6 @@ check() {
     cat validator-output.txt >&2
     exit 1
   fi
-done
 }
 
 check "2026-04-24-bad-human-time"  "human_time"
