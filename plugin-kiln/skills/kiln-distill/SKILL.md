@@ -164,24 +164,93 @@ Present the grouping to the user with the three-section shape:
 
 If there are no feedback items in the run, the "Feedback-shaped themes" section is omitted. If there are no roadmap items, the "Item-led themes" section is omitted and the grouping reverts to the two-section feedback + issue shape.
 
-## Step 3: Select Scope
+## Step 3: Select Scope (Multi-Theme Picker — FR-017 of `coach-driven-capture-ergonomics`)
 
-Ask the user which themes to include in the PRD:
+<!-- FR-017: present a multi-select picker after theme-grouping. User picks N≥1 themes; one PRD is emitted per selection. Backward-compat: single-theme path stays byte-identical (FR-021 / NFR-005). -->
 
-- **All themes**: "Bundle everything into one PRD"
-- **Specific themes**: "Just themes 1 and 3"
-- **Single theme**: "Only theme 2"
-- **Custom selection**: "These specific items: <list>"
+Ask the user which themes to include. Unlike the legacy single-PRD path, **you MAY bundle multiple themes into multiple PRDs in one run** — one PRD per selected theme.
 
-If there's only one theme, skip this step and proceed.
+Present the picker as:
 
-## Step 4: Generate the Feature PRD
+```markdown
+Pick one or more themes to distill into PRDs. Each selection emits one PRD.
 
-Using the selected items, generate a feature PRD following the same structure as `/kiln:kiln-create-prd` Mode B (feature addition).
+  [1] <theme-1 name> — N entries (highest severity: <sev>)
+  [2] <theme-2 name> — N entries
+  [3] <theme-3 name> — N entries
+  ...
 
-### PRD Location
+Reply with:
+  - A single theme name or number (single-PRD, legacy behavior)
+  - A comma-separated list of numbers, e.g. "1,3" (multi-PRD)
+  - "all" to bundle every theme as its own PRD
+  - "cancel" to abort without writing anything
+```
 
-Create: `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md`
+**Shortcut**: if there is exactly ONE theme, skip the prompt and proceed with that theme (FR-021 byte-identical single-theme behavior).
+
+### Resolving the selection machine-readably
+
+Once the user answers, build a `grouped-themes.json` file in-memory or `/tmp/` representing all themes (one object per theme, field `slug` required, other fields optional), then invoke the selection normalizer:
+
+```bash
+# Write the grouped-themes JSON — SKILL body builds this from Step 2 output.
+cat > /tmp/distill-themes-$$.json <<'JSON'
+[
+  {"slug":"<theme-1-slug>","entries":[...],"severity_hint":"highest"},
+  {"slug":"<theme-2-slug>","entries":[...],"severity_hint":"med"},
+  {"slug":"<theme-3-slug>","entries":[...],"severity_hint":"low"}
+]
+JSON
+
+# Channel 1 — user picked by index ("1,3").
+DISTILL_SELECTION_INDICES="1,3" \
+  SELECTION_JSON=$(bash plugin-kiln/scripts/distill/select-themes.sh /tmp/distill-themes-$$.json)
+
+# Channel 2 — user picked by slug ("ergo, cleanup").
+# DISTILL_SELECTION_SLUGS="ergo,cleanup" bash plugin-kiln/scripts/distill/select-themes.sh ...
+
+# Channel 3 — user said "cancel".
+# DISTILL_SELECTION_CANCEL=1 bash plugin-kiln/scripts/distill/select-themes.sh ... (exit 1, stdout empty)
+
+# Fallback — no env var set → select ALL themes. This keeps the single-theme
+# case (N=1) byte-identical to pre-change behavior (FR-021 / NFR-005).
+
+if [ -z "$SELECTION_JSON" ]; then
+  echo "Selection cancelled — no PRDs written."
+  exit 0
+fi
+
+SELECTED_SLUGS=$(echo "$SELECTION_JSON" | jq -r '.selected_slugs[]')
+N_SELECTED=$(echo "$SELECTION_JSON" | jq '.selected_slugs | length')
+```
+
+`select-themes.sh` preserves input order (contract: "Selection MUST preserve input order") so downstream emission stays deterministic.
+
+## Step 4: Generate the Feature PRD(s)
+
+Using the selected themes, generate **one PRD per selected theme** — loop over `SELECTED_SLUGS` and emit N distinct PRDs (FR-017 of `coach-driven-capture-ergonomics`). Each PRD follows the same structure as `/kiln:kiln-create-prd` Mode B (feature addition), and each PRD independently satisfies the `derived_from:` three-group determinism invariant (FR-020 / NFR-003).
+
+### PRD Location (multi-theme — FR-017 slug disambiguation)
+
+<!-- FR-017 + research.md §4: when two selections share date+slug, the second (and subsequent) get numeric suffixes `-2`, `-3`. Also skip over committed `docs/features/<date>-<slug>/` directories from earlier runs. -->
+
+Compute one directory name per selected slug via the disambiguator:
+
+```bash
+DATE=$(date -u +%Y-%m-%d)
+
+# shellcheck disable=SC2086 — we intentionally split SELECTED_SLUGS on whitespace.
+DISAMBIG_OUTPUT=$(bash plugin-kiln/scripts/distill/disambiguate-slug.sh "$DATE" $SELECTED_SLUGS)
+
+# Parallel arrays: SELECTED_SLUGS[i] → DISAMBIG_DIRS[i].
+mapfile -t DISAMBIG_DIRS <<<"$DISAMBIG_OUTPUT"
+mapfile -t SLUGS_ARR <<<"$SELECTED_SLUGS"
+```
+
+The first occurrence of each unique slug stays un-suffixed (`2026-04-24-coaching`); subsequent occurrences get `-2`, `-3`, … AND the algorithm skips past any committed `docs/features/<date>-<slug>/` directory left by earlier distill runs (research.md §4).
+
+Emit each PRD under: `docs/features/<DISAMBIG_DIRS[i]>/PRD.md`
 
 ### YAML Frontmatter Emission (FR-001, FR-002, FR-003 — spec `prd-derived-from-frontmatter`; extended by FR-024 / FR-026 of `structured-roadmap`)
 
@@ -216,6 +285,45 @@ Rules:
 - The frontmatter block precedes IMMEDIATELY (on the next line) the existing `# Feature PRD: <Theme Name>` heading.
 - **Empty-list case** (hand-authored PRDs per spec Decision D3): `derived_from: []` on a single inline line is valid. Typical `/kiln:kiln-distill` runs always have at least one selected entry, so this is primarily a shape the readers must accept — distill itself emits block-sequence form when the list is non-empty.
 - **Backward compat**: when NO roadmap items are selected, the middle group collapses and the list reverts to the two-group feedback-then-issues shape (byte-identical to pre-`structured-roadmap` distill output).
+
+### Per-Theme Emission Loop (FR-017 / FR-019 / FR-020 — multi-theme scope)
+
+<!-- FR-019: source-entry status flips MUST be partitioned per-PRD. Each emitted PRD only flips the entries it actually bundled. The implementation MUST assert per-flip that the target entry is in the current PRD's bundle. -->
+
+For each selected theme, build a **per-theme bundle** (the subset of all selected entries that belong to THIS theme), then emit the PRD and, in Step 5, flip the state ONLY of entries in this bundle.
+
+```bash
+for i in "${!SLUGS_ARR[@]}"; do
+  SLUG="${SLUGS_ARR[i]}"
+  DIR="${DISAMBIG_DIRS[i]}"
+  PRD_PATH="docs/features/$DIR/PRD.md"
+
+  # BUNDLED_ENTRIES[i] is the set of source-entry paths belonging to this
+  # theme — computed from Step 2's theme-grouping step. Each entry carries
+  # its type_tag (feedback / item / issue) so the three-group sort runs per-PRD.
+  BUNDLED_ENTRIES_JSON=$(echo "$GROUPED_THEMES_JSON" | jq --arg s "$SLUG" '.[] | select(.slug == $s) | .entries')
+
+  # Sort into the three-group derived_from order ONCE per PRD (FR-020).
+  # This is the determinism hook — sort MUST run with LC_ALL=C for
+  # byte-identical output across platforms.
+  FEEDBACK_PATHS=$(echo "$BUNDLED_ENTRIES_JSON" | jq -r '.[] | select(.type_tag == "feedback") | .path' | LC_ALL=C sort)
+  ITEM_PATHS=$(echo "$BUNDLED_ENTRIES_JSON"    | jq -r '.[] | select(.type_tag == "item")     | .path' | LC_ALL=C sort)
+  ISSUE_PATHS=$(echo "$BUNDLED_ENTRIES_JSON"   | jq -r '.[] | select(.type_tag == "issue")    | .path' | LC_ALL=C sort)
+
+  # Render the PRD — frontmatter derived_from: uses FEEDBACK + ITEM + ISSUE
+  # in that three-group order, filename ASC within each (NFR-003 hook).
+  # See "YAML Frontmatter Emission" below.
+  write_prd "$PRD_PATH" "$SLUG" "$FEEDBACK_PATHS" "$ITEM_PATHS" "$ISSUE_PATHS"
+
+  # Stash this PRD's bundle for Step 5 state flips.
+  # Flat list of paths; Step 5 iterates and asserts each path belongs here.
+  PRD_BUNDLES+=("$PRD_PATH|$FEEDBACK_PATHS|$ITEM_PATHS|$ISSUE_PATHS")
+done
+```
+
+**Critical invariant** (FR-019): each PRD's Step-5 state flips MUST ONLY touch the paths in its own `FEEDBACK_PATHS | ITEM_PATHS | ISSUE_PATHS`. Cross-PRD overwrites are prohibited. The assertion guard lives in Step 5.
+
+**Byte-identical determinism** (FR-020 / NFR-003 + SC-005): re-running `/kiln:kiln-distill` against unchanged inputs MUST produce the same per-PRD frontmatter byte-for-byte. The `LC_ALL=C sort` above is the determinism hook; no timestamps or env-varying strings are inserted into frontmatter.
 
 ### FR-002 Single-Source-of-Truth Invariant (extended for three streams)
 
@@ -348,7 +456,44 @@ theme: <theme-slug>
 
 ## Step 5: Update Source Status (Feedback, Items, and Issues)
 
-After the PRD is written, update each included source entry. The protocol branches on `type_tag`:
+After **each** PRD is written, update each included source entry. In multi-theme mode, iterate the per-PRD bundles captured in Step 4 and flip state ONLY for entries in the current bundle (FR-019 partition guarantee).
+
+```bash
+# For each emitted PRD, flip the state of its bundled entries only.
+for bundle_row in "${PRD_BUNDLES[@]}"; do
+  IFS='|' read -r PRD_PATH FEEDBACK_PATHS ITEM_PATHS ISSUE_PATHS <<<"$bundle_row"
+
+  # Build the guard: a set of paths that SHOULD be flipped by this PRD.
+  # Every actual flip must match one of these paths — otherwise it's a
+  # cross-PRD contamination bug (FR-019).
+  BUNDLED_PATHS=$(printf '%s\n%s\n%s\n' "$FEEDBACK_PATHS" "$ITEM_PATHS" "$ISSUE_PATHS" | LC_ALL=C sort -u | sed '/^$/d')
+
+  assert_in_bundle() {
+    local path="$1"
+    if ! echo "$BUNDLED_PATHS" | grep -qxF "$path"; then
+      echo "ERROR: refused to flip state of $path — not in bundle for $PRD_PATH (FR-019 guard)" >&2
+      return 1
+    fi
+    return 0
+  }
+
+  # Flip feedback + issue entries (5a protocol).
+  for path in $(echo "$FEEDBACK_PATHS"; echo "$ISSUE_PATHS"); do
+    [ -z "$path" ] && continue
+    assert_in_bundle "$path" || continue
+    flip_feedback_or_issue "$path" "$PRD_PATH"
+  done
+
+  # Flip roadmap items (5b protocol — atomic-ish state flip + prd: patch).
+  for path in $ITEM_PATHS; do
+    [ -z "$path" ] && continue
+    assert_in_bundle "$path" || continue
+    flip_roadmap_item "$path" "$PRD_PATH"
+  done
+done
+```
+
+The protocol branches on `type_tag`:
 
 ### 5a — Feedback + Issues (unchanged from FR-013)
 
@@ -396,6 +541,8 @@ Source type is ALWAYS preserved in the status update choice — feedback + issue
 
 ## Step 6: Report
 
+Emit one "PRD Created" block per emitted PRD. When N≥2 PRDs were emitted, append the **run-plan block** (FR-018) at the VERY END of the output.
+
 ```markdown
 ## PRD Created
 
@@ -418,6 +565,50 @@ Source type is ALWAYS preserved in the status update choice — feedback + issue
 **Next step**: Review the PRD, then run `/kiln:kiln-build-prd <slug>` to execute the full pipeline.
 ```
 
+### Run-Plan Block (FR-018 — emitted only when N≥2)
+
+<!-- FR-018 of `coach-driven-capture-ergonomics`: run-plan block summarizes emitted PRDs with a suggested pipeline order and one-line rationale per line. MUST be OMITTED when only 1 PRD was emitted (single-theme byte-identical compat — FR-021 / NFR-005). -->
+
+After every "PRD Created" block has been printed, if `N_SELECTED >= 2`, build an emissions JSON and invoke `emit-run-plan.sh`:
+
+```bash
+if [ "$N_SELECTED" -ge 2 ]; then
+  EMISSIONS_JSON=$(mktemp)
+  # Build array: one element per emitted PRD. `severity_hint` and
+  # `rationale` are optional — emit-run-plan.sh derives a default rationale
+  # from the severity label when rationale is absent.
+  {
+    echo '['
+    for i in "${!SLUGS_ARR[@]}"; do
+      SLUG="${SLUGS_ARR[i]}"
+      DIR="${DISAMBIG_DIRS[i]}"
+      # Comma separator between objects (not after the last one).
+      [ "$i" -gt 0 ] && echo ','
+      printf '{"slug":"%s","path":"docs/features/%s/PRD.md","severity_hint":"%s"}' \
+        "$SLUG" "$DIR" "${PRD_SEVERITY_HINTS[i]:-null}"
+    done
+    echo ']'
+  } > "$EMISSIONS_JSON"
+
+  # Emit block to stdout (empty when N<2 — defensive double-check).
+  bash plugin-kiln/scripts/distill/emit-run-plan.sh "$EMISSIONS_JSON"
+  rm -f "$EMISSIONS_JSON"
+fi
+```
+
+**Example output for N=2** (FR-018 rendering):
+
+```markdown
+## Run Plan
+
+Suggested pipeline order for the emitted PRDs:
+
+1. `/kiln:kiln-build-prd foundation` — foundational — touches shared infrastructure
+2. `/kiln:kiln-build-prd user-flow` — highest severity from bundle
+```
+
+Ordering: `foundational` first, then `highest`, `med`, `low`, `null`. Ties break on input order (stable-sort, contract §emit-run-plan.sh).
+
 ## Rules
 
 - Never delete feedback, item, or issue entries — only update their status / state
@@ -428,5 +619,7 @@ Source type is ALWAYS preserved in the status update choice — feedback + issue
 - Feedback leads the narrative; roadmap items anchor Background paragraph 2 concretely; issues are tactical — do NOT bury a feedback theme beneath tactical issues in the PRD body (FR-012 + FR-024 of structured-roadmap)
 - **Item state updates are atomic-ish**: state flip → prd: patch. Rollback the state flip if the patch fails (FR-026 / contract §7.5). Never leave an item with `state: distilled` but no `prd:`.
 - **Implementation hints flow through, don't re-elicit** (FR-027): if an item carries `implementation_hints:`, render them in `## Implementation Hints` with an item-id back-reference. Do NOT ask the user to restate them.
-- **Determinism** (NFR-003 + FR-037): the three-group sort (feedback → item → issue, filename ASC within each group) is the byte-identical output guarantee. Do NOT reorder entries for aesthetics.
+- **Determinism** (NFR-003 + FR-037): the three-group sort (feedback → item → issue, filename ASC within each group) is the byte-identical output guarantee. Do NOT reorder entries for aesthetics. In multi-theme mode, this invariant holds **per-PRD** (FR-020 of `coach-driven-capture-ergonomics`).
+- **Multi-theme state-flip partition** (FR-019 of `coach-driven-capture-ergonomics`): each emitted PRD only flips the entries it actually bundled. The `assert_in_bundle` guard in Step 5 is NON-NEGOTIABLE — a flip of a path not in the current PRD's bundle is a cross-contamination bug and MUST abort the flip.
+- **Single-theme byte-identical compat** (FR-021 / NFR-005): when N=1 (only one theme picked, or only one theme present in the backlog), the emitted PRD + status flips MUST be byte-identical to pre-multi-theme distill behavior. The picker appears but auto-resolves; the run-plan block is OMITTED.
 - Don't auto-commit — let the user review first

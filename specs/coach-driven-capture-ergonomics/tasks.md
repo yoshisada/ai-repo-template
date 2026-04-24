@@ -129,23 +129,23 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 ### Tests
 
-- [ ] **T039** `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-basic/`: 3 themes, user picks 2. Assert 2 PRDs emitted, each with correct `derived_from:` partition, no cross-contamination.
+- [X] **T039** `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-basic/`: 3 themes, user picks 2. Assert 2 PRDs emitted, each with correct `derived_from:` partition, no cross-contamination.
 - [X] **T040** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-slug-collision/`: 2 selected themes share date+slug. Assert second directory gets `-2` suffix.
 - [X] **T041** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-run-plan/`: 2 PRDs emitted. Assert run-plan block appears at end of stdout with 2 ordered lines + rationales.
-- [ ] **T042** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-single-theme-no-regression/`: 1 theme only. Assert output is byte-identical to pre-change baseline; no run-plan block.
+- [X] **T042** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-single-theme-no-regression/`: 1 theme only. Assert output is byte-identical to pre-change baseline; no run-plan block.
 - [X] **T043** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-determinism/`: re-run same fixture twice. Assert byte-identical per-PRD output both runs. **Validates**: NFR-003, SC-005.
-- [ ] **T044** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-state-flip-isolation/`: source entry in Theme A only. Select A + B. Assert entry's state flips once (A's run), unchanged by B's run. **Validates**: FR-019.
+- [X] **T044** `[P]` `[impl-distill-multi]` Fixture `plugin-kiln/tests/distill-multi-theme-state-flip-isolation/`: source entry in Theme A only. Select A + B. Assert entry's state flips once (A's run), unchanged by B's run. **Validates**: FR-019.
 
 ### Implementation
 
 - [X] **T045** `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/select-themes.sh` per contract. **Implements**: FR-017 (picker).
 - [X] **T046** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/disambiguate-slug.sh` per contract (+ pre-existing-directory check). **Implements**: FR-017 (slug disambiguation) + spec Clarification #1.
 - [X] **T047** `[P]` `[impl-distill-multi]` Implement `plugin-kiln/scripts/distill/emit-run-plan.sh` per contract. **Implements**: FR-018.
-- [ ] **T048** `[impl-distill-multi]` Update `plugin-kiln/skills/kiln-distill/SKILL.md`: insert multi-select picker between theme-grouping and emit-PRD; loop emit-PRD per selected theme; scope state flips per-PRD with assertion guard. **Implements**: FR-017, FR-019.
-- [ ] **T049** `[impl-distill-multi]` Ensure per-PRD `derived_from:` three-group sort + filename-ASC determinism. Confirm T043 passes. **Implements**: FR-020, NFR-003.
-- [ ] **T050** `[impl-distill-multi]` Wire run-plan emission at end of output when N≥2. **Implements**: FR-018.
-- [ ] **T051** `[impl-distill-multi]` Confirm single-theme path + `--quick`-equivalent defaults remain byte-identical; T042 passes. **Implements**: FR-021, NFR-005.
-- [ ] **T052** `[impl-distill-multi]` Make T039–T044 pass. Commit with phase-complete message.
+- [X] **T048** `[impl-distill-multi]` Update `plugin-kiln/skills/kiln-distill/SKILL.md`: insert multi-select picker between theme-grouping and emit-PRD; loop emit-PRD per selected theme; scope state flips per-PRD with assertion guard. **Implements**: FR-017, FR-019.
+- [X] **T049** `[impl-distill-multi]` Ensure per-PRD `derived_from:` three-group sort + filename-ASC determinism. Confirm T043 passes. **Implements**: FR-020, NFR-003.
+- [X] **T050** `[impl-distill-multi]` Wire run-plan emission at end of output when N≥2. **Implements**: FR-018.
+- [X] **T051** `[impl-distill-multi]` Confirm single-theme path + `--quick`-equivalent defaults remain byte-identical; T042 passes. **Implements**: FR-021, NFR-005.
+- [X] **T052** `[impl-distill-multi]` Make T039–T044 pass. Commit with phase-complete message.
 
 **Checkpoint**: Track C complete.
 
