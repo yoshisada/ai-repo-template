@@ -589,46 +589,115 @@ If the user changes scope, updates the PRD, or asks to modify requirements while
 
 ## Step 4b: Issue Lifecycle Completion (FR-007, FR-008)
 
-After the audit-pr agent creates the PR, and before spawning the retrospective, the team lead completes the issue lifecycle for this build:
+After the audit-pr agent creates the PR, and before spawning the retrospective, the team lead completes the issue lifecycle for this build. Step 4b runs inline in the team lead's main-chat context (NOT a dedicated agent).
 
-1. **Identify the PRD path** used for this build (from Pre-Flight step 3).
-
-2. **Scan for matching issues**:
+1. **Identify the PRD path and PR number** (set during pipeline orchestration):
    ```bash
-   PRD_PATH="<the PRD path used for this build>"
-   for issue_file in .kiln/issues/*.md; do
-     [ -f "$issue_file" ] || continue
-     # Check if status is prd-created
-     status=$(grep -m1 '^status:' "$issue_file" | sed 's/^status:[[:space:]]*//')
-     [ "$status" = "prd-created" ] || continue
-     # Check if prd field matches
-     prd_field=$(grep -m1 '^prd:' "$issue_file" | sed 's/^prd:[[:space:]]*//')
-     if [ "$prd_field" = "$PRD_PATH" ]; then
-       echo "MATCH: $issue_file"
+   PRD_PATH="<the PRD path used for this build, e.g. docs/features/2026-04-23-pipeline-input-completeness/PRD.md>"
+   PR_NUMBER="<the PR number from audit-pr, e.g. 145>"
+   TODAY="$(date -u +%Y-%m-%d)"
+   LOG_FILE=".kiln/logs/build-prd-step4b-${TODAY}.md"
+   mkdir -p .kiln/logs
+   ```
+
+2. **Path normalization helper** (defined inline):
+   ```bash
+   # normalize_path <raw>: strip leading ./, trailing /, and surrounding whitespace.
+   # Echoes empty string if the path is absolute (starts with /) or empty after stripping.
+   normalize_path() {
+     local raw="$1"
+     # strip surrounding whitespace incl. CR
+     raw="$(printf '%s' "$raw" | tr -d '\r' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+     # reject absolute
+     case "$raw" in
+       /*) printf '' ; return 0 ;;
+     esac
+     # strip leading ./
+     raw="${raw#./}"
+     # strip trailing /
+     raw="${raw%/}"
+     printf '%s' "$raw"
+   }
+
+   PRD_PATH_NORM="$(normalize_path "$PRD_PATH")"
+   ```
+
+3. **Scan for matching items across BOTH `.kiln/issues/` AND `.kiln/feedback/`** (FR-001):
+   ```bash
+   SCANNED_ISSUES=0
+   SCANNED_FEEDBACK=0
+   MATCHED=0
+   ARCHIVED=0
+   SKIPPED=0
+   MATCH_LIST=()  # absolute or repo-relative paths to archive
+
+   for f in .kiln/issues/*.md .kiln/feedback/*.md; do
+     [ -f "$f" ] || continue
+     case "$f" in
+       .kiln/issues/*)   SCANNED_ISSUES=$((SCANNED_ISSUES + 1)) ;;
+       .kiln/feedback/*) SCANNED_FEEDBACK=$((SCANNED_FEEDBACK + 1)) ;;
+     esac
+
+     # Read raw status & prd lines (first occurrence each)
+     status_raw="$(grep -m1 '^status:' "$f" | sed -E 's/^status:[[:space:]]*//' | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
+     prd_raw="$(grep -m1 '^prd:'    "$f" | sed -E 's/^prd:[[:space:]]*//'    | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
+
+     # Status must normalize to literal "prd-created"
+     [ "$status_raw" = "prd-created" ] || continue
+
+     # Normalize prd field; reject empty, absolute, or non-existent
+     prd_norm="$(normalize_path "$prd_raw")"
+     if [ -z "$prd_norm" ] || [ ! -f "$prd_norm" ]; then
+       SKIPPED=$((SKIPPED + 1))
+       continue
+     fi
+
+     if [ "$prd_norm" = "$PRD_PATH_NORM" ]; then
+       MATCH_LIST+=("$f")
+       MATCHED=$((MATCHED + 1))
      fi
    done
    ```
 
-3. **Update matching issues** to `status: completed`:
-   - Set `status: completed` (replace the existing status line)
-   - Add `completed_date: YYYY-MM-DD` (today's date)
-   - Add `pr: #<PR-number>` (the PR number from audit-pr)
-   - Report how many issues were updated
-
-4. **Archive completed issues (FR-008)**:
+4. **Update + archive matched files** (FR-002; preserves originating directory):
    ```bash
-   mkdir -p .kiln/issues/completed
-   # Move each updated issue file to completed/
-   mv "$issue_file" .kiln/issues/completed/
-   ```
-   If the move fails for any file, log a warning and continue — do not block the pipeline.
+   for f in "${MATCH_LIST[@]}"; do
+     orig_dir="$(dirname "$f")"          # .kiln/issues  or  .kiln/feedback
+     base="$(basename "$f")"
+     dest_dir="${orig_dir}/completed"
+     mkdir -p "$dest_dir"
 
-5. Commit the issue updates if any files were changed:
+     # Rewrite frontmatter: replace status:, insert completed_date + pr after it.
+     # Use a tempfile + mv for atomicity. Insert lines just below the status line.
+     tmp="$(mktemp "${f}.XXXXXX")"
+     awk -v today="$TODAY" -v pr="$PR_NUMBER" '
+       BEGIN { inserted = 0 }
+       /^status:[[:space:]]/ && !inserted {
+         print "status: completed"
+         print "completed_date: " today
+         print "pr: #" pr
+         inserted = 1
+         next
+       }
+       { print }
+     ' "$f" > "$tmp" && mv "$tmp" "$f"
+
+     if mv "$f" "${dest_dir}/${base}"; then
+       ARCHIVED=$((ARCHIVED + 1))
+     else
+       echo "WARN: failed to archive $f → ${dest_dir}/${base}" >&2
+       SKIPPED=$((SKIPPED + 1))
+     fi
+   done
+   ```
+
+5. **Commit any archived files** (the log marker + diagnostic emit land in a follow-on sub-step — see Phase B of `specs/pipeline-input-completeness/`):
    ```bash
-   git add .kiln/issues/ && git commit -m "chore: mark prd-created issues as completed after PR creation"
+   if [ "$ARCHIVED" -gt 0 ]; then
+     git add .kiln/issues/ .kiln/feedback/
+     git commit -m "chore: step4b lifecycle — archived ${ARCHIVED} item(s) for ${PRD_PATH_NORM}"
+   fi
    ```
-
-If no matching issues are found, skip this step silently.
 
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
