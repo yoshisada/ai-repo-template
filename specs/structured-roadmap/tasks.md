@@ -52,15 +52,15 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 2A — Lifecycle helpers
 
-- [ ] T010 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/update-item-state.sh` per §2.5 (atomic temp-write + mv, frontmatter-preserving). FR-021.
-- [ ] T011 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/update-phase-status.sh` per §2.6 (FR-020 single-in-progress guard + `--cascade-items` to flip planned → in-phase). FR-020, FR-021.
-- [ ] T012 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/migrate-legacy-roadmap.sh` per §2.7. FR-028. Idempotency guard: skip if `.kiln/roadmap.legacy.md` exists.
-- [ ] T013 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/seed-critiques.sh` per §2.8 — three pre-filled critique files with `proof_path`. FR-029.
+- [X] T010 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/update-item-state.sh` per §2.5 (atomic temp-write + mv, frontmatter-preserving). FR-021.
+- [X] T011 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/update-phase-status.sh` per §2.6 (FR-020 single-in-progress guard + `--cascade-items` to flip planned → in-phase). FR-020, FR-021.
+- [X] T012 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/migrate-legacy-roadmap.sh` per §2.7. FR-028. Idempotency guard: skip if `.kiln/roadmap.legacy.md` exists.
+- [X] T013 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/seed-critiques.sh` per §2.8 — three pre-filled critique files with `proof_path`. FR-029.
 
 ### 2B — Classification + multi-item helpers
 
-- [ ] T014 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/classify-description.sh` per §2.9 + §4 (kind table) + §5 (cross-surface table). FR-014, FR-014a.
-- [ ] T015 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/detect-multi-item.sh` per §2.10. FR-018a.
+- [X] T014 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/classify-description.sh` per §2.9 + §4 (kind table) + §5 (cross-surface table). FR-014, FR-014a.
+- [X] T015 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/detect-multi-item.sh` per §2.10. FR-018a.
 
 ### 2C — Skill rewrite (US1, US2, US3, US4, US6, US7, US8, US9, US10)
 
@@ -108,20 +108,20 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 3B — Distill extension (US5)
 
-- [ ] T043 [impl-integration] [US5] Modify `plugin-kiln/skills/kiln-distill/SKILL.md` Step 1 — add items glob + filter pipeline. Items get `type_tag: item`. FR-023.
-- [ ] T044 [impl-integration] [US5] Modify Step 2 grouping — three-section ordering: feedback themes → item-led themes → issue-only themes; sort within group ASC by filename. FR-024, contract §7.2.
-- [ ] T045 [impl-integration] [US5] Add `--phase`, `--addresses`, `--kind` filter parsing per §7.3. Default `--phase current` resolves to the one phase with `status: in-progress`. FR-025.
-- [ ] T046 [impl-integration] [US5] Modify Step 4 PRD frontmatter emission — `derived_from:` includes items, sorted feedback → items → issues per §7.2. NFR-determinism preserved. FR-024, FR-026.
-- [ ] T047 [impl-integration] [US5] Modify Step 4 PRD body — `## Background` para 2 cites recent items; new `## Implementation Hints` section renders `implementation_hints:` from items with item-id back-references. FR-027.
-- [ ] T048 [impl-integration] [US5] Modify Step 5 status update — for each selected item, call `update-item-state.sh <path> distilled` and patch `prd:` field. Roll back on failure. FR-026, contract §7.5.
+- [X] T043 [impl-integration] [US5] Modify `plugin-kiln/skills/kiln-distill/SKILL.md` Step 1 — add items glob + filter pipeline. Items get `type_tag: item`. FR-023.
+- [X] T044 [impl-integration] [US5] Modify Step 2 grouping — three-section ordering: feedback themes → item-led themes → issue-only themes; sort within group ASC by filename. FR-024, contract §7.2.
+- [X] T045 [impl-integration] [US5] Add `--phase`, `--addresses`, `--kind` filter parsing per §7.3. Default `--phase current` resolves to the one phase with `status: in-progress`. FR-025.
+- [X] T046 [impl-integration] [US5] Modify Step 4 PRD frontmatter emission — `derived_from:` includes items, sorted feedback → items → issues per §7.2. NFR-determinism preserved. FR-024, FR-026.
+- [X] T047 [impl-integration] [US5] Modify Step 4 PRD body — `## Background` para 2 cites recent items; new `## Implementation Hints` section renders `implementation_hints:` from items with item-id back-references. FR-027.
+- [X] T048 [impl-integration] [US5] Modify Step 5 status update — for each selected item, call `update-item-state.sh <path> distilled` and patch `prd:` field. Roll back on failure. FR-026, contract §7.5.
 
 ### 3C — `/kiln:kiln-next` extension
 
-- [ ] T049 [impl-integration] Modify `plugin-kiln/skills/kiln-next/SKILL.md` — append "Active phase items" section calling `list-items.sh --state in-phase`. Empty when no phase is in-progress. Contract §8. FR-033.
+- [X] T049 [impl-integration] Modify `plugin-kiln/skills/kiln-next/SKILL.md` — append "Active phase items" section calling `list-items.sh --state in-phase`. Empty when no phase is in-progress. Contract §8. FR-033.
 
 ### 3D — `/kiln:kiln-specify` (or `/specify`) hook
 
-- [ ] T050 [impl-integration] Modify `plugin-kiln/skills/kiln-specify/SKILL.md` — after `spec.md` write, scan PRD frontmatter `derived_from:` for `.kiln/roadmap/items/` paths; for each, call `update-item-state.sh <path> specced` + patch `spec:` field. No-op when no roadmap items referenced. Contract §9. FR-034.
+- [X] T050 [impl-integration] Modify `plugin-kiln/skills/kiln-specify/SKILL.md` — after `spec.md` write, scan PRD frontmatter `derived_from:` for `.kiln/roadmap/items/` paths; for each, call `update-item-state.sh <path> specced` + patch `spec:` field. No-op when no roadmap items referenced. Contract §9. FR-034.
 
 ### 3E — Tests (impl-integration side)
 

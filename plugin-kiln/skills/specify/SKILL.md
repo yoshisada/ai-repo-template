@@ -225,6 +225,66 @@ Given that feature description, do this:
 
 7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/kiln:kiln-clarify` or `/plan`).
 
+7a. **Roadmap-item state hook** (FR-034 / PRD FR-034 of structured-roadmap — contract §9):
+
+   After `spec.md` is written, scan the source PRD's frontmatter `derived_from:` list for any `.kiln/roadmap/items/*.md` paths. For each such path, flip the item's `state: distilled → specced` and patch the item's `spec:` field with the newly-written spec path. If no roadmap items are referenced, this hook is a no-op; any other `/specify` behavior is UNCHANGED.
+
+   ```bash
+   # Locate the PRD this spec was derived from. The canonical location is
+   # the parent feature directory's PRD frontmatter OR the spec.md frontmatter
+   # if the template stamps derived_from: there. Prefer the PRD.
+   SPEC_FILE="<the spec path written above>"
+   PRD_PATH=""
+   # Heuristic 1: spec.md parent dir has sibling PRD.md / ../PRD.md
+   if [ -f "$(dirname "$SPEC_FILE")/PRD.md" ]; then
+     PRD_PATH="$(dirname "$SPEC_FILE")/PRD.md"
+   else
+     # Heuristic 2: scan docs/features/ for a PRD whose frontmatter references this spec feature
+     FEATURE_SLUG=$(basename "$(dirname "$SPEC_FILE")")
+     PRD_PATH=$(find docs/features -maxdepth 2 -name "PRD.md" 2>/dev/null | head -1 || true)
+   fi
+
+   if [ -n "$PRD_PATH" ] && [ -f "$PRD_PATH" ]; then
+     # Extract .kiln/roadmap/items/ paths from derived_from: block.
+     ITEM_PATHS=$(awk '
+       /^---[[:space:]]*$/ { if (++fm == 2) exit }
+       fm == 1 && /^derived_from:[[:space:]]*$/ { in_df = 1; next }
+       in_df && /^[[:space:]]+-[[:space:]]+\.kiln\/roadmap\/items\// {
+         sub(/^[[:space:]]+-[[:space:]]+/, "")
+         print
+       }
+       in_df && /^[^[:space:]-]/ { in_df = 0 }
+     ' "$PRD_PATH" 2>/dev/null)
+
+     if [ -x "plugin-kiln/scripts/roadmap/update-item-state.sh" ]; then
+       while IFS= read -r ITEM; do
+         [ -z "$ITEM" ] && continue
+         [ -f "$ITEM" ] || continue
+         # FR-034: flip state to specced + patch spec: field.
+         bash plugin-kiln/scripts/roadmap/update-item-state.sh "$ITEM" specced >/dev/null
+         # Patch spec: field (insert-or-update in YAML frontmatter)
+         if ! grep -qE '^spec:' "$ITEM"; then
+           # Append after last frontmatter line
+           awk -v spec="$SPEC_FILE" '
+             /^---[[:space:]]*$/ { if (++fm == 2) { print "spec: " spec; print; done=1; next } }
+             { print }
+             END { if (!done) exit 1 }
+           ' "$ITEM" > "$ITEM.tmp" && mv "$ITEM.tmp" "$ITEM"
+         else
+           sed -i.bak -E "s|^spec:.*|spec: ${SPEC_FILE}|" "$ITEM" && rm -f "$ITEM.bak"
+         fi
+       done <<< "$ITEM_PATHS"
+     fi
+   fi
+   ```
+
+   Rules (contract §9):
+
+   - Hook is a **no-op** when the PRD references ZERO roadmap items, OR when the structured-roadmap substrate is absent (`update-item-state.sh` missing).
+   - Transition is `state: distilled → state: specced`. The `update-item-state.sh` helper guards against invalid transitions.
+   - The `spec:` field is written idempotently — re-running `/specify` against the same PRD produces byte-identical item frontmatter.
+   - Any other `/specify` behavior is UNCHANGED — this hook runs AFTER spec.md is on disk.
+
 8. **Check for extension hooks**: After reporting completion, check if `.specify/extensions.yml` exists in the project root.
    - If it exists, read it and look for entries under the `hooks.after_specify` key
    - If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
