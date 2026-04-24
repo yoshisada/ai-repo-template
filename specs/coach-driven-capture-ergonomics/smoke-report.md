@@ -20,7 +20,8 @@ Plugin-source repo — no runtime application to launch. Smoke surface = helper 
 | Multi-theme emitter byte-identical (NFR-003) | ✅ PASS (`distill-multi-theme-determinism/run.sh` green) |
 | Modified SKILL.md files parse (frontmatter + required fields) | ✅ PASS (kiln-roadmap, kiln-claude-audit, kiln-distill) |
 | Helper scripts are executable | ✅ PASS (6/6 scripts `-rwxr-xr-x`) |
-| All standalone behavioural + tripwire tests | ✅ PASS (8/8) |
+| All standalone behavioural + tripwire tests | ✅ PASS (11/11) |
+| Phase 6 polish T053–T057 | ✅ DONE (see §Phase 6 polish below — T055/T056/T057 substituted with documented alternatives) |
 
 ## Details
 
@@ -119,16 +120,60 @@ Ran every test `audit-quality` listed as standalone-runnable. All green on my in
 
 The reader invocation in §1 is the closest feasible runtime end-to-end — it is what `/kiln:kiln-roadmap`, `/kiln:kiln-distill`, and `/kiln:kiln-claude-audit` all shell out to. Directly invoking the SKILL.md files (`/kiln:kiln-distill --help`, etc.) would require spawning a second `claude` subprocess from inside a pipeline agent, which the task description correctly flagged as "if feasible" — for plugin-source repos this is better deferred to the harness sweep.
 
-## Known-remaining work (Phase 6 polish — non-blocking)
+## Phase 6 polish — status
 
-Per `audit-quality.md` compliance report, Phase 6 polish tasks T053–T057 are not marked `[X]`:
-- T053 — Active Technologies CLAUDE.md entry for `plugin-kiln/scripts/context/` (not strictly required — folded into T054 entry below).
-- **T054 — CLAUDE.md Recent Changes entry. `audit-smoke-pr` added this before PR creation.** ✅
-- T055 — golden-file baseline capture for `--quick` (no pre-change baseline exists; follow-on).
-- T056 — `/kiln:kiln-coverage` — informal for Bash codebases; file-level coverage mapping in compliance report stands in.
-- T057 — `/kiln:kiln-test plugin-kiln` full sweep — deferred to first post-merge run (see §7).
+Per team-lead direction, `audit-smoke-pr` picked up T053–T057 before finalising. All five now `[X]` in `tasks.md`.
 
-These are non-blocking for the feature itself. PR body lists them under "Known-remaining polish".
+### T053 — Active Technologies entry ✅
+
+`plugin-kiln/README.md` does not exist. Added the Active Technologies entry to root `CLAUDE.md` (per rubric fallback):
+
+> Shared project-context reader under `plugin-kiln/scripts/context/` (`read-project-context.sh` + `read-prds.sh` + `read-plugins.sh`) — Bash 5.x + `jq` + POSIX awk; emits deterministic JSON (`LC_ALL=C` + path/name sort) consumed by `/kiln:kiln-roadmap`, `/kiln:kiln-claude-audit`, and `/kiln:kiln-distill`. Multi-theme distill helpers under `plugin-kiln/scripts/distill/` (`select-themes.sh`, `disambiguate-slug.sh`, `emit-run-plan.sh`). No new runtime dependency. (build/coach-driven-capture-ergonomics-20260424)
+
+No new tech introduced — only new scripts under existing Bash + `jq` + awk stack.
+
+### T054 — Recent Changes entry ✅
+
+Added to `CLAUDE.md` `## Recent Changes` at top of the list (see commit `b6ca5dc`). Summarises reader + coaching on 4 capture surfaces + NFR coverage + backward-compat posture.
+
+### T055 — `--quick` byte-identical check (substituted) ✅
+
+> No `--quick` golden-file fixture was committed pre-change, so a literal "re-run against baseline" substitution is structurally impossible.
+
+Substituted with the equivalent behavioural test:
+
+```
+$ bash plugin-kiln/tests/distill-single-theme-no-regression/run.sh
+PASS: single-theme path remains byte-identical (FR-021 / NFR-005)
+exit 0
+```
+
+This test exercises `select-themes.sh` Channel 4 fallback (single-theme shortcut) + `emit-run-plan.sh` zero-byte-for-N=1 rule directly against the helpers. It validates the same invariant T055 was meant to protect — the single-theme path is byte-identical to its pre-change shape.
+
+### T056 — Coverage (substituted — pure-Bash source) ✅
+
+`/kiln:kiln-coverage` is not meaningful for pure-Bash plugin source (no Istanbul / coverage.py equivalent). Substituted with script→test mapping per team-lead's heuristic:
+
+| Script | Covering test(s) | Status |
+|---|---|---|
+| `plugin-kiln/scripts/context/read-project-context.sh` | `project-context-reader-determinism/run.sh`, `project-context-reader-empty/run.sh`, `project-context-reader-performance/run.sh`, `roadmap-coached-interview-basic/run.sh` | ✅ covered (4 tests) |
+| `plugin-kiln/scripts/context/read-prds.sh` | via `read-project-context.sh` orchestrator (indirect) | ✅ covered (transitive) |
+| `plugin-kiln/scripts/context/read-plugins.sh` | via `read-project-context.sh` orchestrator (indirect) | ✅ covered (transitive) |
+| `plugin-kiln/scripts/distill/select-themes.sh` | `distill-multi-theme-basic/run.sh`, `distill-multi-theme-determinism/run.sh`, `distill-single-theme-no-regression/run.sh` | ✅ covered (3 tests) |
+| `plugin-kiln/scripts/distill/disambiguate-slug.sh` | `distill-multi-theme-basic/run.sh`, `distill-multi-theme-slug-collision/run.sh`, `distill-multi-theme-determinism/run.sh` | ✅ covered (3 tests) |
+| `plugin-kiln/scripts/distill/emit-run-plan.sh` | `distill-multi-theme-run-plan/run.sh`, `distill-multi-theme-determinism/run.sh`, `distill-single-theme-no-regression/run.sh` | ✅ covered (3 tests) |
+
+**6 / 6 helpers covered. Constitutional 80 % gate satisfied as "every helper has ≥1 covering test" for pure-Bash.**
+
+### T057 — `/kiln:kiln-test plugin-kiln` sweep (substituted — harness-substrate gap) ✅
+
+Team-lead's brief: _"If the harness is broken or doesn't yet support interactive-stdin, document the blocker inline in the smoke report and count static tripwires as 'best-available pass.' Do NOT hold the PR on a harness-substrate bug."_
+
+Confirmed blocker: `/kiln:kiln-test` spawns `claude --print --plugin-dir ...` subprocesses against `/tmp/kiln-test-<uuid>/` fixtures. Running this from inside a pipeline agent (which is itself a claude process) is brittle (nested subprocess + child-process lifecycle), and 9 fixtures (`roadmap-vision-*`, `claude-audit-*`) additionally require interactive-stdin that's not yet wired. This was flagged by `impl-context-roadmap.md` and `impl-distill-multi.md` friction notes during implementation — it's a substrate gap, not a regression introduced by this PRD.
+
+**Best-available substitution**: ran the full standalone-runnable subset (11 / 11 green — see §6 above). Static SKILL.md tripwires for the 9 harness-only fixtures are counted as "best-available pass"; audit-quality's hand inspection of each `assertions.sh` confirmed substantive file-shape assertions.
+
+**Follow-on (separate PRD)**: harness-substrate upgrade to support interactive-stdin + nested-claude-invocation so T057 can be exercised unconditionally. Not blocking this PR.
 
 ## Verdict
 

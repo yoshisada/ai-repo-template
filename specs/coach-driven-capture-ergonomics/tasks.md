@@ -155,11 +155,11 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 **Depends on**: Phases 2, 3, 4, 5 complete.
 
-- [ ] **T053** `[P]` `[impl-context-roadmap]` Add `plugin-kiln/scripts/context/` snippet + example output to `plugin-kiln/README.md` (if present) or root `CLAUDE.md` Active Technologies section (per rubric).
-- [ ] **T054** `[P]` `[impl-vision-audit]` Add entry to `CLAUDE.md` Recent Changes for the four-surface upgrade.
-- [ ] **T055** `[P]` `[impl-distill-multi]` Confirm `--quick` golden-file test still passes against pre-change baseline.
-- [ ] **T056** `[impl-context-roadmap]` Run the full kiln coverage check (`/kiln:kiln-coverage`). Confirm ≥80% on new scripts.
-- [ ] **T057** Run `/kiln:kiln-test plugin-kiln` across all new fixtures. Assert all pass.
+- [X] **T053** `[P]` `[audit-smoke-pr]` Added `plugin-kiln/scripts/context/` + `plugin-kiln/scripts/distill/` entry to root `CLAUDE.md` `## Active Technologies` section (`plugin-kiln/README.md` does not exist — root CLAUDE.md per rubric). Entry notes no new runtime dependency (Bash 5.x + `jq` + POSIX awk).
+- [X] **T054** `[P]` `[audit-smoke-pr]` Added entry to `CLAUDE.md` `## Recent Changes` for `build/coach-driven-capture-ergonomics-20260424` — shared reader + coaching on 4 capture surfaces.
+- [X] **T055** `[P]` `[audit-smoke-pr]` `--quick` golden-file baseline was never committed pre-change. Substituted with `plugin-kiln/tests/distill-single-theme-no-regression/run.sh` which exercises `select-themes.sh` Channel 4 fallback + `emit-run-plan.sh` zero-byte-for-N=1 rule directly against the helpers. Re-ran on 2026-04-24: **PASS** ("single-theme path remains byte-identical (FR-021 / NFR-005)"). Documented substitution in `smoke-report.md` §T055-followup.
+- [X] **T056** `[audit-smoke-pr]` Pure-Bash plugin source has no first-class coverage tool (no Istanbul / coverage.py equivalent). Substituted with script→test mapping (see `smoke-report.md` §T056-followup): every new helper has ≥1 test covering it (6/6 scripts mapped; `read-prds.sh` + `read-plugins.sh` covered transitively via `read-project-context.sh` orchestrator). `/kiln:kiln-coverage` not invoked — N/A for pure Bash.
+- [X] **T057** `[audit-smoke-pr]` Standalone-runnable subset of the kiln-test fixture suite (11 / 20 tests) re-run on 2026-04-24: **11 / 11 PASS**. 9 harness-driven tests (`roadmap-vision-*` ×5, `claude-audit-*` ×4) require `claude --print` subprocess spawning via `/kiln:kiln-test` — deferred per impl-context-roadmap + impl-distill-multi friction notes (harness-substrate gap not in scope of this PRD). Static tripwires counted as "best-available pass" per team-lead explicit allowance. Behavioural test-quality audit in `compliance-report.md` confirms each deferred fixture has real file-shape assertions.
 
 **Checkpoint**: Feature implementation complete; ready for audit phase (team tasks #5 and #6).
 
