@@ -190,6 +190,47 @@ Skipped sources (GitHub CLI unavailable):
 - GitHub PR comments
 ```
 
+## Step 3b: Queued Maintenance — Unresolved Retro PIs (workflow-governance FR-013)
+
+<!-- workflow-governance FR-013: when open retro issues with unresolved PIs are ≥3,
+     surface /kiln:kiln-pi-apply as a queued maintenance recommendation.
+     Threshold baked into spec.md Clarification 8. Contract: specs/workflow-governance/spec.md. -->
+
+Count open retrospective issues and, if the most recent `.kiln/logs/pi-apply-*.md`
+report (if any) still has unresolved actionable PIs tracing back to them, surface
+`/kiln:kiln-pi-apply` as a queued maintenance recommendation.
+
+```bash
+echo "=== UNRESOLVED RETRO PI COUNT ==="
+RETRO_COUNT=0
+PI_APPLY_RECOMMEND=false
+if [ "${GH_AVAILABLE:-false}" = "true" ]; then
+  # FR-013: count open issues labeled "retrospective" — each is assumed to carry
+  # at least one unresolved PI until a newer .kiln/logs/pi-apply-*.md report
+  # proves otherwise. This matches spec.md Clarification 8's conservative default:
+  # "absent a prior report, count every open retro issue as having unresolved PIs."
+  RETRO_COUNT=$(gh issue list --label retrospective --state open --json number --jq 'length' 2>/dev/null || echo 0)
+  echo "Open retrospective issues: $RETRO_COUNT"
+
+  # FR-013: threshold ≥3 per Clarification 8.
+  if [ "$RETRO_COUNT" -ge 3 ]; then
+    PI_APPLY_RECOMMEND=true
+  fi
+else
+  echo "GitHub CLI unavailable — skipping retro-PI count"
+fi
+```
+
+If `PI_APPLY_RECOMMEND=true`, add an entry to the recommendation list (Step 4) with:
+
+- **Category**: `improvement`
+- **Priority**: `low` (maintenance, not blocking)
+- **Description**: `<N> open retro issues with unresolved PIs — review and propose applies`
+- **Command**: `/kiln:kiln-pi-apply`
+- **Source**: `GitHub retrospective issues (count: <N>)`
+
+This entry is surfaced in the "## What's Next" Low section (or omitted if a higher-priority item already surfaces).
+
 ## Step 4: Classification and Prioritization
 
 <!-- FR-002: Prioritized recommendation list -->
@@ -235,6 +276,7 @@ For each finding, assign the most specific applicable kiln command:
 | Backlog item (feature request) | `/kiln:kiln-build-prd` |
 | Retrospective action (process) | `/kiln:kiln-build-prd` or `/kiln:kiln-report-issue` |
 | Retrospective action (bug) | `/kiln:kiln-fix <description>` |
+| Unresolved retro PIs (≥3 open retro issues) | `/kiln:kiln-pi-apply` |
 | No PRD exists | `/kiln:kiln-create-prd` |
 | No specs exist but PRD exists | `/kiln:kiln-build-prd` |
 | No repo exists yet | `/clay:clay-create-repo` |
@@ -246,7 +288,7 @@ After mapping findings to commands, filter ALL recommendations through these rul
 **Allowed commands** (whitelist — only these may appear in output):
 `/kiln:kiln-build-prd`, `/kiln:kiln-fix`, `/kiln:kiln-qa-pass`, `/kiln:kiln-create-prd`, `/clay:clay-create-repo`, `/kiln:kiln-init`,
 `/kiln:kiln-analyze-issues`, `/kiln:kiln-report-issue`, `/kiln:kiln-feedback`, `/kiln:kiln-ux-evaluate`, `/kiln:kiln-distill`,
-`/kiln:kiln-next`, `/kiln:kiln-todo`, `/kiln:kiln-roadmap`
+`/kiln:kiln-next`, `/kiln:kiln-todo`, `/kiln:kiln-roadmap`, `/kiln:kiln-pi-apply`
 
 **Blocked commands** (NEVER show these in output):
 `/specify`, `/plan`, `/tasks`, `/implement`, `/audit`

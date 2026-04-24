@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "FR-005 Acceptance Scenarios 2+4 — detect-un-promoted.sh classifies a correctly-promoted source as 'promoted' and leaves raw sources as 'un-promoted'. The reciprocal back-reference check is exercised."

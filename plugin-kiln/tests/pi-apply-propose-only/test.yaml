@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "Assert no file under plugin-kiln/skills/ or plugin-kiln/agents/ is modified by a pi-apply run. Validates FR-010 propose-don't-apply discipline."
+timeout-override: 900

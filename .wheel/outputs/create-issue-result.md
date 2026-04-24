@@ -1,15 +1,27 @@
-## create-issue result
+---
+step: create-issue
+status: success
+issue_file: .kiln/issues/2026-04-24-wheel-workflow-speed-batching-commands.md
+issue_id: 2026-04-24-wheel-workflow-speed-batching-commands
+title: Investigate wheel workflow speed — consolidate multi-command agent steps into single bash scripts to reduce LLM↔tool round-trips
+type: improvement
+severity: medium
+area: wheel
+category: performance
+---
 
-- issue_id: 2026-04-24-kiln-vision-self-exploring-and-self-updating
-- issue_path: .kiln/issues/2026-04-24-kiln-vision-self-exploring-and-self-updating.md
-- title: /kiln:kiln-roadmap --vision should self-explore the repo first, then ask clarifying questions, and self-update as the project evolves
+## Step result
+
+Created new backlog issue: `.kiln/issues/2026-04-24-wheel-workflow-speed-batching-commands.md`
+
+**Classification**
+- type: improvement
 - severity: medium
-- area: kiln
-- category: ergonomics
-- repo: https://github.com/yoshisada/ai-repo-template
-- duplicate_of: null
-- files:
-  - plugin-kiln/skills/kiln-roadmap
-  - .kiln/vision.md
-  - .kiln/roadmap/items
-  - docs/features
+- area: wheel
+- category: performance
+
+**Duplicate scan**
+No existing issues covering wheel workflow performance or round-trip batching. Closest adjacency (`shelf-sync-efficiency` roadmap item) targets sync throughput, not wheel dispatch latency.
+
+**User description (verbatim)**
+> investigate how to make wheel workflows faster.  consider creating bash files for large strings of commands to run all at once for less roundrips.

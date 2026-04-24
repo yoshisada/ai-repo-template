@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "One retro issue with a PI missing the Why field. Malformed block surfaces under Parse Errors; other blocks continue to parse."
+timeout-override: 900

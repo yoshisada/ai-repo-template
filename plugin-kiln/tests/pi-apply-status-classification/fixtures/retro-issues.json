@@ -1,0 +1,8 @@
+[
+  {
+    "number": 200,
+    "url": "https://github.com/x/y/issues/200",
+    "title": "Retro — one PI per status",
+    "body": "## PIs\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nalready-here text\n**Proposed**: ## R-1\nalready-here text\n**Why**: verbatim present → already-applied.\n\n### PI-2\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nalready-here text\n**Proposed**: ## R-1\nnew actionable text\n**Why**: anchor exists, new text absent → actionable.\n\n### PI-3\n**File**: plugin-kiln/agents/ghost.md\n**Current**: ## gone\nx\n**Proposed**: ## gone\ny\n**Why**: target file missing → stale.\n"
+  }
+]
