@@ -52,17 +52,17 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 ### Tests
 
-- [ ] **T010** `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-basic/` with happy-path flow (orientation emitted, accept-all finalizes item). Assert output item frontmatter matches the suggested values.
-- [ ] **T011** `[P]` `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-empty-snapshot/` where project-context is empty; assert skill renders `[suggestion: —, rationale: no evidence in repo]` placeholders and does NOT invent values.
-- [ ] **T012** `[P]` `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-quick/` asserting `--quick` skips orientation + interview byte-for-byte vs pre-change output.
+- [X] **T010** `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-basic/` with happy-path flow (orientation emitted, accept-all finalizes item). Assert output item frontmatter matches the suggested values.
+- [X] **T011** `[P]` `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-empty-snapshot/` where project-context is empty; assert skill renders `[suggestion: —, rationale: no evidence in repo]` placeholders and does NOT invent values.
+- [X] **T012** `[P]` `[impl-context-roadmap]` Create fixture `plugin-kiln/tests/roadmap-coached-interview-quick/` asserting `--quick` skips orientation + interview byte-for-byte vs pre-change output.
 
 ### Implementation
 
-- [ ] **T013** `[impl-context-roadmap]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` non-`--quick` item path: invoke reader, extract orientation data via `jq` queries from the contract's Call Sites section, emit orientation paragraph before Question 1. **Implements**: FR-006.
-- [ ] **T014** `[impl-context-roadmap]` Add per-question rendering: question + proposed answer + rationale + `[accept / tweak / reject]` affordance. **Implements**: FR-004.
-- [ ] **T015** `[impl-context-roadmap]` Add `accept-all` command handling at any prompt. Add `tweak <value> then accept-all` parser. **Implements**: FR-005.
-- [ ] **T016** `[impl-context-roadmap]` Rewrite prompt copy in `plugin-kiln/skills/kiln-roadmap/SKILL.md` to collaborative tone ("Here's what I think, tell me if I'm off"). **Implements**: FR-007. Validation is manual review during PRD audit.
-- [ ] **T017** `[impl-context-roadmap]` Make T010–T012 pass. Commit with phase-complete message.
+- [X] **T013** `[impl-context-roadmap]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` non-`--quick` item path: invoke reader, extract orientation data via `jq` queries from the contract's Call Sites section, emit orientation paragraph before Question 1. **Implements**: FR-006.
+- [X] **T014** `[impl-context-roadmap]` Add per-question rendering: question + proposed answer + rationale + `[accept / tweak / reject]` affordance. **Implements**: FR-004.
+- [X] **T015** `[impl-context-roadmap]` Add `accept-all` command handling at any prompt. Add `tweak <value> then accept-all` parser. **Implements**: FR-005.
+- [X] **T016** `[impl-context-roadmap]` Rewrite prompt copy in `plugin-kiln/skills/kiln-roadmap/SKILL.md` to collaborative tone ("Here's what I think, tell me if I'm off"). **Implements**: FR-007. Validation is manual review during PRD audit.
+- [X] **T017** `[impl-context-roadmap]` Make T010–T012 pass. Commit with phase-complete message.
 
 **Checkpoint**: Track A complete.
 

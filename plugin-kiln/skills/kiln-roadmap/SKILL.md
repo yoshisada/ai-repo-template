@@ -189,9 +189,69 @@ ITEMS_COUNT="$(printf '%s' "$ITEMS_PATHS" | grep -c . || echo 0)"
 
 # Surface context summary to the AI agent (used implicitly in classification and interview)
 echo "context: vision=$([ -f "$VISION_FILE" ] && echo present || echo absent)  phases=$(echo "$PHASES_SUMMARY" | grep -c . || echo 0)  items=$ITEMS_COUNT"
+
+# coach-driven-capture FR-001: load the richer ProjectContextSnapshot (offline,
+# deterministic — see specs/coach-driven-capture-ergonomics/contracts/interfaces.md).
+# Consumed by the orientation block (§1c) and by per-question coaching (§5).
+# Gracefully degrade on reader failure: we keep the legacy uncoached pipeline.
+READER="plugin-kiln/scripts/context/read-project-context.sh"
+if [ -f "$READER" ]; then
+  CTX_JSON="$(bash "$READER" 2>/dev/null)" || CTX_JSON=""
+fi
+if [ -z "${CTX_JSON:-}" ]; then
+  CTX_JSON='{"schema_version":"1","prds":[],"roadmap_items":[],"roadmap_phases":[],"vision":null,"claude_md":null,"readme":null,"plugins":[]}'
+  echo "warn: project-context reader unavailable; falling back to uncoached interview" >&2
+  COACH_AVAILABLE=0
+else
+  COACH_AVAILABLE=1
+fi
 ```
 
 The AI agent SHOULD also scan the first 20 lines of each existing phase file and a random sample of recent item files to build richer classification context, but this bash preamble ensures the *minimum required context* (vision, phase list, item count) is available before Step 2.
+
+---
+
+## Step 1c: Orientation block (coach-driven-capture FR-006)
+
+<!-- coach-driven-capture FR-006: Before the first interview question, emit a
+     one-paragraph ORIENTATION block that cites:
+       (a) the current phase (from roadmap_phases[] where status == in-progress),
+       (b) up to 3 nearby items (in that phase),
+       (c) any open critiques whose addresses[] might be relevant,
+       (d) a short vision summary if .kiln/vision.md exists.
+     This block MUST precede every non-`--quick` invocation. It MUST NOT appear
+     under `--quick` (NFR-005) and MUST NOT appear in `NON_INTERACTIVE` sessions. -->
+
+Skip the orientation block entirely when `QUICK_MODE == 1` OR `NON_INTERACTIVE == 1` OR `COACH_AVAILABLE == 0`. This is the NFR-005 byte-identical guarantee for the `--quick` path.
+
+Otherwise, derive orientation data from `CTX_JSON` and emit a single paragraph of prose framed collaboratively — "Here's what I think the landscape looks like, tell me if I'm off":
+
+```bash
+CURRENT_PHASE="$(echo "$CTX_JSON" | jq -r '.roadmap_phases[] | select(.status=="in-progress") | .name' | head -1)"
+NEARBY_ITEMS="$(echo "$CTX_JSON" | jq -r --arg p "${CURRENT_PHASE:-}" '.roadmap_items[] | select(.phase==$p) | .id' | head -3)"
+OPEN_CRITIQUES="$(echo "$CTX_JSON" | jq -r '.roadmap_items[] | select(.kind=="critique" and .state != "shipped" and .state != "archived") | .id')"
+VISION_HEAD="$(echo "$CTX_JSON" | jq -r '.vision.body // empty' | awk 'NF' | head -3)"
+```
+
+Render the block to the user BEFORE Question 1. Example shape:
+
+```
+Here's what I think the landscape looks like — tell me if I'm off:
+
+We're in the current phase (`<CURRENT_PHASE>`). Nearby items: <up to 3 ids>.
+Open critiques that this idea might address: <list>. And from .kiln/vision.md:
+<one-line summary>.
+
+If that framing is wrong, say so now and we'll re-anchor before the questions.
+```
+
+Rendering rules (tone calibration for FR-007 / PRD FR-006):
+
+- When `CURRENT_PHASE` is empty (no in-progress phase), say "No phase is in progress yet — I'll treat this as a `planned` idea unless you tell me otherwise."
+- When `NEARBY_ITEMS` is empty, say "No nearby items to compare against."
+- When `OPEN_CRITIQUES` is empty, say "No open critiques to worry about right now."
+- When `VISION_HEAD` is empty, say "No vision summary yet — running `/kiln:kiln-roadmap --vision` would help me calibrate future captures."
+- NEVER invent content. If a signal is missing, SAY it's missing — placeholder values degrade trust fast (see edge case "Coached suggestions low-quality on sparse repos" in the spec).
 
 ---
 
@@ -284,15 +344,59 @@ Set `KIND` to the confirmed value. If `QUICK_MODE`, keep the suggested kind with
 
 ---
 
-## Step 5: Adversarial interview (FR-015, FR-017 / PRD FR-015, FR-017)
+## Step 5: Coached interview (FR-015, FR-017 / PRD FR-015, FR-017; coach-driven-capture FR-004, FR-005, FR-007)
 
 <!-- FR-015 / PRD FR-015: ≤5 questions per kind, each individually skippable.
      FR-017 / PRD FR-017: sizing asks ONLY blast_radius / review_cost / context_cost — never human-time / T-shirt.
-     FR-011 / PRD FR-011: kind:critique REQUIRES proof_path — re-prompt until answered. -->
+     FR-011 / PRD FR-011: kind:critique REQUIRES proof_path — re-prompt until answered.
+     coach-driven-capture FR-004: every question renders with a proposed answer + one-line rationale + `[accept / tweak / reject]` affordance.
+     coach-driven-capture FR-005: user may type `accept-all` at any prompt to finalize using remaining suggestions; `tweak <value> then accept-all` overrides the current question then finalizes.
+     coach-driven-capture FR-007: prompt copy is COLLABORATIVE ("Here's what I think, tell me if I'm off") — not interrogative. -->
 
 Skip the entire interview when `QUICK_MODE == 1` OR `NON_INTERACTIVE == 1`. Jump to Step 6 with `phase=unsorted`, body = raw description.
 
-Otherwise, ask the question bank for the confirmed `KIND`. Each question is skippable (user types `skip` or empty) UNLESS marked required. Stop asking early if the user skips a run of ≥3 in a row (respect interview fatigue — Risk #1 in the PRD).
+Otherwise: here's what I think about this idea based on the description + project context — tell me where I'm off. I'll walk through ≤5 questions; for each, I'll propose an answer and a one-line rationale, and you accept, tweak, or reject. Type `accept-all` whenever you've heard enough and I'll finalize with my best guesses for the rest.
+
+Each question is individually skippable (type `skip` or empty) UNLESS marked required. If you skip a run of ≥3 in a row I'll stop asking (respect interview fatigue — Risk #1 in the PRD).
+
+### §5.0 Per-question rendering contract (coach-driven-capture FR-004)
+
+Every question in §5.1–§5.7 MUST be rendered in this exact shape — copy the format, don't paraphrase:
+
+```
+Q<N>/<total>: <question text>
+  Proposed: <best-guess answer derived from $DESC + CTX_JSON>
+  Why:      <one-line rationale citing the specific signal>
+  [accept / tweak <value> / reject / skip / accept-all]
+  >
+```
+
+Rules (load-bearing):
+
+- **`Proposed:` MUST be derived from evidence** — the initial description and the `CTX_JSON` snapshot. Never invent. If no evidence supports a guess, render:
+  ```
+  Proposed: —
+  Why:      no evidence in repo
+  ```
+  This is the explicit edge-case placeholder (see spec Edge Cases: "Roadmap item with unknown/ambiguous fields"). Do not hallucinate — the user will tweak.
+- **`Why:` is one line.** Cite one concrete signal (e.g., "addresses open critique `2026-04-12-item-two`" or "similar to shipped PRD `2026-04-10-alpha`") — not prose.
+- **Affordance is always presented verbatim** (`[accept / tweak <value> / reject / skip / accept-all]`) so users memorize it across sessions.
+- **First-person framing is collaborative.** Use "I think", "Here's what I see", "Tell me if I'm off". Never "You must", "Required", "Please provide". This is the FR-007 / PRD FR-006 tone guarantee — manual-review gate during PRD audit.
+
+### §5.0a Response parser (coach-driven-capture FR-005)
+
+Parse the user's input for each question in this priority order:
+
+1. `accept-all` → record the `Proposed:` value for THIS question, then for EVERY remaining question substitute its `Proposed:` value, skip to Step 6. Required-field validation (e.g., `proof_path` for `kind:critique`) still runs — if `Proposed:` for a required field is empty, re-prompt for that one question, then resume finalization.
+2. `tweak <value> then accept-all` (or `tweak: <value>, accept-all`) → record `<value>` for THIS question, then apply accept-all semantics to the rest.
+3. `tweak <value>` (or `tweak: <value>`) → record `<value>` for THIS question, move to the next question.
+4. `accept` → record the `Proposed:` value, move to the next question.
+5. `reject` → drop the `Proposed:` value, re-ask the question once with an empty suggestion (`Proposed: —`); a second reject records empty and moves on.
+6. `skip` or empty → move on without recording anything (counts toward the 3-in-a-row fatigue threshold).
+
+Any other response → treat as free-text answer (equivalent to `tweak <that-text>`). This keeps the interview ergonomic for users who don't want to type the affordance keywords.
+
+Ask the question bank for the confirmed `KIND`.
 
 ### §6.1 `kind: feature`
 
