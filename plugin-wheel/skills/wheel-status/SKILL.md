@@ -1,58 +1,24 @@
 ---
 name: wheel-status
-description: Show the status of all running workflows. Displays workflow name, current step, progress, session/agent IDs, and elapsed time.
+description: Show the status of all running workflows. Displays workflow name, current step, progress, session/agent IDs, elapsed time, and any pending-user-input rows.
 ---
 
 # Wheel Status — Check Workflow Progress
 
-Display the current state of all active workflows.
+Display the current state of all active workflows, including any steps waiting on user input (FR-015, wheel-user-input).
 
-## Step 1: Check if Any Workflow is Running (FR-008)
+## Step 1: Invoke the `wheel-status` CLI
 
-```bash
-STATE_FILES=($(ls .wheel/state_*.json 2>/dev/null))
-if [[ ${#STATE_FILES[@]} -eq 0 ]]; then
-  echo "No workflows are currently running."
-  exit 0
-fi
-```
-
-If no workflows are running, report that and **stop here**.
-
-## Step 2: Display All Active Workflows (FR-008)
+The full rendering logic (including FR-015's pending-input rows with reason + elapsed time) lives in `plugin-wheel/bin/wheel-status`. This skill just invokes it.
 
 ```bash
-echo "Active workflows: ${#STATE_FILES[@]}"
-echo ""
-
-for sf in "${STATE_FILES[@]}"; do
-  STATE=$(cat "$sf")
-  NAME=$(echo "$STATE" | jq -r '.workflow_name')
-  STATUS=$(echo "$STATE" | jq -r '.status')
-  CURSOR=$(echo "$STATE" | jq -r '.cursor')
-  TOTAL=$(echo "$STATE" | jq '.steps | length')
-  STEP_ID=$(echo "$STATE" | jq -r ".steps[$CURSOR].id")
-  STEP_STATUS=$(echo "$STATE" | jq -r ".steps[$CURSOR].status")
-  STARTED=$(echo "$STATE" | jq -r '.started_at')
-  OWNER_SID=$(echo "$STATE" | jq -r '.owner_session_id // "(none)"')
-  OWNER_AID=$(echo "$STATE" | jq -r '.owner_agent_id // "(none)"')
-  LAST_CMD=$(echo "$STATE" | jq -r ".steps[$CURSOR].command_log[-1].command // \"(none)\"")
-  FILENAME=$(basename "$sf")
-
-  echo "--- $FILENAME ---"
-  echo "Workflow: $NAME"
-  echo "Status:   $STATUS"
-  echo "Owner:    session=$OWNER_SID agent=$OWNER_AID"
-  echo "Step:     $STEP_ID ($((CURSOR + 1))/$TOTAL)"
-  echo "Step status: $STEP_STATUS"
-  echo "Last command: $LAST_CMD"
-  echo "Started: $STARTED"
-  echo ""
-done
+PLUGIN_DIR="$SKILL_BASE_DIR/../.."
+"${PLUGIN_DIR}/bin/wheel-status"
 ```
 
 ## Rules
 
 - This skill takes no arguments.
-- If any state file is corrupted (invalid JSON), report the error for that file and suggest running `/wheel:wheel-stop` to clean up.
-- If the workflow file referenced in a state file no longer exists, report that error.
+- Read-only — the CLI does not modify any state.
+- If a state file is corrupted (invalid JSON), the CLI will report the error and continue. If this happens repeatedly, run `/wheel:wheel-stop` to clean up.
+- Rows marked `[awaiting input]` show the step id, the reason passed to `wheel flag-needs-input`, and the elapsed time since the flag was set (format: `Nm Ss` or `Ns`).

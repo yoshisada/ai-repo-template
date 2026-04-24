@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# wheel-status — Show status of all running workflows, including any
+# pending-user-input rows (FR-015, wheel-user-input).
+#
+# Can be invoked directly by users or by the /wheel:wheel-status skill.
+# Scans .wheel/state_*.json from CWD; does not modify anything.
+set -euo pipefail
+
+# FR-015 (wheel-user-input): elapsed-time formatter — "Nm Ss" (>=60s) or "Ns".
+_format_elapsed() {
+  local seconds="$1"
+  if [[ "$seconds" -lt 60 ]]; then
+    printf '%ss' "$seconds"
+  else
+    local m=$((seconds / 60))
+    local s=$((seconds % 60))
+    printf '%sm %ss' "$m" "$s"
+  fi
+}
+
+# Cross-platform ISO-8601 UTC → epoch.
+_iso_to_epoch() {
+  local s="$1"
+  local epoch
+  epoch=$(date -u -d "$s" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$s" +%s 2>/dev/null || echo "")
+  if [[ -z "$epoch" ]]; then
+    # Strip fractional seconds (e.g. "2026-04-24T00:00:00.000Z") and retry.
+    local clean
+    clean=$(echo "$s" | sed -E 's/\.[0-9]+Z$/Z/')
+    epoch=$(date -u -d "$clean" +%s 2>/dev/null || date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$clean" +%s 2>/dev/null || echo "")
+  fi
+  printf '%s' "$epoch"
+}
+
+STATE_FILES=( .wheel/state_*.json )
+# Filter out literal glob when no matches.
+_has_state=false
+for sf in "${STATE_FILES[@]}"; do
+  [[ -f "$sf" ]] && _has_state=true && break
+done
+if [[ "$_has_state" != "true" ]]; then
+  echo "No workflows are currently running."
+  exit 0
+fi
+
+count=0
+for sf in "${STATE_FILES[@]}"; do [[ -f "$sf" ]] && count=$((count + 1)); done
+echo "Active workflows: $count"
+echo ""
+
+for sf in "${STATE_FILES[@]}"; do
+  [[ -f "$sf" ]] || continue
+  STATE=$(cat "$sf")
+  NAME=$(echo "$STATE" | jq -r '.workflow_name')
+  STATUS=$(echo "$STATE" | jq -r '.status')
+  CURSOR=$(echo "$STATE" | jq -r '.cursor')
+  TOTAL=$(echo "$STATE" | jq '.steps | length')
+  STEP_ID=$(echo "$STATE" | jq -r ".steps[$CURSOR].id")
+  STEP_STATUS=$(echo "$STATE" | jq -r ".steps[$CURSOR].status")
+  STARTED=$(echo "$STATE" | jq -r '.started_at')
+  OWNER_SID=$(echo "$STATE" | jq -r '.owner_session_id // "(none)"')
+  OWNER_AID=$(echo "$STATE" | jq -r '.owner_agent_id // "(none)"')
+  LAST_CMD=$(echo "$STATE" | jq -r ".steps[$CURSOR].command_log[-1].command // \"(none)\"")
+  FILENAME=$(basename "$sf")
+
+  echo "--- $FILENAME ---"
+  echo "Workflow: $NAME"
+  echo "Status:   $STATUS"
+  echo "Owner:    session=$OWNER_SID agent=$OWNER_AID"
+  echo "Step:     $STEP_ID ($((CURSOR + 1))/$TOTAL)"
+  echo "Step status: $STEP_STATUS"
+  echo "Last command: $LAST_CMD"
+  echo "Started: $STARTED"
+
+  # FR-015: append pending-input row when current step is awaiting input.
+  AWAITING=$(echo "$STATE" | jq -r ".steps[$CURSOR].awaiting_user_input // false")
+  if [[ "$AWAITING" == "true" ]]; then
+    REASON=$(echo "$STATE" | jq -r ".steps[$CURSOR].awaiting_user_input_reason // \"?\"")
+    SINCE=$(echo "$STATE" | jq -r ".steps[$CURSOR].awaiting_user_input_since // empty")
+    ELAPSED_FMT="?"
+    if [[ -n "$SINCE" ]]; then
+      SINCE_EPOCH=$(_iso_to_epoch "$SINCE")
+      if [[ -n "$SINCE_EPOCH" ]]; then
+        NOW_EPOCH=$(date -u +%s)
+        ELAPSED_SEC=$((NOW_EPOCH - SINCE_EPOCH))
+        [[ "$ELAPSED_SEC" -lt 0 ]] && ELAPSED_SEC=0
+        ELAPSED_FMT=$(_format_elapsed "$ELAPSED_SEC")
+      fi
+    fi
+    echo "  [awaiting input] $NAME / step '$STEP_ID'   reason=$REASON   elapsed=$ELAPSED_FMT"
+  fi
+  echo ""
+done

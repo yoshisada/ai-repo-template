@@ -79,9 +79,9 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 5: Status surface
 
-- [ ] T018 Locate `/wheel:wheel-status` implementation (skill + / or `plugin-wheel/bin/wheel-status`). Document path in comment.
-- [ ] T019 Add the pending-input row per contracts §8: for each state file whose current step has `awaiting_user_input: true`, render a line with workflow name, step id, reason, and elapsed time. Implement an elapsed-time formatter (`date -u +%s` math, format `Nm Ss` / `Ns`). Include FR-015 comment.
-- [ ] T020 Write `plugin-wheel/tests/unit/test_wheel_user_input_status_surface.sh` — seeds a state file with `awaiting_user_input_since` set 4 minutes ago, runs status, asserts output contains the expected row with elapsed ~ `4m` (±10s per SC-006). Covers US7.
+- [X] T018 Locate `/wheel:wheel-status` implementation (skill + / or `plugin-wheel/bin/wheel-status`). Document path in comment. (Was in-lined in SKILL.md; extracted to new `plugin-wheel/bin/wheel-status` for testability. Skill now calls the bin.)
+- [X] T019 Add the pending-input row per contracts §8: for each state file whose current step has `awaiting_user_input: true`, render a line with workflow name, step id, reason, and elapsed time. Implement an elapsed-time formatter (`date -u +%s` math, format `Nm Ss` / `Ns`). Include FR-015 comment. (Cross-platform ISO-8601 → epoch helper handles both GNU `date -d` and BSD `date -j -f`.)
+- [X] T020 Write `plugin-wheel/tests/unit/test_wheel_user_input_status_surface.sh` — seeds a state file with `awaiting_user_input_since` set 4 minutes ago, runs status, asserts output contains the expected row with elapsed ~ `4m` (±10s per SC-006). Covers US7.
 
 **Phase 5 exit gate**: T018–T020 `[X]`; test passes. Commit `feat(wheel-user-input): phase 5 — /wheel:wheel-status observability`.
 
