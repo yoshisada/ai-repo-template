@@ -622,7 +622,73 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
    PRD_PATH_NORM="$(normalize_path "$PRD_PATH")"
    ```
 
-3. **Scan for matching items across BOTH `.kiln/issues/` AND `.kiln/feedback/`** (FR-001):
+2b. **Read `derived_from:` frontmatter (FR-004, FR-005 — spec `prd-derived-from-frontmatter`)**:
+
+   ```bash
+   # read_derived_from <prd-path>
+   # Extracts the `derived_from:` list from the first YAML frontmatter block
+   # of the PRD. Emits one repo-relative path per line on stdout.
+   # Emits NOTHING (and returns 0) if:
+   #   - the PRD has no frontmatter block, OR
+   #   - the block has no `derived_from:` key, OR
+   #   - the list is empty (`derived_from: []` OR `derived_from:` with no child rows).
+   # Never exits non-zero — read failures degrade to "no entries" (Step 4b then falls to scan-fallback).
+   read_derived_from() {
+     local prd="$1"
+     [ -f "$prd" ] || { return 0; }
+     awk '
+       BEGIN { state = "before"; emit = 0 }
+       # Close on the second --- (end of frontmatter block)
+       state == "inside" && /^---[[:space:]]*$/ { exit 0 }
+       # Open on the first --- (must be the first non-empty line)
+       state == "before" && /^---[[:space:]]*$/ { state = "inside"; next }
+       # Bail if the first non-empty line is not ---
+       state == "before" && NF > 0 { exit 0 }
+       # Inside the block
+       state == "inside" {
+         # Start of derived_from key (inline empty list or block-sequence header)
+         if ($0 ~ /^derived_from:[[:space:]]*(\[\])?[[:space:]]*$/) {
+           emit = 1
+           next
+         }
+         # Any other top-level key closes the emit window
+         if (emit == 1 && $0 ~ /^[A-Za-z_][A-Za-z0-9_]*:/) {
+           emit = 0
+           next
+         }
+         # Block-sequence entry under derived_from
+         if (emit == 1 && $0 ~ /^[[:space:]]+-[[:space:]]+/) {
+           # Strip the leading "  - " and any trailing CR/whitespace
+           sub(/^[[:space:]]+-[[:space:]]+/, "", $0)
+           sub(/[[:space:]]+$/, "", $0)
+           gsub(/\r/, "", $0)
+           if (length($0) > 0) print $0
+         }
+       }
+     ' "$prd"
+   }
+
+   # Read derived_from once; empty means fall through to scan-fallback.
+   DERIVED_FROM_LIST=()
+   while IFS= read -r entry; do
+     [ -n "$entry" ] && DERIVED_FROM_LIST+=("$entry")
+   done < <(read_derived_from "$PRD_PATH")
+
+   if [ "${#DERIVED_FROM_LIST[@]}" -gt 0 ]; then
+     DERIVED_FROM_SOURCE="frontmatter"
+   else
+     DERIVED_FROM_SOURCE="scan-fallback"
+   fi
+
+   # missing_entries is ONLY populated on the frontmatter path. Always initialized so
+   # the extended diagnostic line emits `missing_entries=[]` on the scan-fallback path.
+   MISSING_ENTRIES=()
+   ```
+
+3. **Scan for matching items — frontmatter-path primary, scan-fallback secondary** (FR-004, FR-005, FR-006):
+
+   The frontmatter path iterates `DERIVED_FROM_LIST` directly and tracks missing on-disk entries. The scan-fallback path runs the PR-#146 scan-and-match loop verbatim.
+
    ```bash
    SCANNED_ISSUES=0
    SCANNED_FEEDBACK=0
@@ -631,32 +697,54 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
    SKIPPED=0
    MATCH_LIST=()  # absolute or repo-relative paths to archive
 
-   for f in .kiln/issues/*.md .kiln/feedback/*.md; do
-     [ -f "$f" ] || continue
-     case "$f" in
-       .kiln/issues/*)   SCANNED_ISSUES=$((SCANNED_ISSUES + 1)) ;;
-       .kiln/feedback/*) SCANNED_FEEDBACK=$((SCANNED_FEEDBACK + 1)) ;;
-     esac
+   if [ "$DERIVED_FROM_SOURCE" = "frontmatter" ]; then
+     # Frontmatter-path scan (FR-004, FR-006): iterate derived_from list.
+     # SCANNED_* reflect the derived_from list (not a directory scan) — preserves the
+     # diagnostic's original field semantics ("what the step looked at").
+     for entry in "${DERIVED_FROM_LIST[@]}"; do
+       case "$entry" in
+         .kiln/issues/*)   SCANNED_ISSUES=$((SCANNED_ISSUES + 1)) ;;
+         .kiln/feedback/*) SCANNED_FEEDBACK=$((SCANNED_FEEDBACK + 1)) ;;
+       esac
 
-     # Read raw status & prd lines (first occurrence each)
-     status_raw="$(grep -m1 '^status:' "$f" | sed -E 's/^status:[[:space:]]*//' | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
-     prd_raw="$(grep -m1 '^prd:'    "$f" | sed -E 's/^prd:[[:space:]]*//'    | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
+       if [ ! -f "$entry" ]; then
+         # Missing entry — record in diagnostic, continue (FR-006: no pipeline abort).
+         MISSING_ENTRIES+=("$entry")
+         continue
+       fi
 
-     # Status must normalize to literal "prd-created"
-     [ "$status_raw" = "prd-created" ] || continue
-
-     # Normalize prd field; reject empty, absolute, or non-existent
-     prd_norm="$(normalize_path "$prd_raw")"
-     if [ -z "$prd_norm" ] || [ ! -f "$prd_norm" ]; then
-       SKIPPED=$((SKIPPED + 1))
-       continue
-     fi
-
-     if [ "$prd_norm" = "$PRD_PATH_NORM" ]; then
-       MATCH_LIST+=("$f")
+       MATCH_LIST+=("$entry")
        MATCHED=$((MATCHED + 1))
-     fi
-   done
+     done
+   else
+     # Scan-fallback path (FR-005) — byte-identical to PR-#146's scan-and-match loop.
+     for f in .kiln/issues/*.md .kiln/feedback/*.md; do
+       [ -f "$f" ] || continue
+       case "$f" in
+         .kiln/issues/*)   SCANNED_ISSUES=$((SCANNED_ISSUES + 1)) ;;
+         .kiln/feedback/*) SCANNED_FEEDBACK=$((SCANNED_FEEDBACK + 1)) ;;
+       esac
+
+       # Read raw status & prd lines (first occurrence each)
+       status_raw="$(grep -m1 '^status:' "$f" | sed -E 's/^status:[[:space:]]*//' | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
+       prd_raw="$(grep -m1 '^prd:'    "$f" | sed -E 's/^prd:[[:space:]]*//'    | tr -d '\r' | sed -E 's/[[:space:]]+$//')"
+
+       # Status must normalize to literal "prd-created"
+       [ "$status_raw" = "prd-created" ] || continue
+
+       # Normalize prd field; reject empty, absolute, or non-existent
+       prd_norm="$(normalize_path "$prd_raw")"
+       if [ -z "$prd_norm" ] || [ ! -f "$prd_norm" ]; then
+         SKIPPED=$((SKIPPED + 1))
+         continue
+       fi
+
+       if [ "$prd_norm" = "$PRD_PATH_NORM" ]; then
+         MATCH_LIST+=("$f")
+         MATCHED=$((MATCHED + 1))
+       fi
+     done
+   fi
    ```
 
 4. **Update + archive matched files** (FR-002; preserves originating directory):
@@ -691,14 +779,37 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
    done
    ```
 
-5. **Emit the diagnostic line (FR-003) — exactly once per run, exact format**:
+5. **Emit the diagnostic line (FR-003, FR-006, NFR-005) — exactly once per run, exact format**:
    ```bash
-   DIAG_LINE="step4b: scanned_issues=${SCANNED_ISSUES} scanned_feedback=${SCANNED_FEEDBACK} matched=${MATCHED} archived=${ARCHIVED} skipped=${SKIPPED} prd_path=${PRD_PATH_NORM}"
+   # Compose missing_entries JSON array (compact; jq for safety).
+   if [ "${#MISSING_ENTRIES[@]}" -eq 0 ]; then
+     MISSING_JSON="[]"
+   else
+     MISSING_JSON="$(printf '%s\n' "${MISSING_ENTRIES[@]}" | jq -Rn '[inputs]' -c)"
+   fi
+
+   DIAG_LINE="step4b: scanned_issues=${SCANNED_ISSUES} scanned_feedback=${SCANNED_FEEDBACK} matched=${MATCHED} archived=${ARCHIVED} skipped=${SKIPPED} prd_path=${PRD_PATH_NORM} derived_from_source=${DERIVED_FROM_SOURCE} missing_entries=${MISSING_JSON}"
    echo "$DIAG_LINE"
    printf '%s\n' "$DIAG_LINE" >> "$LOG_FILE"
    ```
 
-   The literal template MUST appear in stdout AND in the log file: `step4b: scanned_issues=<N> scanned_feedback=<M> matched=<K> archived=<A> skipped=<S> prd_path=<PRD_PATH>`. Verified by regex: `^step4b: scanned_issues=[0-9]+ scanned_feedback=[0-9]+ matched=[0-9]+ archived=[0-9]+ skipped=[0-9]+ prd_path=[^[:space:]]+$`.
+   The extended literal template (8 fields) MUST appear in stdout AND in the log file:
+   `step4b: scanned_issues=<N> scanned_feedback=<M> matched=<K> archived=<A> skipped=<S> prd_path=<P> derived_from_source=<frontmatter|scan-fallback> missing_entries=<JSON-array>`.
+
+   Verification regexes:
+
+   - Extended (SC-002, spec `prd-derived-from-frontmatter` contracts §2.6.1):
+     `^step4b: scanned_issues=[0-9]+ scanned_feedback=[0-9]+ matched=[0-9]+ archived=[0-9]+ skipped=[0-9]+ prd_path=[^[:space:]]+ derived_from_source=(frontmatter|scan-fallback) missing_entries=\[.*\]$`
+   - PR-#146 replay (SC-007, NFR-005 — un-anchored at end-of-line):
+     `^step4b: scanned_issues=[0-9]+ scanned_feedback=[0-9]+ matched=[0-9]+ archived=[0-9]+ skipped=[0-9]+ prd_path=[^[:space:]]+`
+
+   **Invariants**:
+
+   - Fields 1–6 (`scanned_issues` … `prd_path`) MUST stay in the PR-#146 positions and format. The PR-#146 SMOKE.md §5.3 regex is un-anchored at end-of-line so the appended fields don't break it.
+   - Field 7 (`derived_from_source`) is one of the two literal strings `frontmatter` or `scan-fallback`.
+   - Field 8 (`missing_entries`) is a compact JSON array; empty is rendered as `[]`, never `null` or empty string.
+   - Matched-count invariant on the frontmatter path: `matched == ${#DERIVED_FROM_LIST[@]}` holds ONLY when `missing_entries == []`. When `missing_entries` is non-empty, the invariant is explicitly waived (FR-006).
+   - No embedded newlines. One line per run.
 
 6. **Commit (FR-005)** — always commits the log; commits archived files iff any matched:
    ```bash
@@ -715,7 +826,7 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
 
 ### Step 4b invariants
 
-- The diagnostic line literal format MUST match the template exactly. No reordering of fields, no additional fields, no missing fields.
+- The diagnostic line literal format MUST match the extended 8-field template exactly. Fields 1–6 (`scanned_issues`, `scanned_feedback`, `matched`, `archived`, `skipped`, `prd_path`) MUST stay in PR-#146 positions (the PR-#146 SMOKE.md §5.3 grep regex is un-anchored at end-of-line, so appending fields 7–8 is safe). Fields 7–8 (`derived_from_source`, `missing_entries`) are APPENDED — never inserted in the middle, never reordered, never renamed.
 - The `mv` for archival MUST happen AFTER the in-place frontmatter rewrite, so the moved file already has the updated `status`/`completed_date`/`pr` lines.
 - The `MATCH_LIST` accumulator pattern decouples the scan loop from the archive loop. Do NOT collapse them — this preserves the `scanned_*` totals from being affected by mid-loop `mv`.
 - The `tr -d '\r'` is non-optional. Some frontmatter files originate from CRLF environments.
