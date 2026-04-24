@@ -3,15 +3,25 @@
 **Auditor**: auditor (claude code teammate)
 **Branch**: `build/plugin-skill-test-harness-20260424`
 **Audit started**: 2026-04-24
-**Audit status**: 🟥 BLOCKED on BLOCKER-002 — see `../blockers.md`. PR NOT created.
+**Audit status**: ✅ COMPLETE — 7/7 smokes PASS, both blockers RESOLVED, PR created.
 
 ---
 
 ## TL;DR
 
-5 of 7 smoke tests PASS, 1 FAILS, 2 NOT RUN. The failure (negative-test) is a real bug in the seed-test design — `kiln-distill-basic`'s `inputs/initial-message.txt` redundantly hard-codes the SKILL contract, so the model satisfies the prompt regardless of SKILL drift. This defeats the harness's stated purpose (detect SKILL drift). Filed BLOCKER-002 with three options (A: rewrite distill prompt; B: add no-leakage guard; C: defer). Recommended Option A (small, surgical, isolated to one fixture).
+7 of 7 smoke tests PASS after BLOCKER-002 resolution (commit `b6f063c` — implementer's intent-only prompt rewrite). All grep gates PASS. Both blockers RESOLVED with commit hashes recorded. PR created with full smoke-test results in body.
 
-The grep gates all PASS. The implementer's portability + no-hard-caps + watcher discipline is clean.
+**Audit timeline**:
+
+1. Initial audit: smokes #1, #2, #4, #7 PASS. Smoke #3 (negative test) FAILED → filed BLOCKER-002. Smokes #5, #6 deferred per "no PR until smokes pass" rule.
+2. Team-lead picked Option A. While implementer was fixing the prompt in parallel, I ran smokes #5 and #6 in parallel (they don't depend on BLOCKER-002 — they exercise the watcher, not the seed test): both PASS.
+3. After implementer's commit `b6f063c` landed, I re-verified smokes #1, #3, #7 in clean isolation: all PASS. The negative test now correctly emits `not ok 1` with a diagnostic pointing at the missing frontmatter, confirming the harness genuinely detects SKILL drift.
+4. Bumped VERSION pr segment, pushed, opened PR.
+
+**Key audit-discovered bugs** (both fixed before merge):
+
+- **BLOCKER-002** — seed-test prompt-contract leakage in `kiln-distill-basic`. The initial-message hard-coded the SKILL contract, so the model satisfied the prompt regardless of SKILL drift — exactly the failure mode the harness exists to prevent. Resolved by intent-only rewrite (Option A). Codified as a best practice for future authors (see "Codified best practice" section below).
+- **Concurrent-invocation co-tenancy hazard** — discovered when my audit and the implementer's parallel BLOCKER-002 verification ran simultaneously and clobbered each other's scratch dirs via the `rm -rf /tmp/kiln-test-*` cleanup pattern in `SMOKE.md` Block A. Documented as follow-on PRD #6.
 
 ---
 
@@ -96,7 +106,9 @@ ok 1 - kiln-hygiene-backfill-idempotent
 EXIT=0
 ```
 
-### Smoke #3 — Negative test (broken SKILL → expect `not ok`) → ❌ **FAIL**
+### Smoke #3 — Negative test (broken SKILL → expect `not ok`) → ❌ FAIL on initial audit → ✅ PASS on re-verify
+
+**Initial audit run** (before BLOCKER-002 fix): FAILED.
 
 Edit applied to `plugin-kiln/skills/kiln-distill/SKILL.md`:
 
@@ -115,6 +127,30 @@ EXIT=0
 REVERTED via `git checkout -- plugin-kiln/skills/kiln-distill/SKILL.md`. Tree clean (`git status`). Re-ran a quick read of lines 108–126 to visually confirm the original content is restored.
 
 **Why it failed** (full diagnosis in `blockers.md` BLOCKER-002): the model's response (`.kiln/logs/kiln-test-40d47158-c7b4-420b-90a8-4a9c05caa66e-verdict.json` `.result_envelope.result`) explicitly states it saw the broken SKILL but overrode it because the test's `inputs/initial-message.txt` redundantly hard-codes the contract. The hygiene seed test does NOT have this leakage; the bug is isolated to the distill seed's prompt.
+
+**Re-verify run** (after BLOCKER-002 fix landed in commit `b6f063c`): ✅ PASS.
+
+I edited the SKILL again the same way (replaced the entire YAML Frontmatter Emission section AND the literal yaml block in the PRD-content template — both are needed; partial edits leave enough context for the model to infer the contract). Re-ran the harness:
+
+```
+TAP version 14
+1..1
+not ok 1 - kiln-distill-basic
+  ---
+  classification: "assertion-failed"
+  scratch-uuid: "7f94d7e9-d242-4bfc-8d8b-3fd9eb41985d"
+  scratch-retained: "/tmp/kiln-test-7f94d7e9-d242-4bfc-8d8b-3fd9eb41985d/"
+  ...
+  assertion-stderr: |
+    Generated PRD: docs/features/2026-04-24-template-ergonomics-minimal/PRD.md
+    FAIL: PRD is missing `derived_from:` frontmatter line
+    First 20 lines:
+    # Feature PRD: Template ergonomics — minimal SKILL.md variant
+```
+
+The generated PRD body in the retained scratch dir starts with `# Feature PRD:` directly — no `---` frontmatter — confirming the SKILL was actually followed and the assertion correctly caught the missing frontmatter. The new intent-only prompt no longer overrides the broken SKILL. SKILL.md was reverted via `git checkout --` immediately afterward; tree clean; `grep -c derived_from plugin-kiln/skills/kiln-distill/SKILL.md` returns 7 (matches HEAD).
+
+**Iteration note** (worth knowing for future audits): on my first re-verify attempt I only edited the prose section (lines 108-114) without also collapsing the literal yaml block (lines 116-126). The model still saw the yaml example in-context and faithfully reproduced it, so the test PASSED-when-it-should-have-failed. The negative test must remove BOTH the prose contract description AND any literal templates of that contract elsewhere in the SKILL — otherwise the SKILL's own examples are documentation in disguise.
 
 ### Smoke #4 — `claude --plugin-dir ./plugin-kiln --help` → ✅ PASS
 
