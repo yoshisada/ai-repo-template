@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US1 — capture a feature idea via --quick path (deterministic); verify item frontmatter required keys + AI-native sizing + no forbidden fields"
+timeout-override: 900

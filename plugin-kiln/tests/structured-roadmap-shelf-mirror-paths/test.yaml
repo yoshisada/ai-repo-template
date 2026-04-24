@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-version
+expected-exit: 0
+description: "T042 / FR-004 — shelf-write-roadmap-note path_source literal-string contract. Unit-tests parse-shelf-config.sh + parse-roadmap-input.sh in both branches (full .shelf-config / missing or partial) and asserts the decision rule obsidian-write would apply produces one of exactly two path_source literals."
+timeout-override: 60

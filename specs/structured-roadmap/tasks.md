@@ -104,7 +104,7 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 - [X] T040 [impl-integration] Implement `plugin-shelf/scripts/parse-roadmap-input.sh` per §2.11 — parses skill output into the agent-step input JSON with `obsidian_subpath`. FR-035.
 - [X] T041 [impl-integration] Author `plugin-shelf/workflows/shelf-write-roadmap-note.json` per §3 — 4 steps, MCP scope locked to `create_file` + `patch_file`, decision rule per §3.2, action selection per §3.3, finalize-result JSON per §3.4. Mirrors `shelf-write-issue-note.json`. FR-030, FR-035.
-- [ ] T042 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-shelf-mirror-paths/` — fixtures with full `.shelf-config` and partial `.shelf-config`; assert `path_source` literal strings + `obsidian_path` shape per §3.2. FR-004.
+- [X] T042 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-shelf-mirror-paths/` — fixtures with full `.shelf-config` and partial `.shelf-config`; assert `path_source` literal strings + `obsidian_path` shape per §3.2. FR-004.
 
 ### 3B — Distill extension (US5)
 
@@ -125,12 +125,12 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ### 3E — Tests (impl-integration side)
 
-- [ ] T051 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-three-streams/` — fixture with 1 feedback + 1 item + 1 issue all matching current phase; assert PRD `derived_from:` contains all three in §7.2 order, item state → distilled. Test = US5 acceptance scenarios 1, 3.
-- [ ] T052 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-addresses-filter/` — fixture with critique + 2 items addressing it + 1 unrelated item; assert only the 2 addressing items are bundled. FR-025.
-- [ ] T053 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-kind-filter/` — `--kind research` only bundles research items. FR-025.
-- [ ] T054 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-implementation-hints/` — item with `implementation_hints` produces a PRD with `## Implementation Hints` section + back-reference. FR-027.
-- [ ] T055 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-next-surfaces-in-phase/` — fixture with one in-phase item; assert `/kiln:kiln-next` output includes "Active phase items" section with the item. FR-033.
-- [ ] T056 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-specify-state-hook/` — fixture PRD with `derived_from:` referencing one item; run specify; assert item state → specced + `spec:` field set. FR-034.
+- [X] T051 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-three-streams/` — fixture with 1 feedback + 1 item + 1 issue all matching current phase; assert PRD `derived_from:` contains all three in §7.2 order, item state → distilled. Test = US5 acceptance scenarios 1, 3.
+- [X] T052 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-addresses-filter/` — fixture with critique + 2 items addressing it + 1 unrelated item; assert only the 2 addressing items are bundled. FR-025.
+- [X] T053 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-kind-filter/` — `--kind research` only bundles research items. FR-025.
+- [X] T054 [P] [impl-integration] [US5] Author `plugin-kiln/tests/structured-roadmap-distill-implementation-hints/` — item with `implementation_hints` produces a PRD with `## Implementation Hints` section + back-reference. FR-027.
+- [X] T055 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-next-surfaces-in-phase/` — fixture with one in-phase item; assert `/kiln:kiln-next` output includes "Active phase items" section with the item. FR-033.
+- [X] T056 [P] [impl-integration] Author `plugin-kiln/tests/structured-roadmap-specify-state-hook/` — fixture PRD with `derived_from:` referencing one item; run specify; assert item state → specced + `spec:` field set. FR-034.
 
 **Checkpoint**: distill bundles all three streams, shelf workflow mirrors all roadmap files, next + specify wired into lifecycle.
 

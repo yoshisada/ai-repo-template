@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: specify
+expected-exit: 0
+description: "/specify hook flips roadmap item state: distilled → specced + patches spec: field when the PRD's derived_from references the item (FR-034)"
+timeout-override: 900

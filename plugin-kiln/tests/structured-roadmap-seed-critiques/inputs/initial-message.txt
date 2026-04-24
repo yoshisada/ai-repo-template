@@ -1,0 +1,1 @@
+Run `/kiln:kiln-roadmap --quick bootstrap-sentinel` in the current working directory. On first run with an empty `.kiln/roadmap/items/` dir, Step 0 MUST seed exactly three named critique files per FR-029.

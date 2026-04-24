@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-next
+expected-exit: 0
+description: "kiln-next surfaces state:in-phase items from the active phase in an 'Active phase items' section (FR-033)"
+timeout-override: 900

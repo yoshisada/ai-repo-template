@@ -1,0 +1,3 @@
+Run `/specify` against the PRD at `docs/features/2026-04-24-caching/PRD.md`. The PRD's frontmatter `derived_from:` references `.kiln/roadmap/items/2026-04-23-cache-embeddings.md`, which carries `state: distilled`. After `/specify` writes spec.md, the post-spec state hook MUST flip the item state: distilled → specced and patch the item's `spec:` field with the path to the newly-written spec.md.
+
+The feature description is: "Add cache for embeddings across pipeline agents, keyed on prompt hash + model id."

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-distill --phase current` against the fixtures. The one in-phase item carries an `implementation_hints:` field. The generated PRD MUST include a `## Implementation Hints` section that renders those hints verbatim, with `(from: <item-id>)` back-reference. Answer `1` if prompted for a theme.

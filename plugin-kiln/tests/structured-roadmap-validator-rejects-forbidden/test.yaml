@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "FR-008 / SC-006 — validator rejects items with human_time / t_shirt_size / effort_days fields"
+timeout-override: 600

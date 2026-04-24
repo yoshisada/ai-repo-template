@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US4 / FR-014b — tactical framing triggers routing prompt; hand-off invokes target skill via Skill tool (FR-036) and does NOT write a roadmap item"
+timeout-override: 900

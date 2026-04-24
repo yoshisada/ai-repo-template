@@ -1,0 +1,1 @@
+# no prompts — this test exercises the validator directly
