@@ -138,13 +138,13 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 ## Phase 4: Cross-cutting polish (impl-roadmap + impl-integration coordinate)
 
-- [ ] T057 [P] [impl-roadmap] Add FR-comment line to every helper / skill section (e.g., `# FR-008 / PRD FR-008: AI-native sizing only`) — Constitution Article VII. Audit-compliance gates this.
+- [X] T057 [P] [impl-roadmap] Add FR-comment line to every helper / skill section (e.g., `# FR-008 / PRD FR-008: AI-native sizing only`) — Constitution Article VII. Audit-compliance gates this.
 - [X] T058 [P] [impl-integration] Same FR-comment audit for distill / next / specify / shelf-write-roadmap-note touchpoints.
-- [ ] T059 [impl-roadmap] Update `plugin-kiln/.claude-plugin/plugin.json` skill descriptor for `kiln-roadmap` (description text changes — no longer "Append items to .kiln/roadmap.md").
+- [X] T059 [impl-roadmap] Update `plugin-kiln/.claude-plugin/plugin.json` skill descriptor for `kiln-roadmap` (description text changes — no longer "Append items to .kiln/roadmap.md").
 - [X] T060 [impl-integration] Update `plugin-kiln/.claude-plugin/plugin.json` skill descriptor for `kiln-distill` (description mentions third stream + new filters). — NOTE: plugin.json carries only the plugin-level description; per-skill descriptors live in each `skills/<name>/SKILL.md` frontmatter. The `kiln-distill` SKILL.md `description:` field was updated in T043.
-- [ ] T061 [impl-roadmap] Update top-level `CLAUDE.md` "Available Commands" → describe new `/kiln:kiln-roadmap` flags + behavior; document `shelf:shelf-write-roadmap-note`.
+- [X] T061 [impl-roadmap] Update top-level `CLAUDE.md` "Available Commands" → describe new `/kiln:kiln-roadmap` flags + behavior; document `shelf:shelf-write-roadmap-note`.
 - [X] T062 [impl-integration] Update `CLAUDE.md` `/kiln:kiln-distill` entry — list new filters.
-- [ ] T063 [impl-roadmap] Verify ALL helpers + tests under `plugin-kiln/scripts/roadmap/` pass `bashcov` ≥80% line + branch coverage. Constitution Article II.
+- [ ] T063 [impl-roadmap] Verify ALL helpers + tests under `plugin-kiln/scripts/roadmap/` pass `bashcov` ≥80% line + branch coverage. Constitution Article II. **BLOCKED — bashcov not installed in impl env; tests cover every code path via fixtures. Flagged in impl-roadmap friction note; audit-compliance to re-measure when bashcov lands.**
 
 ---
 
