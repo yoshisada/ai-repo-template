@@ -1,0 +1,1 @@
+Run `/kiln:kiln-distill` against the fixtures in the current working directory. There is one open feedback item under `.kiln/feedback/` and one open issue under `.kiln/issues/`. When and if the skill prompts you to choose a theme or a selection, answer using the queued answer lines. The goal is to bundle the open items into a feature PRD.

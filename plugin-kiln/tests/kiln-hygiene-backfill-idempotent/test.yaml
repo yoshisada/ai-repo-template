@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-hygiene
+expected-exit: 0
+description: "Backfill idempotence — run `/kiln:kiln-hygiene backfill` twice; assert the second run's hunk count equals the first"
+timeout-override: 600

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "Basic distill — one feedback + one issue sharing a theme; expect a PRD with `derived_from:` frontmatter referencing both"
+timeout-override: 900
