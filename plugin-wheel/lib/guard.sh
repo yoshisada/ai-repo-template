@@ -88,3 +88,65 @@ resolve_state_file() {
   printf '%s\n' "${candidates[-1]}"
   return 0
 }
+
+# FR-005/FR-006 (wheel-user-input): Resolve the active state file from CWD
+# context WITHOUT hook input. Used by CLI tools (e.g.
+# `wheel-flag-needs-input`) invoked from inside an agent's bash turn, where no
+# hook-style session_id/agent_id is available.
+#
+# Strategy: scan `<state_dir>/state_*.json` for workflows with
+# status=="running", then pick the leaf (a candidate whose path is not
+# referenced as `parent_workflow` by any other candidate). On well-formed
+# state this uniquely identifies the deepest active workflow.
+#
+# Params:
+#   $1 = state_dir (string) — path to .wheel directory (default ".wheel")
+#
+# Output (stdout): resolved state file path
+# Exit:
+#   0 = state file found (path printed)
+#   1 = no active running state file found
+resolve_active_state_file_nohook() {
+  local state_dir="${1:-.wheel}"
+  local sf
+  local -a candidates=()
+  for sf in "${state_dir}"/state_*.json; do
+    [[ -f "$sf" ]] || continue
+    local status
+    status=$(jq -r '.status // empty' "$sf" 2>/dev/null) || continue
+    if [[ "$status" == "running" ]]; then
+      candidates+=("$sf")
+    fi
+  done
+
+  if [[ ${#candidates[@]} -eq 0 ]]; then
+    return 1
+  fi
+
+  if [[ ${#candidates[@]} -eq 1 ]]; then
+    printf '%s\n' "${candidates[0]}"
+    return 0
+  fi
+
+  # Multiple candidates — pick the leaf.
+  local c1 c2 c2_parent is_leaf
+  for c1 in "${candidates[@]}"; do
+    is_leaf=true
+    for c2 in "${candidates[@]}"; do
+      [[ "$c1" == "$c2" ]] && continue
+      c2_parent=$(jq -r '.parent_workflow // empty' "$c2" 2>/dev/null) || true
+      if [[ "$c2_parent" == "$c1" ]]; then
+        is_leaf=false
+        break
+      fi
+    done
+    if [[ "$is_leaf" == true ]]; then
+      printf '%s\n' "$c1"
+      return 0
+    fi
+  done
+
+  # Fallback — no leaf found (malformed chain); return last candidate.
+  printf '%s\n' "${candidates[-1]}"
+  return 0
+}

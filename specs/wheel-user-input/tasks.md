@@ -47,10 +47,10 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 2: CLI (`wheel-flag-needs-input`)
 
-- [ ] T007 Create `plugin-wheel/bin/wheel-flag-needs-input` per contracts §5 — shebang `#!/usr/bin/env bash`, `set -euo pipefail`, sources `lib/guard.sh` + `lib/state.sh` + `lib/log.sh` using the same preamble pattern as existing `plugin-wheel/bin/*` scripts. `chmod +x`. Include FR-005, FR-006, FR-006a, FR-010, FR-013 comments.
-- [ ] T008 Implement control-flow steps 1–6 from contracts §5.3 in `wheel-flag-needs-input`: argument validation (step 1), state resolution (step 2), permission gate (step 3), non-interactive gate (step 4), cross-workflow guard (step 5), state write + stdout confirmation (step 6).
-- [ ] T009 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_cli.sh` — one assertion per exit branch in contracts §5.2 (success + 6 failure modes). State-unchanged assertion via `sha256sum` before/after for denial branches (SC-003).
-- [ ] T010 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_cross_workflow_guard.sh` — seeds two `.wheel/state_*.json` files, asserts second `flag-needs-input` call exits 1 with the blocking workflow's name in stderr. Covers US6.
+- [X] T007 Create `plugin-wheel/bin/wheel-flag-needs-input` per contracts §5 — shebang `#!/usr/bin/env bash`, `set -euo pipefail`, sources `lib/guard.sh` + `lib/state.sh` + `lib/log.sh` using the same preamble pattern as existing `plugin-wheel/bin/*` scripts. `chmod +x`. Include FR-005, FR-006, FR-006a, FR-010, FR-013 comments.
+- [X] T008 Implement control-flow steps 1–6 from contracts §5.3 in `wheel-flag-needs-input`: argument validation (step 1), state resolution (step 2), permission gate (step 3), non-interactive gate (step 4), cross-workflow guard (step 5), state write + stdout confirmation (step 6).
+- [X] T009 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_cli.sh` — one assertion per exit branch in contracts §5.2 (success + 6 failure modes). State-unchanged assertion via `sha256sum` before/after for denial branches (SC-003).
+- [X] T010 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_cross_workflow_guard.sh` — seeds two `.wheel/state_*.json` files, asserts second `flag-needs-input` call exits 1 with the blocking workflow's name in stderr. Covers US6.
 
 **Phase 2 exit gate**: T007–T010 `[X]`; tests pass. Commit `feat(wheel-user-input): phase 2 — wheel-flag-needs-input CLI`.
 
