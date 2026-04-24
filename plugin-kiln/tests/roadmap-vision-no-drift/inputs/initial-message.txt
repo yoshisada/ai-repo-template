@@ -1,0 +1,1 @@
+Run `/kiln:kiln-roadmap --vision` against the fixtures. The repo has a populated, up-to-date `.kiln/vision.md` with `last_updated: 2026-04-24`; repo state shows no drift. The skill MUST report "no drift detected" and MUST NOT bump `last_updated:` (FR-010 negative path + spec Edge Case). Respond with `yes` / empty input where appropriate.

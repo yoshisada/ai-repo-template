@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "First-run --vision in a populated repo with no .kiln/vision.md. Skill MUST draft all four sections with evidence citations (FR-008). Validates: User Story 2 Scenario 1."
+timeout-override: 900

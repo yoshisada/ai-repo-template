@@ -76,20 +76,20 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 ### Tests
 
-- [ ] **T018** `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-first-run/`: populated repo, no `.kiln/vision.md`. Assert all four sections are drafted with evidence citations.
-- [ ] **T019** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-re-run/`: populated vision + repo drift. Assert per-section diffs emitted, `last_updated:` bumped on any accept.
-- [ ] **T020** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-empty-fallback/`: fully-empty repo. Assert one-line banner + blank-slate question path.
-- [ ] **T021** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-partial-snapshot/`: PRDs + README present, no items, no CLAUDE.md. Assert partial vision drafted with per-section evidence annotations; NO banner.
-- [ ] **T022** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-no-drift/`: re-run against unchanged state. Assert "no drift detected" output and `last_updated:` NOT bumped.
+- [X] **T018** `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-first-run/`: populated repo, no `.kiln/vision.md`. Assert all four sections are drafted with evidence citations.
+- [X] **T019** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-re-run/`: populated vision + repo drift. Assert per-section diffs emitted, `last_updated:` bumped on any accept.
+- [X] **T020** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-empty-fallback/`: fully-empty repo. Assert one-line banner + blank-slate question path.
+- [X] **T021** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-partial-snapshot/`: PRDs + README present, no items, no CLAUDE.md. Assert partial vision drafted with per-section evidence annotations; NO banner.
+- [X] **T022** `[P]` `[impl-vision-audit]` Fixture `plugin-kiln/tests/roadmap-vision-no-drift/`: re-run against unchanged state. Assert "no drift detected" output and `last_updated:` NOT bumped.
 
 ### Implementation
 
-- [ ] **T023** `[impl-vision-audit]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` `--vision` first-run path: invoke reader, draft 4 sections with evidence-citing bullets, confirm before write. **Implements**: FR-008.
-- [ ] **T024** `[impl-vision-audit]` Add re-run diff path: group proposed edits by vision section, render per-section prompt (accept-section / reject-section / step-through / global shortcuts). **Implements**: FR-009 + spec Clarification #2.
-- [ ] **T025** `[impl-vision-audit]` Add `last_updated:` bump logic (only when ≥1 edit accepted). **Implements**: FR-010.
-- [ ] **T026** `[impl-vision-audit]` Add fully-empty-snapshot banner + fallback. **Implements**: FR-011.
-- [ ] **T027** `[impl-vision-audit]` Add partial-snapshot draft path with per-section evidence annotations. **Implements**: FR-012 + spec Clarification #4.
-- [ ] **T028** `[impl-vision-audit]` Make T018–T022 pass. Commit with phase-complete message.
+- [X] **T023** `[impl-vision-audit]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` `--vision` first-run path: invoke reader, draft 4 sections with evidence-citing bullets, confirm before write. **Implements**: FR-008.
+- [X] **T024** `[impl-vision-audit]` Add re-run diff path: group proposed edits by vision section, render per-section prompt (accept-section / reject-section / step-through / global shortcuts). **Implements**: FR-009 + spec Clarification #2.
+- [X] **T025** `[impl-vision-audit]` Add `last_updated:` bump logic (only when ≥1 edit accepted). **Implements**: FR-010.
+- [X] **T026** `[impl-vision-audit]` Add fully-empty-snapshot banner + fallback. **Implements**: FR-011.
+- [X] **T027** `[impl-vision-audit]` Add partial-snapshot draft path with per-section evidence annotations. **Implements**: FR-012 + spec Clarification #4.
+- [X] **T028** `[impl-vision-audit]` Make T018–T022 pass. Commit with phase-complete message.
 
 **Checkpoint**: Track B vision path complete.
 

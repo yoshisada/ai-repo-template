@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Partial snapshot (PRDs + README present, no roadmap items, no CLAUDE.md). --vision MUST draft a partial vision with per-section evidence annotations and MUST NOT emit the blank-slate banner (FR-012, Clarification #4). Validates: User Story 2 Scenario 5."
+timeout-override: 900
