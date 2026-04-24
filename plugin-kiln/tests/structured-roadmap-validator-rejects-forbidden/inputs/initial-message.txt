@@ -1,0 +1,11 @@
+Run the validator against each fixture item to confirm FR-008 enforcement. Execute this bash command from the working directory and capture output to `validator-output.txt`:
+
+```bash
+for f in .kiln/roadmap/items/*.md; do
+  echo "=== $f ==="
+  bash plugin-kiln/scripts/roadmap/validate-item-frontmatter.sh "$f"
+done > validator-output.txt 2>&1
+cat validator-output.txt
+```
+
+No skill interview is needed — this test exercises the validator helper directly.

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "US5 — items with implementation_hints flow them into the PRD's ## Implementation Hints section with an item-id back-reference (FR-027)"
+timeout-override: 900

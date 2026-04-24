@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US10 / FR-018c + FR-039 — follow-up loop: yes → next idea (tactical) routes to /kiln:kiln-report-issue via Skill tool; final session summary shown"
+timeout-override: 1200

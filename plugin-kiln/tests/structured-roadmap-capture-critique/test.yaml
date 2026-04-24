@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US2 — critique capture: kind auto-detected as critique, proof_path required, status:open"
+timeout-override: 900

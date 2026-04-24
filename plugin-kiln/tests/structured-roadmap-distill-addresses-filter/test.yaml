@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "US5 — --addresses filter bundles only items whose addresses[] contains the critique id; unrelated items are excluded (FR-025)"
+timeout-override: 900

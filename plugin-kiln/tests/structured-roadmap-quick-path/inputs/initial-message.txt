@@ -1,0 +1,1 @@
+Run `/kiln:kiln-roadmap --quick capture this` in the current working directory. The --quick flag MUST skip all interview questions and the follow-up prompt; write exactly one item file and exit.
