@@ -105,3 +105,117 @@ If team-lead picks **Option B**:
 **WAITING FOR TEAM-LEAD GUIDANCE.** Will resume Phase A immediately on receipt of A/B/C decision (or alternative).
 
 ---
+
+## BLOCKER-002: Negative-test smoke gate (#3) FAILS — seed test cannot detect SKILL drift
+
+**Status**: 🟥 OPEN — discovered during audit 2026-04-24. PR creation halted per audit protocol ("If ANY of the 7 smoke tests fails, do NOT create the PR").
+
+**Filed by**: auditor
+**Filed**: 2026-04-24
+
+### Symptom
+
+Audit smoke test #3 (negative test) FAILED. Per the audit checklist:
+
+> **Negative test**: temporarily edit `plugin-kiln/skills/kiln-distill/SKILL.md` to remove the line that writes `derived_from:`. Re-run test #1. Confirm it now outputs `not ok 1 - kiln-distill-basic` with a diagnostic pointing at the missing frontmatter.
+
+I performed the edit (replaced the entire "YAML Frontmatter Emission" section with a deliberately-broken stub: "The generated PRD MUST NOT begin with a YAML frontmatter block. Skip frontmatter entirely.") and re-ran `plugin-kiln/scripts/harness/kiln-test.sh kiln kiln-distill-basic`.
+
+**Expected**: `not ok 1 - kiln-distill-basic`
+**Actual**: `ok 1 - kiln-distill-basic` (exit 0)
+
+The SKILL edit was REVERTED immediately after the test (`git checkout -- plugin-kiln/skills/kiln-distill/SKILL.md`; tree clean).
+
+### Root cause (from result envelope)
+
+Verdict report `.kiln/logs/kiln-test-40d47158-c7b4-420b-90a8-4a9c05caa66e-verdict.json` (`.result_envelope.result`) contains:
+
+> "Note: the skill's 'YAML Frontmatter Emission (NEGATIVE-TEST DELIBERATELY BROKEN)' section instructs to skip frontmatter, but **your explicit instruction required the mandatory frontmatter** (`derived_from:`, `distilled_date:`, `theme:`). I followed your instruction and also honored the FR-002 drift-abort invariant..."
+
+The model SAW the broken SKILL but OVERRODE it because the seed test's `inputs/initial-message.txt` redundantly hard-codes the contract:
+
+```
+$ cat plugin-kiln/tests/kiln-distill-basic/inputs/initial-message.txt
+Run `/kiln:kiln-distill` against the current working directory. Fixtures contain
+one `.kiln/feedback/` item and one `.kiln/issues/` item that share a single
+theme... Generate the PRD under `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md`
+with the mandatory frontmatter (`derived_from:`, `distilled_date:`, `theme:`)
+and the Source Issues table referencing both fixture files.
+```
+
+The phrase "with the mandatory frontmatter (`derived_from:`, `distilled_date:`, `theme:`)" is a contract specification baked into the test PROMPT, not into the test ASSERTIONS. So the assertion still passes regardless of what the SKILL says — the model satisfies the prompt, not the SKILL.
+
+### Why this defeats the harness's purpose
+
+The PRD's documented motivation (spec FR-001 + User Story 1) is:
+
+> "Right now nothing actually executes a skill — they only describe its expected behavior in markdown. If a SKILL drifts (e.g., the `derived_from:` write is removed), no test catches it. The harness exists to invoke the skill end-to-end and detect drift."
+
+But this seed test **cannot** detect that drift, because the test prompt itself dictates the contract. Any future SKILL change that breaks `derived_from:` writes will pass this test silently — exactly the failure mode the harness is built to prevent. The `kiln-distill-basic` seed test is a documentary test wearing a real-test costume.
+
+### Probable scope
+
+**Verified isolated to `kiln-distill-basic`.** Audit checked the second seed's prompt:
+
+```
+$ cat plugin-kiln/tests/kiln-hygiene-backfill-idempotent/inputs/initial-message.txt
+Run `/kiln:kiln-hygiene backfill` TWICE in sequence against the current working
+directory. After each invocation, echo the path of the generated backfill log
+(found under `.kiln/logs/prd-derived-from-backfill-*.md`). Do not apply any diff
+hunks — the skill is propose-don't-apply. After the second invocation, exit
+immediately.
+```
+
+This prompt is intent-only. It states what the user wants done (run twice, echo paths, don't apply diffs, exit) — not what shape the SKILL must produce. So the hygiene seed test would correctly fail if the hygiene SKILL drifted. Only `kiln-distill-basic`'s prompt has the contract-leakage bug.
+
+### Options for unblocking
+
+**Option A — Fix the two seed tests' initial-message.txt to be intent-only**
+
+Reword each `inputs/initial-message.txt` to state ONLY what the user wants to do, NOT how the SKILL should respond. E.g., replace:
+
+> "Generate the PRD under `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md` with the mandatory frontmatter (`derived_from:`, `distilled_date:`, `theme:`) and the Source Issues table referencing both fixture files."
+
+with:
+
+> "Run `/kiln:kiln-distill` against the current working directory. The fixtures contain one feedback item and one issue. Generate the PRD."
+
+Then re-run smoke #3 and confirm `not ok 1` is emitted when the SKILL's `derived_from:` section is removed.
+
+Cost: ~10min implementer rework + a re-run of smoke #1, #2, #3, #7. No spec/contract changes.
+
+**Option B — Add a "no-leakage" guard to the test-yaml-validate.sh / SKILL.md authoring rules**
+
+Document a rule in SKILL.md (consumer contract section) that `inputs/initial-message.txt` MUST express user intent only and MUST NOT restate SKILL behavior. Add a heuristic check (grep for contract keywords pulled from the assertions) to `test-yaml-validate.sh`.
+
+Cost: ~30min implementer + risk of false positives; needs a rule for what counts as "leakage". Bigger blast radius than Option A.
+
+**Option C — Defer to a follow-on PRD; ship v1 with documentary seed tests + a known-broken negative gate**
+
+Document BLOCKER-002 as a known limitation (the harness invokes real subprocesses but does not yet detect SKILL drift). Add a follow-on PRD ("seed test prompt-as-contract leakage") for v2.
+
+Cost: 0 implementer time but ships the harness with a hole the PRD explicitly committed to closing. Hard sell — the PRD's central premise was drift detection.
+
+### Auditor recommendation
+
+**Option A**. The fix is small, surgical, validates the harness mechanics, and preserves all stated FRs. After the rewrite I'll re-run smoke #1, #2, #3, #7 to confirm: #1/#2/#7 still PASS (the SKILLs still work), and #3 now PASSes (i.e., emits `not ok 1` when the SKILL is broken).
+
+If we choose Option A and both seed tests still pass after the prompt rewrite, that's the strongest possible signal that the harness genuinely tests SKILL behavior.
+
+### Smoke-test status snapshot at time of filing
+
+| # | Scenario | Result |
+|---|---|---|
+| 1 | `/kiln:kiln-test kiln kiln-distill-basic` → `ok 1` | ✅ PASS |
+| 2 | `/kiln:kiln-test kiln kiln-hygiene-backfill-idempotent` → `ok 1` | ✅ PASS |
+| 3 | Negative test → `not ok 1` after SKILL break | ❌ **FAIL** (this blocker) |
+| 4 | `claude --plugin-dir ./plugin-kiln --help` shows `--plugin-dir` flag | ✅ PASS |
+| 5 | >3min healthy session not terminated by watcher | ⏸ NOT RUN (PR blocked) |
+| 6 | Stalled fixture terminated around 5m mark with `stalled` verdict | ⏸ NOT RUN (PR blocked) |
+| 7 | Same test twice → byte-identical TAP | ✅ PASS |
+
+### Status
+
+**WAITING FOR TEAM-LEAD GUIDANCE.** PR creation, version bump, and remaining smoke tests (#5, #6) are halted until A/B/C is decided. SKILL.md is reverted; tree is clean.
+
+---
