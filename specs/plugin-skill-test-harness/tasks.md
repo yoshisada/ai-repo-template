@@ -77,7 +77,7 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: User-facing skill exists and is portable (NFR-001).
 
-- [ ] **T015** Write `plugin-kiln/skills/kiln-test/SKILL.md`. Frontmatter: `name: kiln-test`, description reflecting invocation forms. Body describes the three invocation forms (FR-001), refers to helper scripts via `${WORKFLOW_PLUGIN_DIR}/scripts/harness/...` (NFR-001 portability — NO repo-relative `plugin-kiln/scripts/...` paths). Body delegates to `kiln-test.sh` orchestrator. Includes the check for `claude` on PATH (Edge Cases). Satisfies FR-001 + NFR-001.
+- [X] **T015** Write `plugin-kiln/skills/kiln-test/SKILL.md`. Frontmatter: `name: kiln-test`, description reflecting invocation forms. Body describes the three invocation forms (FR-001), refers to helper scripts via `${WORKFLOW_PLUGIN_DIR}/scripts/harness/...` (NFR-001 portability — NO repo-relative `plugin-kiln/scripts/...` paths). Body delegates to `kiln-test.sh` orchestrator. Includes the check for `claude` on PATH (Edge Cases). Satisfies FR-001 + NFR-001.
 
 ---
 
@@ -85,7 +85,7 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: Harness runs cleanly in a fresh source-repo checkout with defaults; `.kiln/test.config` overrides work.
 
-- [ ] **T016** Add consumer-facing docs inside `plugin-kiln/skills/kiln-test/SKILL.md` (same file — extend Phase D body) describing: discovery path override via `.kiln/test.config`, the required-on-PATH `claude` CLI dep (NFR-002), and an example `.kiln/test.config` showing all three default keys. Also extend `kiln-test.sh` (T007 file) to surface config-load errors with exit 2 and a diagnostic. Satisfies FR-013 + FR-014.
+- [X] **T016** Add consumer-facing docs inside `plugin-kiln/skills/kiln-test/SKILL.md` (same file — extend Phase D body) describing: discovery path override via `.kiln/test.config`, the required-on-PATH `claude` CLI dep (NFR-002), and an example `.kiln/test.config` showing all three default keys. Also extend `kiln-test.sh` (T007 file) to surface config-load errors with exit 2 and a diagnostic. Satisfies FR-013 + FR-014.
 
 ---
 
@@ -93,9 +93,9 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: Two executable tests ship that demonstrate the harness against real kiln skills.
 
-- [ ] **T017** [P] Ship `plugin-kiln/tests/kiln-distill-basic/`: `test.yaml` (harness-type: plugin-skill, skill-under-test: kiln:kiln-distill, expected-exit: 0), `fixtures/.kiln/issues/` with 3 seed backlog items + `fixtures/.kiln/feedback/` with 1 seed feedback item, `inputs/initial-message.txt` = `/kiln:kiln-distill`, `inputs/answers.txt` with scripted answers for any distill prompts, `assertions.sh` that greps the generated PRD for expected frontmatter keys (`derived_from:`) and expected body sections. Satisfies FR-015 first seed + SC-001.
+- [X] **T017** [P] Ship `plugin-kiln/tests/kiln-distill-basic/`: `test.yaml` (harness-type: plugin-skill, skill-under-test: kiln:kiln-distill, expected-exit: 0), `fixtures/.kiln/issues/` with 3 seed backlog items + `fixtures/.kiln/feedback/` with 1 seed feedback item, `inputs/initial-message.txt` = `/kiln:kiln-distill`, `inputs/answers.txt` with scripted answers for any distill prompts, `assertions.sh` that greps the generated PRD for expected frontmatter keys (`derived_from:`) and expected body sections. Satisfies FR-015 first seed + SC-001.
 
-- [ ] **T018** [P] Ship `plugin-kiln/tests/kiln-hygiene-backfill-idempotent/`: `test.yaml` (harness-type: plugin-skill, skill-under-test: kiln:kiln-hygiene, expected-exit: 0), `fixtures/specs/` containing 2-3 merged-PRD directories missing `derived_from:` frontmatter, `inputs/initial-message.txt` that invokes `/kiln:kiln-hygiene backfill` twice in sequence and captures both log paths, `inputs/answers.txt` empty or with confirm-y lines, `assertions.sh` that greps the SECOND log for `^diff --git ` and fails if any match. Satisfies FR-015 second seed + SC-002 idempotence regression test.
+- [X] **T018** [P] Ship `plugin-kiln/tests/kiln-hygiene-backfill-idempotent/`: `test.yaml` (harness-type: plugin-skill, skill-under-test: kiln:kiln-hygiene, expected-exit: 0), `fixtures/specs/` containing 2-3 merged-PRD directories missing `derived_from:` frontmatter, `inputs/initial-message.txt` that invokes `/kiln:kiln-hygiene backfill` twice in sequence and captures both log paths, `inputs/answers.txt` empty or with confirm-y lines, `assertions.sh` that greps the SECOND log for `^diff --git ` and fails if any match. Satisfies FR-015 second seed + SC-002 idempotence regression test.
 
 **Phase F checkpoint**: Both seed tests pass when run via `/kiln:kiln-test kiln`. Commit: "phase F: seed tests (distill-basic, hygiene-backfill-idempotent)".
 

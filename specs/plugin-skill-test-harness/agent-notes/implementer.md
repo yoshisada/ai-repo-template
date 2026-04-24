@@ -60,7 +60,11 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
 
 3. **`timeout(1)` is not on macOS by default**. The watcher's own termination via SIGTERM is the only reliable stall-termination mechanism — FR-008's "no hard caps" matches what's actually available.
 
-4. **Up-front multi-envelope semantics require Phase B validation**. My CLI probe only sent ONE user envelope (constrained by budget). The design queues all answers before stdin EOF and trusts the runtime to process them in order. If Phase B's trivial pass-test reveals the runtime processes only the first envelope, I'll file BLOCKER-002 and we revisit.
+4. **CRITICAL: stream-json stdin MUST be a pipe, NOT a regular-file redirect** (discovered Phase F 2026-04-23). Claude Code v2.1.119 silently emits ZERO envelopes when stdin is a regular file via `< file.json` — no init, no assistant, no result, exit 0, no error. The same envelope stream PIPED via `cat file.json | claude ...` works correctly. `claude-invoke.sh` now pipes via `cat "$env_stream" | exec claude ...`. If the first seed test had not caught this, we'd have shipped a harness that silently passes every test (every subprocess would exit 0 with nothing written, making assertion.sh the sole arbiter — exactly the failure mode this PRD is supposed to prevent). This is the single most load-bearing discovery of the implementation.
+
+5. **Up-front multi-envelope semantics CONFIRMED WORKING** in Phase F: the hygiene-backfill seed test sends ONE user envelope ("run backfill twice") and the subprocess correctly processes it, running the skill twice (producing two distinct `.kiln/logs/prd-derived-from-backfill-<ts>.md` files), then emits a `{"type":"result",...}` envelope and exits. Multi-envelope streams via pipe-fed stdin Just Work with --input-format=stream-json.
+
+6. **Seed test wall-clock**: `/kiln:kiln-hygiene backfill` twice end-to-end = ~1m30s including 30s watcher-poll slack. Acceptable per NFR-006.
 
 ## Uncertainties carried forward
 
@@ -90,9 +94,13 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
      - Verdict JSON emitted to `.kiln/logs/kiln-test-<uuid>-verdict.json` with complete payload (timestamps, last_50_lines, scratch_files, result_envelope).
      - Verdict MD human-readable report at `.kiln/logs/kiln-test-<uuid>.md` with scratch-uuid/classification/transcript.
   4. **Subprocess-exit latency caveat**: Fast trivial tests (<1s) add up to `poll_interval` wall-clock because the watcher sleeps between ticks. For real seed tests this is noise; for self-test iteration I ship a short `.kiln/test.config` override (2s poll / 60s stall) in the dev workflow and let defaults (30s/300s) apply in production.
-- [Phase D]: pending
-- [Phase E]: pending
-- [Phase F — seed tests]: pending
+- [Phase D] — **done (T015)**. Wrote `plugin-kiln/skills/kiln-test/SKILL.md` with the three-form invocation table, consumer contract, `.kiln/test.config` override docs, env-var table for assertions.sh, and out-of-scope list. Body delegates to `"${WORKFLOW_PLUGIN_DIR}/scripts/harness/kiln-test.sh" $ARGUMENTS`. Zero repo-relative `plugin-kiln/scripts/...` paths per NFR-001.
+- [Phase E] — **done (T016)**. `.kiln/test.config` key docs + `claude` on PATH requirement + example config in SKILL.md; `config-load.sh` error surface already covered via `bail_out` in kiln-test.sh Phase A. No code changes required beyond SKILL.md additions.
+- [Phase F — seed tests] — **done (T017, T018)**. BOTH seed tests PASS via real Claude subprocesses:
+  1. `kiln-distill-basic` — single theme engineered so Step 3 scope prompt is skipped; PRD generated at `docs/features/<date>-<slug>/PRD.md` with `derived_from:` frontmatter referencing both fixtures; assertion passes. End-to-end ~2m.
+  2. `kiln-hygiene-backfill-idempotent` — one initial-message envelope asks the subprocess to run `/kiln:kiln-hygiene backfill` twice; both `.kiln/logs/prd-derived-from-backfill-*.md` logs written; hunk count stable (idempotence holds per FR-010 file-state semantics); assertion passes. End-to-end ~1m30s.
+  3. **Full plugin suite**: `/kiln:kiln-test kiln` → `TAP version 14\n1..2\nok 1 - kiln-distill-basic\nok 2 - kiln-hygiene-backfill-idempotent\n`, exit 0, 3m31s wall-clock.
+  4. **Critical discovery** (called out above in Watchouts #4): the pipe-vs-redirect stdin behavior of `claude --print --input-format=stream-json`. Without the pipe-fix in claude-invoke.sh, both tests produced empty transcripts and would have wasted the whole harness. This is exactly the class of silent-pass regression the PRD exists to prevent — caught by running the seed tests, which is exactly the briefing's "A test that is written but never run is the exact problem this PRD is supposed to solve."
 - [Phase G — CLAUDE.md]: pending
 - [Phase H — SMOKE.md]: pending
 

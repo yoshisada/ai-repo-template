@@ -1,0 +1,5 @@
+# Answers queued up-front as stream-json user envelopes (plan.md D6). One
+# theme was engineered in the fixtures, so Step 3 "Select Scope" is skipped
+# per SKILL.md and no theme-selection prompt is expected. If a theme prompt
+# DOES appear (e.g., the model over-splits), the next line answers "1":
+1

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-hygiene backfill` TWICE in sequence against the current working directory. After each invocation, echo the path of the generated backfill log (found under `.kiln/logs/prd-derived-from-backfill-*.md`). Do not apply any diff hunks — the skill is propose-don't-apply. After the second invocation, exit immediately.

@@ -164,12 +164,20 @@ trap 'rm -f "$env_stream"' EXIT
 
 # Subprocess is invoked with CWD = scratch dir (contracts §5 invariant).
 # NB: we do NOT attach a TTY; --print is inherently non-TTY.
+#
+# IMPORTANT CLI gotcha (Claude Code v2.1.119, discovered 2026-04-23): the
+# CLI's stream-json input reader behaves DIFFERENTLY when stdin is a regular
+# file vs a pipe. With `claude ... < file.json`, the CLI silently emits zero
+# envelopes (no init, no assistant, no result) and exits 0 — a loud failure
+# mode dressed as silence. With `cat file.json | claude ...`, the CLI
+# processes input correctly. Solution: always PIPE the envelope stream into
+# claude; never redirect it from a regular file. This is why we use `cat`
+# instead of `exec claude ... < "$env_stream"`.
 (
   cd "$scratch_dir"
-  exec claude \
+  cat "$env_stream" | exec claude \
     --print --verbose \
     --input-format=stream-json --output-format=stream-json \
     --dangerously-skip-permissions \
-    --plugin-dir "$plugin_dir" \
-    < "$env_stream"
+    --plugin-dir "$plugin_dir"
 )
