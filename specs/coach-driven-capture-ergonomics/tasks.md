@@ -27,18 +27,18 @@ description: "Task list for coach-driven-capture-ergonomics feature implementati
 
 ### Tests (write FIRST, ensure they FAIL before implementation)
 
-- [ ] **T001** `[impl-context-roadmap]` Create `bats` test `plugin-kiln/tests/project-context-reader-determinism/run.sh` asserting two invocations of `read-project-context.sh` produce byte-identical stdout on a fixture repo. **Validates**: NFR-002, FR-003, Acceptance Scenario for User Story via SC-006.
-- [ ] **T002** `[P]` `[impl-context-roadmap]` Create fixture under `plugin-kiln/tests/project-context-reader-determinism/fixture/` with: 3 PRDs, 5 roadmap items (mix of phases + kinds), 1 phase `in-progress`, 1 `.kiln/vision.md`, 1 `CLAUDE.md`, 1 `README.md`, 2 `plugin-*/.claude-plugin/plugin.json` stubs.
-- [ ] **T003** `[P]` `[impl-context-roadmap]` Create fixture under `plugin-kiln/tests/project-context-reader-empty/` with: no docs/features, no roadmap, no vision. Expected reader output: all fields `[]` or `null`, exit 0.
-- [ ] **T004** `[impl-context-roadmap]` Create `bats` test `plugin-kiln/tests/project-context-reader-performance/run.sh` asserting runtime <2 s on a synthetic 50-PRD + 100-item fixture. **Validates**: NFR-001, SC-006.
+- [X] **T001** `[impl-context-roadmap]` Create `bats` test `plugin-kiln/tests/project-context-reader-determinism/run.sh` asserting two invocations of `read-project-context.sh` produce byte-identical stdout on a fixture repo. **Validates**: NFR-002, FR-003, Acceptance Scenario for User Story via SC-006.
+- [X] **T002** `[P]` `[impl-context-roadmap]` Create fixture under `plugin-kiln/tests/project-context-reader-determinism/fixture/` with: 3 PRDs, 5 roadmap items (mix of phases + kinds), 1 phase `in-progress`, 1 `.kiln/vision.md`, 1 `CLAUDE.md`, 1 `README.md`, 2 `plugin-*/.claude-plugin/plugin.json` stubs.
+- [X] **T003** `[P]` `[impl-context-roadmap]` Create fixture under `plugin-kiln/tests/project-context-reader-empty/` with: no docs/features, no roadmap, no vision. Expected reader output: all fields `[]` or `null`, exit 0.
+- [X] **T004** `[impl-context-roadmap]` Create `bats` test `plugin-kiln/tests/project-context-reader-performance/run.sh` asserting runtime <2 s on a synthetic 50-PRD + 100-item fixture. **Validates**: NFR-001, SC-006.
 
 ### Implementation
 
-- [ ] **T005** `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-prds.sh` per `contracts/interfaces.md`. MUST set `LC_ALL=C`. **Implements**: FR-001 (prds[] field), FR-002 (missing-dir defensiveness).
-- [ ] **T006** `[P]` `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-plugins.sh` per `contracts/interfaces.md`. MUST set `LC_ALL=C`. **Implements**: FR-001 (plugins[] field), FR-002.
-- [ ] **T007** `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-project-context.sh` composing the sub-helpers + direct scans for vision/CLAUDE/README/phases/items. Use `jq -n` or manual JSON assembly with strict sorting. **Implements**: FR-001, FR-002, FR-003, NFR-002.
-- [ ] **T008** `[impl-context-roadmap]` Write `plugin-kiln/scripts/context/README.md` documenting usage + JSON schema (link-ref only, no duplication of contract).
-- [ ] **T009** `[impl-context-roadmap]` Make T001–T004 pass. Commit with phase-complete message.
+- [X] **T005** `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-prds.sh` per `contracts/interfaces.md`. MUST set `LC_ALL=C`. **Implements**: FR-001 (prds[] field), FR-002 (missing-dir defensiveness).
+- [X] **T006** `[P]` `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-plugins.sh` per `contracts/interfaces.md`. MUST set `LC_ALL=C`. **Implements**: FR-001 (plugins[] field), FR-002.
+- [X] **T007** `[impl-context-roadmap]` Implement `plugin-kiln/scripts/context/read-project-context.sh` composing the sub-helpers + direct scans for vision/CLAUDE/README/phases/items. Use `jq -n` or manual JSON assembly with strict sorting. **Implements**: FR-001, FR-002, FR-003, NFR-002.
+- [X] **T008** `[impl-context-roadmap]` Write `plugin-kiln/scripts/context/README.md` documenting usage + JSON schema (link-ref only, no duplication of contract).
+- [X] **T009** `[impl-context-roadmap]` Make T001–T004 pass. Commit with phase-complete message.
 
 **Checkpoint**: Reader lands. Tracks B and C unblock on consumption.
 
