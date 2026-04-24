@@ -76,6 +76,8 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
 
    **Secondary discovery, same issue**: unquoted backticks inside double-quoted strings in bash (e.g. `echo "FAIL: missing \`key\` line"`) cause spurious command substitution. Caught when the smoke #3 `not ok` diagnostic printed `line 36: derived_from:: command not found` alongside a blanked-out `FAIL: PRD is missing  frontmatter line`. Fix: single-quote the string instead. Net no-op for pass/fail; only affects diagnostic readability.
 
+   **Refinement (audit round-trip, post-BLOCKER-002)**: negative-drift SKILL breaks must remove ALL contract evidence — prose description AND literal examples AND template/skeleton blocks — not just the prose. My first break edited only the prose paragraph (SKILL.md lines 108-114) and left the "Literal block skeleton" fenced yaml (lines 116-126) plus the FR-002 Single-Source-of-Truth invariant (lines 136-147) intact. The model read the surviving examples in-context and faithfully reproduced them → `ok 1` (false pass). Only after collapsing BOTH the prose section AND the literal template block AND the invariant section did `not ok 1` reproduce. Auditor independently hit the same trap during re-verification. Lesson: when authoring a negative-drift check, `grep -n` for every occurrence of the contract key across the SKILL and neutralize all of them, not just the top-of-section header.
+
 ## Uncertainties carried forward
 
 - [will be populated as Phase A/B/C work surfaces them]
