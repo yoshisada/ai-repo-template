@@ -401,6 +401,69 @@ state_get_teammates() {
   printf '%s\n' "$result"
 }
 
+# FR-003/FR-004 (wheel-user-input): Set awaiting_user_input=true,
+# awaiting_user_input_since=<now-ISO8601-UTC>, and awaiting_user_input_reason=<reason>
+# on the step at <step-index> in <state-file>. Atomic write via state_write.
+# See contracts/interfaces.md §3.1.
+#
+# Params:
+#   $1 = state_file (string) — path to .wheel/state_*.json
+#   $2 = step_index (integer) — 0-based index into .steps[]
+#   $3 = reason (string) — human-readable reason; caller validates non-empty.
+#
+# Output: none on stdout. Errors to stderr.
+# Exit: 0 on success, 1 on missing file / invalid JSON / write failure.
+state_set_awaiting_user_input() {
+  local state_file="$1"
+  local step_index="$2"
+  local reason="$3"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg since "$now" \
+    --arg reason "$reason" \
+    --arg now "$now" \
+    '.steps[$idx].awaiting_user_input = true
+     | .steps[$idx].awaiting_user_input_since = $since
+     | .steps[$idx].awaiting_user_input_reason = $reason
+     | .updated_at = $now') || return 1
+  state_write "$state_file" "$updated"
+}
+
+# FR-004/FR-008 (wheel-user-input): Clear awaiting_user_input (=false),
+# awaiting_user_input_since (=null), and awaiting_user_input_reason (=null) on
+# the step at <step-index> in <state-file>. Atomic write. Idempotent — clearing
+# an already-clear step still exits 0.
+# See contracts/interfaces.md §3.2.
+#
+# Params:
+#   $1 = state_file (string)
+#   $2 = step_index (integer)
+#
+# Output: none on stdout. Errors to stderr.
+# Exit: 0 on success, 1 on missing file / invalid JSON / write failure.
+state_clear_awaiting_user_input() {
+  local state_file="$1"
+  local step_index="$2"
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --argjson idx "$step_index" \
+    --arg now "$now" \
+    '.steps[$idx].awaiting_user_input = false
+     | .steps[$idx].awaiting_user_input_since = null
+     | .steps[$idx].awaiting_user_input_reason = null
+     | .updated_at = $now') || return 1
+  state_write "$state_file" "$updated"
+}
+
 # FR-025: Remove a team from the state file (called by team-delete)
 # Params: $1 = state file, $2 = step_id (team-create step ID)
 # Output: none (updates state file)

@@ -34,12 +34,12 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 1: State helpers + validator (foundational — blocks everything else)
 
-- [ ] T001 Add `workflow_validate_allow_user_input` function to `plugin-wheel/lib/workflow.sh` per contracts §4. Reject `allow_user_input: true` on step types ∉ {agent, loop, branch}. Include FR-001, FR-002 comment.
-- [ ] T002 Wire `workflow_validate_allow_user_input` into `workflow_load` in `plugin-wheel/lib/workflow.sh` — call after existing `workflow_validate_references` and `workflow_validate_workflow_refs`, propagate exit code.
-- [ ] T003 [P] Add `state_set_awaiting_user_input(state_file, step_index, reason)` helper to `plugin-wheel/lib/state.sh` per contracts §3.1. Atomic write; sets all three fields (`awaiting_user_input: true`, `awaiting_user_input_since: <ISO-8601-UTC>`, `awaiting_user_input_reason: <reason>`). Include FR-003, FR-004 comment.
-- [ ] T004 [P] Add `state_clear_awaiting_user_input(state_file, step_index)` helper to `plugin-wheel/lib/state.sh`. Atomic write; sets all three fields to their defaults (`false`, `null`, `null`). Idempotent. Include FR-004, FR-008 comment.
-- [ ] T005 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_validator.sh` — asserts good workflows pass and bad workflows fail with the documented error format. Covers US3 acceptance scenario 2.
-- [ ] T006 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_state_helpers.sh` — asserts set + clear round-trip correctness, idempotency, atomic replacement (state file never partially written).
+- [X] T001 Add `workflow_validate_allow_user_input` function to `plugin-wheel/lib/workflow.sh` per contracts §4. Reject `allow_user_input: true` on step types ∉ {agent, loop, branch}. Include FR-001, FR-002 comment.
+- [X] T002 Wire `workflow_validate_allow_user_input` into `workflow_load` in `plugin-wheel/lib/workflow.sh` — call after existing `workflow_validate_references` and `workflow_validate_workflow_refs`, propagate exit code.
+- [X] T003 [P] Add `state_set_awaiting_user_input(state_file, step_index, reason)` helper to `plugin-wheel/lib/state.sh` per contracts §3.1. Atomic write; sets all three fields (`awaiting_user_input: true`, `awaiting_user_input_since: <ISO-8601-UTC>`, `awaiting_user_input_reason: <reason>`). Include FR-003, FR-004 comment.
+- [X] T004 [P] Add `state_clear_awaiting_user_input(state_file, step_index)` helper to `plugin-wheel/lib/state.sh`. Atomic write; sets all three fields to their defaults (`false`, `null`, `null`). Idempotent. Include FR-004, FR-008 comment.
+- [X] T005 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_validator.sh` — asserts good workflows pass and bad workflows fail with the documented error format. Covers US3 acceptance scenario 2.
+- [X] T006 [P] Write `plugin-wheel/tests/unit/test_wheel_user_input_state_helpers.sh` — asserts set + clear round-trip correctness, idempotency, atomic replacement (state file never partially written).
 
 **Phase 1 exit gate**: T001–T006 all marked `[X]`; running T005 + T006 locally passes. Commit with message `feat(wheel-user-input): phase 1 — validator + state helpers`.
 
