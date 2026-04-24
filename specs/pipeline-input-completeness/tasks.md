@@ -10,14 +10,14 @@ Tasks are partitioned into 5 phases (Phase D is dropped per plan §Decision 2). 
 
 ## Phase A — Step 4b: feedback scan + matching loop (FR-001, FR-002)
 
-- [ ] **T01-1** Add the path-normalization helper and the two-source scan loop to Step 4b in `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
+- [X] **T01-1** Add the path-normalization helper and the two-source scan loop to Step 4b in `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
   - Replace the current single-dir loop (lines ~596–610 of the existing Step 4b body) with the §1 step 2 helper + step 3 scan loop from `contracts/interfaces.md`.
   - Preserve the surrounding markdown prose (heading, intro paragraph, "If no matching issues are found..." trailer is replaced by the new diagnostic flow).
   - Validation: `grep -E 'for f in \.kiln/issues/\*\.md \.kiln/feedback/\*\.md' plugin-kiln/skills/kiln-build-prd/SKILL.md` returns a match.
   - **Maps to**: FR-001, FR-004 (normalize helper).
   - **Files**: `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
 
-- [ ] **T01-2** Add the archive loop with originating-directory preservation.
+- [X] **T01-2** Add the archive loop with originating-directory preservation.
   - Append the §1 step 4 block (`for f in "${MATCH_LIST[@]}"; do …`) immediately after the scan loop.
   - Verify `mv` target uses `$(dirname "$f")/completed/` — NOT a hardcoded `.kiln/issues/completed/`.
   - Validation: `grep -E 'dest_dir="\${orig_dir}/completed"' plugin-kiln/skills/kiln-build-prd/SKILL.md` matches.
@@ -28,20 +28,20 @@ Tasks are partitioned into 5 phases (Phase D is dropped per plan §Decision 2). 
 
 ## Phase B — Step 4b: diagnostic + log marker (FR-003, FR-005)
 
-- [ ] **T02-1** Add the per-file `skipped` accumulator hooks (already structured in T01-1's scan loop; verify they are present and correct).
+- [X] **T02-1** Add the per-file `skipped` accumulator hooks (already structured in T01-1's scan loop; verify they are present and correct).
   - The `SKIPPED=$((SKIPPED + 1))` increments on (a) failed normalization, (b) non-existent `prd:` target, (c) failed `mv`.
   - Validation: `grep -c 'SKIPPED=$((SKIPPED + 1))' plugin-kiln/skills/kiln-build-prd/SKILL.md` returns 2 (one in scan, one in archive on `mv` failure).
   - **Maps to**: FR-004.
   - **Files**: `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
 
-- [ ] **T02-2** Add the diagnostic-line emit step (§1 step 5).
+- [X] **T02-2** Add the diagnostic-line emit step (§1 step 5).
   - Insert between the archive loop and the commit step.
   - Literal format MUST match `contracts/interfaces.md` §2. Verification: run the regex check from §2 on a sample stdout.
   - Validation: `grep -F 'step4b: scanned_issues=${SCANNED_ISSUES} scanned_feedback=${SCANNED_FEEDBACK}' plugin-kiln/skills/kiln-build-prd/SKILL.md` matches.
   - **Maps to**: FR-003.
   - **Files**: `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
 
-- [ ] **T02-3** Add the log-file append + commit logic (§1 step 6).
+- [X] **T02-3** Add the log-file append + commit logic (§1 step 6).
   - The log path uses `date -u +%Y-%m-%d` and lives at `.kiln/logs/build-prd-step4b-${TODAY}.md`.
   - Commit messages: `chore: step4b lifecycle — archived <N> item(s) for <PRD_PATH>` (matched) OR `chore: step4b lifecycle noop — <PRD_PATH>` (zero match).
   - Both branches MUST `git add "$LOG_FILE"`.
@@ -56,7 +56,7 @@ Tasks are partitioned into 5 phases (Phase D is dropped per plan §Decision 2). 
 - [ ] **T03-1** Replace the `read-shelf-config` step's command with the defensive parser from `contracts/interfaces.md` §3.
   - The output now follows the `## SHELF_CONFIG_PARSED ... ## END_SHELF_CONFIG_PARSED` block format.
   - If the implementer extracts the parser into a helper script, it MUST live at `plugin-shelf/scripts/parse-shelf-config.sh` and be invoked via `bash "${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh"` (NEVER repo-relative — CLAUDE.md plugin-portability invariant).
-  - Validation: `jq -r '.steps[] | select(.id=="read-shelf-config") | .command' plugin-shelf/workflows/shelf-write-issue-note.json` contains `SHELF_CONFIG_PARSED`.
+  - Validation: `jq -r '.steps[] | select(.id=="read-shelf-config") | .command' plugin-shelf/workflows/shelf-write-issue-note.json` contains `parse-shelf-config.sh` (extracted per §3 "MAY move into a small reusable script"), AND `bash plugin-shelf/scripts/parse-shelf-config.sh` emits `SHELF_CONFIG_PARSED` on stdout.
   - **Maps to**: FR-006 (input parsing), NFR-006 (workflow portability).
   - **Files**: `plugin-shelf/workflows/shelf-write-issue-note.json`, optionally `plugin-shelf/scripts/parse-shelf-config.sh`.
 
