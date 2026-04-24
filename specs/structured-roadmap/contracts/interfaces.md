@@ -86,6 +86,18 @@ prd: <docs/features/.../PRD.md path>     # written by distill on promotion (FR-0
 spec: <specs/.../spec.md path>           # written by /specify on state: specced (FR-034)
 ```
 
+### §1.3a Key-order determinism (FR-037)
+
+For idempotent writes (NFR-003 / FR-037), item frontmatter keys MUST be written in this canonical order:
+
+1. Required keys in declaration order: `id`, `title`, `kind`, `date`, `status`, `phase`, `state`, `blast_radius`, `review_cost`, `context_cost`
+2. `proof_path` (if `kind: critique`) — immediately after `context_cost`, before optional keys
+3. Optional keys in alphabetical order: `addresses`, `depends_on`, `implementation_hints`, `prd`, `spec` (then any future keys, alpha-sorted)
+
+Re-running the capture skill with identical inputs MUST produce a byte-identical file per this ordering. Any implementation that writes optional keys in non-alphabetical order violates FR-037 and breaks distill's NFR-003 guarantee.
+
+The validator (`validate-item-frontmatter.sh`) does NOT enforce key order (YAML is order-independent for parsing). Key order is enforced by the write path in the capture skill and by code review. Auditors MUST check new item-write code paths for order compliance.
+
 Required-conditional (FR-011): if `kind: critique`, the file MUST also include:
 
 ```yaml

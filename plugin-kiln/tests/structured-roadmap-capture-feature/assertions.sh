@@ -10,6 +10,14 @@
 set -euo pipefail
 
 ITEMS_DIR=".kiln/roadmap/items"
+VISION_FILE=".kiln/vision.md"
+
+# FR-001: .kiln/vision.md created on first run
+if [ ! -f "$VISION_FILE" ]; then
+  echo "FAIL: $VISION_FILE not created (FR-001)" >&2
+  find .kiln -type f 2>/dev/null >&2 || true
+  exit 1
+fi
 
 if [ ! -d "$ITEMS_DIR" ]; then
   echo "FAIL: $ITEMS_DIR not created (FR-002)" >&2

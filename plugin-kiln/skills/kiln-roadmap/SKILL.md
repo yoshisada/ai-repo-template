@@ -163,6 +163,38 @@ fi
 
 ---
 
+## Step 1b: Load context (FR-013 / PRD FR-013)
+
+<!-- FR-013 / PRD FR-013: MUST first read .kiln/vision.md, all .kiln/roadmap/phases/*.md, and all .kiln/roadmap/items/*.md to build context BEFORE classification. -->
+
+This step runs ONLY when proceeding to the capture pipeline (i.e., when no flag dispatched the skill to §V, §P, §C, or §R). If `QUICK_MODE=1` and `NON_INTERACTIVE=1`, still read for context — the classifier uses it.
+
+```bash
+# FR-013: read existing state for context before classification
+VISION_CONTENT="$(cat "$VISION_FILE" 2>/dev/null || echo "(no vision yet)")"
+
+# Summarise existing phases for context
+PHASES_SUMMARY=""
+if [ -d "$PHASES_DIR" ]; then
+  while IFS= read -r pf; do
+    pname="$(basename "$pf" .md)"
+    pstatus="$(awk '/^status:[[:space:]]/ { sub(/^status:[[:space:]]*/,""); print; exit }' "$pf" 2>/dev/null)"
+    PHASES_SUMMARY="${PHASES_SUMMARY}  - ${pname} (${pstatus:-unknown})\n"
+  done < <(ls "$PHASES_DIR"/*.md 2>/dev/null)
+fi
+
+# Count and summarise existing items for context (don't load every file — just the list)
+ITEMS_PATHS="$(bash "$H_LIST_ITEMS" 2>/dev/null || true)"
+ITEMS_COUNT="$(printf '%s' "$ITEMS_PATHS" | grep -c . || echo 0)"
+
+# Surface context summary to the AI agent (used implicitly in classification and interview)
+echo "context: vision=$([ -f "$VISION_FILE" ] && echo present || echo absent)  phases=$(echo "$PHASES_SUMMARY" | grep -c . || echo 0)  items=$ITEMS_COUNT"
+```
+
+The AI agent SHOULD also scan the first 20 lines of each existing phase file and a random sample of recent item files to build richer classification context, but this bash preamble ensures the *minimum required context* (vision, phase list, item count) is available before Step 2.
+
+---
+
 ## Step 2: Cross-surface routing (FR-014, FR-014b / PRD FR-014, FR-014b — confirm-never-silent)
 
 <!-- FR-014 / PRD FR-014: tactical → offer kiln-report-issue; strategic → offer kiln-feedback; product-intent → stay in roadmap.
