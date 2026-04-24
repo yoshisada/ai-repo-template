@@ -117,7 +117,7 @@ The generated-PRD body in the smoke #3 retained scratch dir started with `# Feat
 
 **Secondary fix** committed alongside: `plugin-kiln/tests/kiln-distill-basic/assertions.sh` line 36 had backticks inside a double-quoted string, which bash was (incorrectly) treating as command substitution (`\`derived_from:\`` ran as a command and produced `command not found` in the diagnostic). Switched to single-quotes so the error message reads cleanly. Net no-op for pass/fail outcomes — only affects the diagnostic text on failure.
 
-**Commit**: `ee3c1d8` — "fix(test): intent-only prompt for kiln-distill-basic seed (BLOCKER-002 resolved)".
+**Commit**: `b6f063c` — "fix(test): intent-only prompt for kiln-distill-basic seed (BLOCKER-002 resolved)".
 
 **Filed by**: auditor
 **Filed**: 2026-04-24
