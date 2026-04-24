@@ -46,16 +46,16 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 
 ### Tests (write FIRST, ensure they FAIL before implementation)
 
-- [ ] **T006** `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-basic/` — happy path: `.kiln/issues/2026-04-24-widget-dark-mode.md` (body ≥ 200 chars, `status: open`), run `/kiln:kiln-roadmap --promote <path>` with coached accept-all, assert new item file exists with required frontmatter and source is `status: promoted` + `roadmap_item:`. **Validates**: FR-006, SC-003.
-- [ ] **T007** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-byte-preserve/` — capture `sha256sum` of the source body (bytes after closing `---`) before promotion and after, assert identical. **Validates**: NFR-003.
-- [ ] **T008** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-idempotency/` — pre-seed source with `status: promoted`, run `/kiln:kiln-roadmap --promote <path>`, assert exit code 5 and clear "already promoted" message. **Validates**: FR-006 (Acceptance Scenario 5).
-- [ ] **T009** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-missing-source/` — run `/kiln:kiln-roadmap --promote .kiln/issues/does-not-exist.md`, assert exit code 3. **Validates**: FR-006 (Acceptance Scenario 6).
+- [X] **T006** `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-basic/` — happy path: `.kiln/issues/2026-04-24-widget-dark-mode.md` (body ≥ 200 chars, `status: open`), run `/kiln:kiln-roadmap --promote <path>` with coached accept-all, assert new item file exists with required frontmatter and source is `status: promoted` + `roadmap_item:`. **Validates**: FR-006, SC-003.
+- [X] **T007** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-byte-preserve/` — capture `sha256sum` of the source body (bytes after closing `---`) before promotion and after, assert identical. **Validates**: NFR-003.
+- [X] **T008** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-idempotency/` — pre-seed source with `status: promoted`, run `/kiln:kiln-roadmap --promote <path>`, assert exit code 5 and clear "already promoted" message. **Validates**: FR-006 (Acceptance Scenario 5).
+- [X] **T009** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/roadmap-promote-missing-source/` — run `/kiln:kiln-roadmap --promote .kiln/issues/does-not-exist.md`, assert exit code 3. **Validates**: FR-006 (Acceptance Scenario 6).
 
 ### Implementation
 
-- [ ] **T010** `[impl-governance]` Implement `plugin-kiln/scripts/roadmap/promote-source.sh` per `contracts/interfaces.md` Module 2. MUST set `LC_ALL=C` for any sort; MUST byte-preserve the source body. **Implements**: FR-006, NFR-003.
-- [ ] **T011** `[impl-governance]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` with a new Step N "Promote source" branch that activates on `--promote <arg>`. Resolve `<arg>` to a path (GitHub issue-number form per contract). Drive the coached interview with source pre-fill when body ≥ 200 chars (Clarification 5). Call `promote-source.sh`. **Implements**: FR-006.
-- [ ] **T012** `[impl-governance]` Make T006..T009 pass. Commit Phase 2 with message `feat(workflow-governance): /kiln:kiln-roadmap --promote path (FR-006)`.
+- [X] **T010** `[impl-governance]` Implement `plugin-kiln/scripts/roadmap/promote-source.sh` per `contracts/interfaces.md` Module 2. MUST set `LC_ALL=C` for any sort; MUST byte-preserve the source body. **Implements**: FR-006, NFR-003.
+- [X] **T011** `[impl-governance]` Update `plugin-kiln/skills/kiln-roadmap/SKILL.md` with a new Step N "Promote source" branch that activates on `--promote <arg>`. Resolve `<arg>` to a path (GitHub issue-number form per contract). Drive the coached interview with source pre-fill when body ≥ 200 chars (Clarification 5). Call `promote-source.sh`. **Implements**: FR-006.
+- [X] **T012** `[impl-governance]` Make T006..T009 pass. Commit Phase 2 with message `feat(workflow-governance): /kiln:kiln-roadmap --promote path (FR-006)`.
 
 **Checkpoint**: Promotion path is viable. Phase 3 can graft onto it.
 

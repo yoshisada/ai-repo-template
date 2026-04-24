@@ -90,21 +90,27 @@ fi
 bash plugin-kiln/scripts/roadmap/promote-source.sh \
   --source <path> \
   --kind <feature|goal|research|constraint|non-goal|milestone|critique> \
-  --blast-radius <low|medium|high> \
-  --review-cost <low|medium|high> \
-  --context-cost <low|medium|high> \
+  --blast-radius <isolated|feature|cross-cutting|infra> \
+  --review-cost <trivial|moderate|careful|expert> \
+  --context-cost <free-text> \
   --phase <phase-name> \
   --slug <slug> \
-  [--title <title>]
+  [--title <title>] \
+  [--status <open|...>]
 ```
 
 **Arguments** (all `--flag value` form):
 - `--source <path>` (required) — absolute or repo-relative path to `.kiln/issues/*.md` or `.kiln/feedback/*.md`.
 - `--kind` (required) — exactly one of the 7 documented kinds.
-- `--blast-radius` / `--review-cost` / `--context-cost` (required) — one of `low|medium|high`.
+- `--blast-radius` (required) — one of `isolated|feature|cross-cutting|infra` (matches `specs/structured-roadmap/contracts/interfaces.md` §1.3 enum).
+- `--review-cost` (required) — one of `trivial|moderate|careful|expert`.
+- `--context-cost` (required) — free-text descriptor (e.g. `"1-3 sessions"`, `"high"`, `"low"`); validated downstream by `validate-item-frontmatter.sh`.
 - `--phase` (required) — phase name (e.g. `workflow-governance`), resolved to the matching phase file.
 - `--slug` (required) — slug for the new item filename.
 - `--title` (optional) — H1 for the new item; defaults to the source file's H1.
+- `--status` (optional) — kind-specific status per `status_for_kind` in `validate-item-frontmatter.sh`; defaults to the first status in the kind's allowed set (e.g. `open` for `feature|goal|research`).
+
+**Contract change note** (2026-04-24, by impl-governance): The original draft of this module specified `low|medium|high` for all three sizing flags. That contradicted the structured-roadmap sizing enum already enforced by `validate-item-frontmatter.sh`. The flags above are the corrected set. No call site outside this feature consumes these flags, so the change is local to Module 2.
 
 **Side effects**:
 - **Writes** `.kiln/roadmap/items/<YYYY-MM-DD>-<slug>.md` with valid frontmatter per `specs/structured-roadmap/contracts/interfaces.md`, plus `promoted_from: <source-path>`.
