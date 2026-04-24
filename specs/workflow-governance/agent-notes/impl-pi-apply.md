@@ -1,5 +1,13 @@
 # impl-pi-apply friction note — Phase 4
 
+## Landing provenance
+
+Phase 4 landed in commit `a340652` — but that commit's message ("docs(workflow-governance): complementary /plan enum-check follow-on") was authored by impl-governance and does **not** describe the FR-009..FR-013 work. The landing was a concurrent-commit collision: I had Phase 4 files staged via `git add` when impl-governance ran `git commit`; the index was shared, so all 46 of my files got absorbed under their message.
+
+Content integrity is intact — `git show a340652 --stat` lists every Phase 4 file. The follow-up commit that carries **this** friction-note edit (its message describes the full FR-009..FR-013 landing) is the provenance anchor for the auditor and retrospective to cite. Nothing was rewritten; no history churn.
+
+Takeaway for future parallel implementers sharing a branch: use `git commit --only <path>...` instead of the default index-wide commit, or `git stash push --keep-index` before committing your own work, so a teammate's mid-stream `git add` can't sweep into your commit. Worth a /kiln:kiln-report-issue entry as a pipeline-ergonomics improvement.
+
 ## What went well
 
 - **Tight contract in `contracts/interfaces.md` Module 3** was load-bearing. Every script had a documented invocation, stdin/stdout schema, exit-code table, and sort rules — I could write the scripts without round-tripping on ambiguous shapes. The report section order + determinism guarantee (SC-004) being pinned explicitly meant I caught my own sort-bug early.
