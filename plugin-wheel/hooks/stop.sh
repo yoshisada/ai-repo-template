@@ -38,6 +38,37 @@ fi
 wheel_log_set_state "$STATE_FILE"
 wheel_log "resolved" "state=$STATE_FILE"
 
+# FR-007 (wheel-user-input): Silence branch — if the current step is awaiting
+# user input AND the output file has NOT yet been written, emit nothing and
+# return. The Stop hook re-fires on every turn while the user answers; without
+# this branch the agent would be spammed with "write your output" reminders
+# across every reply turn.
+#
+# If the output file IS present, fall through to the normal advance path —
+# dispatch_agent will mark the step done, auto-clear awaiting_user_input
+# (FR-008), and advance the cursor.
+#
+# Silent JSON (no stopReason/systemMessage/additionalContext) matches the
+# no-state-file path above; produces zero user-visible text.
+_PRE_CURSOR=$(jq -r '.cursor // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+_PRE_AWAITING=$(jq -r --argjson idx "$_PRE_CURSOR" '.steps[$idx].awaiting_user_input // false' "$STATE_FILE" 2>/dev/null || echo false)
+if [[ "$_PRE_AWAITING" == "true" ]]; then
+  # Only silence if the step's output hasn't been written yet. Read the
+  # output key from the workflow file.
+  _PRE_WF=$(jq -r '.workflow_file // empty' "$STATE_FILE" 2>/dev/null || echo "")
+  _PRE_OUTPUT=""
+  if [[ -n "$_PRE_WF" && -f "$_PRE_WF" ]]; then
+    _PRE_OUTPUT=$(jq -r --argjson idx "$_PRE_CURSOR" '.steps[$idx].output // empty' "$_PRE_WF" 2>/dev/null || echo "")
+  fi
+  _PRE_STEP_ID=$(jq -r --argjson idx "$_PRE_CURSOR" '.steps[$idx].id // "?"' "$STATE_FILE" 2>/dev/null || echo "?")
+  if [[ -z "$_PRE_OUTPUT" ]] || [[ ! -f "$_PRE_OUTPUT" ]]; then
+    wheel_log "silent" "reason=awaiting_user_input step=${_PRE_STEP_ID}"
+    echo '{"decision": "approve"}'
+    exit 0
+  fi
+  wheel_log "advance_from_silent" "step=${_PRE_STEP_ID} output=${_PRE_OUTPUT}"
+fi
+
 # 3. Read workflow file from resolved state (FR-005)
 WORKFLOW_FILE=$(jq -r '.workflow_file // empty' "$STATE_FILE")
 if [[ -z "$WORKFLOW_FILE" || ! -f "$WORKFLOW_FILE" ]]; then

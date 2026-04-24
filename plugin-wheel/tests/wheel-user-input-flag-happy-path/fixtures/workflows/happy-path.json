@@ -1,0 +1,14 @@
+{
+  "name": "happy-path",
+  "version": "1.0.0",
+  "description": "Harness fixture for US1 — agent pauses via wheel-flag-needs-input, then writes output",
+  "steps": [
+    {
+      "id": "ask",
+      "type": "agent",
+      "allow_user_input": true,
+      "output": ".wheel/outputs/ask.json",
+      "instruction": "You MUST call `wheel flag-needs-input \"need user choice\"` once (or the absolute-path form), then wait for the user's reply. After the reply, write `{\"user_choice\": \"<reply>\"}` to .wheel/outputs/ask.json."
+    }
+  ]
+}

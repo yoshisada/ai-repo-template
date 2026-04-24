@@ -58,11 +58,11 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 3: Stop hook integration
 
-- [ ] T011 Add silence branch to `plugin-wheel/hooks/stop.sh` per contracts §6.1: after state resolution, before the call that renders / emits step instructions, check `.steps[cursor].awaiting_user_input`. If `true`, emit exactly `{"decision": "approve"}` via `printf`/`jq -n`, log via `wheel_log`, exit 0. Include FR-007 comment.
-- [ ] T012 Augment advance-bookkeeping path (inside `engine_handle_hook` or wherever the hook advances cursor after output-file detection) to call `state_clear_awaiting_user_input "$STATE_FILE" "$just_completed_index"` after the cursor advance, before the next step's instruction rendering. Include FR-008 comment.
-- [ ] T013 Locate the step-instruction renderer (grep for the current "write your output" reminder string across `plugin-wheel/lib/` + `plugin-wheel/hooks/`). Document the file + function location in a comment at the top of the patch.
-- [ ] T014 Append the FR-009 instruction block (verbatim from contracts §6.3) to the rendered instruction when the step has `allow_user_input: true`. Include FR-009 comment.
-- [ ] T015 Write `plugin-wheel/tests/wheel-user-input-flag-happy-path/` harness fixture — one-step workflow, agent calls `wheel-flag-needs-input`, asserts silent hook fires, then agent writes output, asserts advance + auto-clear. Covers US1 scenarios 1–3.
+- [X] T011 Add silence branch to `plugin-wheel/hooks/stop.sh` per contracts §6.1: after state resolution, before the call that renders / emits step instructions, check `.steps[cursor].awaiting_user_input`. If `true`, emit exactly `{"decision": "approve"}` via `printf`/`jq -n`, log via `wheel_log`, exit 0. Include FR-007 comment. (Refined: silence is conditional on output-file absence so the advance path still runs once the agent writes output.)
+- [X] T012 Augment advance-bookkeeping path (inside `engine_handle_hook` or wherever the hook advances cursor after output-file detection) to call `state_clear_awaiting_user_input "$STATE_FILE" "$just_completed_index"` after the cursor advance, before the next step's instruction rendering. Include FR-008 comment. (Added at three advance points in `dispatch_agent`: stop working→done, no-output auto-complete, post_tool_use output-write.)
+- [X] T013 Locate the step-instruction renderer (grep for the current "write your output" reminder string across `plugin-wheel/lib/` + `plugin-wheel/hooks/`). Document the file + function location in a comment at the top of the patch. (Renderer lives in `lib/context.sh::context_build`; injection happens there.)
+- [X] T014 Append the FR-009 instruction block (verbatim from contracts §6.3) to the rendered instruction when the step has `allow_user_input: true`. Include FR-009 comment.
+- [X] T015 Write `plugin-wheel/tests/wheel-user-input-flag-happy-path/` harness fixture — one-step workflow, agent calls `wheel-flag-needs-input`, asserts silent hook fires, then agent writes output, asserts advance + auto-clear. Covers US1 scenarios 1–3. (Also added unit-level integration test `test_wheel_user_input_stop_hook.sh` for cheap local coverage of FR-007/FR-008/FR-009.)
 
 **Phase 3 exit gate**: T011–T015 `[X]`; harness fixture passes. Commit `feat(wheel-user-input): phase 3 — stop hook silence + instruction injection`.
 

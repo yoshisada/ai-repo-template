@@ -49,6 +49,16 @@ context_build() {
     done <<< "$context_from"
   fi
 
+  # FR-009 (wheel-user-input): When the step opts into user input via
+  # `allow_user_input: true`, append the verbatim instruction block so the
+  # agent discovers the primitive. Without this nudge, agents won't run
+  # `wheel flag-needs-input` even on permitted steps.
+  local _allow
+  _allow=$(printf '%s\n' "$step_json" | jq -r '.allow_user_input // false')
+  if [[ "$_allow" == "true" ]]; then
+    context_parts="${context_parts}\n\n---\n**This step permits user input.** If you cannot resolve this step from repo state alone, you MAY output your question to the user and then run \`wheel flag-needs-input \"<short reason>\"\` (or the absolute-path form \`plugin-wheel/bin/wheel-flag-needs-input \"<short reason>\"\`) before ending your turn. The Stop hook will stay silent until you write the step output. If the question is unnecessary, skip it and write the output directly — pausing is a last resort."
+  fi
+
   printf '%b' "$context_parts"
 }
 
