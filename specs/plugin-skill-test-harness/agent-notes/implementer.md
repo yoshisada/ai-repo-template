@@ -101,8 +101,8 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
   2. `kiln-hygiene-backfill-idempotent` — one initial-message envelope asks the subprocess to run `/kiln:kiln-hygiene backfill` twice; both `.kiln/logs/prd-derived-from-backfill-*.md` logs written; hunk count stable (idempotence holds per FR-010 file-state semantics); assertion passes. End-to-end ~1m30s.
   3. **Full plugin suite**: `/kiln:kiln-test kiln` → `TAP version 14\n1..2\nok 1 - kiln-distill-basic\nok 2 - kiln-hygiene-backfill-idempotent\n`, exit 0, 3m31s wall-clock.
   4. **Critical discovery** (called out above in Watchouts #4): the pipe-vs-redirect stdin behavior of `claude --print --input-format=stream-json`. Without the pipe-fix in claude-invoke.sh, both tests produced empty transcripts and would have wasted the whole harness. This is exactly the class of silent-pass regression the PRD exists to prevent — caught by running the seed tests, which is exactly the briefing's "A test that is written but never run is the exact problem this PRD is supposed to solve."
-- [Phase G — CLAUDE.md]: pending
-- [Phase H — SMOKE.md]: pending
+- [Phase G — CLAUDE.md] — **done (T019)**. Added `/kiln:kiln-test [plugin] [test]` entry under "Other" in Available Commands, naming all three invocation forms, the stream-json flag set actually used, the verdict report + retained scratch paths, the v1 substrate scope, and pointers to the seed tests.
+- [Phase H — SMOKE.md] — **done (T020)**. Wrote `specs/plugin-skill-test-harness/SMOKE.md` with 4 executable blocks (A: distill-basic standalone; B: hygiene-backfill-idempotent standalone; C: full plugin suite; D: TAP determinism across two runs). Block B executed standalone to verify the grep invariants fire correctly — `BLOCK B PASS`. Closes the long-standing retrospective gap: the harness has its own executable smoke test.
 
 ## Seed test failures encountered during development
 

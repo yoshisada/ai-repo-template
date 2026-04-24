@@ -105,7 +105,7 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: Consumer discovery of the new command.
 
-- [ ] **T019** Edit `CLAUDE.md` under "Available Commands" → "Other" section. Add:
+- [X] **T019** Edit `CLAUDE.md` under "Available Commands" → "Other" section. Add:
 
   `- /kiln:kiln-test [plugin] [test] — Executable skill-test harness. Invokes real claude --plugin-dir ... --headless subprocesses against /tmp/kiln-test-<uuid>/ fixtures, watched by a classifier agent (no hard timeouts). Three forms: /kiln:kiln-test (auto-detect plugin), /kiln:kiln-test <plugin>, /kiln:kiln-test <plugin> <test>. Seed tests under plugin-kiln/tests/. Verdict reports at .kiln/logs/kiln-test-<uuid>.md. V1: plugin-skill substrate only.`
 
@@ -117,7 +117,7 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: The harness tests *itself* via executable fixtures that invoke it against the two seed tests and verify exit codes / TAP shape. This is the harness's own test harness.
 
-- [ ] **T020** Write `specs/plugin-skill-test-harness/SMOKE.md`. Contents: three executable bash blocks that (a) run `/kiln:kiln-test kiln kiln-distill-basic` and verify stdout matches `^ok 1 - kiln-distill-basic$` and exit code 0; (b) run `/kiln:kiln-test kiln kiln-hygiene-backfill-idempotent` and verify `^ok 1 - kiln-hygiene-backfill-idempotent$` and exit code 0; (c) run `/kiln:kiln-test kiln` (full plugin suite) and verify exit code 0 with `1..2` plan line. Each block is self-contained and greppable for CI adoption later. Satisfies SC-001, SC-002, SC-009, SC-010.
+- [X] **T020** Write `specs/plugin-skill-test-harness/SMOKE.md`. Contents: three executable bash blocks that (a) run `/kiln:kiln-test kiln kiln-distill-basic` and verify stdout matches `^ok 1 - kiln-distill-basic$` and exit code 0; (b) run `/kiln:kiln-test kiln kiln-hygiene-backfill-idempotent` and verify `^ok 1 - kiln-hygiene-backfill-idempotent$` and exit code 0; (c) run `/kiln:kiln-test kiln` (full plugin suite) and verify exit code 0 with `1..2` plan line. Each block is self-contained and greppable for CI adoption later. Satisfies SC-001, SC-002, SC-009, SC-010.
 
 **Phase H checkpoint**: SMOKE.md blocks execute cleanly when pasted into a shell. This is the gate that proves the harness actually works — the long-standing retrospective gap closes here. Commit: "phase H: SMOKE.md meta-fixtures + retrospective-gap closure".
 
