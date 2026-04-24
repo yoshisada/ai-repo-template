@@ -37,7 +37,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase B — Build-prd Step 4b: frontmatter-path reader + extended diagnostic (FR-004, FR-005, FR-006)
 
-- [ ] **T02-1** Add the `read_derived_from()` helper to `plugin-kiln/skills/kiln-build-prd/SKILL.md` Step 4b.
+- [X] **T02-1** Add the `read_derived_from()` helper to `plugin-kiln/skills/kiln-build-prd/SKILL.md` Step 4b.
   - Paste the awk-state-machine extractor from contracts §2.1 verbatim.
   - Helper reads ONLY the first `---`…`---` block; bails on the first non-`---` line before any `---`.
   - Emits zero lines on missing / malformed / empty frontmatter (falls through to scan-fallback on zero output).
@@ -45,7 +45,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-004 (reader input), FR-005 (fallback trigger on empty output).
   - **Files**: `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
 
-- [ ] **T02-2** Add the frontmatter-path archive loop + `missing_entries` tracking.
+- [X] **T02-2** Add the frontmatter-path archive loop + `missing_entries` tracking.
   - Paste contracts §2.2 (branch decision) + §2.3 (frontmatter-path archive loop) verbatim.
   - On the frontmatter path, `SCANNED_ISSUES` and `SCANNED_FEEDBACK` are incremented from the `derived_from:` list (NOT a directory scan).
   - Missing entries are accumulated into `MISSING_ENTRIES` but do NOT stop the loop (FR-006).
@@ -54,7 +54,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-004, FR-005, FR-006.
   - **Files**: `plugin-kiln/skills/kiln-build-prd/SKILL.md`.
 
-- [ ] **T02-3** Replace the diagnostic-line composition with the extended 8-field version.
+- [X] **T02-3** Replace the diagnostic-line composition with the extended 8-field version.
   - Paste contracts §2.5 verbatim — `MISSING_JSON` computed via `jq -Rn '[inputs]' -c`; `DIAG_LINE=` appends `derived_from_source=` and `missing_entries=` AFTER the existing `prd_path=${PRD_PATH_NORM}` field.
   - DO NOT reorder / rename / remove any existing field. Fields 1–6 MUST match the PR-#146 grep regex (contracts §2.6.2).
   - Validation: on a frontmatter-path run, the diagnostic line matches both the extended regex (contracts §2.6.1) AND the PR-#146 regex (contracts §2.6.2). SMOKE.md §5.2 sub-fixture A AND B both print `OK`.
