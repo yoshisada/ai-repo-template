@@ -3,7 +3,9 @@ id: 2026-04-23-i-think-we-need-to
 title: Expand kiln-cleanup to audit the entire repo for structure and layout issues
 type: feedback
 date: 2026-04-23
-status: prd-created
+status: completed
+completed_date: 2026-04-23
+pr: #144
 prd: docs/features/2026-04-23-kiln-structural-hygiene/PRD.md
 severity: medium
 area: ergonomics
