@@ -1,0 +1,7 @@
+A coach for small teams building internal tools.
+Not a general-purpose project management platform.
+Users ship one internal tool per quarter without reading docs.
+- Stays local-first
+- Never requires a cloud account
+accept
+yes

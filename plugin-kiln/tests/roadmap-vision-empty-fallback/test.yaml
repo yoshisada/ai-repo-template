@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Fully-empty repo (no PRDs / no items / no README / no CLAUDE.md). --vision MUST emit the one-line fallback banner and revert to the blank-slate question path (FR-011). Validates: User Story 2 Scenario 4."
+timeout-override: 900

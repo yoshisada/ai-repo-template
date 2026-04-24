@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Re-run --vision against a populated vision + drifted repo. Skill MUST present per-section diffs and bump last_updated: on accept (FR-009, FR-010, Clarification #2). Validates: User Story 2 Scenarios 2 + 3."
+timeout-override: 900

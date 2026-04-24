@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Coached interview with empty project-context: placeholder '[suggestion: —, rationale: no evidence in repo]' must appear in SKILL.md (edge case: never invent values)."

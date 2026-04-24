@@ -1,0 +1,8 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Coached interview (non-quick): orientation + per-question coached rendering + accept-all affordance are present in SKILL.md (FR-004, FR-005, FR-006, FR-007)."
+# This is a static-check fixture. The run.sh in this directory greps SKILL.md
+# for the required markers. A live behavioral check would require a driven
+# stdin stream against `claude --print` — tracked as a follow-on when the
+# plugin-skill harness gains interactive-input support (see plan.md Phase 6 T057).

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "CLAUDE.md audit cites project-context signals (phase drift, tech stack) AND emits External best-practices deltas subsection (FR-013 + FR-014). Validates: User Story 3 Scenarios 1 + 2."
+timeout-override: 900

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "Re-run --vision against an unchanged repo state. Skill MUST print 'no drift detected' and MUST NOT bump last_updated (FR-010 negative path). Validates: spec Edge Case 'Vision re-run on unchanged repo state'."
+timeout-override: 900

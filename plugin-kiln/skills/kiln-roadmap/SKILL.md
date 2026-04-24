@@ -189,9 +189,69 @@ ITEMS_COUNT="$(printf '%s' "$ITEMS_PATHS" | grep -c . || echo 0)"
 
 # Surface context summary to the AI agent (used implicitly in classification and interview)
 echo "context: vision=$([ -f "$VISION_FILE" ] && echo present || echo absent)  phases=$(echo "$PHASES_SUMMARY" | grep -c . || echo 0)  items=$ITEMS_COUNT"
+
+# coach-driven-capture FR-001: load the richer ProjectContextSnapshot (offline,
+# deterministic — see specs/coach-driven-capture-ergonomics/contracts/interfaces.md).
+# Consumed by the orientation block (§1c) and by per-question coaching (§5).
+# Gracefully degrade on reader failure: we keep the legacy uncoached pipeline.
+READER="plugin-kiln/scripts/context/read-project-context.sh"
+if [ -f "$READER" ]; then
+  CTX_JSON="$(bash "$READER" 2>/dev/null)" || CTX_JSON=""
+fi
+if [ -z "${CTX_JSON:-}" ]; then
+  CTX_JSON='{"schema_version":"1","prds":[],"roadmap_items":[],"roadmap_phases":[],"vision":null,"claude_md":null,"readme":null,"plugins":[]}'
+  echo "warn: project-context reader unavailable; falling back to uncoached interview" >&2
+  COACH_AVAILABLE=0
+else
+  COACH_AVAILABLE=1
+fi
 ```
 
 The AI agent SHOULD also scan the first 20 lines of each existing phase file and a random sample of recent item files to build richer classification context, but this bash preamble ensures the *minimum required context* (vision, phase list, item count) is available before Step 2.
+
+---
+
+## Step 1c: Orientation block (coach-driven-capture FR-006)
+
+<!-- coach-driven-capture FR-006: Before the first interview question, emit a
+     one-paragraph ORIENTATION block that cites:
+       (a) the current phase (from roadmap_phases[] where status == in-progress),
+       (b) up to 3 nearby items (in that phase),
+       (c) any open critiques whose addresses[] might be relevant,
+       (d) a short vision summary if .kiln/vision.md exists.
+     This block MUST precede every non-`--quick` invocation. It MUST NOT appear
+     under `--quick` (NFR-005) and MUST NOT appear in `NON_INTERACTIVE` sessions. -->
+
+Skip the orientation block entirely when `QUICK_MODE == 1` OR `NON_INTERACTIVE == 1` OR `COACH_AVAILABLE == 0`. This is the NFR-005 byte-identical guarantee for the `--quick` path.
+
+Otherwise, derive orientation data from `CTX_JSON` and emit a single paragraph of prose framed collaboratively — "Here's what I think the landscape looks like, tell me if I'm off":
+
+```bash
+CURRENT_PHASE="$(echo "$CTX_JSON" | jq -r '.roadmap_phases[] | select(.status=="in-progress") | .name' | head -1)"
+NEARBY_ITEMS="$(echo "$CTX_JSON" | jq -r --arg p "${CURRENT_PHASE:-}" '.roadmap_items[] | select(.phase==$p) | .id' | head -3)"
+OPEN_CRITIQUES="$(echo "$CTX_JSON" | jq -r '.roadmap_items[] | select(.kind=="critique" and .state != "shipped" and .state != "archived") | .id')"
+VISION_HEAD="$(echo "$CTX_JSON" | jq -r '.vision.body // empty' | awk 'NF' | head -3)"
+```
+
+Render the block to the user BEFORE Question 1. Example shape:
+
+```
+Here's what I think the landscape looks like — tell me if I'm off:
+
+We're in the current phase (`<CURRENT_PHASE>`). Nearby items: <up to 3 ids>.
+Open critiques that this idea might address: <list>. And from .kiln/vision.md:
+<one-line summary>.
+
+If that framing is wrong, say so now and we'll re-anchor before the questions.
+```
+
+Rendering rules (tone calibration for FR-007 / PRD FR-006):
+
+- When `CURRENT_PHASE` is empty (no in-progress phase), say "No phase is in progress yet — I'll treat this as a `planned` idea unless you tell me otherwise."
+- When `NEARBY_ITEMS` is empty, say "No nearby items to compare against."
+- When `OPEN_CRITIQUES` is empty, say "No open critiques to worry about right now."
+- When `VISION_HEAD` is empty, say "No vision summary yet — running `/kiln:kiln-roadmap --vision` would help me calibrate future captures."
+- NEVER invent content. If a signal is missing, SAY it's missing — placeholder values degrade trust fast (see edge case "Coached suggestions low-quality on sparse repos" in the spec).
 
 ---
 
@@ -284,15 +344,59 @@ Set `KIND` to the confirmed value. If `QUICK_MODE`, keep the suggested kind with
 
 ---
 
-## Step 5: Adversarial interview (FR-015, FR-017 / PRD FR-015, FR-017)
+## Step 5: Coached interview (FR-015, FR-017 / PRD FR-015, FR-017; coach-driven-capture FR-004, FR-005, FR-007)
 
 <!-- FR-015 / PRD FR-015: ≤5 questions per kind, each individually skippable.
      FR-017 / PRD FR-017: sizing asks ONLY blast_radius / review_cost / context_cost — never human-time / T-shirt.
-     FR-011 / PRD FR-011: kind:critique REQUIRES proof_path — re-prompt until answered. -->
+     FR-011 / PRD FR-011: kind:critique REQUIRES proof_path — re-prompt until answered.
+     coach-driven-capture FR-004: every question renders with a proposed answer + one-line rationale + `[accept / tweak / reject]` affordance.
+     coach-driven-capture FR-005: user may type `accept-all` at any prompt to finalize using remaining suggestions; `tweak <value> then accept-all` overrides the current question then finalizes.
+     coach-driven-capture FR-007: prompt copy is COLLABORATIVE ("Here's what I think, tell me if I'm off") — not interrogative. -->
 
 Skip the entire interview when `QUICK_MODE == 1` OR `NON_INTERACTIVE == 1`. Jump to Step 6 with `phase=unsorted`, body = raw description.
 
-Otherwise, ask the question bank for the confirmed `KIND`. Each question is skippable (user types `skip` or empty) UNLESS marked required. Stop asking early if the user skips a run of ≥3 in a row (respect interview fatigue — Risk #1 in the PRD).
+Otherwise: here's what I think about this idea based on the description + project context — tell me where I'm off. I'll walk through ≤5 questions; for each, I'll propose an answer and a one-line rationale, and you accept, tweak, or reject. Type `accept-all` whenever you've heard enough and I'll finalize with my best guesses for the rest.
+
+Each question is individually skippable (type `skip` or empty) UNLESS marked required. If you skip a run of ≥3 in a row I'll stop asking (respect interview fatigue — Risk #1 in the PRD).
+
+### §5.0 Per-question rendering contract (coach-driven-capture FR-004)
+
+Every question in §5.1–§5.7 MUST be rendered in this exact shape — copy the format, don't paraphrase:
+
+```
+Q<N>/<total>: <question text>
+  Proposed: <best-guess answer derived from $DESC + CTX_JSON>
+  Why:      <one-line rationale citing the specific signal>
+  [accept / tweak <value> / reject / skip / accept-all]
+  >
+```
+
+Rules (load-bearing):
+
+- **`Proposed:` MUST be derived from evidence** — the initial description and the `CTX_JSON` snapshot. Never invent. If no evidence supports a guess, render:
+  ```
+  Proposed: —
+  Why:      no evidence in repo
+  ```
+  This is the explicit edge-case placeholder (see spec Edge Cases: "Roadmap item with unknown/ambiguous fields"). Do not hallucinate — the user will tweak.
+- **`Why:` is one line.** Cite one concrete signal (e.g., "addresses open critique `2026-04-12-item-two`" or "similar to shipped PRD `2026-04-10-alpha`") — not prose.
+- **Affordance is always presented verbatim** (`[accept / tweak <value> / reject / skip / accept-all]`) so users memorize it across sessions.
+- **First-person framing is collaborative.** Use "I think", "Here's what I see", "Tell me if I'm off". Never "You must", "Required", "Please provide". This is the FR-007 / PRD FR-006 tone guarantee — manual-review gate during PRD audit.
+
+### §5.0a Response parser (coach-driven-capture FR-005)
+
+Parse the user's input for each question in this priority order:
+
+1. `accept-all` → record the `Proposed:` value for THIS question, then for EVERY remaining question substitute its `Proposed:` value, skip to Step 6. Required-field validation (e.g., `proof_path` for `kind:critique`) still runs — if `Proposed:` for a required field is empty, re-prompt for that one question, then resume finalization.
+2. `tweak <value> then accept-all` (or `tweak: <value>, accept-all`) → record `<value>` for THIS question, then apply accept-all semantics to the rest.
+3. `tweak <value>` (or `tweak: <value>`) → record `<value>` for THIS question, move to the next question.
+4. `accept` → record the `Proposed:` value, move to the next question.
+5. `reject` → drop the `Proposed:` value, re-ask the question once with an empty suggestion (`Proposed: —`); a second reject records empty and moves on.
+6. `skip` or empty → move on without recording anything (counts toward the 3-in-a-row fatigue threshold).
+
+Any other response → treat as free-text answer (equivalent to `tweak <that-text>`). This keeps the interview ergonomic for users who don't want to type the affordance keywords.
+
+Ask the question bank for the confirmed `KIND`.
 
 ### §6.1 `kind: feature`
 
@@ -493,20 +597,162 @@ captured <N> roadmap items, <M> issues, <K> feedback this session.
 
 ---
 
-## §V: Vision update (`--vision` — FR-019 / PRD FR-019)
+## §V: Vision update (`--vision` — FR-019 / PRD FR-019, coach-driven-capture FR-008..FR-012)
 
-<!-- FR-019 / PRD FR-019: short vision-update interview; patch_file on Obsidian (NOT update_file) per FR-031. -->
+<!-- FR-019 / PRD FR-019: short vision-update interview; patch_file on Obsidian (NOT update_file) per FR-031.
+     coach-driven-capture FR-008: first-run draft from project-context evidence.
+     coach-driven-capture FR-009: re-run → per-section diffs (Clarification #2: grouped by section, not flat).
+     coach-driven-capture FR-010: last_updated bumped on accepted edit, NOT bumped on reject-all.
+     coach-driven-capture FR-011: fully-empty snapshot → one-line banner + blank-slate fallback.
+     coach-driven-capture FR-012: partial snapshot → partial draft + per-section evidence annotations (no banner). -->
 
 Refuse to run `--vision` in `NON_INTERACTIVE` mode — print a clear error and exit non-zero. Vision updates require human judgement.
 
-1. Show the current `.kiln/vision.md` body.
-2. Ask:
-   - "What's changed about the vision?"
-   - "What's still true?"
-   - "What's newly out-of-scope?"
-3. Compose the updated vision (keep frontmatter's `last_updated:` in sync with today's date).
-4. Write `.kiln/vision.md` atomically (temp-write + mv).
-5. Dispatch `shelf:shelf-write-roadmap-note` with `source_file = .kiln/vision.md`. The workflow picks `patch_file` on update (FR-031 / PRD FR-031) to preserve frontmatter.
+### §V.1: Load the project-context snapshot (coach-driven-capture FR-008)
+
+Consume the shared reader from `specs/coach-driven-capture-ergonomics/contracts/interfaces.md`:
+
+```bash
+# FR-008: consume the ProjectContextSnapshot. Falls back gracefully to an empty
+# snapshot object if the reader isn't installed yet (pre-Phase-1 consumer repos).
+READER="plugin-kiln/scripts/context/read-project-context.sh"
+if [ -x "$READER" ] || [ -f "$READER" ]; then
+  CTX_JSON=$(bash "$READER" 2>/dev/null) || CTX_JSON=""
+fi
+if [ -z "${CTX_JSON:-}" ]; then
+  CTX_JSON='{"schema_version":"1","prds":[],"roadmap_items":[],"roadmap_phases":[],"vision":null,"claude_md":null,"readme":null,"plugins":[]}'
+  echo "warn: project-context reader unavailable; --vision will treat repo as empty" >&2
+fi
+
+# FR-011 classification: fully empty vs partial vs populated
+EMPTY_SNAPSHOT=$(echo "$CTX_JSON" | jq -r '
+  if (.prds | length == 0)
+    and (.roadmap_items | length == 0)
+    and (.readme == null)
+    and (.claude_md == null)
+  then "yes" else "no" end
+')
+
+HAS_VISION=$(echo "$CTX_JSON" | jq -r 'if .vision == null or ((.vision.body // "") | length) == 0 then "no" else "yes" end')
+
+# Partial = not empty, but at least one evidence source missing.
+PARTIAL_SNAPSHOT=$(echo "$CTX_JSON" | jq -r '
+  if (.prds | length == 0) or (.roadmap_items | length == 0) or (.readme == null) or (.claude_md == null)
+  then (if (.prds | length > 0) or (.roadmap_items | length > 0) or (.readme != null) or (.claude_md != null) then "yes" else "no" end)
+  else "no" end
+')
+```
+
+### §V.2: Fully-empty fallback (coach-driven-capture FR-011)
+
+If `EMPTY_SNAPSHOT == "yes"`, emit the one-line banner verbatim and drop through to the legacy blank-slate interview:
+
+```
+ℹ  blank-slate fallback: the project-context snapshot is empty — no PRDs, items, README, or CLAUDE.md to draw from. Running the legacy open-ended interview. (FR-011)
+```
+
+Then ask the three legacy questions, compose the file, and jump to §V.5 (write + mirror). Do NOT draft from evidence — there is none.
+
+- "What's changed about the vision?" (or "What are we building?" on truly-first-run)
+- "What's still true?" (or "What's out-of-scope?")
+- "What constraints do we need to live within?"
+
+### §V.3: First-run draft from evidence (coach-driven-capture FR-008)
+
+If `HAS_VISION == "no"` AND `EMPTY_SNAPSHOT == "no"`, draft all four vision sections from `CTX_JSON`. This is the FR-008 path.
+
+For each of the four canonical sections (matching `plugin-kiln/templates/vision-template.md`):
+
+1. **What we are building** — derive bullets from PRD titles and their frontmatter `theme:` values. Cite evidence per bullet.
+2. **What it is not** — derive from `kind: non-goal` roadmap items if any exist; otherwise leave a `(no explicit non-goals in repo yet)` annotation.
+3. **How we'll know we're winning** — derive from PRD success criteria (scan for `Success Criteria` section body) and `kind: goal` roadmap items.
+4. **Guiding constraints** — derive from `kind: constraint` roadmap items and any `load-bearing` phrases in `CLAUDE.md` (if `.claude_md.body` is non-null).
+
+Every drafted bullet MUST carry an inline evidence citation using one of these shapes — pick the one that matches the source:
+
+- `_derived from: docs/features/<slug>/PRD.md_`
+- `_from roadmap item <id>_`
+- `_from README.md_`
+- `_from CLAUDE.md §<section>_`
+
+Render the full draft to the user with the banner:
+
+```
+Here's a first-draft vision drawn from your repo. Each bullet cites its evidence. Accept / edit / reject the whole draft, or say `step-through` to go section-by-section.
+```
+
+Collect user response:
+- `accept` / `accept-all` — write the file to `$VISION_FILE` with `last_updated:` stamped to today, proceed to §V.5.
+- `reject` / `reject-all` — discard the draft, fall back to the three legacy questions (§V.2 body).
+- `step-through` — render one section at a time with `[accept-section / reject-section / edit]`.
+- Freeform text (a pasted alternative) — treat as the user's own body; stamp frontmatter and write.
+
+### §V.4: Re-run per-section diff (coach-driven-capture FR-009, FR-010, Clarification #2)
+
+If `HAS_VISION == "yes"` AND `EMPTY_SNAPSHOT == "no"`:
+
+1. Read the current vision body from `.vision.body` in `CTX_JSON` (or re-read `$VISION_FILE`).
+2. For each of the four sections, compute the delta against repo state:
+   - Any PRD shipped since `last_updated:` whose theme isn't yet cited in "What we are building"?
+   - Any new `kind: non-goal` item missing from "What it is not"?
+   - Any new `kind: goal` or shipped `kind: feature` whose success metric isn't cited in "How we'll know"?
+   - Any new `kind: constraint` item missing from "Guiding constraints"?
+3. **Group the proposed edits BY SECTION** (Clarification #2 — per-section grouping, not flat line-by-line). For each section with ≥1 proposed edit, render one prompt block:
+
+   ```
+   ## <section name>
+   Current:   <current line / bullet>
+   Proposed:  <proposed line / bullet>
+   Evidence:  <citation>
+
+   [accept-section / reject-section / step-through / global accept-all / global reject-all]
+   ```
+
+4. Accumulate accepted edits into `ACCEPTED_EDITS` (a working list).
+5. If `global reject-all` OR the user declines every section → print `no drift detected (FR-010 negative path)` and EXIT WITHOUT modifying `$VISION_FILE` or bumping `last_updated:`. This is the no-drift edge case.
+6. If `ACCEPTED_EDITS` is non-empty → rewrite the affected sections in-place, atomically, AND bump `last_updated:` to today's ISO date (FR-010 positive path):
+
+```bash
+TODAY=$(date -u +%Y-%m-%d)
+TMP="$(mktemp "${VISION_FILE}.XXXXXX.tmp")"
+# … compose updated body into $TMP with bumped frontmatter …
+# Idempotent last_updated: bump (only rewrites the one line)
+sed -i.bak -E "s|^last_updated:.*|last_updated: ${TODAY}|" "$TMP" && rm -f "${TMP}.bak"
+mv "$TMP" "$VISION_FILE"
+```
+
+### §V.5: Partial snapshot — partial draft with evidence annotations (coach-driven-capture FR-012, Clarification #4)
+
+This path activates when `EMPTY_SNAPSHOT == "no"` AND `PARTIAL_SNAPSHOT == "yes"` AND `HAS_VISION == "no"`.
+
+Draft the sections the available evidence supports, and for each section explicitly annotate which sources were (and were not) available. Example:
+
+```markdown
+## What we are building
+
+- <bullet drafted from PRD> _derived from: docs/features/<slug>/PRD.md_
+- <bullet drafted from PRD> _derived from: docs/features/<slug2>/PRD.md_
+
+_Sources used: docs/features/*, README.md. (no roadmap items yet — some bullets will be approximate.)_
+```
+
+**Explicit rule (Clarification #4)**: the partial-snapshot path MUST NOT emit the blank-slate banner. The banner in §V.2 is reserved for fully-empty snapshots only. The partial path's signal is the per-section `_Sources used: …_` annotation.
+
+Then proceed through the same accept / reject / step-through affordance as §V.3 and write via §V.6.
+
+### §V.6: Write + mirror
+
+After any path that produces a new or updated vision body:
+
+1. Write to `$VISION_FILE` atomically (temp-write + mv).
+2. Ensure `last_updated:` matches today's ISO date — or, if this was the §V.4 no-drift exit, leave the original date alone.
+3. Dispatch `shelf:shelf-write-roadmap-note` with `source_file = .kiln/vision.md`. The workflow picks `patch_file` on update (FR-031 / PRD FR-031) to preserve frontmatter.
+
+### Rules (FR-008..FR-012 test harness relies on these)
+
+- The only line that may contain the string `blank-slate` is the §V.2 banner. The §V.5 partial-snapshot path MUST NOT include that string anywhere in the drafted body.
+- Re-running `--vision` on unchanged repo state MUST print `no drift detected` and MUST NOT modify `$VISION_FILE`.
+- Every drafted bullet in §V.3 and §V.5 MUST carry an inline evidence citation — unannotated bullets are a regression.
 
 ---
 

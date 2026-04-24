@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "Cache fetched: date >30 days old. Audit MUST flag cache staleness in preview (FR-015 + Clarification #3). Validates: User Story 3 Scenario 3."
+timeout-override: 900

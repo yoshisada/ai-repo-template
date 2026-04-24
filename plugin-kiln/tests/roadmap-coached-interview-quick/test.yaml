@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "`--quick` path must short-circuit the coached layer — orientation + interview skipped (NFR-005 backward compat)."
