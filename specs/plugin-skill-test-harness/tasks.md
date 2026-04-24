@@ -47,13 +47,13 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: The `plugin-skill` substrate can spawn a real `claude --plugin-dir ... --headless` subprocess, wire the scratch dir as CWD, set `KILN_HARNESS=1`, and snapshot the final scratch state. Watcher is not yet wired — substrate runs without classification.
 
-- [ ] **T008** Implement `plugin-kiln/scripts/harness/claude-invoke.sh` per contracts §7.2. Header comment documents the current CLI flag contract (`--plugin-dir`, `--headless`, `--dangerously-skip-permissions`, `--initial-message`) per PRD Risk 4. Spawns subprocess with CWD=scratch-dir, env `KILN_HARNESS=1`, stdin inherited. Satisfies FR-009 subprocess invocation + FR-011 env + NFR-001 portability (uses `${WORKFLOW_PLUGIN_DIR}` in SKILL.md callers, but this script itself is callable by absolute path).
+- [X] **T008** Implement `plugin-kiln/scripts/harness/claude-invoke.sh` per contracts §7.2. Header comment documents the current CLI flag contract (`--plugin-dir`, `--headless`, `--dangerously-skip-permissions`, `--initial-message`) per PRD Risk 4. Spawns subprocess with CWD=scratch-dir, env `KILN_HARNESS=1`, stdin inherited. Satisfies FR-009 subprocess invocation + FR-011 env + NFR-001 portability (uses `${WORKFLOW_PLUGIN_DIR}` in SKILL.md callers, but this script itself is callable by absolute path).
 
-- [ ] **T009** [P] Implement `plugin-kiln/scripts/harness/scratch-snapshot.sh` per contracts §7.4. `find -type f` + sha256sum, path-sorted, writes to `<output-path>`. Satisfies FR-012 diagnostic snapshot.
+- [X] **T009** [P] Implement `plugin-kiln/scripts/harness/scratch-snapshot.sh` per contracts §7.4. `find -type f` + sha256sum, path-sorted, writes to `<output-path>`. Satisfies FR-012 diagnostic snapshot.
 
-- [ ] **T010** Implement `plugin-kiln/scripts/harness/dispatch-substrate.sh` per contracts §5. V1 single-case switch: `plugin-skill` → `substrate-plugin-skill.sh`; unknown → exit 2 with `"Substrate '<type>' not implemented in v1"` diagnostic. Satisfies FR-002 substrate tag + plan.md substrate abstraction.
+- [X] **T010** Implement `plugin-kiln/scripts/harness/dispatch-substrate.sh` per contracts §5. V1 single-case switch: `plugin-skill` → `substrate-plugin-skill.sh`; unknown → exit 2 with `"Substrate '<type>' not implemented in v1"` diagnostic. Satisfies FR-002 substrate tag + plan.md substrate abstraction.
 
-- [ ] **T011** Implement `plugin-kiln/scripts/harness/substrate-plugin-skill.sh` per contracts §5 v1 substrate spec. Reads `inputs/initial-message.txt`, calls `claude-invoke.sh` with the FIFO for scripted-answer input, waits for subprocess exit, propagates exit code. Satisfies FR-009 + FR-010 stdin-pipe prep.
+- [X] **T011** Implement `plugin-kiln/scripts/harness/substrate-plugin-skill.sh` per contracts §5 v1 substrate spec. Reads `inputs/initial-message.txt`, calls `claude-invoke.sh` with the FIFO for scripted-answer input, waits for subprocess exit, propagates exit code. Satisfies FR-009 + FR-010 stdin-pipe prep.
 
 **Phase B checkpoint**: Wire substrate into `kiln-test.sh` loop. A test whose `assertions.sh` is `#!/bin/bash\nexit 0` should PASS end-to-end now (subprocess runs, assertions pass, TAP emits `ok`). Commit: "phase B: plugin-skill substrate driver".
 

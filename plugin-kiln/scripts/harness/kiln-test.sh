@@ -13,10 +13,12 @@
 # Plugin auto-detect scans CWD for sibling dirs matching `plugin-<name>/`. If
 # exactly one match, use it. If multiple, exit 2 with a plugin-list diagnostic.
 #
-# PHASE A SCOPE: Substrate dispatch and watcher are NOT wired yet (those land
-# in Phase B + C). For Phase A, each discovered test emits `# SKIP substrate-
-# not-yet-wired` so the TAP stream shape is verifiable. Exit 2 (inconclusive)
-# because of the SKIP lines.
+# PHASE STATUS: Phase B wires the substrate (spawns `claude --print ...` +
+# runs assertions.sh). Phase C will layer the watcher on top (classification-
+# driven termination). For Phase B, subprocess termination relies on `claude`
+# exiting on its own (either by consuming all queued envelopes then emitting
+# a `{"type":"result",...}` envelope, or by hitting an error). FR-008 no-hard-
+# caps still holds — we never wrap the subprocess in `timeout` or kill it.
 #
 # Stdout: TAP v14 stream (header + one line per test + optional YAML diagnostic)
 # Stderr: diagnostics / warnings
@@ -158,6 +160,10 @@ fi
 
 n=${#discovered_tests[@]}
 
+# Ensure .kiln/logs/ exists for verdict reports + transcripts + snapshots.
+logs_dir="$repo_root/.kiln/logs"
+mkdir -p "$logs_dir"
+
 # -----------------------------------------------------------------------------
 # Emit TAP header (contracts §2 stream shape).
 # -----------------------------------------------------------------------------
@@ -165,7 +171,28 @@ printf 'TAP version 14\n'
 printf '1..%s\n' "$n"
 
 # -----------------------------------------------------------------------------
-# Run loop (Phase A: emit SKIP per test — substrate/watcher land in B/C).
+# Helper: extract a scalar value from test.yaml (mirrors test-yaml-validate
+# extraction). We trust validation has already passed when this runs.
+# -----------------------------------------------------------------------------
+extract_yaml_scalar() {
+  local key=$1 file=$2
+  awk -v k="^${key}:[[:space:]]*" '
+    $0 ~ k {
+      sub(k, "");
+      if (substr($0,1,1) == "\"" && substr($0,length($0),1) == "\"") {
+        print substr($0, 2, length($0)-2)
+      } else if (substr($0,1,1) == "\x27" && substr($0,length($0),1) == "\x27") {
+        print substr($0, 2, length($0)-2)
+      } else {
+        print $0
+      }
+      exit
+    }
+  ' "$file"
+}
+
+# -----------------------------------------------------------------------------
+# Run loop (Phase B: real substrate + assertions.sh).
 # -----------------------------------------------------------------------------
 any_fail=0
 any_skip=0
@@ -174,27 +201,124 @@ for test_dir in "${discovered_tests[@]}"; do
   i=$((i + 1))
   basename=${test_dir##*/}
 
-  # Validate test.yaml. If malformed, SKIP (inconclusive per contracts §1 + §2).
-  if ! "$harness_dir/test-yaml-validate.sh" "$test_dir/test.yaml" 2>/tmp/kiln-test-yaml-err.$$ ; then
+  # --- 1. Validate test.yaml --------------------------------------------------
+  yaml_err_file="/tmp/kiln-test-yaml-err.$$-$i"
+  if ! "$harness_dir/test-yaml-validate.sh" "$test_dir/test.yaml" 2>"$yaml_err_file" ; then
     diag=$(mktemp)
-    # Skip reason = first line of the validation stderr.
-    awk 'NF { print; exit }' "/tmp/kiln-test-yaml-err.$$" > "$diag"
+    awk 'NF { print; exit }' "$yaml_err_file" > "$diag"
     "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
-    rm -f "/tmp/kiln-test-yaml-err.$$" "$diag"
+    rm -f "$yaml_err_file" "$diag"
     any_skip=1
     continue
   fi
-  rm -f "/tmp/kiln-test-yaml-err.$$"
+  rm -f "$yaml_err_file"
 
-  # Phase A placeholder: the substrate + watcher aren't wired yet, so every
-  # valid test becomes a SKIP with a diagnostic pointing at that.
-  # This placeholder is REMOVED at T011 (Phase B checkpoint) — do not let it
-  # ship into Phase B commit without the substrate dispatch replacing it.
-  diag=$(mktemp)
-  printf 'substrate-not-yet-wired — Phase A skeleton (tracks T007; replaced by substrate dispatch at T011)\n' > "$diag"
-  "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
-  rm -f "$diag"
-  any_skip=1
+  # --- 2. Read test.yaml metadata --------------------------------------------
+  harness_type=$(extract_yaml_scalar "harness-type" "$test_dir/test.yaml")
+  expected_exit=$(extract_yaml_scalar "expected-exit" "$test_dir/test.yaml")
+  : "${expected_exit:=0}"
+
+  # --- 3. Check required inputs ----------------------------------------------
+  if [[ ! -f "$test_dir/inputs/initial-message.txt" ]]; then
+    diag=$(mktemp); echo "missing required inputs/initial-message.txt" > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag"; any_skip=1; continue
+  fi
+  if [[ ! -f "$test_dir/assertions.sh" ]]; then
+    diag=$(mktemp); echo "missing required assertions.sh" > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag"; any_skip=1; continue
+  fi
+
+  # --- 4. Create scratch dir -------------------------------------------------
+  if ! scratch_dir=$("$harness_dir/scratch-create.sh" 2>/tmp/kiln-scratch-err.$$) ; then
+    diag=$(mktemp); awk 'NF { print; exit }' /tmp/kiln-scratch-err.$$ > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag" /tmp/kiln-scratch-err.$$; any_skip=1; continue
+  fi
+  rm -f /tmp/kiln-scratch-err.$$
+  scratch_uuid=${scratch_dir##*/kiln-test-}
+
+  # --- 5. Seed fixtures ------------------------------------------------------
+  if ! "$harness_dir/fixture-seeder.sh" "$test_dir" "$scratch_dir" ; then
+    diag=$(mktemp); echo "fixture-seeder.sh failed for $test_dir" > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag"; any_skip=1
+    # Retain scratch for diagnosis.
+    continue
+  fi
+
+  # --- 6. Set up per-test env + log paths ------------------------------------
+  transcript_path="$logs_dir/kiln-test-${scratch_uuid}-transcript.ndjson"
+  snapshot_path="$logs_dir/kiln-test-${scratch_uuid}-scratch.txt"
+  verdict_md_path="$logs_dir/kiln-test-${scratch_uuid}.md"
+
+  export KILN_TEST_SCRATCH_DIR="$scratch_dir"
+  export KILN_TEST_NAME="$basename"
+  export KILN_TEST_TRANSCRIPT="$transcript_path"
+  export KILN_TEST_SCRATCH_SNAPSHOT="$snapshot_path"
+
+  # --- 7. Dispatch substrate (Phase C will add watcher concurrently) --------
+  set +e
+  "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root"
+  subprocess_exit=$?
+  set -e
+
+  # --- 8. Check subprocess exit matches expected-exit ------------------------
+  if [[ $subprocess_exit -ne $expected_exit ]]; then
+    diag=$(mktemp)
+    {
+      echo "classification: \"failed\""
+      echo "scratch-uuid: \"$scratch_uuid\""
+      echo "scratch-retained: \"$scratch_dir/\""
+      echo "verdict-report: \"$verdict_md_path\""
+      echo "transcript: \"$transcript_path\""
+      echo "expected-exit: $expected_exit"
+      echo "actual-exit: $subprocess_exit"
+    } > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" fail "$diag"
+    rm -f "$diag"
+    any_fail=1
+    # Scratch retained on fail per contracts §4.
+    continue
+  fi
+
+  # --- 9. Run assertions.sh --------------------------------------------------
+  assertion_stdout=$(mktemp)
+  assertion_stderr=$(mktemp)
+  set +e
+  (
+    cd "$scratch_dir"
+    bash "$test_dir/assertions.sh"
+  ) > "$assertion_stdout" 2> "$assertion_stderr"
+  assertion_exit=$?
+  set -e
+
+  if [[ $assertion_exit -ne 0 ]]; then
+    diag=$(mktemp)
+    {
+      echo "classification: \"assertion-failed\""
+      echo "scratch-uuid: \"$scratch_uuid\""
+      echo "scratch-retained: \"$scratch_dir/\""
+      echo "verdict-report: \"$verdict_md_path\""
+      echo "transcript: \"$transcript_path\""
+      echo "assertion-exit: $assertion_exit"
+      echo "assertion-stdout: |"
+      sed 's/^/  /' "$assertion_stdout"
+      echo "assertion-stderr: |"
+      sed 's/^/  /' "$assertion_stderr"
+    } > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" fail "$diag"
+    rm -f "$diag" "$assertion_stdout" "$assertion_stderr"
+    any_fail=1
+    # Scratch retained on fail.
+    continue
+  fi
+
+  # --- 10. Pass path: cleanup scratch, emit `ok` -----------------------------
+  rm -f "$assertion_stdout" "$assertion_stderr"
+  rm -rf "$scratch_dir"
+  "$harness_dir/tap-emit.sh" "$i" "$basename" pass
 done
 
 # -----------------------------------------------------------------------------

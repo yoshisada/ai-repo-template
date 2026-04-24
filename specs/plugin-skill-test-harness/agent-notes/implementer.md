@@ -73,7 +73,14 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
   2. **Multi-plugin auto-detect**: this repo itself has 5 `plugin-*/` dirs. Auto-detect correctly bails with a plugin-list (expected per spec Edge Cases), but I noticed that this means the seed tests can NEVER use the zero-arg form inside this source repo — SMOKE.md blocks must pass `kiln` explicitly. Will update SMOKE.md accordingly in Phase H.
 
   Phase A checkpoint verified: empty `plugin-kiln/tests/` → `TAP version 14\n1..0\n` exit 0; probe test → `ok 1 - phase-a-probe # SKIP substrate-not-yet-wired` exit 2; invalid test.yaml → SKIP with validation diagnostic; nonexistent plugin/test → Bail out!.
-- [Phase B]: pending
+- [Phase B] — **done (T008..T011)**. Notable frictions:
+  1. **`--verbose` mandatory with stream-json output** — discovered during CLI probe. `claude-invoke.sh` includes it and the CLI-drift self-check greps for it.
+  2. **No jq/yq dependency** — I deliberately wrote the envelope encoder in awk (+ perl-opt for robust JSON-escape on the initial-message file) so consumers don't need jq. Verified the output round-trips through `python3 json.loads` with tabs, embedded double quotes, and embedded newlines intact.
+  3. **Fake `claude` for Phase B self-test** — rather than burn tokens on every Phase B checkpoint run, I wrote a tiny `FAKEBIN/claude` that responds to `--help` with the expected flag set and echoes stdin to a file. This let me verify the full end-to-end fixture-seed → spawn-subprocess → assertions → emit-TAP flow without real Claude invocations. The real-Claude validation is deferred to Phase F seed-test execution.
+  4. **Phase B verification outcomes**:
+     - Trivial pass test: `ok 1 - phase-b-trivial-pass`, scratch dir deleted, exit 0 ✅
+     - Trivial fail test: `not ok 1 - phase-b-trivial-fail` with complete YAML diagnostic (classification, scratch-uuid, retained path, verdict + transcript paths, assertion stdout/stderr), scratch retained, exit 1 ✅
+     - `.kiln/logs/` populated with `kiln-test-<uuid>-transcript.ndjson` + `kiln-test-<uuid>-scratch.txt` ✅
 - [Phase C]: pending
 - [Phase D]: pending
 - [Phase E]: pending
