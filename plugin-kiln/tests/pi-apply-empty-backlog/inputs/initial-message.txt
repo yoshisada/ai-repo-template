@@ -1,0 +1,1 @@
+Set `PI_APPLY_FETCH_STUB` to the absolute path of `retro-issues.json` (an empty JSON array) and run `/kiln:kiln-pi-apply`. Reply empty to prompts.

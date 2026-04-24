@@ -1,0 +1,8 @@
+[
+  {
+    "number": 500,
+    "url": "https://github.com/x/y/issues/500",
+    "title": "Retro — malformed block fixture",
+    "body": "## PIs\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nwell-formed current text\n**Proposed**: ## R-1\nwell-formed proposed text\n**Why**: good block — should parse cleanly.\n\n### PI-2\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-2\nsome current text\n**Proposed**: ## R-2\nsome proposed text\n"
+  }
+]

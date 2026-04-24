@@ -1,0 +1,8 @@
+[
+  {
+    "number": 400,
+    "url": "https://github.com/x/y/issues/400",
+    "title": "Retro — propose-only check",
+    "body": "## PIs\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nPROPOSE_ONLY_CANARY_DO_NOT_EDIT\n**Proposed**: ## R-1\nthis text must never land in the file.\n**Why**: propose-don't-apply discipline (FR-010).\n"
+  }
+]

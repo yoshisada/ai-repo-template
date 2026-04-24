@@ -105,15 +105,15 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 ### Implementation
 
 - [X] **T029** `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/fetch-retro-issues.sh` per `contracts/interfaces.md` Module 3. **Implements**: FR-009.
-- [ ] **T030** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/parse-pi-blocks.sh` per contract. **Implements**: FR-009.
-- [ ] **T031** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/compute-pi-hash.sh` per contract (Clarification 7). MUST handle macOS `shasum` fallback. **Implements**: FR-011.
-- [ ] **T032** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/classify-pi-status.sh` per contract. **Implements**: FR-012.
-- [ ] **T033** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/render-pi-diff.sh` per contract. **Implements**: FR-011.
-- [ ] **T034** `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/emit-report.sh` per contract — strict section order, deterministic sort under `LC_ALL=C`, always emits all four sections (including empty ones). **Implements**: FR-010, SC-004 determinism.
-- [ ] **T035** `[impl-pi-apply]` Author `plugin-kiln/skills/kiln-pi-apply/SKILL.md` — frontmatter `name: kiln-pi-apply` + `description`; Step 0 (argv — none in V1); Step 1 (fetch); Step 2 (parse per-issue); Step 3 (classify); Step 4 (render for actionable, compute pi-hash); Step 5 (emit report); Step 6 (user-visible summary). **Implements**: FR-009, FR-010, FR-011, FR-012.
-- [ ] **T036** `[impl-pi-apply]` Add `plugin-kiln/.claude-plugin/plugin.json` registration if needed (confirm current plugin.json auto-discovers skills in `plugin-kiln/skills/*` — if yes, no-op; if no, add explicit entry). **Implements**: FR-009.
-- [ ] **T037** `[impl-pi-apply]` Update `plugin-kiln/skills/kiln-next/SKILL.md` — add a thin discovery section that counts open retro issues via `gh` and, when count ≥ 3 per Clarification 8, surfaces `/kiln:kiln-pi-apply` as a queued maintenance recommendation. **Implements**: FR-013.
-- [ ] **T038** `[impl-pi-apply]` Make T023..T028 pass. Commit Phase 4 with message `feat(workflow-governance): /kiln:kiln-pi-apply skill + helpers (FR-009..FR-013)`.
+- [X] **T030** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/parse-pi-blocks.sh` per contract. **Implements**: FR-009.
+- [X] **T031** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/compute-pi-hash.sh` per contract (Clarification 7). MUST handle macOS `shasum` fallback. **Implements**: FR-011.
+- [X] **T032** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/classify-pi-status.sh` per contract. **Implements**: FR-012.
+- [X] **T033** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/render-pi-diff.sh` per contract. **Implements**: FR-011.
+- [X] **T034** `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/emit-report.sh` per contract — strict section order, deterministic sort under `LC_ALL=C`, always emits all four sections (including empty ones). **Implements**: FR-010, SC-004 determinism.
+- [X] **T035** `[impl-pi-apply]` Author `plugin-kiln/skills/kiln-pi-apply/SKILL.md` — frontmatter `name: kiln-pi-apply` + `description`; Step 0 (argv — none in V1); Step 1 (fetch); Step 2 (parse per-issue); Step 3 (classify); Step 4 (render for actionable, compute pi-hash); Step 5 (emit report); Step 6 (user-visible summary). **Implements**: FR-009, FR-010, FR-011, FR-012.
+- [X] **T036** `[impl-pi-apply]` Add `plugin-kiln/.claude-plugin/plugin.json` registration if needed (confirmed — current plugin.json auto-discovers skills from `plugin-kiln/skills/*`; no-op). **Implements**: FR-009.
+- [X] **T037** `[impl-pi-apply]` Update `plugin-kiln/skills/kiln-next/SKILL.md` — add a thin discovery section that counts open retro issues via `gh` and, when count ≥ 3 per Clarification 8, surfaces `/kiln:kiln-pi-apply` as a queued maintenance recommendation. **Implements**: FR-013.
+- [X] **T038** `[impl-pi-apply]` Make T023..T028 pass. Commit Phase 4 with message `feat(workflow-governance): /kiln:kiln-pi-apply skill + helpers (FR-009..FR-013)`.
 
 **Checkpoint**: Track B complete. Send phase-complete signal to team-lead.
 
