@@ -691,13 +691,35 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
    done
    ```
 
-5. **Commit any archived files** (the log marker + diagnostic emit land in a follow-on sub-step — see Phase B of `specs/pipeline-input-completeness/`):
+5. **Emit the diagnostic line (FR-003) — exactly once per run, exact format**:
    ```bash
+   DIAG_LINE="step4b: scanned_issues=${SCANNED_ISSUES} scanned_feedback=${SCANNED_FEEDBACK} matched=${MATCHED} archived=${ARCHIVED} skipped=${SKIPPED} prd_path=${PRD_PATH_NORM}"
+   echo "$DIAG_LINE"
+   printf '%s\n' "$DIAG_LINE" >> "$LOG_FILE"
+   ```
+
+   The literal template MUST appear in stdout AND in the log file: `step4b: scanned_issues=<N> scanned_feedback=<M> matched=<K> archived=<A> skipped=<S> prd_path=<PRD_PATH>`. Verified by regex: `^step4b: scanned_issues=[0-9]+ scanned_feedback=[0-9]+ matched=[0-9]+ archived=[0-9]+ skipped=[0-9]+ prd_path=[^[:space:]]+$`.
+
+6. **Commit (FR-005)** — always commits the log; commits archived files iff any matched:
+   ```bash
+   git add "$LOG_FILE"
    if [ "$ARCHIVED" -gt 0 ]; then
      git add .kiln/issues/ .kiln/feedback/
      git commit -m "chore: step4b lifecycle — archived ${ARCHIVED} item(s) for ${PRD_PATH_NORM}"
+   else
+     git commit -m "chore: step4b lifecycle noop — ${PRD_PATH_NORM}"
    fi
    ```
+
+   If `git commit` reports "nothing to commit" (e.g., the log file was empty before this run and wrote a duplicate diagnostic), continue without erroring.
+
+### Step 4b invariants
+
+- The diagnostic line literal format MUST match the template exactly. No reordering of fields, no additional fields, no missing fields.
+- The `mv` for archival MUST happen AFTER the in-place frontmatter rewrite, so the moved file already has the updated `status`/`completed_date`/`pr` lines.
+- The `MATCH_LIST` accumulator pattern decouples the scan loop from the archive loop. Do NOT collapse them — this preserves the `scanned_*` totals from being affected by mid-loop `mv`.
+- The `tr -d '\r'` is non-optional. Some frontmatter files originate from CRLF environments.
+- Diagnostic output is structural prevention, not nice-to-have. It MUST emit on EVERY run including zero-match, so every future leak is visible in the log the first time it happens.
 
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
