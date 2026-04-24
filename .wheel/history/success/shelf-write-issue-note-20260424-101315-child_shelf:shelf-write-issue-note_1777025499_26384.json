@@ -1,0 +1,117 @@
+{
+  "workflow_name": "shelf-write-issue-note",
+  "workflow_version": "1.1.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098/workflows/shelf-write-issue-note.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "b7d14215-92ce-404c-b806-957a27e6c389",
+  "owner_agent_id": "",
+  "started_at": "2026-04-24T10:11:39.000Z",
+  "updated_at": "2026-04-24T10:13:15.000Z",
+  "steps": [
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T10:11:40.000Z",
+      "completed_at": "2026-04-24T10:11:40.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:11:40.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "parse-create-issue-output",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T10:11:40.000Z",
+      "completed_at": "2026-04-24T10:11:40.000Z",
+      "output": ".wheel/outputs/parse-create-issue-output.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-create-issue-output.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:11:40.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-write",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-24T10:11:41.000Z",
+      "completed_at": "2026-04-24T10:13:14.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-result.json",
+      "command_log": [
+        {
+          "command": "ls .wheel/state_*.json 2>&1 | head",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:11:49.000Z"
+        },
+        {
+          "command": "jq '{workflow_name, status, cursor, steps: [.steps[] | {id, status}]}' .wheel/state_child_*.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:11:54.000Z"
+        },
+        {
+          "command": "cat .wheel/outputs/read-shelf-config.txt\necho \"===\"\ncat .wheel/outputs/parse-create-issue-output.json | jq '{source_file, basename, obsidian_subpath, frontmatter: .frontmatter}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:11:59.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/parse-create-issue-output.json .wheel/outputs/create-issue-result.md\necho \"---\"\n# Check if there's a script to inspect\nfind /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098/scripts -name \"parse-create-issue*\" 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:12:07.000Z"
+        },
+        {
+          "command": "head -60 /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098/scripts/parse-create-issue-output.sh",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:12:11.000Z"
+        },
+        {
+          "command": "export WORKFLOW_PLUGIN_DIR=/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098\nbash \"$WORKFLOW_PLUGIN_DIR/scripts/parse-create-issue-output.sh\" | jq '{issue_file, basename, obsidian_subpath: \"issues/\\(.basename)\", frontmatter}'",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:12:19.000Z"
+        },
+        {
+          "command": "jq '.steps[] | select(.id==\"obsidian-write\") | .instruction' /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098/workflows/shelf-write-issue-note.json | head -80",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:12:25.000Z"
+        },
+        {
+          "command": "head -20 .kiln/issues/2026-04-24-wheel-hook-flattens-newlines-breaks-activate-regex.md\necho \"---body---\"\nawk '/^---$/{n++; next} n==2' .kiln/issues/2026-04-24-wheel-hook-flattens-newlines-breaks-activate-regex.md | wc -l",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:12:34.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "finalize-result",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T10:13:14.000Z",
+      "completed_at": "2026-04-24T10:13:15.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-finalize.txt",
+      "command_log": [
+        {
+          "command": "RESULT=\".wheel/outputs/shelf-write-issue-note-result.json\"; if [ ! -s \"$RESULT\" ] || ! jq -e . \"$RESULT\" >/dev/null 2>&1; then printf '{\"issue_file\":\"\",\"obsidian_path\":\"\",\"action\":\"failed\",\"path_source\":\"unknown\",\"errors\":[\"obsidian-write agent produced empty or invalid result JSON\"]}\\n' > \"$RESULT\"; fi; echo '## shelf-write-issue-note result'; jq . \"$RESULT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T10:13:14.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_b7d14215-92ce-404c-b806-957a27e6c389_1777025411_18116.json"
+}

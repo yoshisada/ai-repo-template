@@ -1,0 +1,96 @@
+{
+  "workflow_name": "shelf-write-roadmap-note",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098/workflows/shelf-write-roadmap-note.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "b7d14215-92ce-404c-b806-957a27e6c389",
+  "owner_agent_id": "",
+  "started_at": "2026-04-24T09:45:12.000Z",
+  "updated_at": "2026-04-24T09:46:40.000Z",
+  "steps": [
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T09:45:12.000Z",
+      "completed_at": "2026-04-24T09:45:12.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:12.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "parse-roadmap-input",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T09:45:12.000Z",
+      "completed_at": "2026-04-24T09:45:13.000Z",
+      "output": ".wheel/outputs/parse-roadmap-input.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-roadmap-input.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:12.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-write",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-24T09:45:13.000Z",
+      "completed_at": "2026-04-24T09:46:39.000Z",
+      "output": ".wheel/outputs/shelf-write-roadmap-note-result.json",
+      "command_log": [
+        {
+          "command": "sleep 2\nls .wheel/state_*.json 2>/dev/null | while read sf; do\n  echo \"=== $(basename $sf) ===\"\n  jq '{workflow_name, status, cursor, steps: [.steps[] | {id, status, exit: (.command_log[-1].exit_code // null)}]}' \"$sf\"\ndone",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:21.000Z"
+        },
+        {
+          "command": "cat .wheel/outputs/read-shelf-config.txt\necho \"===\"\nhead -50 .wheel/outputs/parse-roadmap-input.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:29.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/parse-roadmap-input.json .wheel/outputs/roadmap-input.txt\necho \"---\"\n# Check state again with more detail on parse step\njq '.steps[1]' .wheel/state_*.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:38.000Z"
+        },
+        {
+          "command": "cd /Users/ryansuematsu/Documents/github/personal/ai-repo-template\nexport WORKFLOW_PLUGIN_DIR=\"/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.098\"\nbash \"$WORKFLOW_PLUGIN_DIR/scripts/parse-roadmap-input.sh\"\necho \"exit=$?\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:45:49.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "finalize-result",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T09:46:40.000Z",
+      "completed_at": "2026-04-24T09:46:40.000Z",
+      "output": ".wheel/outputs/shelf-write-roadmap-note-finalize.txt",
+      "command_log": [
+        {
+          "command": "RESULT=\".wheel/outputs/shelf-write-roadmap-note-result.json\"; if [ ! -s \"$RESULT\" ] || ! jq -e . \"$RESULT\" >/dev/null 2>&1; then printf '{\"source_file\":\"\",\"obsidian_path\":\"\",\"action\":\"failed\",\"path_source\":\"unknown\",\"errors\":[\"obsidian-write agent produced empty or invalid result JSON\"]}\\n' > \"$RESULT\"; fi; echo '## shelf-write-roadmap-note result'; jq . \"$RESULT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T09:46:40.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

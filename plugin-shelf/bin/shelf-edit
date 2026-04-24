@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# shelf-edit — open the current shelf project's notes.md in $EDITOR.
+#
+# Resolves the target file portably from any machine:
+#   - Walks up from $PWD to find .shelf-config (the repo root marker)
+#   - Reads `base_path` and `slug` from it
+#   - Resolves the vault's filesystem path via `obsidian vaults verbose`
+#     (vault name: $OBSIDIAN_VAULT > .shelf-config vault_name > "Obsidian Vault")
+#   - Opens <vault_fs>/<base_path>/<slug>/notes.md in ${EDITOR:-vim}
+#
+# Usage:
+#   shelf-edit          open (or create) notes.md and edit
+#   shelf-edit -n       dry run — print resolved path and exit
+#   shelf-edit -h       help
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+shelf-edit — open the current shelf project's notes.md in $EDITOR
+
+Usage:
+  shelf-edit          open (or create) notes.md and edit
+  shelf-edit -n       dry run — print resolved target path
+  shelf-edit -h       show this help
+
+Environment:
+  EDITOR              editor to open (default: vim)
+  OBSIDIAN_VAULT      override vault name (else .shelf-config vault_name, else "Obsidian Vault")
+EOF
+}
+
+die() { echo "shelf-edit: $*" >&2; exit 1; }
+
+dry_run=0
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  -n|--dry-run) dry_run=1 ;;
+  "") ;;
+  *) die "unknown argument: $1 (try -h)" ;;
+esac
+
+# 1. Walk up from $PWD to find .shelf-config
+find_shelf_config() {
+  local dir
+  dir=$(pwd)
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$dir/.shelf-config" ]]; then
+      echo "$dir/.shelf-config"
+      return 0
+    fi
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
+config=$(find_shelf_config) || die "no .shelf-config found in $(pwd) or any parent — not a shelf repo"
+
+# 2. Parse keys from .shelf-config (ignore comments, trim whitespace)
+get_config_value() {
+  grep -E "^$1[[:space:]]*=" "$config" \
+    | head -1 \
+    | sed -E "s/^$1[[:space:]]*=[[:space:]]*//; s/[[:space:]]*$//" || true
+}
+
+base_path=$(get_config_value base_path)
+slug=$(get_config_value slug)
+vault_name_cfg=$(get_config_value vault_name)
+
+[[ -n "$base_path" ]] || die "base_path not set in $config"
+[[ -n "$slug" ]]      || die "slug not set in $config"
+
+# 3. Resolve vault name: env > config > default
+vault_name="${OBSIDIAN_VAULT:-${vault_name_cfg:-Obsidian Vault}}"
+
+# 4. Resolve vault filesystem path via obsidian CLI
+command -v obsidian >/dev/null 2>&1 \
+  || die "obsidian CLI not on PATH — enable it in Settings → General → Command line interface"
+
+vault_fs=$(obsidian vaults verbose 2>/dev/null \
+  | awk -F'\t' -v v="$vault_name" '$1==v{print $2; exit}')
+
+[[ -n "$vault_fs" ]] \
+  || die "vault '$vault_name' not registered with Obsidian — run 'obsidian vaults verbose' to list known vaults"
+
+# 5. Build target path
+project_dir="$vault_fs/$base_path/$slug"
+target="$project_dir/notes.md"
+
+# 6. Dry run short-circuit
+if [[ $dry_run -eq 1 ]]; then
+  echo "$target"
+  exit 0
+fi
+
+# 7. Guard: project dir must exist (shelf-create populates it)
+[[ -d "$project_dir" ]] \
+  || die "project dir missing: $project_dir — run /shelf:shelf-create first"
+
+# 8. Create notes.md if missing, then open in editor
+[[ -f "$target" ]] || touch "$target"
+
+exec "${EDITOR:-vim}" "$target"
