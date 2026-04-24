@@ -399,20 +399,15 @@ mv "$TMP" "$ITEM_PATH"
 
 ### Dispatch Obsidian mirror (FR-030 / PRD FR-030)
 
-If `SHELF_MIRROR_ENABLED=1`, emit the context block so the shelf workflow's parser can locate the source file:
+If `SHELF_MIRROR_ENABLED=1`, point the shelf workflow at the file we just wrote. The simplest handoff is the `ROADMAP_INPUT_FILE` env var — `plugin-shelf/scripts/parse-roadmap-input.sh` checks it first (direct path), then `ROADMAP_INPUT_BLOCK`, then stdin:
 
 ```bash
-export ROADMAP_INPUT_BLOCK="$(cat <<EOF
-## ROADMAP_WRITE_INPUT
-source_file = $ITEM_PATH
-## END_ROADMAP_WRITE_INPUT
-EOF
-)"
+export ROADMAP_INPUT_FILE="$ITEM_PATH"     # workflow will read this verbatim
 ```
 
-Then invoke `shelf:shelf-write-roadmap-note` — this workflow reads `.shelf-config` (no vault discovery per FR-004) and writes one Obsidian note at `<base_path>/<slug>/roadmap/items/<basename>`.
+Then invoke `shelf:shelf-write-roadmap-note` — this workflow reads `.shelf-config` (no vault discovery per FR-004) and writes one Obsidian note at `<base_path>/<slug>/roadmap/items/<basename>`. The result JSON lands at `.wheel/outputs/shelf-write-roadmap-note-result.json` with `{ source_file, obsidian_path, action, path_source, errors }`.
 
-If the Obsidian mirror fails, log the error and continue — `.kiln/` writes are the source of truth and the capture is considered successful.
+If the Obsidian mirror fails (action: "failed" or non-empty errors), log the diagnostic and continue — `.kiln/` writes are the source of truth and the capture is considered successful. FR-040 covers the `.shelf-config`-missing case separately (warning at Step 0; mirror-skipped flag suppresses this step).
 
 ---
 
