@@ -3,7 +3,7 @@ id: 2026-04-24-workflow-plugin-dir-not-exported-to-bg-subagents
 title: WORKFLOW_PLUGIN_DIR is unset in background sub-agents spawned by wheel agent-steps — silent portability failure in consumer installs
 type: bug
 date: 2026-04-24
-status: open
+status: prd-created
 severity: high
 area: wheel
 category: portability
@@ -15,6 +15,7 @@ files:
   - plugin-shelf/scripts/shelf-counter.sh
   - plugin-shelf/scripts/append-bg-log.sh
   - specs/report-issue-speedup
+prd: docs/features/2026-04-24-wheel-as-runtime/PRD.md
 ---
 
 ## Summary

@@ -2,5 +2,5 @@
 base_path = @second-brain/projects
 slug = ai-repo-template
 dashboard_path = @second-brain/projects/ai-repo-template/ai-repo-template.md
-shelf_full_sync_counter = 9
+shelf_full_sync_counter = 0
 shelf_full_sync_threshold = 10

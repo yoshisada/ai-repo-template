@@ -3,7 +3,7 @@ id: 2026-04-24-wheel-workflow-speed-batching-commands
 title: Investigate wheel workflow speed — consolidate multi-command agent steps into single bash scripts to reduce LLM↔tool round-trips
 type: improvement
 date: 2026-04-24
-status: open
+status: prd-created
 severity: medium
 area: wheel
 category: performance
@@ -14,6 +14,7 @@ files:
   - plugin-kiln/workflows/kiln-report-issue.json
   - plugin-shelf/workflows
   - plugin-wheel/scripts
+prd: docs/features/2026-04-24-wheel-as-runtime/PRD.md
 ---
 
 ## Summary

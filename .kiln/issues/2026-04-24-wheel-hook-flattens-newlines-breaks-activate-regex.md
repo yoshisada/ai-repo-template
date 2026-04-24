@@ -3,12 +3,13 @@ id: 2026-04-24-wheel-hook-flattens-newlines-breaks-activate-regex
 title: Wheel PostToolUse hook flattens newlines in tool_input.command, silently breaking activate.sh detection in multi-line Bash calls
 type: issue
 date: 2026-04-24
-status: open
+status: prd-created
 severity: high
 area: wheel
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-wheel/hooks/post-tool-use.sh
+prd: docs/features/2026-04-24-wheel-as-runtime/PRD.md
 ---
 
 ## Summary
