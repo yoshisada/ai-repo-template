@@ -100,7 +100,7 @@ Sweep performed in plan phase. Result: zero additional skills in scope. No tasks
 
 ## Phase F — Backwards-compat verification (NFR-002, SC-005, SC-007)
 
-- [ ] **T05-1** Run all SMOKE.md fixtures end-to-end against the modified plugin sources, plus the SC-007 reverse-toggle check.
+- [X] **T05-1** Run all SMOKE.md fixtures end-to-end against the modified plugin sources, plus the SC-007 reverse-toggle check.
   - Document each fixture's `OK`/`FAIL` result in `specs/pipeline-input-completeness/agent-notes/implementer.md` under a "Backwards-compat verification" section.
   - For SC-007: temporarily comment out the Step 4b scan loop in a SCRATCH branch (DO NOT commit), run `/kiln:kiln-hygiene` against a pipeline state that should have leaked, confirm hygiene's `merged-prd-not-archived` rule still flags the items. Restore Step 4b on the working branch (no commit needed since the toggle was scratch-only). Document the result.
   - Validate `jq . plugin-shelf/workflows/shelf-write-issue-note.json > /dev/null` returns 0.
