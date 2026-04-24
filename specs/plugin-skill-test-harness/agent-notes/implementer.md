@@ -66,6 +66,16 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
 
 6. **Seed test wall-clock**: `/kiln:kiln-hygiene backfill` twice end-to-end = ~1m30s including 30s watcher-poll slack. Acceptable per NFR-006.
 
+7. **Seed-test prompts MUST be intent-only** (discovered during audit → BLOCKER-002 2026-04-24). Naming the expected output shape in `inputs/initial-message.txt` causes the skill-under-test to produce that shape from the PROMPT alone, not the SKILL — the negative-drift test then passes even when the SKILL is deliberately broken, defeating drift detection. Pattern to follow: describe the user's goal, not the contract. Compare the two seed tests shipped in this PRD:
+
+   **❌ Leakage (original kiln-distill-basic, reverted)**: "Generate the PRD under `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md` with the mandatory frontmatter (`derived_from:`, `distilled_date:`, `theme:`) and the Source Issues table referencing both fixture files." — Names every contract key. Negative test silently passes.
+
+   **✅ Intent-only (current kiln-distill-basic + both scenarios of kiln-hygiene-backfill-idempotent)**: "Run `/kiln:kiln-distill` against the fixtures in the current working directory. There is one open feedback item and one open issue. When and if the skill prompts for theme selection, answer using the queued answer lines. The goal is to bundle the open items into a feature PRD." — States the user's goal, no output-shape hints.
+
+   **Why it took a round-trip to catch**: the initial smoke validation I ran during implementation tested the HAPPY PATH (positive → `ok 1`), which passed because the SKILL wasn't broken AND the prompt was leaking. The audit's smoke #3 step (break the SKILL, expect `not ok 1`) is the ONLY check that distinguishes a real test from a documentary-test-in-costume. The briefing specifically called this out ("A test that is written but never run is the exact problem this PRD is supposed to solve") — but my first pass ran the test, it passed, I declared done. The audit's negative smoke is what the briefing's spirit actually required. Lesson carried forward: every future seed test MUST include a negative-drift run during implementation, not only at audit time.
+
+   **Secondary discovery, same issue**: unquoted backticks inside double-quoted strings in bash (e.g. `echo "FAIL: missing \`key\` line"`) cause spurious command substitution. Caught when the smoke #3 `not ok` diagnostic printed `line 36: derived_from:: command not found` alongside a blanked-out `FAIL: PRD is missing  frontmatter line`. Fix: single-quote the string instead. Net no-op for pass/fail; only affects diagnostic readability.
+
 ## Uncertainties carried forward
 
 - [will be populated as Phase A/B/C work surfaces them]

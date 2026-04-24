@@ -33,7 +33,7 @@ echo "Generated PRD: $prd" >&2
 
 # 1. Must have `derived_from:` frontmatter key in the first 20 lines.
 if ! head -20 "$prd" | grep -Eq '^derived_from:[[:space:]]*(\[\])?[[:space:]]*$'; then
-  echo "FAIL: PRD is missing `derived_from:` frontmatter line" >&2
+  echo 'FAIL: PRD is missing `derived_from:` frontmatter line' >&2
   echo "First 20 lines:" >&2
   head -20 "$prd" >&2
   exit 1

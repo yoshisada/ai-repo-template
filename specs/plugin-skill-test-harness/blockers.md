@@ -108,7 +108,16 @@ If team-lead picks **Option B**:
 
 ## BLOCKER-002: Negative-test smoke gate (#3) FAILS — seed test cannot detect SKILL drift
 
-**Status**: 🟥 OPEN — discovered during audit 2026-04-24. PR creation halted per audit protocol ("If ANY of the 7 smoke tests fails, do NOT create the PR").
+**Status**: ✅ RESOLVED 2026-04-24 — Option A applied (intent-only rewrite of `plugin-kiln/tests/kiln-distill-basic/inputs/initial-message.txt`). All three affected smoke scenarios re-verified in sequence:
+  - **Smoke #1** (positive): `ok 1 - kiln-distill-basic` (2m00s)
+  - **Smoke #3** (SKILL broken: "YAML Frontmatter Emission" and "FR-002 Single-Source-of-Truth Invariant" sections replaced with DELIBERATELY BROKEN stubs): `not ok 1 - kiln-distill-basic` with assertion diagnostic pointing at missing `derived_from:` frontmatter in the generated PRD.
+  - **Smoke #7** (positive re-run after SKILL revert): `ok 1 - kiln-distill-basic` (2m00s)
+
+The generated-PRD body in the smoke #3 retained scratch dir started with `# Feature PRD:` directly — no `---` frontmatter — confirming the skill actually followed the broken instruction and the assertion caught it. Compare to smoke #3 before the fix, where the model overrode the broken SKILL because the prompt explicitly named the required frontmatter keys.
+
+**Secondary fix** committed alongside: `plugin-kiln/tests/kiln-distill-basic/assertions.sh` line 36 had backticks inside a double-quoted string, which bash was (incorrectly) treating as command substitution (`\`derived_from:\`` ran as a command and produced `command not found` in the diagnostic). Switched to single-quotes so the error message reads cleanly. Net no-op for pass/fail outcomes — only affects the diagnostic text on failure.
+
+**Commit**: `ee3c1d8` — "fix(test): intent-only prompt for kiln-distill-basic seed (BLOCKER-002 resolved)".
 
 **Filed by**: auditor
 **Filed**: 2026-04-24
