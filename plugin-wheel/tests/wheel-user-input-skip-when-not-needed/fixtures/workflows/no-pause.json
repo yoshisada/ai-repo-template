@@ -1,0 +1,14 @@
+{
+  "name": "no-pause",
+  "version": "1.0.0",
+  "description": "US2 — allow_user_input: true but agent does NOT pause",
+  "steps": [
+    {
+      "id": "auto",
+      "type": "agent",
+      "allow_user_input": true,
+      "output": ".wheel/outputs/auto.json",
+      "instruction": "Write {\"result\": \"ok\"} to .wheel/outputs/auto.json IMMEDIATELY. Do NOT call wheel flag-needs-input; you can resolve this step from repo state alone."
+    }
+  ]
+}

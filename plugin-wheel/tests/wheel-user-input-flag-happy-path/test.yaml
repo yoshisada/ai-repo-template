@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "US1 — one-step workflow with allow_user_input: true; agent calls wheel-flag-needs-input, the stop hook stays silent, then agent writes the output file and the flag auto-clears on advance"
+timeout-override: 900

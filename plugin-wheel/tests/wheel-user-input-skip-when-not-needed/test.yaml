@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "US2 — step with allow_user_input: true but agent writes output directly without pausing; no awaiting_user_input ever set; workflow advances on first hook fire"
+timeout-override: 900

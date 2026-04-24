@@ -1,0 +1,13 @@
+{
+  "name": "denied",
+  "version": "1.0.0",
+  "description": "US3 — step without allow_user_input; CLI call must be rejected",
+  "steps": [
+    {
+      "id": "no-perm",
+      "type": "agent",
+      "output": ".wheel/outputs/no-perm.json",
+      "instruction": "First run `wheel flag-needs-input \"try to pause\"` — it MUST exit 1 with a 'does not permit user input' message. Capture the exit code. Then write {\"attempted_pause\": \"denied\"} to .wheel/outputs/no-perm.json."
+    }
+  ]
+}

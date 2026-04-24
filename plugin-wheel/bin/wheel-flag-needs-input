@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# wheel-flag-needs-input — Pause the active wheel workflow for user input.
+#
+# FR-005/FR-006/FR-006a/FR-010/FR-013 (wheel-user-input): See
+# specs/wheel-user-input/contracts/interfaces.md §5 for the full contract.
+#
+# Usage: wheel-flag-needs-input <reason>
+#
+# Exit codes:
+#   0 = flag set successfully
+#   1 = missing <reason>, no active workflow, step lacks allow_user_input,
+#       WHEEL_NONINTERACTIVE=1, cross-workflow guard fired, or state write failure
+#
+# Invariants enforced (all six from contracts §5.3 in order):
+#   1. <reason> is mandatory and non-empty.
+#   2. An active state file must resolve.
+#   3. The current step must have allow_user_input: true.
+#   4. WHEEL_NONINTERACTIVE=1 is a hard block (FR-013).
+#   5. No other active workflow may already be awaiting input (FR-010).
+#   6. On pass, state_set_awaiting_user_input writes all three fields atomically.
+set -euo pipefail
+
+# --- Resolve plugin dirs (support being called by absolute/relative/symlinked path) ---
+_SCRIPT_PATH="${BASH_SOURCE[0]}"
+# Resolve symlinks
+while [[ -L "$_SCRIPT_PATH" ]]; do
+  _SCRIPT_PATH="$(readlink "$_SCRIPT_PATH")"
+done
+_BIN_DIR="$(cd "$(dirname "$_SCRIPT_PATH")" && pwd)"
+PLUGIN_DIR="$(cd "${_BIN_DIR}/.." && pwd)"
+export WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
+
+# shellcheck source=../lib/log.sh
+source "${PLUGIN_DIR}/lib/log.sh"
+# shellcheck source=../lib/state.sh
+source "${PLUGIN_DIR}/lib/state.sh"
+# shellcheck source=../lib/guard.sh
+source "${PLUGIN_DIR}/lib/guard.sh"
+
+wheel_log_init "flag-needs-input" ""
+wheel_log "enter" "argv=$*"
+
+# --- Step 1: argument validation (FR-006a) ---
+if [[ $# -lt 1 ]] || [[ -z "${1:-}" ]]; then
+  echo "usage: wheel-flag-needs-input <reason>" >&2
+  wheel_log "exit" "result=usage-error"
+  exit 1
+fi
+REASON="$1"
+
+# --- Step 2: resolve active state file ---
+STATE_DIR=".wheel"
+STATE_FILE=$(resolve_active_state_file_nohook "$STATE_DIR" 2>/dev/null) || true
+if [[ -z "${STATE_FILE:-}" ]]; then
+  echo "no active workflow" >&2
+  wheel_log "exit" "result=no-active-workflow"
+  exit 1
+fi
+wheel_log_set_state "$STATE_FILE"
+wheel_log "resolved" "state=$STATE_FILE"
+
+# --- Read cursor + current step from state + workflow ---
+CURSOR=$(jq -r '.cursor // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+STEP_ID=$(jq -r --argjson idx "$CURSOR" '.steps[$idx].id // empty' "$STATE_FILE" 2>/dev/null || echo "")
+WORKFLOW_FILE=$(jq -r '.workflow_file // empty' "$STATE_FILE" 2>/dev/null || echo "")
+
+if [[ -z "$STEP_ID" ]] || [[ -z "$WORKFLOW_FILE" ]] || [[ ! -f "$WORKFLOW_FILE" ]]; then
+  echo "no active workflow" >&2
+  wheel_log "exit" "result=unresolvable-step"
+  exit 1
+fi
+
+# --- Step 3: permission gate (FR-006 step 3) ---
+# Check allow_user_input on the current step — sourced from the WORKFLOW file
+# (authoring-time permission), not state.
+ALLOW=$(jq -r --argjson idx "$CURSOR" '.steps[$idx].allow_user_input // false' "$WORKFLOW_FILE" 2>/dev/null || echo "false")
+if [[ "$ALLOW" != "true" ]]; then
+  echo "step '${STEP_ID}' does not permit user input — finish with the context you have" >&2
+  wheel_log "denied" "reason=no-permission step=${STEP_ID}"
+  exit 1
+fi
+
+# --- Step 4: non-interactive gate (FR-013) ---
+if [[ "${WHEEL_NONINTERACTIVE:-}" == "1" ]]; then
+  echo "non-interactive mode: user input disabled" >&2
+  wheel_log "denied" "reason=noninteractive step=${STEP_ID}"
+  exit 1
+fi
+
+# --- Step 5: cross-workflow guard (FR-010) ---
+for other in "${STATE_DIR}"/state_*.json; do
+  [[ -f "$other" ]] || continue
+  [[ "$other" == "$STATE_FILE" ]] && continue
+  other_awaiting=$(jq -r --arg def "false" '(.steps[(.cursor // 0)].awaiting_user_input // $def) | tostring' "$other" 2>/dev/null || echo "false")
+  if [[ "$other_awaiting" == "true" ]]; then
+    other_name=$(jq -r '.workflow_name // "unknown"' "$other" 2>/dev/null || echo "unknown")
+    other_cursor=$(jq -r '.cursor // 0' "$other" 2>/dev/null || echo 0)
+    other_step=$(jq -r --argjson idx "$other_cursor" '.steps[$idx].id // "unknown"' "$other" 2>/dev/null || echo "unknown")
+    echo "another workflow is waiting on user input: ${other_name} / ${other_step}" >&2
+    wheel_log "denied" "reason=cross-workflow-guard blocking=${other_name}/${other_step}"
+    exit 1
+  fi
+done
+
+# --- Step 6: write state ---
+if ! state_set_awaiting_user_input "$STATE_FILE" "$CURSOR" "$REASON"; then
+  echo "failed to write state: state_set_awaiting_user_input returned non-zero" >&2
+  wheel_log "exit" "result=write-failure"
+  exit 1
+fi
+
+printf "awaiting user input on step '%s' (reason: %s)\n" "$STEP_ID" "$REASON"
+wheel_log "set" "step=${STEP_ID} reason=${REASON}"
+wheel_log "exit" "result=ok"
+exit 0

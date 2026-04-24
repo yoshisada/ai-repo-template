@@ -60,7 +60,16 @@ Primary user: the kiln product owner (solo dev) who wants to steer the product d
 
 ### Directory layout
 
-- **FR-001** — On first run, create `.kiln/vision.md` from a template (if missing) with a short prompt for the user to fill in.
+- **FR-001** — On first run, create `.kiln/vision.md` from a template (if missing) with a short prompt for the user to fill in. The template follows a prescribed 7-slot schema so downstream consumers (notably the CLAUDE.md audit's `## Product` sync — see `docs/features/2026-04-24-claude-md-audit-reframe/PRD.md` FR-022–FR-029) can rely on a predictable shape:
+  1. **One-line product summary** — what this product is, in one sentence.
+  2. **Primary target user** (optional secondary) — persona, not just demographics.
+  3. **Top 3 jobs-to-be-done** — what users hire this product to do.
+  4. **Non-goals** — explicit "what this product is NOT."
+  5. **Current phase** — one of: `pre-launch | early-access | maturing | mature | end-of-life`. Shapes how tradeoffs should be weighed this quarter.
+  6. **North-star metric / success shape** — the one thing you'd move if you could only move one.
+  7. **Key differentiator** — what this product does that alternatives don't.
+  Each slot gets its own `## <slot>` heading so the audit can grade slot-level completeness. Slots may be marked `N/A` with a reason; empty slots fire `product-slot-missing` findings from the audit.
+- **FR-001a** — `.kiln/vision.md` supports optional CLAUDE.md-sync region markers. If the file has `<!-- claude-md-sync:start -->` ... `<!-- claude-md-sync:end -->` fences, only content inside the fence is mirrored into CLAUDE.md's `## Product` section. If no fences are present, the whole file is mirrored (subject to FR-028 of the audit PRD — top-level `#` is demoted, slot `##` headings demoted to `###`). Fences let authors maintain a lean "hot" summary for per-turn Claude context while keeping a richer deep-dive document for humans. No behavior change for roadmap consumers — distill reads the full file regardless of fences.
 - **FR-002** — On first run, create `.kiln/roadmap/` tree:
   - `.kiln/roadmap/phases/` — one file per phase (e.g., `foundations.md`, `current.md`, `next.md`, `later.md`, `unsorted.md`). `unsorted.md` is pre-created as the default landing spot for `--quick` captures and migration output.
   - `.kiln/roadmap/items/` — one file per item, named `<YYYY-MM-DD>-<slug>.md`.

@@ -46,8 +46,46 @@ workflow_load() {
   if ! workflow_validate_workflow_refs "$content" "" 0; then
     return 1
   fi
+  # FR-001/FR-002 (wheel-user-input): Validate allow_user_input permission
+  if ! workflow_validate_allow_user_input "$content"; then
+    return 1
+  fi
 
   printf '%s\n' "$content"
+}
+
+# FR-001/FR-002 (wheel-user-input): Validate that `allow_user_input: true` only
+# appears on step types in {agent, loop, branch}. Any other step type (notably
+# `command`) that sets `allow_user_input: true` is a hard workflow error —
+# `command` steps execute inline with no agent turn, so "pausing" is
+# meaningless.
+#
+# Params: $1 = workflow JSON (string, validated JSON)
+# Output (stderr): one error line per offending step (id + type + field)
+# Exit: 0 if all steps pass, 1 if any step violates
+workflow_validate_allow_user_input() {
+  local workflow_json="$1"
+  # jq emits one "id|type" row per offending step; bash does the final
+  # single-quoted formatting (avoids embedding apostrophes in the jq string
+  # which breaks bash single-quoted filters).
+  local offenders
+  offenders=$(printf '%s\n' "$workflow_json" | jq -r '
+    [.steps[]
+      | select(.allow_user_input == true)
+      | select((.type // "") as $t | ($t == "agent" or $t == "loop" or $t == "branch") | not)
+      | "\(.id // "?")|\(.type // "?")"
+    ] | .[]')
+  if [[ -n "$offenders" ]]; then
+    echo "ERROR: invalid allow_user_input on step(s):" >&2
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      local off_id="${line%%|*}"
+      local off_type="${line#*|}"
+      echo "ERROR: step '${off_id}' (type: ${off_type}) sets allow_user_input: true but only type in {agent, loop, branch} may pause for user input" >&2
+    done <<< "$offenders"
+    return 1
+  fi
+  return 0
 }
 
 # FR-006 (wheel-skill-activation): Validate that all step IDs in a workflow are unique

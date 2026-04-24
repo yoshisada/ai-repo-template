@@ -550,6 +550,9 @@ dispatch_agent() {
           # Agent step is done — mark complete, capture output, advance
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
+          # FR-008 (wheel-user-input): clear any awaiting_user_input flag on
+          # this just-completed step — auto-clear is part of the advance.
+          state_clear_awaiting_user_input "$state_file" "$step_index" 2>/dev/null || true
           # FR-008: Check for terminal step — archive and end workflow
           local _parent_snap
           _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
@@ -576,6 +579,8 @@ dispatch_agent() {
         elif [[ -z "$output_key" ]]; then
           # No output file expected — agent step auto-completes on second stop
           state_set_step_status "$state_file" "$step_index" "done"
+          # FR-008 (wheel-user-input): auto-clear on advance.
+          state_clear_awaiting_user_input "$state_file" "$step_index" 2>/dev/null || true
           local _parent_snap
           _parent_snap=$(jq -r '.parent_workflow // empty' "$state_file" 2>/dev/null)
           if handle_terminal_step "$state_file" "$step_json"; then
@@ -742,6 +747,9 @@ dispatch_agent() {
       # Agent wrote to the output file — mark step done, advance
       state_set_step_status "$state_file" "$step_index" "done"
       context_capture_output "$state_file" "$step_index" "$output_key"
+      # FR-008 (wheel-user-input): clear any awaiting_user_input flag on the
+      # just-completed step — auto-clear is part of the advance transition.
+      state_clear_awaiting_user_input "$state_file" "$step_index" 2>/dev/null || true
 
       # FR-008: Check for terminal step — archive and end workflow
       local _parent_snap

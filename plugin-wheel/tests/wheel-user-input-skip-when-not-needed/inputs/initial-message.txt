@@ -1,0 +1,1 @@
+Run `/wheel:wheel-run no-pause` against the fixture workflow in workflows/no-pause.json. The step permits user input but you must NOT pause — follow the instruction exactly and write the output file directly.
