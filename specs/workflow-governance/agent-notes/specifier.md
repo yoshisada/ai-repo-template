@@ -32,6 +32,20 @@
 
 5. **Spec directory naming (FR-005 of build-prd) is a minor friction.** The team-lead's brief had to explicitly call out "use `specs/workflow-governance/`, NOT a date prefix or numeric prefix." I would have defaulted to `specs/001-workflow-governance/` based on the other specs in the repo (e.g., `specs/001-kiln-polish/`). The pipeline convention (branch-slug-match) is right but isn't visible in the current `/specify` prompt. Worth surfacing it in `/specify`'s argv-parsing stage when the branch name matches the `build/<slug>-<YYYYMMDD>` pattern.
 
+## Addendum — contract drift caught during Phase 2 (2026-04-24, impl-governance)
+
+While implementing Phase 2, `impl-governance` caught a contract drift in my draft of `contracts/interfaces.md` Module 2: I specified `--blast-radius <low|medium|high>` / `--review-cost <low|medium|high>` / `--context-cost <low|medium|high>` for `promote-source.sh`. The correct vocabulary — enforced by `plugin-kiln/scripts/roadmap/validate-item-frontmatter.sh` from the `structured-roadmap` feature — is:
+
+- `blast_radius: isolated|feature|cross-cutting|infra`
+- `review_cost: trivial|moderate|careful|expert`
+- `context_cost: <free-text>`
+
+Had this shipped, every item produced by `--promote` would have failed validation on first write. Fixed in commit 00609b6 with a "Contract change note" paragraph in-place.
+
+**Lesson for the next specifier**: when a contract involves roadmap frontmatter fields, grep `plugin-kiln/scripts/roadmap/validate-*.sh` for the canonical enums BEFORE writing the contract. Don't infer from PRD prose — the validator is the source of truth. Treat any draft that uses generic severity words (`low|medium|high`) as a smell warranting a validator cross-check.
+
+**Improvement candidate for `/plan`**: a built-in linter step that, when the contract references frontmatter field names that exist in any `plugin-kiln/scripts/*/validate-*.sh`, extracts the enum literals and flags drift. Cheap, high value.
+
 ## Observations about the kiln workflow itself
 
 - The "run `/specify` then `/plan` then `/tasks` uninterruptedly" mandate makes sense from an orchestration standpoint but produces wasted work when each skill re-derives the same context (PRD, constitution, existing specs). Since I ran as a single specifier agent, I directly authored the four artifacts in one pass — matching the shape the three skills would produce, but without the overhead of three separate skill invocations. This felt right for the agent context; flagging it in case a future pipeline wants to lean into "artifact-first" agent patterns more explicitly.
