@@ -1,0 +1,1 @@
+Run `/wheel:wheel-run noni` against the fixture workflow in workflows/noni.json. The WHEEL_NONINTERACTIVE=1 environment variable is set, which must cause `wheel flag-needs-input` to exit 1 even though the step permits user input. Follow the step instruction and write the output file.

@@ -1,0 +1,1 @@
+Run `/wheel:wheel-run denied` against the fixture workflow in workflows/denied.json. Follow the step instruction exactly — invoke `wheel flag-needs-input`, confirm it exits 1, then write the output file.

@@ -1,0 +1,7 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "US5 — WHEEL_NONINTERACTIVE=1 causes wheel-flag-needs-input to exit 1 regardless of step permission (SC-004)"
+timeout-override: 900
+env:
+  WHEEL_NONINTERACTIVE: "1"

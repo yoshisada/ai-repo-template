@@ -89,9 +89,9 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 6: Remaining harness fixtures (FR-016 tail)
 
-- [ ] T021 [P] Scaffold `plugin-wheel/tests/wheel-user-input-skip-when-not-needed/` — agent writes output directly without calling the CLI; assert no `awaiting_user_input` ever set; workflow advances on first hook fire. Covers US2 scenarios 1–2.
-- [ ] T022 [P] Scaffold `plugin-wheel/tests/wheel-user-input-permission-denied/` — step without `allow_user_input`; CLI call exits 1; state file sha unchanged. Covers US3 scenario 1.
-- [ ] T023 [P] Scaffold `plugin-wheel/tests/wheel-user-input-noninteractive/` — `WHEEL_NONINTERACTIVE=1`; CLI exits 1 regardless of permission. Covers US5 scenarios 1–2.
+- [X] T021 [P] Scaffold `plugin-wheel/tests/wheel-user-input-skip-when-not-needed/` — agent writes output directly without calling the CLI; assert no `awaiting_user_input` ever set; workflow advances on first hook fire. Covers US2 scenarios 1–2.
+- [X] T022 [P] Scaffold `plugin-wheel/tests/wheel-user-input-permission-denied/` — step without `allow_user_input`; CLI call exits 1; state file sha unchanged. Covers US3 scenario 1.
+- [X] T023 [P] Scaffold `plugin-wheel/tests/wheel-user-input-noninteractive/` — `WHEEL_NONINTERACTIVE=1`; CLI exits 1 regardless of permission. Covers US5 scenarios 1–2.
 
 **Phase 6 exit gate**: T021–T023 `[X]`; all four harness fixtures pass under `/kiln:kiln-test`. Commit `test(wheel-user-input): phase 6 — harness fixtures for all user stories`.
 
