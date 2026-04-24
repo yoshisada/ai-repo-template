@@ -68,7 +68,11 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
 
 ## Phase-by-phase friction log
 
-- [Phase A]: pending
+- [Phase A] — **done (T001..T007)**. Two notable frictions:
+  1. **Subshell-swallowed bail-out**: My first `kiln-test.sh` had `bail_out()` emit the TAP `Bail out!` line to stdout, and called it from inside `$(auto_detect_plugin ...)`. Result: the line was captured into the command substitution and never reached the terminal; callers just saw `EXIT=2` with no explanation. Refactored so helpers that *may* bail write to stderr + return non-zero; the top-level caller turns that into the Bail out! line. Contract convention to carry forward: **never call `bail_out` from inside a command substitution**; always at top-level.
+  2. **Multi-plugin auto-detect**: this repo itself has 5 `plugin-*/` dirs. Auto-detect correctly bails with a plugin-list (expected per spec Edge Cases), but I noticed that this means the seed tests can NEVER use the zero-arg form inside this source repo — SMOKE.md blocks must pass `kiln` explicitly. Will update SMOKE.md accordingly in Phase H.
+
+  Phase A checkpoint verified: empty `plugin-kiln/tests/` → `TAP version 14\n1..0\n` exit 0; probe test → `ok 1 - phase-a-probe # SKIP substrate-not-yet-wired` exit 2; invalid test.yaml → SKIP with validation diagnostic; nonexistent plugin/test → Bail out!.
 - [Phase B]: pending
 - [Phase C]: pending
 - [Phase D]: pending

@@ -25,19 +25,19 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Goal**: Harness can be invoked, discover tests, create+destroy scratch dirs, emit a TAP stream. No substrate yet — all tests emit `# SKIP substrate not implemented` placeholder at this phase-end checkpoint.
 
-- [ ] **T001** Create directory skeleton: `plugin-kiln/skills/kiln-test/` (empty SKILL.md placeholder), `plugin-kiln/scripts/harness/` (empty), `plugin-kiln/tests/` (empty). Satisfies FR-001 directory layout. Ref: plan.md Project Structure.
+- [X] **T001** Create directory skeleton: `plugin-kiln/skills/kiln-test/` (empty SKILL.md placeholder), `plugin-kiln/scripts/harness/` (empty), `plugin-kiln/tests/` (empty). Satisfies FR-001 directory layout. Ref: plan.md Project Structure.
 
-- [ ] **T002** Implement `plugin-kiln/scripts/harness/scratch-create.sh` per contracts §7.5. UUIDv4 gen, collision retry (3 attempts), exit 2 on 4th failure. Satisfies FR-003 scratch-dir path invariant.
+- [X] **T002** Implement `plugin-kiln/scripts/harness/scratch-create.sh` per contracts §7.5. UUIDv4 gen, collision retry (3 attempts), exit 2 on 4th failure. Satisfies FR-003 scratch-dir path invariant.
 
-- [ ] **T003** Implement `plugin-kiln/scripts/harness/fixture-seeder.sh` per contracts §7.1. Recursive `cp -R` from `<test-dir>/fixtures/` to `<scratch-dir>/`; empty fixtures → exit 0; copy error → exit 2. Satisfies FR-002 fixture copy step.
+- [X] **T003** Implement `plugin-kiln/scripts/harness/fixture-seeder.sh` per contracts §7.1. Recursive `cp -R` from `<test-dir>/fixtures/` to `<scratch-dir>/`; empty fixtures → exit 0; copy error → exit 2. Satisfies FR-002 fixture copy step.
 
-- [ ] **T004** Implement `plugin-kiln/scripts/harness/tap-emit.sh` per contracts §7.3. Supports `pass`, `fail` (with YAML diagnostic file), `skip` (reason-from-diagnostic). Strict stdout-only; no stderr. Satisfies FR-004 TAP v14 grammar + §2 of contracts.
+- [X] **T004** Implement `plugin-kiln/scripts/harness/tap-emit.sh` per contracts §7.3. Supports `pass`, `fail` (with YAML diagnostic file), `skip` (reason-from-diagnostic). Strict stdout-only; no stderr. Satisfies FR-004 TAP v14 grammar + §2 of contracts.
 
-- [ ] **T005** Implement `plugin-kiln/scripts/harness/test-yaml-validate.sh` per contracts §7.6 + §1 schema. Validates `harness-type` ∈ {`plugin-skill`}, `expected-exit` non-negative int (default 0), `description` non-empty, `timeout-override` ∈ [60, 3600] when present. Unknown top-level keys → warning, not failure. Satisfies FR-002 test.yaml contract.
+- [X] **T005** Implement `plugin-kiln/scripts/harness/test-yaml-validate.sh` per contracts §7.6 + §1 schema. Validates `harness-type` ∈ {`plugin-skill`}, `expected-exit` non-negative int (default 0), `description` non-empty, `timeout-override` ∈ [60, 3600] when present. Unknown top-level keys → warning, not failure. Satisfies FR-002 test.yaml contract.
 
-- [ ] **T006** Implement `plugin-kiln/scripts/harness/config-load.sh` per contracts §7.7. Reads `.kiln/test.config` if present; emits key=value. Defaults: `watcher_stall_window_seconds=300`, `watcher_poll_interval_seconds=30`. Satisfies FR-014 config override contract.
+- [X] **T006** Implement `plugin-kiln/scripts/harness/config-load.sh` per contracts §7.7. Reads `.kiln/test.config` if present; emits key=value. Defaults: `watcher_stall_window_seconds=300`, `watcher_poll_interval_seconds=30`. Satisfies FR-014 config override contract.
 
-- [ ] **T007** Implement `plugin-kiln/scripts/harness/kiln-test.sh` per contracts §7.11. Plugin auto-detect (sibling `plugin-<name>/` scan → exit 2 with plugin-list diagnostic if multi-plugin), test discovery under `plugin-<name>/tests/`, TAP header `TAP version 14\n1..N\n`, loop over tests emitting placeholder `# SKIP substrate-not-yet-wired`, aggregate exit per contracts §2. Satisfies FR-001 all three invocation forms (skeleton level) and FR-005 exit-code aggregation.
+- [X] **T007** Implement `plugin-kiln/scripts/harness/kiln-test.sh` per contracts §7.11. Plugin auto-detect (sibling `plugin-<name>/` scan → exit 2 with plugin-list diagnostic if multi-plugin), test discovery under `plugin-<name>/tests/`, TAP header `TAP version 14\n1..N\n`, loop over tests emitting placeholder `# SKIP substrate-not-yet-wired`, aggregate exit per contracts §2. Satisfies FR-001 all three invocation forms (skeleton level) and FR-005 exit-code aggregation.
 
 **Phase A checkpoint**: `/kiln:kiln-test` discovers tests and emits a well-formed TAP stream with all `# SKIP` lines. Exit code 2 (inconclusive). Commit: "phase A: harness skeleton + scratch lifecycle + TAP emitter".
 

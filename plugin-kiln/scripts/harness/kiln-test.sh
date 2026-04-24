@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+# kiln-test.sh — Top-level harness orchestrator.
+#
+# Satisfies: FR-001 (three invocation forms), FR-005 (exit-code aggregation),
+#            FR-004 (TAP stream), NFR-003 (deterministic stdout)
+# Contract:  contracts/interfaces.md §7.11 + §2 (TAP stream shape) + §5 (dispatch)
+#
+# Usage:
+#   kiln-test.sh                             # auto-detect plugin
+#   kiln-test.sh <plugin-name>               # run all tests for plugin
+#   kiln-test.sh <plugin-name> <test-name>   # run single test
+#
+# Plugin auto-detect scans CWD for sibling dirs matching `plugin-<name>/`. If
+# exactly one match, use it. If multiple, exit 2 with a plugin-list diagnostic.
+#
+# PHASE A SCOPE: Substrate dispatch and watcher are NOT wired yet (those land
+# in Phase B + C). For Phase A, each discovered test emits `# SKIP substrate-
+# not-yet-wired` so the TAP stream shape is verifiable. Exit 2 (inconclusive)
+# because of the SKIP lines.
+#
+# Stdout: TAP v14 stream (header + one line per test + optional YAML diagnostic)
+# Stderr: diagnostics / warnings
+# Exit:   0 — all pass, 1 — at least one fail, 2 — at least one skip (no fails)
+set -euo pipefail
+
+# Resolve this script's directory so we can dispatch to sibling helpers by
+# absolute path. `${BASH_SOURCE[0]}` is portable to bash 3.2+ (macOS default).
+harness_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# -----------------------------------------------------------------------------
+# Helper: emit a TAP bail-out on stdout and exit. MUST NOT be called from
+# inside a command substitution — the `Bail out!` line is part of the TAP
+# stream and must reach the caller's stdout. Helper functions that *might*
+# bail should instead return a non-zero exit code + write a diagnostic to
+# stderr, and the top-level caller converts that into the Bail out! line.
+# -----------------------------------------------------------------------------
+bail_out() {
+  local msg=$1
+  # TAP v14: `Bail out! <msg>` is the standard fatal line.
+  printf 'Bail out! %s\n' "$msg"
+  exit 2
+}
+
+# -----------------------------------------------------------------------------
+# Auto-detect plugin directory. On success prints the matched plugin-<name>/
+# path (absolute) to stdout. On failure, writes diagnostic to stderr and
+# returns 1 (ambiguous multi-match) or 2 (no plugin found). Caller is
+# responsible for emitting the Bail out! line — this function is safe to
+# call inside `$(...)`.
+# -----------------------------------------------------------------------------
+auto_detect_plugin() {
+  local cwd=$1
+  local -a candidates=()
+  for d in "$cwd"/plugin-*/; do
+    [[ -d $d ]] || continue
+    if [[ -d "$d.claude-plugin" || -d "${d}skills" ]]; then
+      candidates+=("${d%/}")
+    fi
+  done
+  if (( ${#candidates[@]} == 0 )); then
+    echo "no plugin-<name>/ dir found in $cwd; pass plugin name explicitly (e.g., /kiln:kiln-test kiln)" >&2
+    return 2
+  fi
+  if (( ${#candidates[@]} > 1 )); then
+    local list
+    list=$(printf '%s\n' "${candidates[@]}" | sed 's|^.*/||' | tr '\n' ' ')
+    echo "multiple plugin-<name>/ dirs found: ${list}— pass plugin name explicitly" >&2
+    return 1
+  fi
+  printf '%s\n' "${candidates[0]}"
+  return 0
+}
+
+# -----------------------------------------------------------------------------
+# Check `claude` is on PATH (edge case per spec.md §Edge Cases).
+# -----------------------------------------------------------------------------
+check_claude_on_path() {
+  if ! command -v claude >/dev/null 2>&1; then
+    bail_out "claude CLI not on PATH; install Claude Code (https://docs.claude.com/en/docs/claude-code)"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Argument parsing (FR-001).
+# -----------------------------------------------------------------------------
+repo_root=${KILN_TEST_REPO_ROOT:-$(pwd)}
+
+if [[ $# -gt 2 ]]; then
+  bail_out "too many arguments: expected 0, 1, or 2 (got $#)"
+fi
+
+plugin_name=${1:-}
+test_name=${2:-}
+
+# Resolve plugin root.
+if [[ -z $plugin_name ]]; then
+  # Capture stderr separately so we can embed the diagnostic in Bail out!
+  ad_err=$(mktemp)
+  if ! plugin_root=$(auto_detect_plugin "$repo_root" 2>"$ad_err"); then
+    msg=$(awk 'NF { print; exit }' "$ad_err")
+    rm -f "$ad_err"
+    bail_out "$msg"
+  fi
+  rm -f "$ad_err"
+  plugin_name=${plugin_root##*/plugin-}
+else
+  plugin_root="$repo_root/plugin-$plugin_name"
+  if [[ ! -d $plugin_root ]]; then
+    bail_out "plugin dir does not exist: $plugin_root"
+  fi
+fi
+
+# Check claude CLI present (only needed once per invocation).
+check_claude_on_path
+
+# Load config (defaults + any .kiln/test.config overrides).
+config_output=$("$harness_dir/config-load.sh" "$repo_root") || bail_out "config-load.sh failed"
+eval "$config_output"
+
+# Expand the `<name>` placeholder in discovery_path if present.
+# Default `plugin-<name>/tests` → `plugin-kiln/tests`.
+discovery_rel=${discovery_path/<name>/$plugin_name}
+
+# -----------------------------------------------------------------------------
+# Discover tests. Each test = a directory containing test.yaml.
+# -----------------------------------------------------------------------------
+tests_root="$repo_root/$discovery_rel"
+# If discovery_path is absolute, don't prepend repo_root.
+if [[ $discovery_rel == /* ]]; then
+  tests_root=$discovery_rel
+fi
+
+declare -a discovered_tests=()
+if [[ -d $tests_root ]]; then
+  # Stable discovery order: sorted by directory basename (determinism per NFR-003).
+  # Only directories that contain test.yaml count as tests.
+  while IFS= read -r -d '' dir; do
+    if [[ -f "$dir/test.yaml" ]]; then
+      discovered_tests+=("$dir")
+    fi
+  done < <(find "$tests_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+fi
+
+# If form (c) `<plugin> <test>`, filter to that one test.
+if [[ -n $test_name ]]; then
+  filtered=()
+  for d in "${discovered_tests[@]}"; do
+    if [[ ${d##*/} == "$test_name" ]]; then
+      filtered+=("$d")
+      break
+    fi
+  done
+  if (( ${#filtered[@]} == 0 )); then
+    bail_out "test '$test_name' not found under $tests_root"
+  fi
+  discovered_tests=("${filtered[@]}")
+fi
+
+n=${#discovered_tests[@]}
+
+# -----------------------------------------------------------------------------
+# Emit TAP header (contracts §2 stream shape).
+# -----------------------------------------------------------------------------
+printf 'TAP version 14\n'
+printf '1..%s\n' "$n"
+
+# -----------------------------------------------------------------------------
+# Run loop (Phase A: emit SKIP per test — substrate/watcher land in B/C).
+# -----------------------------------------------------------------------------
+any_fail=0
+any_skip=0
+i=0
+for test_dir in "${discovered_tests[@]}"; do
+  i=$((i + 1))
+  basename=${test_dir##*/}
+
+  # Validate test.yaml. If malformed, SKIP (inconclusive per contracts §1 + §2).
+  if ! "$harness_dir/test-yaml-validate.sh" "$test_dir/test.yaml" 2>/tmp/kiln-test-yaml-err.$$ ; then
+    diag=$(mktemp)
+    # Skip reason = first line of the validation stderr.
+    awk 'NF { print; exit }' "/tmp/kiln-test-yaml-err.$$" > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "/tmp/kiln-test-yaml-err.$$" "$diag"
+    any_skip=1
+    continue
+  fi
+  rm -f "/tmp/kiln-test-yaml-err.$$"
+
+  # Phase A placeholder: the substrate + watcher aren't wired yet, so every
+  # valid test becomes a SKIP with a diagnostic pointing at that.
+  # This placeholder is REMOVED at T011 (Phase B checkpoint) — do not let it
+  # ship into Phase B commit without the substrate dispatch replacing it.
+  diag=$(mktemp)
+  printf 'substrate-not-yet-wired — Phase A skeleton (tracks T007; replaced by substrate dispatch at T011)\n' > "$diag"
+  "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+  rm -f "$diag"
+  any_skip=1
+done
+
+# -----------------------------------------------------------------------------
+# Aggregate exit code per contracts §2.
+# -----------------------------------------------------------------------------
+if (( any_fail > 0 )); then
+  exit 1
+fi
+if (( any_skip > 0 )); then
+  exit 2
+fi
+exit 0
