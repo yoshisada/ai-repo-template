@@ -53,14 +53,14 @@ Tasks are partitioned into 5 phases (Phase D is dropped per plan §Decision 2). 
 
 ## Phase C — `shelf-write-issue-note`: defensive parse + `path_source` (FR-006, FR-007)
 
-- [ ] **T03-1** Replace the `read-shelf-config` step's command with the defensive parser from `contracts/interfaces.md` §3.
+- [X] **T03-1** Replace the `read-shelf-config` step's command with the defensive parser from `contracts/interfaces.md` §3.
   - The output now follows the `## SHELF_CONFIG_PARSED ... ## END_SHELF_CONFIG_PARSED` block format.
   - If the implementer extracts the parser into a helper script, it MUST live at `plugin-shelf/scripts/parse-shelf-config.sh` and be invoked via `bash "${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh"` (NEVER repo-relative — CLAUDE.md plugin-portability invariant).
   - Validation: `jq -r '.steps[] | select(.id=="read-shelf-config") | .command' plugin-shelf/workflows/shelf-write-issue-note.json` contains `parse-shelf-config.sh` (extracted per §3 "MAY move into a small reusable script"), AND `bash plugin-shelf/scripts/parse-shelf-config.sh` emits `SHELF_CONFIG_PARSED` on stdout.
   - **Maps to**: FR-006 (input parsing), NFR-006 (workflow portability).
   - **Files**: `plugin-shelf/workflows/shelf-write-issue-note.json`, optionally `plugin-shelf/scripts/parse-shelf-config.sh`.
 
-- [ ] **T03-2** Update the `obsidian-write` agent instruction in the same workflow JSON.
+- [X] **T03-2** Update the `obsidian-write` agent instruction in the same workflow JSON.
   - Step 1 of the agent's instruction MUST consume the new structured `## SHELF_CONFIG_PARSED` block (not the legacy `cat` output).
   - The decision rule from `contracts/interfaces.md` §4 ("Decision rule for `path_source`") MUST be reflected in the agent's instruction verbatim, including the two literal `path_source` strings.
   - The Step 5 result-JSON template MUST include the `path_source` field.
@@ -69,7 +69,7 @@ Tasks are partitioned into 5 phases (Phase D is dropped per plan §Decision 2). 
   - **Maps to**: FR-006, FR-007.
   - **Files**: `plugin-shelf/workflows/shelf-write-issue-note.json`.
 
-- [ ] **T03-3** Update `finalize-result` step's fallback JSON template to include `"path_source": "unknown"`.
+- [X] **T03-3** Update `finalize-result` step's fallback JSON template to include `"path_source": "unknown"`.
   - The bash heredoc / `printf` in the `finalize-result` command needs the new field.
   - Validation: `jq -r '.steps[] | select(.id=="finalize-result") | .command' plugin-shelf/workflows/shelf-write-issue-note.json | grep -F 'path_source'` matches.
   - JSON validation: `jq . plugin-shelf/workflows/shelf-write-issue-note.json > /dev/null` exits 0.
@@ -84,13 +84,13 @@ Sweep performed in plan phase. Result: zero additional skills in scope. No tasks
 
 ## Phase E — Smoke fixtures + SMOKE.md (SC-008)
 
-- [ ] **T04-1** Author `specs/pipeline-input-completeness/SMOKE.md` Step 4b section.
+- [X] **T04-1** Author `specs/pipeline-input-completeness/SMOKE.md` Step 4b section.
   - Includes §5.1, §5.2, §5.3, §5.6 fixture blocks from `contracts/interfaces.md` verbatim, with a brief introduction, "How to run", and per-block expected outputs.
   - Each block ends with the `echo OK || echo FAIL` assertion.
   - **Maps to**: SC-001, SC-002, SC-003, SC-006, SC-008.
   - **Files**: `specs/pipeline-input-completeness/SMOKE.md`.
 
-- [ ] **T04-2** Author the `shelf-write-issue-note` section of `SMOKE.md`.
+- [X] **T04-2** Author the `shelf-write-issue-note` section of `SMOKE.md`.
   - Includes §5.4 (shelf-config-present) and §5.5 (discovery-fallback) blocks verbatim.
   - Documents the `mv .shelf-config .shelf-config.bak` save-and-restore pattern.
   - **Maps to**: SC-004, SC-005, SC-008.
