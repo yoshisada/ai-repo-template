@@ -1,5 +1,6 @@
 # Interface Contracts: Plugin Skill Test Harness
 
+**Version**: 1.1 (2026-04-23 — pivoted from `--headless`/`--initial-message` to `--print --verbose --input-format=stream-json --output-format=stream-json` per plan.md D6, resolving BLOCKER-001)
 **Status**: LOCKED. Any signature change requires a plan.md update first (Article VII).
 **Scope**: Every exported contract of the harness — YAML schema, TAP grammar, watcher verdict JSON, scratch-dir invariants, substrate-dispatch signature, answer-file format, and helper-script interfaces.
 
@@ -87,7 +88,7 @@ Emitted below every `not ok`. Two-space indent, delimited by `---` and `...`.
 
 ```yaml
   ---
-  classification: "failed" | "stalled" | "paused-exhausted" | "assertion-failed"
+  classification: "failed" | "stalled" | "assertion-failed"
   scratch-uuid: "<uuidv4>"
   scratch-retained: "/tmp/kiln-test-<uuid>/"
   verdict-report: ".kiln/logs/kiln-test-<uuid>.md"
@@ -125,11 +126,13 @@ not ok 2 - kiln-hygiene-backfill-idempotent
 
 Emitted by the watcher agent and consumed by `watcher-runner.sh`. The watcher-runner writes the human-readable `.md` verdict report (FR-007) from this JSON.
 
+**Transcript format note**: Per plan.md D6, the subprocess speaks stream-json NDJSON on stdout. The watcher's "transcript" for classification purposes is the raw NDJSON envelope stream as written by `claude-invoke.sh` to the transcript file. "Transcript advance" means "a new NDJSON envelope was appended since the last poll tick". "Last N lines" for diagnostic blocks means "last N NDJSON envelopes" (one per line).
+
 ### Schema
 
 ```json
 {
-  "classification": "healthy" | "paused" | "stalled" | "failed",
+  "classification": "healthy" | "stalled" | "failed",
   "timestamps": {
     "session_started_iso": "2026-04-24T14:32:11Z",
     "last_scratch_write_iso": "2026-04-24T14:35:02Z",
@@ -146,7 +149,7 @@ Emitted by the watcher agent and consumed by `watcher-runner.sh`. The watcher-ru
     "relative/path/to/file-1",
     "relative/path/to/file-2"
   ],
-  "pause_prompt": "string or null"
+  "result_envelope": "string or null"
 }
 ```
 
@@ -154,17 +157,20 @@ Emitted by the watcher agent and consumed by `watcher-runner.sh`. The watcher-ru
 
 - `classification` is the terminal classification. Intermediate polls that read `healthy` do not emit JSON — only terminal transitions do.
 - `timestamps.*` are ISO-8601 UTC strings with `Z` suffix. All four keys are REQUIRED.
-- `last_50_lines` is an array of up to 50 most recent transcript lines (stdout+stderr interleaved in source order). If fewer than 50 lines exist, emit what's available.
+- `last_50_lines` is an array of up to 50 most recent transcript lines (NDJSON envelopes, one per line). If fewer than 50 lines exist, emit what's available.
 - `scratch_uuid` is the UUIDv4 without path prefix.
 - `scratch_files` is the list of relative paths under the scratch dir at the time of verdict emission.
-- `pause_prompt` is REQUIRED when classification is `paused`. The watcher extracts the prompt text from the last 5 transcript lines and includes it verbatim. Otherwise null.
+- `result_envelope` is REQUIRED when classification is `failed`. The watcher extracts the final `{"type":"result",...}` NDJSON envelope verbatim and embeds it as a string. Otherwise null.
 
 ### Classification rules
 
-- `healthy` — subprocess is alive AND (`last_scratch_write_iso` advanced in the last poll tick OR `last_transcript_advance_iso` advanced in the last poll tick).
-- `paused` — subprocess is alive AND transcript contains a prompt pattern (regex: `(\?\s*\n\s*\n)|(Waiting for input)|(Press \[Enter\])`) in the last 5 lines AND no advance in scratch writes OR transcript for ≥ 1 poll tick.
-- `stalled` — subprocess is alive AND no scratch write AND no transcript advance for ≥ `stall_window` seconds.
-- `failed` — subprocess exited non-zero AND this does not match `expected-exit` from `test.yaml`. If subprocess exit matches `expected-exit`, classification is NOT `failed` — the test is evaluated by `assertions.sh`.
+- `healthy` — subprocess is alive AND (`last_scratch_write_iso` advanced in the last poll tick OR `last_transcript_advance_iso` advanced in the last poll tick — i.e., a new NDJSON envelope arrived).
+- `stalled` — subprocess is alive AND no scratch write AND no NDJSON envelope advance for ≥ `stall_window` seconds. (The `paused` classification has been removed per plan.md D6; scripted answers are pushed up-front, so "waiting for input" is indistinguishable from `stalled` and is treated as such.)
+- `failed` — subprocess has EITHER exited with a code that does not match `expected-exit` from `test.yaml`, OR emitted a `{"type":"result",...}` NDJSON envelope with `"is_error": true` whose exit code does not match `expected-exit`. If subprocess exit matches `expected-exit`, classification is NOT `failed` — the test is evaluated by `assertions.sh`.
+
+### Why `paused` was removed (cross-ref)
+
+Originally, the watcher detected a mid-session prompt pattern and the driver pushed the next `answers.txt` line to the subprocess's stdin. Per plan.md D6, the architecture changed to queue all scripted answers up-front as stream-json user envelopes before stdin EOF. That eliminates mid-session answer pushing entirely, and with it the `paused` classification. If a skill prompts more times than `answers.txt` provides, the session will stall waiting for input on closed stdin — the watcher reports that as `stalled` with the last 50 NDJSON envelopes in the verdict for diagnosis.
 
 ---
 
@@ -238,10 +244,13 @@ substrate-plugin-skill.sh <scratch-dir> <test-dir> <plugin-root>
 
 **Implementation MUST**:
 
-1. Resolve `initial-message` from `<test-dir>/inputs/initial-message.txt`.
-2. Call `claude-invoke.sh <plugin-root> <scratch-dir> <test-dir>/inputs/initial-message.txt` to spawn the subprocess.
-3. Wire a FIFO or stdin pipe to the subprocess so `watcher-runner.sh` can push scripted answers when it sees `paused`.
-4. Wait for subprocess exit; propagate exit code.
+1. Resolve `initial-message` from `<test-dir>/inputs/initial-message.txt`. If missing, exit 2 (inconclusive) with diagnostic.
+2. Resolve `answers` from `<test-dir>/inputs/answers.txt` if present. Missing is valid (means: no scripted follow-ups).
+3. Call `claude-invoke.sh <plugin-root> <scratch-dir> <test-dir>/inputs/initial-message.txt [<test-dir>/inputs/answers.txt]` to spawn the subprocess. That helper writes the queued stream-json user envelopes to the subprocess stdin in order, then closes stdin (per §7.2).
+4. Redirect subprocess stdout (stream-json NDJSON) to a transcript file that the watcher can tail.
+5. Wait for subprocess exit; propagate exit code.
+
+**No FIFO is required** — scripted answers are queued up-front by `claude-invoke.sh` before stdin EOF (per plan.md D6). The watcher observes the transcript for classification only; it does NOT write to subprocess stdin in v1.
 
 ---
 
@@ -260,13 +269,13 @@ substrate-plugin-skill.sh <scratch-dir> <test-dir> <plugin-root>
 - Comment lines (starting with `#` as the FIRST char) are skipped. A literal `#` answer can be escaped as `\#`.
 - Trailing newline is optional.
 
-### Exhaustion
+### Exhaustion / insufficient answers
 
-If the watcher emits `paused` AND there are no unconsumed lines remaining, the test fails with classification `paused-exhausted` and diagnostic naming the unanswered prompt (from watcher verdict JSON `pause_prompt`).
+Per plan.md D6, all `answers.txt` lines are queued up-front before subprocess stdin EOF. If the skill under test prompts for MORE answers than `answers.txt` provides, the subprocess blocks waiting for input that will never arrive; the watcher detects this as `stalled` after `stall_window` (default 5m) and terminates with a verdict report whose `last_50_lines` includes the unanswered NDJSON envelopes for diagnosis.
 
 ### Missing file
 
-If `answers.txt` does not exist AND the watcher emits `paused`, behavior is identical to exhaustion (`paused-exhausted`).
+If `answers.txt` does not exist, `claude-invoke.sh` queues ONLY the initial-message envelope. If the skill under test prompts, the session stalls exactly as in the exhaustion case. Tests that never prompt (e.g., `kiln-hygiene-backfill-idempotent`) MAY omit `answers.txt` without consequence.
 
 ---
 
@@ -292,20 +301,50 @@ fixture-seeder.sh <test-dir> <scratch-dir>
 ### 7.2 `claude-invoke.sh`
 
 ```bash
-claude-invoke.sh <plugin-dir> <scratch-dir> <initial-message-file>
+claude-invoke.sh <plugin-dir> <scratch-dir> <initial-message-file> [<answers-file>]
 ```
 
 | Arg | Meaning |
 |-----|---------|
 | `<plugin-dir>` | Absolute path to the plugin source tree (passed via `--plugin-dir`) |
 | `<scratch-dir>` | Absolute path; becomes the subprocess CWD |
-| `<initial-message-file>` | Absolute path to a text file whose contents become the `--initial-message` value |
+| `<initial-message-file>` | Absolute path to a text file whose contents become the FIRST stream-json user envelope |
+| `<answers-file>` | OPTIONAL. Absolute path to `inputs/answers.txt`. Each non-comment line becomes one subsequent user envelope, in file order |
 
-**Behavior**: Spawns `claude --plugin-dir <plugin-dir> --headless --dangerously-skip-permissions --initial-message "$(cat <initial-message-file>)"` with CWD=`<scratch-dir>`, env `KILN_HARNESS=1` set, and stdin wired from its own stdin (so the caller can pipe scripted answers).
+**Behavior**: Spawns
 
-**Why this exists**: Per PRD Risk 4, CLI flag names (`--plugin-dir`, `--headless`, `--dangerously-skip-permissions`, `--initial-message`) could drift. Wrapping them in this one helper makes a future flag rename a one-file change. This script MUST document the current flag contract in a header comment.
+```
+claude --print --verbose \
+       --input-format=stream-json --output-format=stream-json \
+       --dangerously-skip-permissions \
+       --plugin-dir <plugin-dir>
+```
 
-Exit code: propagates the subprocess exit code.
+with CWD=`<scratch-dir>`, env `KILN_HARNESS=1` set. Writes to the subprocess's stdin, in order:
+
+1. One stream-json user envelope built from `<initial-message-file>`:
+   ```json
+   {"type":"user","message":{"role":"user","content":"<file-contents-verbatim>"}}
+   ```
+2. If `<answers-file>` is present, for each non-comment line (per §6 format rules, with `\#` un-escaping):
+   ```json
+   {"type":"user","message":{"role":"user","content":"<line-verbatim>"}}
+   ```
+3. Then closes stdin (EOF).
+
+The subprocess processes the queued envelopes in order and eventually emits a `{"type":"result",...}` envelope and exits.
+
+**Why up-front-envelopes, not FIFO mid-stream**: Simpler; eliminates watcher → FIFO → subprocess-stdin coordination and the `paused` mid-stream classification. All scripted answers are known at test-start time from `answers.txt`; there's no need to defer them. Misordered/missing answers manifest downstream as `stalled` (model waiting forever for an answer that never arrives) or `failed` (model's output doesn't match `assertions.sh` expectations).
+
+**Why this helper exists**: CLI flag names could drift (PRD Risk 4). Wrapping the flag set + envelope construction in one helper makes future flag renames or envelope-shape changes a one-file change. This script MUST document the current flag contract AND envelope shapes in a header comment.
+
+**Stdout**: The script MUST stream the subprocess's stdout (stream-json NDJSON) unchanged to its own stdout. Callers redirect this to the transcript file read by the watcher.
+
+**Stderr**: The script MAY write its own diagnostics to stderr. Subprocess stderr is passed through unchanged.
+
+**Exit code**: Propagates the subprocess exit code.
+
+**CLI flag verification (required on first run)**: `claude-invoke.sh` MUST run `claude --version` at startup and `claude --help 2>&1 | grep -q -- --input-format` to verify the required flags exist. If missing, exit 2 with a diagnostic naming the missing flag (drift detection per PRD Risk 4).
 
 ---
 
@@ -404,10 +443,12 @@ See section 5 above.
 ### 7.9 `watcher-runner.sh`
 
 ```bash
-watcher-runner.sh <scratch-dir> <subprocess-pid> <stdin-fifo> <test-yaml> <output-verdict-json> <output-verdict-md>
+watcher-runner.sh <scratch-dir> <subprocess-pid> <transcript-path> <test-yaml> <output-verdict-json> <output-verdict-md>
 ```
 
-**Behavior**: Spawns the `test-watcher` agent (haiku) via the Task tool, polls every `watcher_poll_interval_seconds`, and on terminal classification (`paused` / `stalled` / `failed`) emits verdict JSON to `<output-verdict-json>` AND writes the human-readable verdict report to `<output-verdict-md>` (FR-007). On `paused`, reads next line from `<test-dir>/inputs/answers.txt` and writes to `<stdin-fifo>` so the substrate script forwards it to the subprocess.
+**Behavior**: Spawns the `test-watcher` agent (haiku) via the Task tool, polls every `watcher_poll_interval_seconds`, and on terminal classification (`stalled` / `failed`) emits verdict JSON to `<output-verdict-json>` AND writes the human-readable verdict report to `<output-verdict-md>` (FR-007). On `stalled`, sends SIGTERM to `<subprocess-pid>`. On `failed`, does not need to terminate (subprocess has already exited) — just finalizes the verdict.
+
+**Per plan.md D6, the watcher-runner does NOT write to subprocess stdin.** Scripted answers are pushed up-front by `claude-invoke.sh` before stdin close; mid-stream answer injection is out of scope for v1. The `<transcript-path>` arg replaces the previous `<stdin-fifo>` arg.
 
 ---
 
@@ -455,8 +496,9 @@ Per test invocation, the harness produces:
 
 - `.kiln/logs/kiln-test-<uuid>.md` — human-readable verdict report (from watcher verdict JSON)
 - `.kiln/logs/kiln-test-<uuid>-scratch.txt` — scratch-dir file-list + sha256sums
+- `.kiln/logs/kiln-test-<uuid>-transcript.ndjson` — stream-json NDJSON transcript emitted by the `claude` subprocess (substrate driver redirects subprocess stdout here; watcher-poll.sh tails this file)
 
-Both files are retained regardless of pass/fail. The retained scratch DIR is separate and is only kept on fail.
+All three files are retained regardless of pass/fail. The retained scratch DIR is separate and is only kept on fail.
 
 ---
 

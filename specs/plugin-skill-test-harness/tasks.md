@@ -12,6 +12,8 @@ description: "Task list for plugin-skill-test-harness (single implementer, phase
 
 **Traceability**: Every task names the FRs it satisfies + the interfaces.md section it implements. Every script signature matches section 7 of contracts/interfaces.md verbatim.
 
+**Contract version**: Interface contracts are at **v1.1** (bumped 2026-04-23 to resolve BLOCKER-001). All tasks that reference `claude-invoke.sh` / watcher classifications / FIFO now use the stream-json envelope design per contracts §7.2 + §3 + §5 and plan.md D6. Specifically: T008, T011, T012, T014 are implementing the stream-json + up-front-answers design, NOT the original `--headless` + FIFO design.
+
 ## Format: `[ID] [P?] Description`
 
 - **[P]**: Different files from previous task in same phase; can run in parallel with a sibling [P].

@@ -74,11 +74,30 @@ All seven PRD open questions are LOCKED here. Changing any decision after this p
 
 **Model**: `haiku` (cost-optimized; the watcher's job is classification, not generation).
 
-### D6 — Permissions flag *(resolves PRD OQ6)*
+### D6 — Subprocess invocation flags + multi-turn mechanism *(resolves PRD OQ6 + CLI-drift blocker)*
 
-**Decision**: `--dangerously-skip-permissions`, with scratch-dir isolation as the safety boundary.
+**Decision**: Spawn `claude --print --verbose --input-format=stream-json --output-format=stream-json --dangerously-skip-permissions --plugin-dir <plugin-root>`. Multi-turn answers from `answers.txt` are written up-front as a sequence of stream-json user envelopes on stdin, followed by EOF. `--dangerously-skip-permissions` keeps the session from blocking on tool-use prompts; scratch-dir isolation is the safety boundary.
 
-**Rationale**: `--dangerously-skip-permissions` is required to keep the headless session from blocking on tool-use prompts. The isolation comes from CWD = `/tmp/kiln-test-<uuid>/`, not from sandboxing. Sandboxing (Docker/firejail) is a follow-on PRD when we need to run untrusted tests. V1 trust model: the user trusts the tests they're running; the scratch dir prevents accidents, not malice.
+**Rationale (incl. blocker-resolution context, 2026-04-23)**: The originally-assumed PRD flags `--headless` and `--initial-message` do not exist in Claude Code v2.1.119 (see `blockers.md` BLOCKER-001 → RESOLVED). The non-interactive mode is `--print`; multi-turn input arrives via `--input-format=stream-json` (one NDJSON envelope per user message on stdin). `--verbose` is required by the CLI when `--output-format=stream-json` is set with `--print`. `--bare` is NOT used because it skips keychain reads and breaks Anthropic auth.
+
+**Why up-front envelopes instead of FIFO mid-stream pump**: Simpler. The runtime processes stream-json input envelopes in order; closing stdin cleanly terminates the session. There is no need for the watcher to detect a `paused` state and push the next answer mid-stream — all answers are pre-known (from `answers.txt`) and queued at process start. This eliminates a FIFO, eliminates the `paused` classification's need to gate stdin writes, and removes a concurrency hazard. Trade-off: if a skill prompts in a different order than `answers.txt` expects, the test fails as `stalled` or `failed` (assistant didn't consume the queued answer in time, or model output didn't match the test's expectations). That's an acceptable failure mode — it's a loud test failure, not silent breakage.
+
+**Watcher classification update (cascading from D6)**: The `paused` classification is removed. Classifications are: `healthy` (assistant envelopes arriving OR scratch writes advancing), `stalled` (no envelope AND no scratch write for `stall_window`), `failed` (result envelope with `is_error:true` whose exit code doesn't match `test.yaml`'s `expected-exit`). FR-010's "answers fed mid-stream" semantics are reframed as "answers queued up-front; missing answers manifest as stalled or failed downstream".
+
+**Envelope shapes (verified empirically against v2.1.119 on 2026-04-23)**:
+
+```jsonc
+// IN  (one line per envelope on stdin):
+{"type":"user","message":{"role":"user","content":"<text>"}}
+
+// OUT (NDJSON on stdout in this order):
+{"type":"system","subtype":"init","session_id":"...","cwd":"...","tools":[...],"model":"...",...}
+{"type":"assistant","message":{"id":"...","role":"assistant","content":[{"type":"text","text":"..."}],"stop_reason":"...","usage":{...}},"session_id":"...","uuid":"..."}
+// ... more assistant envelopes (one per turn) ...
+{"type":"result","subtype":"success","is_error":<bool>,"duration_ms":N,"num_turns":N,"result":"...","total_cost_usd":N,"terminal_reason":"completed",...}
+```
+
+**Empirical-validation gate**: The Phase B trivial-pass test (`assertions.sh = exit 0`) is the gate that verifies multi-envelope upfront semantics actually work as designed. If the runtime turns out to ignore envelopes after the first or close stdin prematurely, the implementer files BLOCKER-002 at that point and we revisit (likely Option B — one-shot only, drop scripted answers from v1).
 
 ### D7 — Subprocess model *(resolves PRD OQ7)*
 
