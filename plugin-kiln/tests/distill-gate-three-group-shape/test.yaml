@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "FR-007 — the three-group derived_from: sort (feedback → item → issue) is preserved as a shape even when feedback and issue groups are empty. Item-only bundles still sort in stable order."

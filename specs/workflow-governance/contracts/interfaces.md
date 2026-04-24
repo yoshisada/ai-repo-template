@@ -46,7 +46,7 @@ bash plugin-kiln/scripts/distill/detect-un-promoted.sh <source-path> [<source-pa
 
 ### `plugin-kiln/scripts/distill/invoke-promote-handoff.sh`
 
-**Purpose** (FR-005): Given a list of un-promoted source paths, prompt the user per-entry for accept/skip and drive `/kiln:kiln-roadmap --promote` for each accepted entry.
+**Purpose** (FR-005): Enumerate un-promoted source paths in caller-supplied order with a user-friendly prompt string. The script emits an order-preserving NDJSON stream that the Skill layer iterates to drive a confirm-never-silent per-entry prompt via the Skill tool.
 
 **Invocation**:
 
@@ -54,16 +54,22 @@ bash plugin-kiln/scripts/distill/detect-un-promoted.sh <source-path> [<source-pa
 bash plugin-kiln/scripts/distill/invoke-promote-handoff.sh <source-path> [<source-path> ...]
 ```
 
+**Stdout schema** (NDJSON, one envelope per input, input-order-preserving):
+
+```json
+{"path": ".kiln/issues/2026-04-24-foo.md", "title": "Foo needs promotion", "prompt": "[accept|skip] .kiln/issues/2026-04-24-foo.md — Foo needs promotion"}
+```
+
 **Behavior**:
-- For each input, emit a prompt line (`[accept|skip] <path> — <title-from-frontmatter>`).
-- Accept triggers `/kiln:kiln-roadmap --promote <path>` invocation via the Skill tool (the SKILL.md call site — see Call Sites below — drives this; the script itself only emits a JSON hand-off envelope).
-- Skip emits `{"path": "...", "action": "skip"}` to stdout.
-- Accept emits `{"path": "...", "action": "promote", "new_item_path": "<resolved path once promotion completes>"}` to stdout.
+- For each input, read the frontmatter `title:` field (defaults to `"(no title)"` when missing) and emit one NDJSON envelope.
+- **Does NOT drive promotion itself.** The Skill layer iterates this stream, surfaces the `prompt` string to the user (Skill-tool confirm-never-silent), and invokes `/kiln:kiln-roadmap --promote <path>` for each accepted entry. Skipped entries are simply dropped from the next distill pass by the Skill layer.
+
+**Rationale for the shape change from the original contract draft** (2026-04-24, impl-governance):
+A bash script cannot satisfy FR-014b-style confirm-never-silent without shell-prompting, which loses the Skill tool UX guarantees (structured reply, cancellation, logging). The decision sink was moved into the Skill layer so the prompt runs via the Skill tool and invokes `/kiln:kiln-roadmap --promote` for accepted entries. This script remains the single-source-of-truth *enumeration* of un-promoted candidates; the Skill interprets accept/skip. No call site outside this feature consumes Module 1.
 
 **Exit codes**:
-- `0` — success (every entry handled, regardless of accept/skip).
+- `0` — success (every envelope emitted).
 - `2` — usage error.
-- `4` — mid-loop failure on one accepted entry (promotion script returned non-zero); stdout contains envelopes processed so far; stderr names the failed path.
 
 **Call Sites** (from `plugin-kiln/skills/kiln-distill/SKILL.md` Step 0.5):
 
@@ -72,7 +78,10 @@ bash plugin-kiln/scripts/distill/invoke-promote-handoff.sh <source-path> [<sourc
 CLASSIFICATION=$(bash plugin-kiln/scripts/distill/detect-un-promoted.sh "${CANDIDATE_SOURCES[@]}")
 UN_PROMOTED=$(echo "$CLASSIFICATION" | jq -r 'select(.status == "un-promoted") | .path')
 if [[ -n "$UN_PROMOTED" ]]; then
-  bash plugin-kiln/scripts/distill/invoke-promote-handoff.sh $UN_PROMOTED
+  # Emit the enumeration envelope stream — Skill reads it, prompts the user
+  # per-entry via the Skill tool, and invokes /kiln:kiln-roadmap --promote
+  # for each accepted entry. See SKILL.md §0.5 for the decision-sink flow.
+  HANDOFF=$(bash plugin-kiln/scripts/distill/invoke-promote-handoff.sh $UN_PROMOTED)
 fi
 ```
 

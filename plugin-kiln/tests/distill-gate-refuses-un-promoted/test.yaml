@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "FR-004 / FR-005 / SC-002 — detect-un-promoted.sh correctly classifies 3 raw open issues as un-promoted and invoke-promote-handoff.sh emits 3 envelopes that Step 0.5 would surface to the user."

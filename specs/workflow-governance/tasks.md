@@ -69,19 +69,19 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 
 ### Tests
 
-- [ ] **T013** `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-refuses-un-promoted/` — 3 open issues, 0 roadmap items citing them. Run `/kiln:kiln-distill <theme>` with "skip all" responses. Assert no PRD emitted, per-entry prompt surfaced, exit 0, no side-effect writes. **Validates**: FR-004, FR-005 (Acceptance Scenario 1 and 3), SC-002.
-- [ ] **T014** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-accepts-promoted/` — 1 promoted roadmap item + 2 un-promoted issues. Run with "accept entry 1, skip 2" responses. Assert: entry 1 promoted + bundled, entries 2 ignored, PRD emitted once promotion completes. **Validates**: FR-005 (Acceptance Scenario 2 and 4).
-- [ ] **T015** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-grandfathered-prd/` — copy `docs/features/2026-04-24-coach-driven-capture-ergonomics/PRD.md` into the fixture and run the gate's parser over it. Assert parses clean, no warning. **Validates**: FR-008, NFR-005, SC-006.
-- [ ] **T016** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-three-group-shape/` — emit a PRD from a bundle containing only `item` group entries; assert the resulting `derived_from:` frontmatter still shows the three-group shape (feedback → item → issue) with empty groups rendering as absent sub-lists per FR-007. **Validates**: FR-007.
+- [X] **T013** `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-refuses-un-promoted/` — 3 open issues, 0 roadmap items citing them. Run `/kiln:kiln-distill <theme>` with "skip all" responses. Assert no PRD emitted, per-entry prompt surfaced, exit 0, no side-effect writes. **Validates**: FR-004, FR-005 (Acceptance Scenario 1 and 3), SC-002.
+- [X] **T014** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-accepts-promoted/` — 1 promoted roadmap item + 2 un-promoted issues. Run with "accept entry 1, skip 2" responses. Assert: entry 1 promoted + bundled, entries 2 ignored, PRD emitted once promotion completes. **Validates**: FR-005 (Acceptance Scenario 2 and 4).
+- [X] **T015** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-grandfathered-prd/` — copy `docs/features/2026-04-24-coach-driven-capture-ergonomics/PRD.md` into the fixture and run the gate's parser over it. Assert parses clean, no warning. **Validates**: FR-008, NFR-005, SC-006.
+- [X] **T016** `[P]` `[impl-governance]` Create fixture `plugin-kiln/tests/distill-gate-three-group-shape/` — emit a PRD from a bundle containing only `item` group entries; assert the resulting `derived_from:` frontmatter still shows the three-group shape (feedback → item → issue) with empty groups rendering as absent sub-lists per FR-007. **Validates**: FR-007.
 
 ### Implementation
 
-- [ ] **T017** `[impl-governance]` Implement `plugin-kiln/scripts/distill/detect-un-promoted.sh` per `contracts/interfaces.md` Module 1. **Implements**: FR-004.
-- [ ] **T018** `[P]` `[impl-governance]` Implement `plugin-kiln/scripts/distill/invoke-promote-handoff.sh` per `contracts/interfaces.md` Module 1. **Implements**: FR-005.
-- [ ] **T019** `[impl-governance]` Update `plugin-kiln/skills/kiln-distill/SKILL.md` with a new Step 0.5 that runs between Step 0 (flag parsing) and Step 1 (three-stream ingestion). Step 0.5 calls `detect-un-promoted.sh` on the candidate bundle, invokes `invoke-promote-handoff.sh` on any un-promoted entries, re-reads the bundle after promotion, and refuses to emit a PRD if zero promoted entries remain. **Implements**: FR-004, FR-005.
-- [ ] **T020** `[P]` `[impl-governance]` Update `plugin-kiln/skills/kiln-distill/SKILL.md` Step 7 (derived_from emission) to always emit three-group shape with absent sub-lists on empty groups. **Implements**: FR-007.
-- [ ] **T021** `[P]` `[impl-governance]` Add grandfathering guard to the distill gate's parser — PRDs with `distilled_date:` before `2026-04-24` (the rollout date — record in a gate-local constant) bypass the new-gate assertions. **Implements**: FR-008.
-- [ ] **T022** `[impl-governance]` Make T013..T016 pass. Commit Phase 3 with message `feat(workflow-governance): distill gate refuses un-promoted sources (FR-004/005/007/008)`.
+- [X] **T017** `[impl-governance]` Implement `plugin-kiln/scripts/distill/detect-un-promoted.sh` per `contracts/interfaces.md` Module 1. **Implements**: FR-004.
+- [X] **T018** `[P]` `[impl-governance]` Implement `plugin-kiln/scripts/distill/invoke-promote-handoff.sh` per `contracts/interfaces.md` Module 1. **Implements**: FR-005.
+- [X] **T019** `[impl-governance]` Update `plugin-kiln/skills/kiln-distill/SKILL.md` with a new Step 0.5 that runs between Step 0 (flag parsing) and Step 1 (three-stream ingestion). Step 0.5 calls `detect-un-promoted.sh` on the candidate bundle, invokes `invoke-promote-handoff.sh` on any un-promoted entries, re-reads the bundle after promotion, and refuses to emit a PRD if zero promoted entries remain. **Implements**: FR-004, FR-005.
+- [X] **T020** `[P]` `[impl-governance]` Update `plugin-kiln/skills/kiln-distill/SKILL.md` Step 7 (derived_from emission) to always emit three-group shape with absent sub-lists on empty groups. **Implements**: FR-007.
+- [X] **T021** `[P]` `[impl-governance]` Add grandfathering guard to the distill gate's parser — PRDs with `distilled_date:` before `2026-04-24` (the rollout date — record in a gate-local constant) bypass the new-gate assertions. **Implements**: FR-008.
+- [X] **T022** `[impl-governance]` Make T013..T016 pass. Commit Phase 3 with message `feat(workflow-governance): distill gate refuses un-promoted sources (FR-004/005/007/008)`.
 
 **Checkpoint**: Track A complete through Phase 3. Send phase-complete signal to team-lead.
 
