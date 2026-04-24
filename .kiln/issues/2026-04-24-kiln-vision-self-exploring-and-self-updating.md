@@ -3,7 +3,7 @@ id: 2026-04-24-kiln-vision-self-exploring-and-self-updating
 title: /kiln:kiln-roadmap --vision should self-explore the repo first, then ask clarifying questions, and self-update as the project evolves
 type: improvement
 date: 2026-04-24
-status: open
+status: prd-created
 severity: medium
 area: kiln
 category: ergonomics
@@ -13,6 +13,7 @@ files:
   - .kiln/vision.md
   - .kiln/roadmap/items
   - docs/features
+prd: docs/features/2026-04-24-coach-driven-capture-ergonomics/PRD.md
 ---
 
 ## Summary
