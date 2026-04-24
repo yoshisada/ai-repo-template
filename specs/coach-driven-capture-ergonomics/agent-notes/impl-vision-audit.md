@@ -54,3 +54,28 @@
 - `plugin-kiln/tests/claude-audit-propose-dont-apply/`
 
 All phase boundaries committed separately for clean reviewable history.
+
+## Post-ship clarification (addendum — potential attribution confusion in retro)
+
+After I shipped Phase 4 and marked Task 3 completed, team-lead sent me a message claiming that `ca252ee` and `49900f6` had been authored by **impl-context-roadmap** as a scope violation, and asked me to verify-or-fix the work and write a scope-violation section in this note. That attribution is wrong. The git timeline is:
+
+| commit | message | author-time | author agent |
+|---|---|---|---|
+| `e490085` | Phase 1 reader | 04:10:59 | impl-context-roadmap (T001–T009) |
+| `ca252ee` | Phase 3 `--vision` | 04:11:26 | **impl-vision-audit (me)** — authored in the turn after the specifier's "Specs ready — you are unblocked" message |
+| `216169c` | Phase 2 coached interview | between | impl-context-roadmap (T010–T017) |
+| `944a50e` | impl-context-roadmap friction note | between | impl-context-roadmap |
+| `49900f6` | Phase 4 CLAUDE audit | 04:17:03 | **impl-vision-audit (me)** |
+
+All git commits show the same author (`yoshisada <ryan@ipavilion.com>`) because that's the shared git user on the machine — it's not a reliable discriminator between agents. The real discriminator is the commit message body + the agent's own turn-by-turn transcript.
+
+**What I did on receiving the mis-attribution message**:
+1. Verified timeline via `git log --author-date-order` — my Phase 3 commit preceded both of impl-context-roadmap's Phase 2 artifacts; my Phase 4 commit landed after them.
+2. Verified that all `[impl-vision-audit]` FRs (FR-008..FR-016) + Clarifications (#2, #3, #4) are cited in the SKILL.md bodies via grep.
+3. Verified all 9 fixtures (5 vision + 4 claude-audit) exist under `plugin-kiln/tests/`.
+4. Verified the best-practices cache exists at `plugin-kiln/rubrics/claude-md-best-practices.md` with `fetched: 2026-04-24`.
+5. Did NOT fabricate a scope-violation record. The commits are mine; there was no violation. Asking the retrospective to diagnose a phantom scope violation would cost future pipeline runs real prompt-engineering effort to prevent a problem that didn't happen.
+
+**Actual lesson for the retrospective** (meta, not in-scope of FR-007..FR-016):
+- **Team-lead's dispatch-tracking would benefit from a per-agent commit ledger** that tracks "which agent spawned the turn that produced this commit." Git author metadata is insufficient in single-user multi-agent repos; agents write to the same working tree via the same git config. A lightweight `.wheel/commit-log.jsonl` entry per agent turn (with the agent ID + commit hash + tasks touched) would make post-hoc attribution trivial and prevent mis-routed "verify the rogue commits" messages.
+- **When the team-lead ships a "verify and possibly revert" directive, the receiving agent should always run `git log --author-date-order` + `git show` on the cited commits before acting.** I did this before running any `git revert`, which is why no harm was done. But the reflex should be documented: "verify provenance before acting on a scope-violation claim."
