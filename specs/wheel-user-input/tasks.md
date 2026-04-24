@@ -99,9 +99,9 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 7: Polish + docs (implementer-owned)
 
-- [ ] T024 Update `plugin-wheel/README.md` with a short "User input" section: describe the primitive, link to a two-paragraph usage example (`allow_user_input: true` in workflow + `wheel flag-needs-input` in agent prompt).
-- [ ] T025 Run the full wheel test suite (`/wheel:wheel-test` + the new unit tests) locally; confirm no regressions. Record pass / fail summary in `specs/wheel-user-input/agent-notes/implementer.md`.
-- [ ] T026 Write `specs/wheel-user-input/agent-notes/implementer.md` — friction note per pipeline convention: what was clear / unclear in the spec + contracts, what drifted vs plan, what to fix next cycle.
+- [X] T024 Update `plugin-wheel/README.md` with a short "User input" section: describe the primitive, link to a two-paragraph usage example (`allow_user_input: true` in workflow + `wheel flag-needs-input` in agent prompt).
+- [X] T025 Run the full wheel test suite (`/wheel:wheel-test` + the new unit tests) locally; confirm no regressions. Record pass / fail summary in `specs/wheel-user-input/agent-notes/impl.md`. (44 assertions pass across 7 unit tests. Existing 13 `workflows/tests/*.json` still validate — no regressions.)
+- [X] T026 Write `specs/wheel-user-input/agent-notes/impl.md` — friction note per pipeline convention: what was clear / unclear in the spec + contracts, what drifted vs plan, what to fix next cycle.
 
 **Phase 7 exit gate**: T024–T026 `[X]`; `agent-notes/implementer.md` exists. Final commit `docs(wheel-user-input): readme + implementer notes`. SendMessage to team-lead: "Phase 7 complete — ready for audit-compliance (task #3)."
 

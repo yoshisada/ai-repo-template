@@ -69,6 +69,42 @@ Workflows are JSON files in `workflows/`. Each file defines an ordered list of s
 | `context_from` | agent | Array of step IDs whose output to inject |
 | `output` | all | Path or key for step output capture |
 | `message` | approval | Message to display at approval gate |
+| `allow_user_input` | agent, loop, branch | If `true`, the step may pause at runtime for user input via `wheel flag-needs-input`. Default `false`. Rejected by validator on `type: command`. |
+
+## User Input (pause for the user mid-workflow)
+
+Two primitives let an agent step stall for the user without the Stop hook spamming reminders:
+
+1. **Authoring-time permission** — set `allow_user_input: true` on the step. This is a declaration that pausing is allowed; it does NOT force a pause.
+2. **Runtime decision** — inside the agent's turn, run `wheel flag-needs-input "<short reason>"` (or the absolute-path form `plugin-wheel/bin/wheel-flag-needs-input "<short reason>"`). The CLI writes `awaiting_user_input: true` on the current step; the Stop hook stays silent until the agent writes the step's output file. When the output file is written, the flag auto-clears and the workflow advances.
+
+Denials (all exit 1, state untouched):
+
+- Step is missing `allow_user_input: true` → `step '<id>' does not permit user input — finish with the context you have`
+- `WHEEL_NONINTERACTIVE=1` in env → `non-interactive mode: user input disabled`
+- Another workflow is already awaiting input → `another workflow is waiting on user input: <name> / <step>`
+
+### Example
+
+```json
+{
+  "name": "my-workflow",
+  "steps": [
+    {
+      "id": "clarify",
+      "type": "agent",
+      "allow_user_input": true,
+      "output": ".wheel/outputs/clarify.json",
+      "instruction": "Resolve the 4 open questions. For any that can't be inferred from repo state, ask the user: output the question, then run `wheel flag-needs-input \"clarifications needed\"`. Once the user replies, write their answers to .wheel/outputs/clarify.json."
+    }
+  ]
+}
+```
+
+### Related commands
+
+- `/wheel:wheel-skip` — abandon a stalled interactive step. Writes a cancel sentinel (`{"cancelled": true, "reason": "user-skipped"}`) and clears the flag.
+- `/wheel:wheel-status` — shows any `[awaiting input]` rows with reason + elapsed time.
 
 ## State
 
