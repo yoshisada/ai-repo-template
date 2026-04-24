@@ -32,15 +32,15 @@ description: "Task list for structured-roadmap feature — split between impl-ro
 
 **⚠️ CRITICAL**: When T007 lands, impl-roadmap MUST SendMessage impl-integration: "Validators ready — distill extension is unblocked." Phase 3 cannot start until T007 is `[X]`.
 
-- [ ] T001 [impl-roadmap] Create directory `plugin-kiln/scripts/roadmap/` and stub all 10 helper scripts with shebang + usage comment matching `contracts/interfaces.md` §2 signatures (no behavior yet).
-- [ ] T002 [P] [impl-roadmap] Author `plugin-kiln/templates/vision-template.md` per spec FR-001 — short narrative starter with optional `last_updated:` frontmatter.
-- [ ] T003 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-phase-template.md` per `contracts/interfaces.md` §1.2 (frontmatter + `## Items` body shape).
-- [ ] T004 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-item-template.md` per `contracts/interfaces.md` §1.3 (full required + commented-optional frontmatter, body skeleton).
-- [ ] T005 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-critique-template.md` per `contracts/interfaces.md` §1.3 critique branch (required `proof_path`).
-- [ ] T006 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/parse-item-frontmatter.sh` per §2.1 (jq-based YAML→JSON). FR-007.
-- [ ] T007 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/validate-item-frontmatter.sh` per §2.2 — INCLUDING enforcement of the §1.5 forbidden-fields list. FR-008. **🚦 unblocks impl-integration — SendMessage on completion.**
-- [ ] T008 [P] [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/validate-phase-frontmatter.sh` per §2.3. FR-005.
-- [ ] T009 [P] [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/list-items.sh` per §2.4 (filter by phase / kind / addresses / state, ASC sort). FR-009.
+- [X] T001 [impl-roadmap] Create directory `plugin-kiln/scripts/roadmap/` and stub all 10 helper scripts with shebang + usage comment matching `contracts/interfaces.md` §2 signatures (no behavior yet).
+- [X] T002 [P] [impl-roadmap] Author `plugin-kiln/templates/vision-template.md` per spec FR-001 — short narrative starter with optional `last_updated:` frontmatter.
+- [X] T003 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-phase-template.md` per `contracts/interfaces.md` §1.2 (frontmatter + `## Items` body shape).
+- [X] T004 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-item-template.md` per `contracts/interfaces.md` §1.3 (full required + commented-optional frontmatter, body skeleton).
+- [X] T005 [P] [impl-roadmap] Author `plugin-kiln/templates/roadmap-critique-template.md` per `contracts/interfaces.md` §1.3 critique branch (required `proof_path`).
+- [X] T006 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/parse-item-frontmatter.sh` per §2.1 (jq-based YAML→JSON). FR-007.
+- [X] T007 [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/validate-item-frontmatter.sh` per §2.2 — INCLUDING enforcement of the §1.5 forbidden-fields list. FR-008. **🚦 unblocks impl-integration — SendMessage on completion.**
+- [X] T008 [P] [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/validate-phase-frontmatter.sh` per §2.3. FR-005.
+- [X] T009 [P] [impl-roadmap] Implement `plugin-kiln/scripts/roadmap/list-items.sh` per §2.4 (filter by phase / kind / addresses / state, ASC sort). FR-009.
 
 **Checkpoint**: shared validators + parsers ready. Both implementers can now consume.
 
