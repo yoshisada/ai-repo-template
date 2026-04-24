@@ -27,15 +27,16 @@
 
       // NEW — FR-003
       "awaiting_user_input": false,                   // boolean, default false
-      "awaiting_user_input_since": null               // string|null, ISO-8601 UTC, e.g. "2026-04-24T18:30:05Z"
+      "awaiting_user_input_since": null,              // string|null, ISO-8601 UTC, e.g. "2026-04-24T18:30:05Z"
+      "awaiting_user_input_reason": null              // string|null, human-readable reason (default null) — plan.md deviation
     }
   ]
 }
 ```
 
 Rules:
-- Both fields are OPTIONAL on disk — a missing field is treated as the default (`false` / `null`). Writers MUST emit both when setting; readers MUST tolerate absence.
-- `awaiting_user_input_since` is SET iff `awaiting_user_input` is `true`. Clearing sets `awaiting_user_input` to `false` AND `awaiting_user_input_since` to `null` — no half-states.
+- All three fields are OPTIONAL on disk — a missing field is treated as the default (`false` / `null` / `null`). Writers MUST emit all three when setting; readers MUST tolerate absence.
+- `awaiting_user_input_since` and `awaiting_user_input_reason` are SET iff `awaiting_user_input` is `true`. Clearing sets `awaiting_user_input` to `false` AND `awaiting_user_input_since` to `null` AND `awaiting_user_input_reason` to `null` — no half-states.
 
 ## 2. Workflow schema addition
 
@@ -65,15 +66,17 @@ All helpers live in `plugin-wheel/lib/state.sh`. They follow the existing conven
 ### 3.1 `state_set_awaiting_user_input`
 
 ```bash
-# FR-004: Set awaiting_user_input=true and awaiting_user_input_since=<now-ISO8601-UTC>
-# on the step at <step-index> in <state-file>. Atomic write.
+# FR-004: Set awaiting_user_input=true, awaiting_user_input_since=<now-ISO8601-UTC>,
+# and awaiting_user_input_reason=<reason> on the step at <step-index> in <state-file>.
+# Atomic write.
 #
 # Params:
 #   $1 = state_file (string)   absolute or relative path to .wheel/state_*.json
 #   $2 = step_index (integer)  0-based index into .steps[]
-#   $3 = reason (string)       human-readable reason, stored nowhere in state (reserved
-#                              for future use / observability). Non-empty REQUIRED by
-#                              caller; this helper does not validate.
+#   $3 = reason (string)       human-readable reason, stored under
+#                              awaiting_user_input_reason for observability via
+#                              /wheel:wheel-status. Non-empty REQUIRED by caller;
+#                              this helper does not validate.
 #
 # Output: none on stdout. Errors to stderr.
 # Exit: 0 on success, 1 on missing file / invalid JSON / write failure.
@@ -83,9 +86,9 @@ state_set_awaiting_user_input() { ... }
 ### 3.2 `state_clear_awaiting_user_input`
 
 ```bash
-# FR-004 / FR-008: Clear awaiting_user_input (=false) and awaiting_user_input_since (=null)
-# on the step at <step-index> in <state-file>. Atomic write. Idempotent — clearing an
-# already-clear step is a no-op that still exits 0.
+# FR-004 / FR-008: Clear awaiting_user_input (=false), awaiting_user_input_since (=null),
+# and awaiting_user_input_reason (=null) on the step at <step-index> in <state-file>.
+# Atomic write. Idempotent — clearing an already-clear step is a no-op that still exits 0.
 #
 # Params:
 #   $1 = state_file (string)
@@ -150,7 +153,7 @@ wheel-flag-needs-input <reason>
 3. Read `.cursor` and `.steps[cursor]` from the state file. If step has no `allow_user_input: true` (missing or false) → exit 1 "does not permit user input".
 4. If `${WHEEL_NONINTERACTIVE:-}` equals `"1"` (string match) → exit 1 "non-interactive mode: user input disabled".
 5. Scan `.wheel/state_*.json` excluding the resolved file. For each, read `.steps[.cursor].awaiting_user_input`. If ANY is `true` → exit 1 with the workflow name and blocking step id.
-6. Call `state_set_awaiting_user_input <state-file> <cursor> <reason>`. Exit with its exit code; on 0, print confirmation to stdout.
+6. Call `state_set_awaiting_user_input <state-file> <cursor> <reason>` (the helper writes `awaiting_user_input`, `awaiting_user_input_since`, and `awaiting_user_input_reason`). Exit with its exit code; on 0, print confirmation to stdout.
 
 ### 5.4 Environment contract
 
@@ -233,12 +236,12 @@ When scanning state files, for each file whose `.steps[.cursor].awaiting_user_in
 ```
 
 - `<workflow-name>` sourced from `.workflow_file`'s basename minus `.json`, or `.name` if the state stores it — implementer's call, pick one and document it.
-- `<reason?>` is the reason string passed to `flag-needs-input`. Since state does not store the reason itself (per §3.1), the reason MAY be absent in v1; display `<reason=?>` if unavailable OR extend state to store it under a new optional field `awaiting_user_input_reason: string|null` (implementer's call during planning — see plan.md deviation notes).
+- `<reason?>` is the reason string passed to `flag-needs-input`, now stored on the state file as `awaiting_user_input_reason` per §3.1 (plan.md deviation — accepted). `/wheel:wheel-status` renders it directly; no degraded `reason=?` fallback needed.
 - `<formatted>` = elapsed time since `awaiting_user_input_since` in the format `Nm Ss` (e.g. `4m 12s`) or `Ns` if less than 1 minute.
 
 Rows are appended to the existing status output; nothing existing is removed or reordered.
 
-**Decision required in plan.md**: store reason in state or not? If yes, update §3.1 and §5.3 step 6 to pass reason through. Default recommendation: store it — `/wheel:wheel-status` is the primary observability surface and "reason=?" is a degraded experience.
+**Decision (resolved per plan.md §3 deviation, contract patch T000)**: Reason IS stored in state under `awaiting_user_input_reason`. §3.1, §3.2, §5.3 step 6, §8.1 are updated accordingly.
 
 ## 9. Logging
 

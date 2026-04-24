@@ -28,7 +28,7 @@ description: "Task list for wheel-user-input feature — single implementer owns
 
 ## Phase 0: Contracts pre-flight (5 min)
 
-- [ ] T000 Reconcile `specs/wheel-user-input/contracts/interfaces.md` §3.1 with plan.md deviation: add optional `awaiting_user_input_reason: string|null` field to the state schema. Update §3.1 and §5.3 step 6 to pass the reason through `state_set_awaiting_user_input`. Commit as a standalone contract patch before any code.
+- [X] T000 Reconcile `specs/wheel-user-input/contracts/interfaces.md` §3.1 with plan.md deviation: add optional `awaiting_user_input_reason: string|null` field to the state schema. Update §3.1 and §5.3 step 6 to pass the reason through `state_set_awaiting_user_input`. Commit as a standalone contract patch before any code.
 
 ---
 
