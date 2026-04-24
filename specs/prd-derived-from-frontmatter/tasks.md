@@ -121,14 +121,14 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase E — Smoke fixtures + SMOKE.md (SC-008)
 
-- [ ] **T05-1** Author the distill + Step 4b sections of `specs/prd-derived-from-frontmatter/SMOKE.md`.
+- [X] **T05-1** Author the distill + Step 4b sections of `specs/prd-derived-from-frontmatter/SMOKE.md`.
   - §5.1 (Distill writer fixture, SC-001, SC-006) — copy contracts §5.1 verbatim, add a brief introduction and "How to run" block.
   - §5.2 (Step 4b extended diagnostic fixture, SC-002, SC-003, SC-007 replay) — copy contracts §5.2 verbatim, including BOTH sub-fixtures (A: frontmatter path; B: scan-fallback). Document the PR-#146 regex replay check inline.
   - Each fixture MUST end with an explicit `echo OK || echo FAIL` line.
   - **Maps to**: SC-001, SC-002, SC-003, SC-006, SC-008.
   - **Files**: `specs/prd-derived-from-frontmatter/SMOKE.md`.
 
-- [ ] **T05-2** Author the hygiene + migration section of `SMOKE.md`.
+- [X] **T05-2** Author the hygiene + migration section of `SMOKE.md`.
   - §5.3 (Hygiene + migration fixture, SC-004, SC-005) — copy contracts §5.3 verbatim.
   - Include both mixed-state hygiene assertions AND the twice-run idempotence assertion (second invocation emits `0 items`).
   - Add a caveat that the fixture uses a stubbed `gh` call (implementer picks the simulation approach — either a shim script or a pre-populated `MERGED_BY_SLUG` fixture).

@@ -540,11 +540,18 @@ for prd_file in docs/features/*/PRD.md products/*/features/*/PRD.md; do
   fi
 
   # Parse ### Source Issues table — extract the first column's markdown-link target.
+  # POSIX-portable: avoids gawk's 3-arg match() by using RSTART/RLENGTH + substr.
   table_rows="$(awk '
     /^### Source Issues/ { in_table = 1; next }
     in_table && /^## / { exit }
     in_table && /^\|[[:space:]]*[0-9]+[[:space:]]*\|/ {
-      if (match($0, /\]\(([^)]+)\)/, m)) print m[1]
+      s = $0
+      if (match(s, /\]\([^)]+\)/)) {
+        frag = substr(s, RSTART, RLENGTH)
+        sub(/^\]\(/, "", frag)
+        sub(/\)$/, "", frag)
+        print frag
+      }
     }
   ' "$prd_file")"
 
