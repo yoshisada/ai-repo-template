@@ -24,7 +24,36 @@ Mirrors the propose-don't-apply discipline of `/kiln:kiln-claude-audit`. Idempot
 $ARGUMENTS
 ```
 
-Supported flag: `--config <path>` — point the skill at an override file other than `.kiln/structural-hygiene.config`. No other flags; no required args.
+Supported flag: `--config <path>` — point the skill at an override file other than `.kiln/structural-hygiene.config`.
+
+**Subcommands**:
+
+- `` (no subcommand) — run the full structural hygiene audit (Steps 1–7 below). Default behavior; unchanged.
+- `backfill` — run the `derived_from:` backfill workflow (see **Step B — Backfill Subcommand** at the bottom of this file). Propose-don't-apply; writes a review preview at `.kiln/logs/prd-derived-from-backfill-<timestamp>.md`.
+
+## Step 0 — Dispatch on subcommand (spec `prd-derived-from-frontmatter` Decision D1)
+
+Parse the first token of `$ARGUMENTS` and dispatch. Before touching anything else, run:
+
+```bash
+SUBCOMMAND="$(printf '%s' "$ARGUMENTS" | awk '{print $1}')"
+case "$SUBCOMMAND" in
+  backfill)
+    # Execute Step B — Backfill Subcommand (at the bottom of this file), then exit 0.
+    # DO NOT continue into Steps 1–7.
+    ;;
+  "")
+    # Default: full structural hygiene audit. Fall through to Step 1.
+    ;;
+  *)
+    echo "Unknown subcommand: $SUBCOMMAND" >&2
+    echo "Known subcommands: backfill" >&2
+    exit 2
+    ;;
+esac
+```
+
+Unknown subcommands exit 2 with the exact two-line message above (grep-anchored).
 
 ## Step 1 — Resolve paths
 
@@ -478,3 +507,136 @@ Exit 0 regardless of signal count. Non-zero exit only on rubric-resolution failu
 - Graceful degradation (FR-006): `gh` unavailable or unauthenticated marks every `merged-prd-not-archived` candidate as `inconclusive` with one Notes line; exit code stays 0.
 - Performance budget: no hard target for the full audit (opt-in, editorial). The <2s budget applies ONLY to `/kiln:kiln-doctor` subcheck 3h, not here.
 - Reference: `plugin-kiln/rubrics/structural-hygiene.md` is the single source of truth for which rules run and what their actions are. Skill body must not hardcode rule IDs outside the predicate dispatch.
+
+---
+
+## Step B — Backfill Subcommand (FR-009, FR-010, FR-011 — spec `prd-derived-from-frontmatter`)
+
+Runs ONLY when Step 0 dispatched to `backfill`. Proposes `derived_from:` frontmatter for every PRD that lacks it. **Propose-don't-apply** — the subcommand writes a single review preview at `.kiln/logs/prd-derived-from-backfill-<timestamp>.md` and exits. NEVER calls `Edit`/`Write`/`perl -i`/`sed -i`/`git mv`/`git apply` against any PRD file.
+
+### Step B.1 — Preamble + output path
+
+```bash
+TIMESTAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+OUT=".kiln/logs/prd-derived-from-backfill-${TIMESTAMP}.md"
+mkdir -p .kiln/logs
+
+HUNKS_FILE="$(mktemp -t derived-from-backfill.XXXXXX)"
+HUNK_COUNT=0
+```
+
+The `read_derived_from()` helper function defined in Step 5c is reused here (same shell — the helper is still in scope).
+
+### Step B.2 — Walk PRDs + compose diff hunks
+
+```bash
+for prd_file in docs/features/*/PRD.md products/*/features/*/PRD.md; do
+  [ -f "$prd_file" ] || continue
+
+  # Idempotence predicate (FR-010): skip if frontmatter already carries derived_from:
+  # Matches both block-sequence form (derived_from:) and inline empty-list form (derived_from: []).
+  if head -20 "$prd_file" | grep -Eq '^derived_from:[[:space:]]*(\[\])?[[:space:]]*$'; then
+    continue
+  fi
+
+  # Parse ### Source Issues table — extract the first column's markdown-link target.
+  table_rows="$(awk '
+    /^### Source Issues/ { in_table = 1; next }
+    in_table && /^## / { exit }
+    in_table && /^\|[[:space:]]*[0-9]+[[:space:]]*\|/ {
+      if (match($0, /\]\(([^)]+)\)/, m)) print m[1]
+    }
+  ' "$prd_file")"
+
+  # No parseable table → nothing to backfill (hand-authored PRD with no backlog origin).
+  [ -z "$table_rows" ] && continue
+
+  # Sort feedback-first, then issues, then filename ASC within each group.
+  derived_lines="$(
+    {
+      printf '%s\n' "$table_rows" | grep -E '^\.kiln/feedback/' | sort
+      printf '%s\n' "$table_rows" | grep -E '^\.kiln/issues/' | sort
+    }
+  )"
+
+  # Derive theme from directory basename (YYYY-MM-DD-<slug> → <slug>).
+  prd_dir="$(dirname "$prd_file")"
+  theme="$(basename "$prd_dir" | sed -E 's:^[0-9]{4}-[0-9]{2}-[0-9]{2}-::')"
+
+  # Derive distilled_date from body **Date**: line; fall back to file mtime (Decision D2).
+  date_line="$(grep -m1 '^\*\*Date\*\*:' "$prd_file" | sed -E 's/^\*\*Date\*\*:[[:space:]]*//; s/[[:space:]]+$//')"
+  if [ -z "$date_line" ]; then
+    date_line="$(date -u -r "$prd_file" +%Y-%m-%d 2>/dev/null || date -u +%Y-%m-%d)"
+    date_note="  # distilled_date inferred from file mtime — review"
+  else
+    date_note=""
+  fi
+
+  # Compose the candidate frontmatter block as a unified-diff hunk.
+  {
+    echo "### diff --- $prd_file"
+    echo '```diff'
+    echo "@@ top of file @@"
+    echo "+---"
+    echo "+derived_from:"
+    while IFS= read -r p; do
+      if [ -f "$p" ]; then
+        echo "+  - $p"
+      else
+        # Path-validation: row path does not exist — annotate, do not include raw.
+        echo "+  # - $p  # path does not exist on disk — review"
+      fi
+    done <<< "$derived_lines"
+    echo "+distilled_date: ${date_line}${date_note}"
+    echo "+theme: ${theme}"
+    echo "+---"
+    echo '```'
+    echo
+  } >> "$HUNKS_FILE"
+
+  HUNK_COUNT=$((HUNK_COUNT + 1))
+done
+```
+
+### Step B.3 — Write the bundled preview
+
+```bash
+{
+  echo "# derived_from Backfill — ${TIMESTAMP}"
+  echo
+  echo "**Audited repo**: $(pwd)"
+  echo "**Rubric**: plugin-kiln/rubrics/structural-hygiene.md (rule: derived_from-backfill)"
+  echo "**Result**: ${HUNK_COUNT} PRD(s) to backfill"
+  echo
+  echo "## Bundled: derived_from-backfill (${HUNK_COUNT} items)"
+  echo
+  if [ "$HUNK_COUNT" -eq 0 ]; then
+    echo "_no PRDs to backfill — all PRDs already carry \`derived_from:\` frontmatter._"
+  else
+    echo "> **Accept or reject as a unit.** Per-item cherry-pick is supported by applying individual hunks manually. Hunks that reference non-existent paths are commented out (\`# - <path>  # path does not exist on disk — review\`) — review and resolve before applying."
+    echo
+    # Sort by PRD path ASC (the "### diff --- " header carries the path).
+    sort "$HUNKS_FILE" | awk '/^### diff --- / { print "---"; print ""; print } !/^### diff --- / { print }'
+  fi
+} > "$OUT"
+
+rm -f "$HUNKS_FILE"
+
+echo "Wrote: $OUT"
+echo "Bundled hunks: $HUNK_COUNT"
+```
+
+### Step B.4 — Exit
+
+```bash
+exit 0
+```
+
+No commit, no git operations — the maintainer reviews `$OUT` and applies hunks manually.
+
+### Invariants (FR-009, FR-010, FR-011)
+
+- The subcommand NEVER calls `Edit`/`Write`/`perl -i`/`sed -i`/`git mv`/`git apply` against any `docs/features/*/PRD.md` or `products/*/features/*/PRD.md`. Only writes `$OUT`.
+- Idempotence (FR-010): a second invocation on the same repo state produces `Bundled: derived_from-backfill (0 items)`. The `head -20 | grep -Eq '^derived_from:'` predicate matches both block-sequence (`derived_from:`) and inline empty-list (`derived_from: []`) forms — both treated as already-migrated.
+- Product-level PRD paths (`products/*/features/*/PRD.md`) follow the same shape (FR-011) — no special-case logic.
+- Non-existent `### Source Issues` paths are annotated inline with `# path does not exist on disk — review`; the maintainer decides whether to keep, drop, or fix during review.

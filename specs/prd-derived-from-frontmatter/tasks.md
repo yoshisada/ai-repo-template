@@ -90,7 +90,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase D — Migration subcommand: `/kiln:kiln-hygiene backfill` (FR-009, FR-010, FR-011)
 
-- [ ] **T04-1** Add the `backfill` subcommand dispatcher to `plugin-kiln/skills/kiln-hygiene/SKILL.md`.
+- [X] **T04-1** Add the `backfill` subcommand dispatcher to `plugin-kiln/skills/kiln-hygiene/SKILL.md`.
   - Paste contracts §4.1 at the top of the skill's main execution block (after any pre-execution hook checks).
   - The default (no-subcommand) path runs today's full structural hygiene audit unchanged.
   - Unknown subcommand → exit 2 with a `Known subcommands:` error line.
@@ -98,7 +98,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-009 (entry point).
   - **Files**: `plugin-kiln/skills/kiln-hygiene/SKILL.md`.
 
-- [ ] **T04-2** Implement the backfill workflow body (per-PRD diff hunk composer).
+- [X] **T04-2** Implement the backfill workflow body (per-PRD diff hunk composer).
   - Paste contracts §4.2 verbatim.
   - Idempotence predicate (contracts §4.2 `head -20 ... grep -Eq '^derived_from:'`) MUST match both the non-empty list case AND the empty-list case (`derived_from: []`) — both treated as already-migrated (FR-010, Decision D3).
   - Source Issues table parser extracts the `](<path>)` markdown-link target from each data row; sort feedback-first then issues (contracts §4.2 `derived_lines` block).
@@ -108,7 +108,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-009, FR-010, FR-011.
   - **Files**: `plugin-kiln/skills/kiln-hygiene/SKILL.md`.
 
-- [ ] **T04-3** Add the rubric entry for the backfill rule + the CLAUDE.md command entry.
+- [X] **T04-3** Add the rubric entry for the backfill rule + the CLAUDE.md command entry.
   - Append contracts §4.3 (a new `### derived_from-backfill` block) to `plugin-kiln/rubrics/structural-hygiene.md` AFTER the `### merged-prd-not-archived` section and BEFORE `### orphaned-top-level-folder`.
   - Add one line to `CLAUDE.md` under the "### QA (two workflows — same 4-agent team…)" or "Other" section in the "Available Commands" list — specifically under "Other" since hygiene lives there: `- \`/kiln:kiln-hygiene backfill\` — One-shot propose-don't-apply backfill of PRD \`derived_from:\` frontmatter. Writes preview at \`.kiln/logs/prd-derived-from-backfill-<timestamp>.md\`. Idempotent — safe to re-run.`
   - Validation: `grep -F 'rule_id: derived_from-backfill' plugin-kiln/rubrics/structural-hygiene.md` matches; `grep -F '/kiln:kiln-hygiene backfill' CLAUDE.md` matches.

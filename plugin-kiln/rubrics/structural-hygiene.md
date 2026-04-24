@@ -49,6 +49,28 @@ Fires against any file under `.kiln/issues/*.md` or `.kiln/feedback/*.md` whose 
 - _Feature-slug collision_: two PRDs share a slug (e.g. both named `archive-stuff`). Resolution: the rule matches the `prd:` path first to pick the correct PRD, then resolves that PRD's slug against the in-memory map. If the map has multiple PRs for the same slug, the most recently merged wins (by `mergedAt` DESC ordering from `gh`).
 - _PRD path in `prd:` field is empty, malformed, or points at a missing file_: the rule does NOT fire; instead the item surfaces as `needs-review` in the Signal Summary and is explicitly excluded from the bundled archive block. (FR-008.)
 
+### derived_from-backfill
+
+```yaml
+rule_id: derived_from-backfill
+signal_type: load-bearing
+cost: cheap
+match_rule: PRD under docs/features/*/PRD.md or products/*/features/*/PRD.md LACKS a non-empty derived_from: frontmatter AND contains a parseable ### Source Issues table
+action: backfill-candidate
+rationale: Retrofit derived_from: frontmatter on pre-migration PRDs so Step 4b and merged-prd-not-archived can use the read-PRD-once primary path. Propose-don't-apply: the subcommand writes a diff preview; the maintainer applies manually.
+cached: false
+```
+
+**Entry point**: `/kiln:kiln-hygiene backfill` — a subcommand of this skill. Invoked ONLY explicitly; the default `/kiln:kiln-hygiene` invocation does not run the backfill workflow.
+
+**Output**: `.kiln/logs/prd-derived-from-backfill-<timestamp>.md` containing a single `## Bundled: derived_from-backfill (<N> items)` section with one unified-diff hunk per eligible PRD, sorted by PRD path ASC. Hunks that reference non-existent paths are commented out inline (`# - <path>  # path does not exist on disk — review`).
+
+**Idempotence**: a second invocation on the same repo state writes `0 items`. The predicate matches both block-sequence (`derived_from:`) and inline empty-list (`derived_from: []`) forms — both treated as already-migrated per spec `prd-derived-from-frontmatter` Decision D3.
+
+**Propose-don't-apply**: the subcommand NEVER calls `Edit`/`Write`/`perl -i`/`sed -i`/`git mv`/`git apply` against any PRD file. Review the preview and apply hunks manually.
+
+See `specs/prd-derived-from-frontmatter/spec.md` FR-009, FR-010, FR-011 and `specs/prd-derived-from-frontmatter/contracts/interfaces.md` §4.
+
 ### orphaned-top-level-folder
 
 ```yaml
