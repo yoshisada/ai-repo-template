@@ -252,19 +252,49 @@ for test_dir in "${discovered_tests[@]}"; do
   transcript_path="$logs_dir/kiln-test-${scratch_uuid}-transcript.ndjson"
   snapshot_path="$logs_dir/kiln-test-${scratch_uuid}-scratch.txt"
   verdict_md_path="$logs_dir/kiln-test-${scratch_uuid}.md"
+  verdict_json_path="$logs_dir/kiln-test-${scratch_uuid}-verdict.json"
+  # Touch transcript up-front so the watcher doesn't trip on a missing file.
+  : > "$transcript_path"
 
   export KILN_TEST_SCRATCH_DIR="$scratch_dir"
   export KILN_TEST_NAME="$basename"
   export KILN_TEST_TRANSCRIPT="$transcript_path"
   export KILN_TEST_SCRATCH_SNAPSHOT="$snapshot_path"
+  export KILN_TEST_STALL_WINDOW="$watcher_stall_window_seconds"
+  export KILN_TEST_POLL_INTERVAL="$watcher_poll_interval_seconds"
 
-  # --- 7. Dispatch substrate (Phase C will add watcher concurrently) --------
+  # --- 7. Background the substrate; foreground the watcher ------------------
+  # Substrate runs in background so watcher can monitor. Watcher exits when
+  # subprocess exits naturally OR when it SIGTERMs on stall.
   set +e
-  "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root"
+  "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root" &
+  substrate_pid=$!
+
+  "$harness_dir/watcher-runner.sh" "$scratch_dir" "$substrate_pid" "$transcript_path" \
+    "$test_dir/test.yaml" "$verdict_json_path" "$verdict_md_path"
+
+  wait "$substrate_pid"
   subprocess_exit=$?
   set -e
 
-  # --- 8. Check subprocess exit matches expected-exit ------------------------
+  # --- 8. Check verdict: stalled trumps exit-code check ----------------------
+  if [[ -f $verdict_json_path ]] && grep -q '"classification": "stalled"' "$verdict_json_path"; then
+    diag=$(mktemp)
+    {
+      echo "classification: \"stalled\""
+      echo "scratch-uuid: \"$scratch_uuid\""
+      echo "scratch-retained: \"$scratch_dir/\""
+      echo "verdict-report: \"$verdict_md_path\""
+      echo "transcript: \"$transcript_path\""
+      echo "stall-window-seconds: $watcher_stall_window_seconds"
+    } > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" fail "$diag"
+    rm -f "$diag"
+    any_fail=1
+    continue
+  fi
+
+  # --- 9. Check subprocess exit matches expected-exit ------------------------
   if [[ $subprocess_exit -ne $expected_exit ]]; then
     diag=$(mktemp)
     {

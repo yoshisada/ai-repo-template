@@ -81,7 +81,15 @@ echo '{"type":"user","message":{"role":"user","content":"Reply with exactly: PRO
      - Trivial pass test: `ok 1 - phase-b-trivial-pass`, scratch dir deleted, exit 0 ✅
      - Trivial fail test: `not ok 1 - phase-b-trivial-fail` with complete YAML diagnostic (classification, scratch-uuid, retained path, verdict + transcript paths, assertion stdout/stderr), scratch retained, exit 1 ✅
      - `.kiln/logs/` populated with `kiln-test-<uuid>-transcript.ndjson` + `kiln-test-<uuid>-scratch.txt` ✅
-- [Phase C]: pending
+- [Phase C] — **done (T012..T014)**. Notable decisions:
+  1. **Pure-bash watcher for v1**: The classification rules (healthy/stalled/failed) are purely mechanical file-state + timestamp checks. No LLM invocation required. I implemented `watcher-runner.sh` as a pure-bash polling loop that reads `watcher-poll.sh` snapshots and classifies directly. The `plugin-kiln/agents/test-watcher.md` agent spec documents the rules authoritatively and is the extension point for a future LLM-assisted classifier when rule-based triage proves insufficient. This reconciles contracts §7.9 ("Spawns the test-watcher agent via the Task tool") with the harness's bash-native reality — the contract stays additive-compatible when/if LLM classification becomes the default.
+  2. **Background substrate + foreground watcher**: `kiln-test.sh` now backgrounds `dispatch-substrate.sh` and foregrounds `watcher-runner.sh`. The watcher polls, classifies, and on `stalled` sends SIGTERM to the substrate process group. `wait $substrate_pid` then returns and the harness checks `verdict.json` for stalled classification BEFORE the subprocess exit-code comparison — a stalled-then-SIGTERMed subprocess exits with non-zero (143), and without the verdict check we'd misreport that as "failed exit-code mismatch" instead of "stalled".
+  3. **Phase C verification**:
+     - Trivial pass via fake claude: `ok 1 - phase-c-watcher-pass`, ~2.5s total (poll_interval=2s).
+     - Hanging fake claude (stall_window=6s, poll_interval=2s): `not ok 1 - phase-c-watcher-stalled` with `classification: "stalled"`, scratch retained, ~9s total (well under the contract's `stall_window + poll_interval` ≈ 8s gate; slight slack for SIGTERM + wait).
+     - Verdict JSON emitted to `.kiln/logs/kiln-test-<uuid>-verdict.json` with complete payload (timestamps, last_50_lines, scratch_files, result_envelope).
+     - Verdict MD human-readable report at `.kiln/logs/kiln-test-<uuid>.md` with scratch-uuid/classification/transcript.
+  4. **Subprocess-exit latency caveat**: Fast trivial tests (<1s) add up to `poll_interval` wall-clock because the watcher sleeps between ticks. For real seed tests this is noise; for self-test iteration I ship a short `.kiln/test.config` override (2s poll / 60s stall) in the dev workflow and let defaults (30s/300s) apply in production.
 - [Phase D]: pending
 - [Phase E]: pending
 - [Phase F — seed tests]: pending

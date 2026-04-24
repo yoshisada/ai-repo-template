@@ -73,6 +73,7 @@ fi
 # want NDJSON in the TAP stream.
 #
 # NB: claude-invoke.sh propagates the subprocess exit code. We preserve that.
+set +e
 if [[ -n $answers_file ]]; then
   "$harness_dir/claude-invoke.sh" "$plugin_root" "$scratch_dir" "$initial_msg_file" "$answers_file" \
     > "$transcript_path"
@@ -81,6 +82,7 @@ else
     > "$transcript_path"
 fi
 claude_exit=$?
+set -e
 
 # Snapshot scratch-dir final state per FR-012.
 snapshot_path=${KILN_TEST_SCRATCH_SNAPSHOT:-}
