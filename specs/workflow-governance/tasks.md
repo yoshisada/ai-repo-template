@@ -95,16 +95,16 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 
 ### Tests
 
-- [ ] **T023** `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-report-basic/` — 3 canned retro issues (simulating #147, #149, #152) with 5 PI blocks (2 already-applied, 1 stale, 2 actionable). Mock `gh issue list` via a fixture-local stub. Run `/kiln:kiln-pi-apply`. Assert report at `.kiln/logs/pi-apply-<ts>.md` with correct section counts and all required fields per `contracts/interfaces.md` Module 3. **Validates**: FR-009, FR-010, FR-011, SC-004, SC-005.
-- [ ] **T024** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-status-classification/` — one PI per status branch (already-applied / stale / actionable). Assert correct classification and correct diff-rendering discipline (diff emitted only for `actionable`). **Validates**: FR-012.
-- [ ] **T025** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-dedup-determinism/` — run `/kiln:kiln-pi-apply` twice within the same minute against an identical retro backlog. Assert report bodies (everything after the header timestamp line) are byte-identical. **Validates**: FR-011 `pi-hash` stability, SC-004.
-- [ ] **T026** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-propose-only/` — assert no file under `plugin-kiln/skills/` or `plugin-kiln/agents/` has been modified after running `/kiln:kiln-pi-apply` on actionable PIs. **Validates**: FR-010 propose-don't-apply discipline.
-- [ ] **T027** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-malformed-block/` — one retro issue with a PI block missing the "Why" field. Assert the block is listed under `Parse Errors` with line range and issue URL; other blocks continue to parse. **Validates**: Edge case from spec.
-- [ ] **T028** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-empty-backlog/` — zero open retro issues. Assert report reads "No open retro issues found" and exit 0. **Validates**: Edge case from spec.
+- [X] **T023** `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-report-basic/` — 3 canned retro issues (simulating #147, #149, #152) with 5 PI blocks (2 already-applied, 1 stale, 2 actionable). Mock `gh issue list` via a fixture-local stub. Run `/kiln:kiln-pi-apply`. Assert report at `.kiln/logs/pi-apply-<ts>.md` with correct section counts and all required fields per `contracts/interfaces.md` Module 3. **Validates**: FR-009, FR-010, FR-011, SC-004, SC-005.
+- [X] **T024** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-status-classification/` — one PI per status branch (already-applied / stale / actionable). Assert correct classification and correct diff-rendering discipline (diff emitted only for `actionable`). **Validates**: FR-012.
+- [X] **T025** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-dedup-determinism/` — run `/kiln:kiln-pi-apply` twice within the same minute against an identical retro backlog. Assert report bodies (everything after the header timestamp line) are byte-identical. **Validates**: FR-011 `pi-hash` stability, SC-004.
+- [X] **T026** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-propose-only/` — assert no file under `plugin-kiln/skills/` or `plugin-kiln/agents/` has been modified after running `/kiln:kiln-pi-apply` on actionable PIs. **Validates**: FR-010 propose-don't-apply discipline.
+- [X] **T027** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-malformed-block/` — one retro issue with a PI block missing the "Why" field. Assert the block is listed under `Parse Errors` with line range and issue URL; other blocks continue to parse. **Validates**: Edge case from spec.
+- [X] **T028** `[P]` `[impl-pi-apply]` Create fixture `plugin-kiln/tests/pi-apply-empty-backlog/` — zero open retro issues. Assert report reads "No open retro issues found" and exit 0. **Validates**: Edge case from spec.
 
 ### Implementation
 
-- [ ] **T029** `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/fetch-retro-issues.sh` per `contracts/interfaces.md` Module 3. **Implements**: FR-009.
+- [X] **T029** `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/fetch-retro-issues.sh` per `contracts/interfaces.md` Module 3. **Implements**: FR-009.
 - [ ] **T030** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/parse-pi-blocks.sh` per contract. **Implements**: FR-009.
 - [ ] **T031** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/compute-pi-hash.sh` per contract (Clarification 7). MUST handle macOS `shasum` fallback. **Implements**: FR-011.
 - [ ] **T032** `[P]` `[impl-pi-apply]` Implement `plugin-kiln/scripts/pi-apply/classify-pi-status.sh` per contract. **Implements**: FR-012.
@@ -125,11 +125,11 @@ Tracks A (impl-governance) and B (impl-pi-apply) can run concurrently. Track A's
 
 **Goal**: Land Recent Changes entry, command list updates, and verify cross-skill coupling (e.g., `/kiln:kiln-next` surfaces `/kiln:kiln-pi-apply` as expected in a manual smoke test).
 
-- [ ] **T039** `[impl-governance]` Update `CLAUDE.md` "Available Commands" section — add `/kiln:kiln-roadmap --promote <source>` to the roadmap entry's flag list; add a new `/kiln:kiln-pi-apply` entry modeled on `/kiln:kiln-claude-audit`. **Implements**: documentation completeness.
-- [ ] **T040** `[impl-governance]` Update `CLAUDE.md` "Recent Changes" top entry to describe `build/workflow-governance-20260424` — list the three sub-initiatives and FR coverage. Trim older entry per the 5-entry cap.
-- [ ] **T041** `[impl-governance]` Update `CLAUDE.md` "Active Technologies" with `Bash 5.x + gh CLI + sha256sum/shasum (pi-apply), jq (retro JSON parse)` (build/workflow-governance-20260424) — per the 5-entry cap.
+- [X] **T039** `[impl-governance]` Update `CLAUDE.md` "Available Commands" section — add `/kiln:kiln-roadmap --promote <source>` to the roadmap entry's flag list; add a new `/kiln:kiln-pi-apply` entry modeled on `/kiln:kiln-claude-audit`. **Implements**: documentation completeness.
+- [X] **T040** `[impl-governance]` Update `CLAUDE.md` "Recent Changes" top entry to describe `build/workflow-governance-20260424` — list the three sub-initiatives and FR coverage. Trim older entry per the 5-entry cap.
+- [X] **T041** `[impl-governance]` Update `CLAUDE.md` "Active Technologies" with `Bash 5.x + gh CLI + sha256sum/shasum (pi-apply), jq (retro JSON parse)` (build/workflow-governance-20260424) — per the 5-entry cap.
 - [ ] **T042** `[impl-governance]` Manual smoke test — run `/kiln:kiln-next` in a temp repo seeded with 3 open retro issues and assert the output surfaces `/kiln:kiln-pi-apply` as a queued maintenance task. (This is the human-observable FR-013 check.) **Validates**: FR-013.
-- [ ] **T043** `[impl-governance]` Mark all tasks `[X]` in `specs/workflow-governance/tasks.md`. Commit Phase 5 with message `docs(workflow-governance): CLAUDE.md recent changes + command list`.
+- [X] **T043** `[impl-governance]` Mark all tasks `[X]` in `specs/workflow-governance/tasks.md`. Commit Phase 5 with message `docs(workflow-governance): CLAUDE.md recent changes + command list`.
 
 ---
 
