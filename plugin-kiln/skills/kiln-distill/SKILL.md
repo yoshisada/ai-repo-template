@@ -105,6 +105,47 @@ Using the selected items, generate a feature PRD following the same structure as
 
 Create: `docs/features/<YYYY-MM-DD>-<theme-slug>/PRD.md`
 
+### YAML Frontmatter Emission (FR-001, FR-002, FR-003 — spec `prd-derived-from-frontmatter`)
+
+The generated PRD MUST begin with a YAML frontmatter block. The block contains exactly three keys in this exact order:
+
+1. `derived_from:` — YAML block sequence of repo-relative paths to the selected source items.
+2. `distilled_date:` — UTC ISO-8601 date (`YYYY-MM-DD`) produced by `date -u +%Y-%m-%d`.
+3. `theme:` — the slug portion of the PRD directory name (i.e. `<YYYY-MM-DD>-<slug>` → `<slug>`).
+
+**Literal block skeleton** (contract §1.1 of `specs/prd-derived-from-frontmatter/contracts/interfaces.md`):
+
+```yaml
+---
+derived_from:
+  - .kiln/feedback/<file>.md
+  - .kiln/issues/<file>.md
+distilled_date: <YYYY-MM-DD>
+theme: <theme-slug>
+---
+```
+
+Rules:
+
+- Key order is NON-NEGOTIABLE. Reordering / inserting other keys / renaming is a contract violation. Future schema extensions go AFTER `theme:`.
+- List items use two-space indentation + `- ` prefix + unquoted repo-relative path (forward slashes, no leading `./` or `/`).
+- **Sort order** (contract §1.4): feedback entries (`.kiln/feedback/*`) BEFORE issue entries (`.kiln/issues/*`); within each source-type group, sort by filename ASC (byte-wise POSIX sort). This mirrors FR-012 ordering in this skill and is the determinism hook for NFR-003 (second distill run on unchanged inputs emits byte-identical frontmatter).
+- The frontmatter block precedes IMMEDIATELY (on the next line) the existing `# Feature PRD: <Theme Name>` heading.
+- **Empty-list case** (hand-authored PRDs per spec Decision D3): `derived_from: []` on a single inline line is valid. Typical `/kiln:kiln-distill` runs always have at least one selected item, so this is primarily a shape the readers must accept — distill itself emits block-sequence form when the list is non-empty.
+
+### FR-002 Single-Source-of-Truth Invariant
+
+The frontmatter `derived_from:` list AND the `### Source Issues` body table MUST be rendered from the SAME in-memory list of selected items. Pseudocode (contract §1.6):
+
+```python
+source_items = feedback_items_sorted + issue_items_sorted   # feedback first, filename ASC within group
+write_frontmatter(source_items)                              # produces derived_from: list
+write_source_issues_table(source_items)                      # same order
+assert [item.path for item in source_items] == [row.path for row in parsed_table]
+```
+
+**Drift-abort check**: BEFORE the PRD file is finalized, verify that the ordered list of paths in `derived_from:` byte-for-byte equals the ordered list of paths extracted from the `### Source Issues` table's first-column markdown links. Mismatch → abort with a clear error; NO partial PRD is written to disk. This invariant prevents future refactors from silently introducing drift between the two renderings.
+
 ### Feedback-first narrative shape (FR-012, Contract 3 PRD-rendering rule)
 
 When the selected items include ANY feedback entries, the PRD narrative MUST lead with feedback themes:
@@ -126,6 +167,13 @@ The PRD must:
 3. **Include these sections**:
 
 ```markdown
+---
+derived_from:
+  - .kiln/feedback/<file>.md
+  - .kiln/issues/<file>.md
+distilled_date: YYYY-MM-DD
+theme: <theme-slug>
+---
 # Feature PRD: <Theme Name>
 
 **Date**: YYYY-MM-DD

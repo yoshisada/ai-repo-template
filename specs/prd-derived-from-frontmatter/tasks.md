@@ -12,7 +12,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
 
 ## Phase A — Distill writer: emit `derived_from:` frontmatter + FR-002 invariant (FR-001, FR-002, FR-003)
 
-- [ ] **T01-1** Add the YAML frontmatter emit step to `plugin-kiln/skills/kiln-distill/SKILL.md` Step 4.
+- [X] **T01-1** Add the YAML frontmatter emit step to `plugin-kiln/skills/kiln-distill/SKILL.md` Step 4.
   - Insert the frontmatter block (contracts §1.1) BEFORE the existing `# Feature PRD: <Theme Name>` heading in the PRD body template (SKILL.md lines ~128–186).
   - Key order MUST match contracts §1.2 — `derived_from:`, `distilled_date:`, `theme:`.
   - `distilled_date` value is produced by `date -u +%Y-%m-%d` (plan.md Decision D2).
@@ -23,7 +23,7 @@ Tasks are partitioned into 6 phases (A, B, C, D, E, F). Implementer MUST mark ea
   - **Maps to**: FR-001, FR-003.
   - **Files**: `plugin-kiln/skills/kiln-distill/SKILL.md`.
 
-- [ ] **T01-2** Render the `### Source Issues` body table from the SAME in-memory list (FR-002 invariant) and add the drift-abort check.
+- [X] **T01-2** Render the `### Source Issues` body table from the SAME in-memory list (FR-002 invariant) and add the drift-abort check.
   - The frontmatter `derived_from:` list and the body table MUST be produced from a single in-memory array (see contracts §1.6 pseudocode).
   - The drift-abort assertion (at write time) compares `derived_from:` paths against the table's first-column paths in order; mismatch → exit non-zero with a clear error message. No partial PRD is emitted.
   - Empty-list case (contracts §1.5) MUST emit `derived_from: []` on a single line; also emits an empty Source Issues table (or omits the table section) consistently — whichever shape the assertion can handle.
