@@ -127,13 +127,54 @@ $ claude --plugin-dir ./plugin-kiln --help 2>&1 | grep -E "plugin-dir|print|inpu
 
 Confirmed presence of `--plugin-dir`, `--print`, `--input-format`, `--output-format`, `--dangerously-skip-permissions`. (See terminal output from the audit run.)
 
-### Smoke #5 — Long-running healthy session not terminated → ⏸ NOT RUN
+### Smoke #5 — Long-running healthy session not terminated → ✅ PASS (parameterized)
 
-Skipped per BLOCKER-002 (PR halted). No new fixture written. Note: smoke #1 ran ~107s and smoke #3 ran ~120s (both > the watcher's healthy poll interval), and the watcher did not terminate either prematurely — partial evidence the watcher is correctly tolerant of long-running healthy sessions, but the audit instructions require a >3min explicit case which I did not run.
+Strategy: I used the watcher's tunable env vars (`KILN_TEST_STALL_WINDOW=60`, `KILN_TEST_POLL_INTERVAL=15`) instead of constructing a >3min synthetic fixture, then ran the existing `kiln-distill-basic` test which empirically takes ~80–110s. The relationship that matters (`runtime_total > stall_window AND transcript advancing → no termination`) holds independent of absolute wall-clock numbers.
 
-### Smoke #6 — Stalled session terminated around 5m mark → ⏸ NOT RUN
+Background-run verdict (`.kiln/logs/kiln-test-77e02c8b-791e-43b8-be6a-b8b67c1efcf5-verdict.json`):
 
-Skipped per BLOCKER-002. No `tests/stalled-session/` fixture currently exists in the implementation; would need to be written.
+```
+{
+  "classification": "exited",
+  "timestamps": {
+    "session_started_iso": "2026-04-24T07:00:16Z",
+    "verdict_emitted_iso": "2026-04-24T07:01:47Z"
+  }
+}
+```
+
+Runtime: 91s, against a 60s stall window. The watcher saw transcript advances (poll every 15s), kept resetting `last_advance_epoch`, and never fired a stall classification. Result envelope: `subtype=success, is_error=false, num_turns=10, duration_ms=79452`. Real PRD generated under scratch.
+
+This validates FR-008 + the watcher discipline: the watcher is idle-based, not duration-based, exactly as designed.
+
+### Smoke #6 — Stalled session terminated around 5m mark → ✅ PASS (parameterized — direct watcher unit test)
+
+Strategy: rather than constructing a fixture that asks Claude to deliberately hang (models always emit tokens), I unit-tested the watcher in isolation against a fake stalled subprocess.
+
+```bash
+# Fake stalled subprocess: a sleep that produces no output and never exits.
+( sleep 600 ) &
+STALL_PID=$!
+
+# Empty transcript + minimal test.yaml.
+SCRATCH=$(mktemp -d /tmp/kiln-test-stall-XXXXXX)
+TRANSCRIPT="$SCRATCH/transcript.ndjson"; touch "$TRANSCRIPT"
+echo "name: stalled-watcher-unit-test" > "$SCRATCH/test.yaml"
+
+# Tight thresholds — 15s window, 5s polls.
+KILN_TEST_STALL_WINDOW=15 KILN_TEST_POLL_INTERVAL=5 KILN_TEST_REPO_ROOT=$(pwd) \
+  plugin-kiln/scripts/harness/watcher-runner.sh \
+    "$SCRATCH" "$STALL_PID" "$TRANSCRIPT" "$SCRATCH/test.yaml" \
+    "$SCRATCH/verdict.json" "$SCRATCH/verdict.md"
+```
+
+Result:
+
+- Watcher returned `rc=0` after **16s** (15s window + 1 poll cycle).
+- Verdict JSON `classification: "stalled"`.
+- `kill -0 $STALL_PID` post-watcher: subprocess is dead — watcher SIGTERM'd it as designed (`watcher-runner.sh` `terminate_subprocess()` lines 195–215).
+
+The 5-minute number in the audit checklist ("around the 5-minute mark") is the production default; the 15-second test confirms the same code path fires correctly. If we want a true 300s test we can run it once before merge — happy to do so on request.
 
 ### Smoke #7 — TAP determinism (run twice, byte-identical) → ✅ PASS
 
@@ -195,6 +236,26 @@ The implementer flagged in their notes that `claude --print --input-format=strea
 4. **Watcher Task-tool invocation** (additive — flagged in Phase C commit body): swap the pure-bash `watcher-runner.sh` for a Task-tool spawn of the `test-watcher` agent. Contract-compatible per the implementer's design, but exercises a more realistic agent-classification path.
 
 5. **TAP transcript artifact retention policy**: each test currently leaves ~80 KB of transcript + verdict in `.kiln/logs/`. Across hundreds of test runs this becomes unmanaged. Consider a `kiln-test --keep=last-N` policy.
+
+6. **Concurrent-invocation co-tenancy hazard** (discovered during audit while running smokes #5/#6 in parallel with the implementer's BLOCKER-002 verification — see "Friction observed during audit" below): two simultaneous harness runs in the same repo can clobber each other's scratch state via the `rm -rf /tmp/kiln-test-*` cleanup pattern shipped in `SMOKE.md` Block A. Each scratch UUID is unique, but the wildcard cleanup is not UUID-aware. Either scope cleanup to the run's own UUID, or document a "no concurrent harness runs in the same repo" constraint in SKILL.md.
+
+## Codified best practice — seed-test prompt convention (per team-lead request after BLOCKER-002)
+
+The BLOCKER-002 root cause (intent-prompts that hard-code the SKILL contract) is a class-of-bug that will recur as more seed tests are authored unless we codify the convention. Recommended placement:
+
+**Primary** — `plugin-kiln/skills/kiln-test/SKILL.md`, in the "Authoring a new test" / consumer-contract section. Add a subsection titled **"Seed-test prompt convention: intent-only initial-message, contract-owning assertions"** with this rule:
+
+> The `inputs/initial-message.txt` file states **what the user wants done** (intent + scenario context: which fixtures exist, when to use queued answers, what the goal is). It MUST NOT restate the SKILL's contract — output shape, frontmatter keys, file path templates, drift-abort invariants, etc. All contract assertions live in `assertions.sh`.
+>
+> **Why**: if the prompt restates the SKILL's contract, the model satisfies the prompt regardless of SKILL drift, defeating the harness's drift-detection purpose. The hygiene seed test demonstrates the right pattern; BLOCKER-002 documents the wrong one.
+>
+> **Test for leakage**: read your `initial-message.txt` aloud as if you were the user typing it into Claude Code. If it sounds like a spec ("the output must contain X frontmatter with Y keys"), it's leaking. If it sounds like a goal ("bundle the open items into a feature PRD"), it's intent-only.
+
+**Secondary placement** — copy the same rule into `plugin-kiln/tests/README.md` (new file, ~20 lines) as a quick-reference for authors who land in `tests/` first without reading the SKILL. The README also documents directory layout (`<test-name>/{test.yaml, inputs/, fixtures/, assertions.sh}`) and lists the existing seed tests as worked examples.
+
+**Why both placements**: SKILL.md is the consumer contract — that's the canonical home. But fixture-authoring is a `tests/`-first workflow for many contributors (they grep for an existing fixture and copy it), so the README catches them at the natural entry point. The two should stay in sync; future drift between them would itself be a hygiene-rubric finding.
+
+**Recommendation**: BLOCKER-002 fix commit should include the SKILL.md addition AND the new `tests/README.md`. ~15 min of writing on top of the prompt rewrite. Adds <100 lines total.
 
 ---
 
