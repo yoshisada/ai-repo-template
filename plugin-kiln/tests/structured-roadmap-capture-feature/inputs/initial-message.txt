@@ -1,0 +1,1 @@
+Run `/kiln:kiln-roadmap --quick add a way to batch-process X` in the current working directory. The `--quick` flag bypasses the interview and writes a minimal item directly — no further prompting is expected.

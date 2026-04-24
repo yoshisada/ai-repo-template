@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "FR-029 — seed three named critiques on first run (token-cost, unauditable-buggy-code, too-much-setup); idempotent"
+timeout-override: 900

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US8 — migration of legacy .kiln/roadmap.md: 3 bullets → 3 item files + .kiln/roadmap.legacy.md; idempotent on re-run"
+timeout-override: 900

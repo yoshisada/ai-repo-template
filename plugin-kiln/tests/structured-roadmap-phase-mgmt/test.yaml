@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US7 / FR-020 — only one phase may be in-progress at a time; FR-021 — --cascade-items flips planned → in-phase on phase start"
+timeout-override: 900

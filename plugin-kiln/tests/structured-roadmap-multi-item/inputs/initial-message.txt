@@ -1,0 +1,1 @@
+Run `/kiln:kiln-roadmap --quick add batch processing and also add a CLI shortcut` in the current working directory. Despite --quick, the skill MUST still split the input into 2 items because multi-item detection runs BEFORE the interview-skip path (FR-018a). Both items MUST land at phase:unsorted (since --quick defaults there) and both MUST have kind:feature.

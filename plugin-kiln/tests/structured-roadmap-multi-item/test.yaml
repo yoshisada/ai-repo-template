@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US9 / FR-018a — 'add X and also add Y' splits into 2 items with shared phase-assignment"
+timeout-override: 900

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "US3 — --quick bypasses interview, lands in phase:unsorted, suppresses follow-up"
+timeout-override: 900

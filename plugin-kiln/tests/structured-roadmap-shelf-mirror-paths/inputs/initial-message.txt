@@ -1,0 +1,1 @@
+This test unit-exercises the shelf-write-roadmap-note helpers. Just run /kiln:kiln-version to complete the skill harness call — the real work is in assertions.sh, which invokes parse-shelf-config.sh and parse-roadmap-input.sh directly and asserts the path_source decision rule (FR-004).

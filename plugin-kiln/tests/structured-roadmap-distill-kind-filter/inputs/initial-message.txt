@@ -1,0 +1,1 @@
+Run `/kiln:kiln-distill --kind research --phase current` against the fixtures. The fixture phase contains one research item and one feature item. Bundle ONLY the research item into the PRD — the feature item must not appear. Answer `1` if prompted for a theme.

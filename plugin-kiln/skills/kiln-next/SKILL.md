@@ -344,26 +344,65 @@ After the recommendations list (or after the project state summary if no recomme
 
 - The "Suggested next" line MUST appear in **both** normal and `--brief` modes — it is never suppressed.
 
-### Roadmap Suggestions (when idle) — FR-016
+### Active phase items (FR-033 of structured-roadmap)
 
-If **no actionable recommendations exist** (no critical, high, or medium items — the project is clean), check for roadmap items:
+<!-- FR-033 / PRD FR-033: surface state:in-phase items from the active phase AFTER any in-flight pipeline state but BEFORE general suggestions. -->
+<!-- Contract §8 of structured-roadmap. -->
+
+ALWAYS (regardless of whether urgent work exists) — after the "Suggested next" line but BEFORE the Roadmap Suggestions section — emit the Active phase items section using the structured-roadmap `list-items.sh` helper:
 
 ```bash
-echo "=== ROADMAP ITEMS ==="
-if [ -f ".kiln/roadmap.md" ]; then
-  # Extract up to 5 bullet items from the roadmap
-  grep -E '^\s*- ' .kiln/roadmap.md 2>/dev/null | head -5
+echo "=== ACTIVE PHASE ITEMS ==="
+if [ -x "plugin-kiln/scripts/roadmap/list-items.sh" ]; then
+  # FR-033: pull items in state:in-phase — no phase filter, list-items respects state filter
+  ACTIVE_ITEMS=$(bash plugin-kiln/scripts/roadmap/list-items.sh --state in-phase 2>/dev/null || true)
+elif [ -x ".specify/scripts/roadmap/list-items.sh" ]; then
+  # Consumer-project fallback path if the helper got copied into .specify/
+  ACTIVE_ITEMS=$(bash .specify/scripts/roadmap/list-items.sh --state in-phase 2>/dev/null || true)
 else
-  echo "No roadmap file found."
+  ACTIVE_ITEMS=""
+fi
+echo "$ACTIVE_ITEMS"
+```
+
+Render the section ONLY when `ACTIVE_ITEMS` is non-empty:
+
+```markdown
+### Active phase items
+
+- <item-id>  — <kind>  — state:<state>  — phase:<phase>
+- <item-id>  — <kind>  — state:<state>  — phase:<phase>
+
+_Pick one and run `/kiln:kiln-distill --phase <phase>` to promote it, or `/kiln:kiln-fix` / `/kiln:kiln-build-prd` depending on the kind._
+```
+
+For each item path in `ACTIVE_ITEMS`, read its frontmatter (via `bash plugin-kiln/scripts/roadmap/parse-item-frontmatter.sh <path>`) to extract `id`, `kind`, `state`, `phase`. If parse fails, skip the line silently — contract §8 says "empty when no phase is in-progress", never hard-fail.
+
+If NO active-phase items exist (helper missing, empty output, or no phase is in-progress), omit the entire section — do NOT render an empty placeholder.
+
+### Roadmap Suggestions (when idle) — FR-016
+
+If **no actionable recommendations exist** (no critical, high, or medium items — the project is clean), check for legacy-roadmap items as the fallback:
+
+```bash
+echo "=== ROADMAP ITEMS (legacy) ==="
+if [ -f ".kiln/roadmap.md" ]; then
+  # Extract up to 5 bullet items from the legacy one-liner roadmap
+  grep -E '^\s*- ' .kiln/roadmap.md 2>/dev/null | head -5
+elif [ -f ".kiln/roadmap.legacy.md" ]; then
+  # structured-roadmap migrated the file; use the archive for the idle suggestion path
+  grep -E '^\s*- ' .kiln/roadmap.legacy.md 2>/dev/null | head -5
+else
+  echo "No legacy roadmap file found."
 fi
 ```
 
-If roadmap items are found and there is no urgent work, append after the "Suggested next" line:
+If legacy-roadmap items are found and there is no urgent work AND the Active phase items section is empty, append after the "Suggested next" line:
 
 ```markdown
 ### Ideas from Your Roadmap
 
-Nothing pressing. Here are some ideas from your roadmap:
+Nothing pressing. Here are some ideas from your legacy roadmap:
 
 - [item 1]
 - [item 2]
@@ -372,7 +411,7 @@ Nothing pressing. Here are some ideas from your roadmap:
 _Add more with `/kiln:kiln-roadmap <idea>`. Pick one and run `/specify` to start._
 ```
 
-If urgent work exists (any critical, high, or medium priority items), do NOT show roadmap items — urgent work takes priority.
+If urgent work exists (any critical, high, or medium priority items), do NOT show legacy-roadmap items — urgent work takes priority. The "Active phase items" section above is distinct: it renders regardless of urgency (per FR-033).
 
 If **BRIEF_MODE=false**, append after the "Suggested next" line:
 ```markdown

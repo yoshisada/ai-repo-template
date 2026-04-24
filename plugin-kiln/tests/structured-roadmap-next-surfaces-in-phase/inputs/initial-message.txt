@@ -1,0 +1,1 @@
+Run `/kiln:kiln-next --brief` against the fixtures. There is one roadmap item with state: in-phase in the active (in-progress) phase. The output MUST include an "Active phase items" section listing that item. Write the terminal summary output to `.kiln/logs/next-output.md` so assertions can inspect it.
