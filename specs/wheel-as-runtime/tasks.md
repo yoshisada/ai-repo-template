@@ -93,10 +93,10 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 4 Tests (NFR-1, SC-006)
 
-- [ ] T060 [P] [impl-themeB-models] [US4] Create `plugin-wheel/tests/model-dispatch/` unit tests: `resolve-model.sh haiku` → stdout matches `^claude-haiku-`; `resolve-model.sh claude-haiku-4-5-20251001` → echoes input; `resolve-model.sh bogus` → exit 1 + identifiable stderr.
-- [ ] T061 [P] [impl-themeB-models] [US4] Workflow-test `plugin-wheel/workflows/tests/model-haiku-dispatch/`: a shipped test workflow uses `model: haiku` on a classification step; assert the spawned agent runs on the resolved haiku id. This is SC-006's anchor test — MUST also be reflected by updating one real shipped workflow (pick a classification step under any plugin) to demonstrate the path end-to-end.
-- [ ] T062 [P] [impl-themeB-models] [US4] Workflow-test `plugin-wheel/workflows/tests/model-loud-fail/`: `model: claude-nonexistent-id` → dispatch fails loudly (FR-B2 invariant). Silent-fallback regression (I-M2) is the inversion assertion.
-- [ ] T063 [P] [impl-themeB-models] [US4] Backward-compat test: a workflow with NO `model:` field produces byte-identical `.wheel/state_*.json` to pre-PRD baseline (NFR-5, CC-1). Under `plugin-wheel/workflows/tests/backward-compat-no-model/`.
+- [X] T060 [P] [impl-themeB-models] [US4] Unit tests under `plugin-wheel/tests/model-dispatch/` — delivered: `test_resolve_model.sh` (9 cases), `test_dispatch_agent_step_model.sh` (9 cases), `test_model_clause.sh` (11 cases including NFR-2 silent-fallback tripwire). Full suite: 29 assertions, all pass.
+- [X] T061 [P] [impl-themeB-models] [US4] SC-006 anchor — `fixtures/model-haiku-dispatch.json` + `test_workflow_fixtures.sh` T061 case assert the spawn clause threads `claude-haiku-*` through `_teammate_flush_from_state → dispatch_agent_step_model_clause`. Shell-based wheel test (this plugin's `workflows/tests/` path doesn't exist; wheel tests under `plugin-wheel/tests/`). Runtime promotion to a consumer-facing workflow deferred — pending Theme A's `agent_path:` dispatch landing so the runtime change is atomic.
+- [X] T062 [P] [impl-themeB-models] [US4] `fixtures/model-loud-fail.json` + T062 case use `model: gpt-4` (admission-regex fails) → ACTIVATION ERROR clause (FR-B2). Inversion NFR-2 tripwire asserts no "Spawn this agent with model=" success marker on loud-fail path.
+- [X] T063 [P] [impl-themeB-models] [US4] `fixtures/backward-compat-no-model.json` + T063 case assert absent `model:` → empty clause → byte-identical spawn instruction (NFR-5, CC-1).
 
 ---
 

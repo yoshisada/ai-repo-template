@@ -160,14 +160,67 @@ dispatch_agent_step_path() {
   printf '%s' "${resolved}" | jq -c '{"agent_path": .}'
 }
 
+# FR-B1 / FR-B2 — emit the teammate-spawn model clause.
+#
+# Usage:
+#   dispatch_agent_step_model_clause <agent-name> <model-spec>
+#
+# Arguments:
+#   <agent-name>   Display name — used in logs + the ACTIVATION ERROR string.
+#   <model-spec>   The step's `model:` field value (haiku|sonnet|opus|<id>).
+#                  Empty → prints nothing (NFR-5 byte-identical behavior).
+#
+# Stdout:
+#   Empty:              absent spec (NFR-5 byte-identical path).
+#   Success clause:     " Spawn this agent with model='<id>' (FR-B1 ...)."
+#   Loud-fail clause:   " ACTIVATION ERROR — model resolution failed for
+#                       teammate '<name>' (spec='<x>'): <detail>. Do NOT
+#                       spawn this agent on default; surface the error and
+#                       stop."
+#
+# Exit: 0 always. The loud-fail clause IS the FR-B2 invariant — the
+# orchestrator reads "ACTIVATION ERROR" and stops; wheel NEVER silently
+# spawns on default model (I-M2).
+#
+# This helper is extracted from plugin-wheel/lib/dispatch.sh's
+# `_teammate_flush_from_state` so it can be unit-tested without bootstrapping
+# the wheel state machine. The integration calls this; tests call it directly.
+dispatch_agent_step_model_clause() {
+  local agent_name="${1:-}"
+  local model_spec="${2:-}"
+
+  if [[ -z "${model_spec}" ]]; then
+    return 0
+  fi
+
+  local _step_json
+  _step_json=$(jq -nc --arg nm "${agent_name}" --arg m "${model_spec}" \
+    '{name: $nm, model: $m}')
+
+  local _model_frag
+  if _model_frag=$(dispatch_agent_step_model "${_step_json}" 2>&1); then
+    local _resolved_id
+    _resolved_id=$(printf '%s' "${_model_frag}" | jq -r '.model // empty' 2>/dev/null)
+    if [[ -n "${_resolved_id}" && "${_resolved_id}" != "null" ]]; then
+      printf " Spawn this agent with model='%s' (FR-B1 per-step model selection)." "${_resolved_id}"
+    fi
+    return 0
+  fi
+
+  # FR-B2 loud-fail.
+  printf " ACTIVATION ERROR — model resolution failed for teammate '%s' (spec='%s'): %s. Do NOT spawn this agent on default; surface the error and stop." \
+    "${agent_name}" "${model_spec}" "${_model_frag}"
+}
+
 # If invoked as a script (not sourced), expose the helpers as a one-shot CLI
 # for workflow command steps and tests. First arg is the subcommand:
 #   dispatch-agent-step.sh model '<step-json>'
 #   dispatch-agent-step.sh agent-path '<step-json>'
+#   dispatch-agent-step.sh model-clause <agent-name> <model-spec>
 #   dispatch-agent-step.sh '<step-json>'             # legacy — defaults to model
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   if [[ $# -lt 1 ]]; then
-    echo "usage: dispatch-agent-step.sh model|agent-path '<step-json>'" >&2
+    echo "usage: dispatch-agent-step.sh model|agent-path|model-clause ..." >&2
     exit 2
   fi
   case "$1" in
@@ -186,6 +239,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         exit 2
       fi
       dispatch_agent_step_path "$1"
+      ;;
+    model-clause)
+      shift
+      if [[ $# -lt 2 ]]; then
+        echo "usage: dispatch-agent-step.sh model-clause <agent-name> <model-spec>" >&2
+        exit 2
+      fi
+      dispatch_agent_step_model_clause "$1" "$2"
       ;;
     *)
       # Legacy single-arg form — preserve backward compat with Theme B's
