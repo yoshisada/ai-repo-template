@@ -1,7 +1,9 @@
 ---
 title: Cross-plugin-resolver substitution verified live (PR #165)
 date: 2026-04-25
-status: verified
+status: completed
+completed_date: 2026-04-25
+pr: "#166"
 kind: smoke-test-result
 priority: low
 repo: https://github.com/yoshisada/ai-repo-template

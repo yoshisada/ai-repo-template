@@ -1,7 +1,9 @@
 ---
 type: mistake
 date: 2026-04-25
-status: fixed
+status: completed
+completed_date: 2026-04-25
+pr: "#166"
 made_by: claude-opus-4-7
 assumption: "I assumed that 8 passing kiln-test fixtures plus a documented SC-F-6 grep meant the cross-plugin-resolver feature actually worked end-to-end in live wheel dispatch."
 correction: "Component fixtures verify components. They do not verify the wiring between components. A feature is 'working' only when the canonical user-facing flow runs against the merged code on the user's actual install — not when each isolated piece passes its own test."
