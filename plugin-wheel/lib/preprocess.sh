@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # preprocess.sh — workflow-JSON preprocessor for cross-plugin path resolution.
 #
+# Re-source guard: aligns with registry.sh / resolve.sh so engine.sh can
+# unconditionally `source` this file from inside the workflow_load gate.
+#
 # Implements Theme F4 of
 #   specs/cross-plugin-resolver-and-preflight-registry/spec.md
 # under the contract
@@ -30,6 +33,11 @@
 #     prefixes.
 #   - The function is idempotent: a second call on already-templated output
 #     finds no tokens, makes no replacements, and emits byte-identical JSON.
+
+if [[ -n "${WHEEL_PREPROCESS_SH_LOADED:-}" ]]; then
+  return 0 2>/dev/null || true
+fi
+WHEEL_PREPROCESS_SH_LOADED=1
 
 # Internal sentinel — stays out of user text by virtue of the SOH (\x01)
 # control bytes. The bash caller decodes the sentinel back to a literal

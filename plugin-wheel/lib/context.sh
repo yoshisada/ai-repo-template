@@ -19,49 +19,28 @@ context_build() {
   local context_from
   context_from=$(printf '%s\n' "$step_json" | jq -r '.context_from // [] | .[]')
 
-  # FR-D1 (specs/wheel-as-runtime) — Option B: template the absolute value of
-  # WORKFLOW_PLUGIN_DIR into the agent-step's instruction so the spawned LLM
-  # sub-agent (foreground OR background via run_in_background: true) can
-  # propagate the value into Bash tool calls and nested sub-agent spawns.
+  # FR-F4-3 / T042 (specs/cross-plugin-resolver-and-preflight-registry):
+  # Theme D Option B's runtime_env_block emission is REMOVED. Theme F4's
+  # preprocessor (`plugin-wheel/lib/preprocess.sh::template_workflow_json`)
+  # now substitutes the absolute path of every plugin path token directly
+  # into the agent step's `.instruction` field BEFORE state_init. By the
+  # time `context_build` runs, the instruction already contains literal
+  # absolute paths — the explicit "## Runtime Environment" header is
+  # redundant.
   #
-  # Why templating, not env export: wheel's agent step injects an
-  # instruction via the hook's block-reason and then the hook process dies.
-  # The harness creates the sub-agent after wheel's process is gone, so any
-  # env var wheel exported inside the hook never reaches the sub-agent. The
-  # only reliable channel is the instruction text itself.
-  #
-  # The absolute path is derived from the workflow file recorded in the
-  # state file (same computation dispatch_command uses for its env export).
-  local runtime_env_block=""
-  local _wf_file _wf_plugin_dir
-  _wf_file=$(printf '%s\n' "$state_json" | jq -r '.workflow_file // empty' 2>/dev/null)
-  if [[ -n "$_wf_file" ]]; then
-    _wf_plugin_dir=$(cd "$(dirname "$(dirname "$_wf_file")")" 2>/dev/null && pwd) || _wf_plugin_dir=""
-    if [[ -n "$_wf_plugin_dir" ]]; then
-      runtime_env_block=$(printf '%s' "## Runtime Environment (wheel-templated, FR-D1)
-
-When this step OR any sub-agent you spawn needs to reference plugin-local scripts, use this absolute path:
-
-  WORKFLOW_PLUGIN_DIR=${_wf_plugin_dir}
-
-**Always export it explicitly** at the top of any Bash tool call that shells into plugin scripts (e.g. \`export WORKFLOW_PLUGIN_DIR='${_wf_plugin_dir}'\`). When you spawn a sub-agent via the Agent tool, include this line verbatim in the sub-agent's prompt so it propagates. Wheel cannot export environment variables into the harness-spawned sub-agent process — the instruction text is the only reliable channel.")
-    fi
-  fi
+  # The Theme D contract (FR-D1: bg sub-agents must see WORKFLOW_PLUGIN_DIR
+  # as a usable absolute path) is preserved by construction: if the workflow
+  # author wrote `${WORKFLOW_PLUGIN_DIR}/scripts/foo.sh` in the instruction,
+  # the preprocessor swapped that for the literal path. The bg sub-agent
+  # reads the path verbatim from the instruction text and runs the script
+  # with no env-var propagation needed. NFR-F-5 (back-compat for workflows
+  # without `requires_plugins`) still holds because the preprocessor passes
+  # the legacy `${WORKFLOW_PLUGIN_DIR}` token through the same substitution
+  # code path as `${WHEEL_PLUGIN_<calling-plugin>}`.
 
   local context_parts=""
-  if [[ -n "$runtime_env_block" ]]; then
-    context_parts="${runtime_env_block}"
-  fi
   if [[ -n "$instruction" ]]; then
-    if [[ -n "$context_parts" ]]; then
-      context_parts="${context_parts}
-
-## Step Instruction
-
-${instruction}"
-    else
-      context_parts="## Step Instruction\n\n${instruction}"
-    fi
+    context_parts="## Step Instruction\n\n${instruction}"
   fi
 
   if [[ -n "$context_from" ]]; then

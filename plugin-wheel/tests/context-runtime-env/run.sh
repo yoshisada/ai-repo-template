@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
-# FR-D1 Option B unit test (specs/wheel-as-runtime/spec.md User Story 2).
+# context_build agent-step formatting test.
 #
-# Asserts: context_build prepends a "## Runtime Environment (wheel-templated,
-# FR-D1)" block that names WORKFLOW_PLUGIN_DIR with the absolute plugin path
-# derived from the workflow file. This is the Option B channel — the LLM
-# sees the value in its instruction text and propagates it into Bash tool
-# calls + nested sub-agent spawns.
+# History: this file used to assert the FR-D1 Option B "## Runtime
+# Environment (wheel-templated, FR-D1)" block (specs/wheel-as-runtime).
+# Theme F4 of specs/cross-plugin-resolver-and-preflight-registry SUPERSEDES
+# Option B by templating literal absolute paths into agent step
+# `.instruction` fields BEFORE state_init via
+# plugin-wheel/lib/preprocess.sh::template_workflow_json. By the time
+# context_build runs, the instruction already contains literal paths —
+# emitting a duplicate runtime-env header is now redundant and was removed
+# in T042 of cross-plugin-resolver-and-preflight-registry/tasks.md.
 #
-# NFR-2 (silent-failure tripwire): if a future refactor drops the block OR
-# templates an empty value, this test fails with an identifiable error
-# string "FR-D1 Runtime Environment block missing".
+# This test is repurposed (NFR-F-2 silent-failure tripwire) — it now
+# guards the inverse invariant:
+#   1. context_build does NOT emit the obsolete "## Runtime Environment"
+#      header (a regression that re-introduces it would mean Theme F4 was
+#      partially undone).
+#   2. context_build still emits the "## Step Instruction" block with the
+#      preserved instruction text (FR-027 of wheel core).
+#   3. The output makes no reference to FR-D1 marker text — that string
+#      is reserved for the (now-removed) Theme D Option B path.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -28,6 +38,11 @@ mkdir -p "$STAGE/plugin-fake/workflows"
 WF_FILE="$STAGE/plugin-fake/workflows/fake.json"
 printf '%s' '{"name":"fake","steps":[]}' > "$WF_FILE"
 
+# Note: the preprocessor would have already substituted ${WORKFLOW_PLUGIN_DIR}
+# into a literal absolute path BEFORE context_build sees the instruction.
+# We simulate the post-preprocess state directly here: the instruction
+# contains a literal path, no token. (Verifying the substitution itself is
+# the job of plugin-wheel/tests/preprocess-substitution.bats.)
 STEP_JSON='{"type":"agent","instruction":"Do the thing."}'
 STATE_JSON=$(python3 -c "import json,sys; print(json.dumps({'workflow_file': sys.argv[1], 'steps':[]}))" "$WF_FILE")
 WF_JSON=$(cat "$WF_FILE")
@@ -44,42 +59,41 @@ OUT=$(context_build "$STEP_JSON" "$STATE_JSON" "$WF_JSON")
 
 FAILURES=0
 
-# ---- Assertion 1: Runtime Environment header appears ----
-if ! printf '%s' "$OUT" | grep -qF "## Runtime Environment (wheel-templated, FR-D1)"; then
-  echo "FAIL: FR-D1 Runtime Environment block missing from context_build output" >&2
-  printf 'output head:\n%s\n' "$(printf '%s' "$OUT" | head -c 400)" >&2
-  FAILURES=$((FAILURES + 1))
-fi
-
-# ---- Assertion 2: absolute value of WORKFLOW_PLUGIN_DIR is embedded ----
-expected_abs=$(cd "$STAGE/plugin-fake" && pwd)
-if ! printf '%s' "$OUT" | grep -qF "WORKFLOW_PLUGIN_DIR=${expected_abs}"; then
-  echo "FAIL: FR-D1 expected 'WORKFLOW_PLUGIN_DIR=${expected_abs}' in output but not found" >&2
+# ---- Assertion 1: obsolete Runtime Environment header MUST be absent ----
+# (T042 invariant: Theme F4 superseded Theme D Option B; no regression that
+# re-emits the header is acceptable.)
+if printf '%s' "$OUT" | grep -qF "## Runtime Environment"; then
+  echo "FAIL: T042 invariant violated — context_build emitted a '## Runtime Environment' header (Theme F4 should have removed it)" >&2
   printf 'output:\n%s\n' "$OUT" >&2
   FAILURES=$((FAILURES + 1))
 fi
 
-# ---- Assertion 3: instruction block still present downstream of env block ----
+# ---- Assertion 2: FR-D1 marker MUST be absent ----
+# (Theme D Option B's identifying string is gone; if it reappears, an
+# auditor needs to know.)
+if printf '%s' "$OUT" | grep -qF "FR-D1"; then
+  echo "FAIL: T042 invariant violated — output contains 'FR-D1' marker (should be removed by Theme F4 refactor)" >&2
+  FAILURES=$((FAILURES + 1))
+fi
+
+# ---- Assertion 3: Step Instruction header is still present ----
 if ! printf '%s' "$OUT" | grep -qF "## Step Instruction"; then
-  echo "FAIL: Step Instruction header missing — runtime env block suppressed the existing instruction" >&2
+  echo "FAIL: '## Step Instruction' header missing from context_build output" >&2
   FAILURES=$((FAILURES + 1))
 fi
 
-# ---- Assertion 4: env block appears BEFORE instruction block ----
-# Use awk to find line numbers and compare
-env_line=$(printf '%s\n' "$OUT" | grep -nF "## Runtime Environment" | head -1 | cut -d: -f1)
-ins_line=$(printf '%s\n' "$OUT" | grep -nF "## Step Instruction" | head -1 | cut -d: -f1)
-if [[ -n "$env_line" && -n "$ins_line" && "$env_line" -ge "$ins_line" ]]; then
-  echo "FAIL: Runtime Environment block should precede Step Instruction (env@${env_line}, instruction@${ins_line})" >&2
+# ---- Assertion 4: literal instruction text survives ----
+if ! printf '%s' "$OUT" | grep -qF "Do the thing."; then
+  echo "FAIL: instruction text 'Do the thing.' missing from context_build output" >&2
   FAILURES=$((FAILURES + 1))
 fi
 
-# ---- Assertion 5: NFR-5 back-compat — step with no workflow_file in state
-# should NOT emit the env block (nothing to template); no crash either.
+# ---- Assertion 5: NFR-F-5 back-compat — context_build with no workflow_file
+# still emits a Step Instruction block (and never crashes). ----
 STATE_NO_WF='{"steps":[]}'
 OUT2=$(context_build "$STEP_JSON" "$STATE_NO_WF" "$WF_JSON")
 if printf '%s' "$OUT2" | grep -qF "## Runtime Environment"; then
-  echo "FAIL: runtime env block emitted with empty workflow_file — should be absent" >&2
+  echo "FAIL: runtime env block emitted with empty workflow_file — should be absent post-T042" >&2
   FAILURES=$((FAILURES + 1))
 fi
 if ! printf '%s' "$OUT2" | grep -qF "## Step Instruction"; then
@@ -89,8 +103,8 @@ fi
 
 if [[ "$FAILURES" -gt 0 ]]; then
   echo "" >&2
-  echo "FAIL: ${FAILURES} assertion(s) broke — FR-D1 Runtime Environment block missing or malformed" >&2
+  echo "FAIL: ${FAILURES} assertion(s) broke — Theme F4 context_build refactor regression" >&2
   exit 1
 fi
 
-echo "OK: FR-D1 Runtime Environment block present with absolute WORKFLOW_PLUGIN_DIR and correct ordering"
+echo "OK: context_build emits Step Instruction without obsolete Runtime Environment header (Theme F4 / T042)"

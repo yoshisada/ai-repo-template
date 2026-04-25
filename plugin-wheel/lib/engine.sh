@@ -22,15 +22,17 @@ if [[ -z "${WHEEL_LIB_DIR:-}" ]] || ! declare -f workflow_load &>/dev/null; then
   source "${WHEEL_LIB_DIR}/guard.sh"
 fi
 
-# Always source registry.sh + resolve.sh — they have their own re-source
-# guards (WHEEL_REGISTRY_SH_LOADED / WHEEL_RESOLVE_SH_LOADED) so this is a
-# no-op if already loaded. We can't put these inside the workflow_load gate
-# because callers may have sourced workflow.sh directly, leaving registry
-# and resolve unloaded.
+# Always source registry.sh + resolve.sh + preprocess.sh — they have their
+# own re-source guards (WHEEL_REGISTRY_SH_LOADED / WHEEL_RESOLVE_SH_LOADED /
+# WHEEL_PREPROCESS_SH_LOADED) so this is a no-op if already loaded. We can't
+# put these inside the workflow_load gate because callers may have sourced
+# workflow.sh directly, leaving the helpers unloaded.
 # shellcheck source=registry.sh
 source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/registry.sh"
 # shellcheck source=resolve.sh
 source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/resolve.sh"
+# shellcheck source=preprocess.sh
+source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/preprocess.sh"
 
 # engine_preflight_resolve — Run the cross-plugin pre-flight phase
 # (specs/cross-plugin-resolver-and-preflight-registry FR-F1 + FR-F3).

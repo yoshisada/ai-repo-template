@@ -257,9 +257,28 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
       # entrypoint; this guard catches activate.sh invocations that bypass
       # the validation skill (e.g. direct script calls). Failure here means
       # NO state file is created.
-      if ! engine_preflight_resolve "$WORKFLOW_JSON" >/dev/null 2>&1; then
+      #
+      # T041: capture the registry JSON on success so the preprocessor can
+      # consume it without rebuilding. On failure exit before state_init.
+      REGISTRY_JSON=$(engine_preflight_resolve "$WORKFLOW_JSON" 2>/dev/null) || REGISTRY_JSON=""
+      if [[ -z "$REGISTRY_JSON" ]]; then
         wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=preflight-resolver-failure" 2>/dev/null || true
         # Skip state creation entirely.
+        false
+      else
+
+      # T041 (FR-F4-3): preprocess agent step instructions BEFORE state_init.
+      # The preprocessor substitutes ${WHEEL_PLUGIN_<name>} against the
+      # registry plus ${WORKFLOW_PLUGIN_DIR} against the calling plugin's
+      # absolute path. After this step the workflow JSON contains literal
+      # absolute paths in every agent .instruction — agents (including
+      # background sub-agents) can use them verbatim with no env-var
+      # propagation needed. Tripwire failure here means NO state is created.
+      source "${PLUGIN_DIR}/lib/preprocess.sh"
+      CALLING_PLUGIN_DIR=$(cd "$(dirname "$(dirname "$WORKFLOW_FILE")")" 2>/dev/null && pwd) || CALLING_PLUGIN_DIR=""
+      TEMPLATED_WORKFLOW_JSON=$(template_workflow_json "$WORKFLOW_JSON" "$REGISTRY_JSON" "$CALLING_PLUGIN_DIR" 2>/dev/null) || TEMPLATED_WORKFLOW_JSON=""
+      if [[ -z "$TEMPLATED_WORKFLOW_JSON" ]]; then
+        wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=preprocess-tripwire" 2>/dev/null || true
         false
       else
 
@@ -271,8 +290,9 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
       UNIQUE="${AGENT_ID:-${SESSION_ID}_$(date +%s)_${RANDOM}}"
       STATE_FILE=".wheel/state_${UNIQUE}.json"
 
-      # Create state and run kickstart
-      state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
+      # Create state and run kickstart with the TEMPLATED workflow JSON so
+      # downstream dispatch sees literal absolute paths in agent instructions.
+      state_init "$STATE_FILE" "$TEMPLATED_WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
 
       # Teammate activation: the --as flag already told us the team-format ID,
       # so stamp it on the child state file directly. No parent-state guess,
@@ -284,7 +304,7 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       wheel_log_set_state "$STATE_FILE"
       wheel_log "activate" "workflow=${WORKFLOW_NAME} file=${WORKFLOW_FILE}"
-      WORKFLOW="$WORKFLOW_JSON"
+      WORKFLOW="$TEMPLATED_WORKFLOW_JSON"
       export WHEEL_HOOK_SCRIPT=""
       export WHEEL_HOOK_INPUT='{}'
       engine_kickstart "$STATE_FILE" >/dev/null 2>&1
@@ -292,6 +312,7 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       # Clean up legacy pending file if present
       rm -f .wheel/pending.json
+      fi  # close preprocess guard (T041)
       fi  # close pre-flight resolver guard (FR-F3-1)
     fi
   fi

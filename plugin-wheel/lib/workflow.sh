@@ -50,8 +50,88 @@ workflow_load() {
   if ! workflow_validate_allow_user_input "$content"; then
     return 1
   fi
+  # FR-F2-3 (specs/cross-plugin-resolver-and-preflight-registry): shape-only
+  # validation of `requires_plugins`. Registry-aware checks (resolver match)
+  # belong to resolve.sh; here we only enforce the JSON shape contract from
+  # contracts/interfaces.md §4 so a malformed manifest is caught at load time
+  # rather than at activation time.
+  if ! workflow_validate_requires_plugins "$content"; then
+    return 1
+  fi
 
   printf '%s\n' "$content"
+}
+
+# FR-F2-3 (specs/cross-plugin-resolver-and-preflight-registry): shape-only
+# validation of the optional `requires_plugins` array per contracts/interfaces.md §4.
+#
+# Rules:
+#   - Field is OPTIONAL. Absence == [].
+#   - When present, MUST be a JSON array.
+#   - Each entry MUST be a non-empty string matching `[a-zA-Z0-9_-]+`.
+#   - Duplicates are rejected.
+#
+# Error text matches `resolve.sh::resolve_workflow_dependencies` byte-for-byte
+# so the NFR-F-2 silent-failure tripwires (`resolve-error-shapes`) keep firing
+# on the documented strings regardless of whether the early gate (this fn) or
+# the late gate (resolve.sh) catches the bug.
+#
+# Params: $1 = workflow JSON (string, validated JSON)
+# Output (stderr): one error line on first offending entry
+# Exit:   0 if shape is well-formed (or field absent), 1 otherwise
+workflow_validate_requires_plugins() {
+  local workflow_json="$1"
+  local name
+  name=$(printf '%s\n' "$workflow_json" | jq -r '.name // "<unknown>"')
+
+  # If the field is absent, nothing to validate (NFR-F-5 byte-identical
+  # backward-compat path).
+  local has_field
+  has_field=$(printf '%s\n' "$workflow_json" | jq 'has("requires_plugins")')
+  if [[ "$has_field" != "true" ]]; then
+    return 0
+  fi
+
+  local req_field
+  req_field=$(printf '%s\n' "$workflow_json" | jq -c '.requires_plugins')
+
+  local req_type
+  req_type=$(printf '%s\n' "$req_field" | jq -r 'type')
+  if [[ "$req_type" != "array" ]]; then
+    echo "Workflow '${name}' has malformed requires_plugins entry: top-level must be a JSON array, got ${req_type}." >&2
+    return 1
+  fi
+
+  local entries_count
+  entries_count=$(printf '%s\n' "$req_field" | jq 'length')
+
+  local i entry entry_type seen
+  seen=""
+  for ((i = 0; i < entries_count; i++)); do
+    entry_type=$(printf '%s\n' "$req_field" | jq -r --argjson i "$i" '.[$i] | type')
+    if [[ "$entry_type" != "string" ]]; then
+      echo "Workflow '${name}' has malformed requires_plugins entry: non-string at index ${i}." >&2
+      return 1
+    fi
+    entry=$(printf '%s\n' "$req_field" | jq -r --argjson i "$i" '.[$i]')
+    if [[ -z "$entry" ]]; then
+      echo "Workflow '${name}' has malformed requires_plugins entry: empty string at index ${i}." >&2
+      return 1
+    fi
+    if ! [[ "$entry" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+      echo "Workflow '${name}' has malformed requires_plugins entry: invalid name '${entry}' at index ${i} (must match [a-zA-Z0-9_-]+)." >&2
+      return 1
+    fi
+    # Duplicate scan — `seen` is a space-delimited list with sentinel spaces
+    # so substring matches don't false-positive on prefix collisions.
+    if [[ " ${seen} " == *" ${entry} "* ]]; then
+      echo "Workflow '${name}' has malformed requires_plugins entry: duplicate name '${entry}'." >&2
+      return 1
+    fi
+    seen="${seen} ${entry}"
+  done
+
+  return 0
 }
 
 # FR-001/FR-002 (wheel-user-input): Validate that `allow_user_input: true` only
