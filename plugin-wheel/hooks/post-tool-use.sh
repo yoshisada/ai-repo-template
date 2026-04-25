@@ -251,6 +251,18 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
     # Validate workflow
     WORKFLOW_JSON=$(workflow_load "$WORKFLOW_FILE" 2>/dev/null)
     if [[ $? -eq 0 && -n "$WORKFLOW_JSON" ]]; then
+      # FR-F3-1 (specs/cross-plugin-resolver-and-preflight-registry):
+      # Defense-in-depth pre-flight resolver runs BEFORE state_init. The
+      # validate-workflow.sh path already ran this on the user-facing
+      # entrypoint; this guard catches activate.sh invocations that bypass
+      # the validation skill (e.g. direct script calls). Failure here means
+      # NO state file is created.
+      if ! engine_preflight_resolve "$WORKFLOW_JSON" >/dev/null 2>&1; then
+        wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=preflight-resolver-failure" 2>/dev/null || true
+        # Skip state creation entirely.
+        false
+      else
+
       # Extract session_id and agent_id from hook input — stored as ownership
       SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
       AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
@@ -280,6 +292,7 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       # Clean up legacy pending file if present
       rm -f .wheel/pending.json
+      fi  # close pre-flight resolver guard (FR-F3-1)
     fi
   fi
 

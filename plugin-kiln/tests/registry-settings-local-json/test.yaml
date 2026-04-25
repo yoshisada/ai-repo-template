@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "T036 / NFR-F-3 install-mode coverage — settings.local.json-enabled plugins surface via Candidate B fallback (PATH parsing yields empty for project-scoped plugin paths Claude Code may not have prepended)."
+timeout-override: 60
