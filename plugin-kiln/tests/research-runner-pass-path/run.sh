@@ -102,7 +102,7 @@ if [[ ${KILN_TEST_LIVE:-0} == "1" ]]; then
 
   [[ $rc -eq 0 ]] || fail "live run: expected exit 0, got $rc"
   [[ -f $report_path ]] || fail "live run: report not written"
-  grep -qF "Overall: PASS" "$report_path" || fail "live run: report missing 'Overall: PASS'"
+  grep -qE 'Overall\*?\*?: PASS' "$report_path" || fail "live run: report missing 'Overall: PASS'"
   rows=$(grep -cE '^\| 00[0-9]-' "$report_path")
   [[ $rows -eq 3 ]] || fail "live run: expected 3 fixture rows, got $rows"
   (( wall <= 240 )) || fail "live run: wall-clock ${wall}s exceeds SC-S-001 budget 240s"

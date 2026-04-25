@@ -85,9 +85,9 @@ Single-project, extending existing CLI substrate. Net-new files only — NFR-S-0
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Author `plugin-kiln/tests/research-runner-regression-detect/fixtures/baseline-plugin/` and `…/candidate-plugin/` — two minimal plugin-dirs where the candidate is engineered to produce strictly more output tokens for at least one fixture. The simplest engineering: candidate's skill prose includes a verbose-mode flag that the baseline does not (e.g. an extra `<!-- @include ... -->` directive bumping output by ≥ 11 tokens, comfortably above NFR-S-001's ±10 band). Document the engineering in a `README.md` next to the fixtures.
-- [ ] T017 [P] [US2] Author `plugin-kiln/tests/research-runner-regression-detect/fixtures/corpus/001-token-regression/` — single-fixture corpus exercising the engineered diff.
-- [ ] T018 [US2] Implement `plugin-kiln/tests/research-runner-regression-detect/run.sh` (chmod +x). Invokes the runner against the engineered baseline + candidate + corpus from T016/T017. Asserts: (a) exit 1, (b) report contains `Overall: FAIL`, (c) per-fixture row for `001-token-regression` shows verdict `regression (tokens)` and references the slug by name, (d) aggregate summary names the regressing slug. SC-S-002 anchor.
+- [X] T016 [P] [US2] Author `plugin-kiln/tests/research-runner-regression-detect/fixtures/baseline-plugin/` and `…/candidate-plugin/` — two minimal plugin-dirs where the candidate is engineered to produce strictly more output tokens for at least one fixture. The simplest engineering: candidate's skill prose includes a verbose-mode flag that the baseline does not (e.g. an extra `<!-- @include ... -->` directive bumping output by ≥ 11 tokens, comfortably above NFR-S-001's ±10 band). Document the engineering in a `README.md` next to the fixtures.
+- [X] T017 [P] [US2] Author `plugin-kiln/tests/research-runner-regression-detect/fixtures/corpus/001-token-regression/` — single-fixture corpus exercising the engineered diff.
+- [X] T018 [US2] Implement `plugin-kiln/tests/research-runner-regression-detect/run.sh` (chmod +x). Invokes the runner against the engineered baseline + candidate + corpus from T016/T017. Asserts: (a) exit 1, (b) report contains `Overall: FAIL`, (c) per-fixture row for `001-token-regression` shows verdict `regression (tokens)` and references the slug by name, (d) aggregate summary names the regressing slug. SC-S-002 anchor.
 
 **Checkpoint**: US2 fully testable. Commit Phase 4.
 
