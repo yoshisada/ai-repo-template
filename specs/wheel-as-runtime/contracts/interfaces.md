@@ -238,8 +238,19 @@ This document covers six contracts:
 
 ## 5. `WORKFLOW_PLUGIN_DIR` env export contract
 
-**File**: `plugin-wheel/scripts/workflow-env.sh` + `plugin-wheel/scripts/dispatch-subagent.sh`
+**File (Option B — shipped)**: `plugin-wheel/lib/context.sh` (`context_build` prepends the Runtime Environment block).
+**File (Option A — not shipped)**: ~~`plugin-wheel/scripts/workflow-env.sh` + `plugin-wheel/scripts/dispatch-subagent.sh`~~ — these files **do not exist**. See §5 addendum below.
 **Owners**: `impl-wheel-fixes` (sole owner)
+
+### §5 Addendum — Option B shipped (post-implementation note)
+
+Per research.md R-001 and the Phase 0 T020 verdict in `specs/wheel-as-runtime/agent-notes/impl-wheel-fixes.md`, **Option A is infeasible** for agent-step sub-agents. Wheel's agent step returns a hook response and the hook process dies before the harness spawns the sub-agent — wheel does not own the spawn boundary, so no env var wheel exports ever reaches the sub-agent.
+
+The originally-named anchor files (`plugin-wheel/scripts/workflow-env.sh`, `plugin-wheel/scripts/dispatch-subagent.sh`) were aspirational Option-A paths. Neither file is present in the shipped implementation. **The Option B implementation lives in `plugin-wheel/lib/context.sh`'s `context_build`**, which prepends a `## Runtime Environment (wheel-templated, FR-D1)` block to every agent step's instruction text. The absolute `WORKFLOW_PLUGIN_DIR` value is derived from `state.workflow_file` (same derivation as `dispatch_command`'s direct env export for command steps).
+
+Agent-step authors read the block and propagate the value into Bash tool calls (`export WORKFLOW_PLUGIN_DIR='<abs>'`) and nested sub-agent prompts (verbatim line at the top). Command steps continue to receive the var via direct env export in `plugin-wheel/lib/dispatch.sh`'s `dispatch_command` — no change there.
+
+Invariants I-E1, I-E2, I-E3 (below) are all satisfied by the Option B shape and enforced by the tests listed in the "Tests" subsection. The FR-D4 regression fingerprint invariant is likewise enforced unchanged. Auditors and future readers should treat `plugin-wheel/lib/context.sh` as the authoritative Option-B implementation anchor; the contract's "File" field above now reflects this.
 
 ### Contract
 
@@ -282,8 +293,8 @@ This document covers six contracts:
 
 - Smoke test (FR-D2): in a staging dir where source-repo plugin dirs are moved aside, run a workflow that spawns a background sub-agent and assert the sub-agent resolves its scripts via `${WORKFLOW_PLUGIN_DIR}`.
 - Assertion: `grep -F 'WORKFLOW_PLUGIN_DIR was unset' .kiln/logs/report-issue-bg-*.md` returns zero matches in lines dated after the smoke test's start timestamp.
-- Regression tripwire (NFR-2): a test that removes the env-export line from `workflow-env.sh` MUST fail the FR-D2 smoke test with an identifiable error string.
-- CI wiring (NFR-4): `.github/workflows/*.yml` (or existing CI config) runs the FR-D2 smoke test on every PR touching the watched paths.
+- Regression tripwire (NFR-2): a test that removes the Option B Runtime Environment block from `plugin-wheel/lib/context.sh` MUST fail the FR-D2 smoke test with an identifiable error string. (Shipped at `plugin-wheel/tests/workflow-plugin-dir-tripwire/run.sh` — asserts the string `"FR-D1 Runtime Environment block missing"`. Original Option-A-phrased tripwire targeting `workflow-env.sh` is moot since that file does not exist.)
+- CI wiring (NFR-4): `.github/workflows/wheel-tests.yml` runs the FR-D2 smoke test on every PR touching `plugin-wheel/**` or `plugin-*/workflows/**`.
 
 ---
 
