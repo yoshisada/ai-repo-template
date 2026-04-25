@@ -94,37 +94,50 @@ jobs:
           # base branch and only check newly added lines, matching the
           # comment's stated intent.
           BASE_REF="${GITHUB_BASE_REF:-main}"
-          # Fetch the base branch so the diff has something to compare against.
-          git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
+          # GHA actions/checkout defaults to depth=1 — fetch the base branch
+          # with full history so the diff has a merge base. `--unshallow` is
+          # safe to ignore-fail when the repo is already complete.
+          git fetch --no-tags origin "$BASE_REF" --unshallow 2>/dev/null \
+            || git fetch --no-tags origin "$BASE_REF" 2>/dev/null \
+            || true
+          MERGE_BASE=$(git merge-base "origin/${BASE_REF}" HEAD 2>/dev/null) || MERGE_BASE=""
+          if [ -z "$MERGE_BASE" ]; then
+            echo "::warning::Could not determine merge base with origin/${BASE_REF}; falling back to HEAD~1 for diff scope"
+            MERGE_BASE="HEAD~1"
+          fi
+
+          # `+` lines = additions on this branch. Exclude the diff hunk
+          # header `+++` so the file path itself doesn't match.
           if [ -d .kiln/logs ]; then
-            # `+` lines = additions on this branch. Exclude the diff hunk
-            # header `+++` so the file path itself doesn't match.
-            if git diff "origin/${BASE_REF}"...HEAD -- '.kiln/logs/report-issue-bg-*.md' \
+            if git diff "$MERGE_BASE"..HEAD -- '.kiln/logs/report-issue-bg-*.md' \
                 | grep -E '^\+[^+].*WORKFLOW_PLUGIN_DIR was unset' >/dev/null 2>&1; then
               echo "::error::SC-007 regression: a line added on this branch contains 'WORKFLOW_PLUGIN_DIR was unset' in .kiln/logs/report-issue-bg-*.md"
               exit 1
             fi
           fi
           # SC-F-6: zero residual plugin-path tokens in completed-workflow
-          # state archives. Defensive — only matches if the dir exists.
+          # state archives ADDED on this branch. Same merge-base scoping —
+          # historical archives that documented past regressions are exempt.
           if [ -d .wheel/history/success ]; then
-            if git grep -E '\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' -- '.wheel/history/success/*.json' 2>/dev/null; then
-              echo "::error::SC-F-6 regression: residual plugin-path token in .wheel/history/success/*.json"
+            if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
+                | grep -E '^\+[^+].*\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' >/dev/null 2>&1; then
+              echo "::error::SC-F-6 regression: a line added on this branch contains a residual plugin-path token in .wheel/history/success/*.json"
               exit 1
             fi
           fi
           # SC-G-1 recalibrated: zero residual `{{VAR}}` placeholders in any
-          # archived workflow state. The hydration tripwire (FR-G3-5) is
-          # supposed to abort dispatch before state advance, so a state file
-          # holding a residual `{{VAR}}` is structural evidence the tripwire
-          # was bypassed. Defensive — only matches if the dir exists.
+          # archived workflow state ADDED on this branch. The hydration
+          # tripwire (FR-G3-5) aborts dispatch before state advance; a new
+          # state archive holding a residual `{{VAR}}` is structural evidence
+          # the tripwire was bypassed.
           if [ -d .wheel/history/success ]; then
-            if git grep -E '\{\{[A-Z][A-Z0-9_]*\}\}' -- '.wheel/history/success/*.json' 2>/dev/null; then
-              echo "::error::FR-G3-5 regression: residual {{VAR}} placeholder in .wheel/history/success/*.json (hydration tripwire bypassed)"
+            if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
+                | grep -E '^\+[^+].*\{\{[A-Z][A-Z0-9_]*\}\}' >/dev/null 2>&1; then
+              echo "::error::FR-G3-5 regression: a line added on this branch contains a residual {{VAR}} placeholder in .wheel/history/success/*.json (hydration tripwire bypassed)"
               exit 1
             fi
           fi
-          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean"
+          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean (merge-base: $MERGE_BASE)"
 
       - name: NFR-G-6 atomic-migration guard (wheel-step-input-output-schema)
         # specs/wheel-step-input-output-schema NFR-G-6: the runtime change
