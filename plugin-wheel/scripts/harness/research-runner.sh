@@ -192,8 +192,21 @@ run_arm() {
     '{assertion_pass:$ap, exit_code:$ex, stalled:false, scratch_uuid:$uuid, scratch_dir:$dir, transcript_path:$tp, verdict_report_path:$vr, tokens:{input:$it,output:$ot,cached_creation:$cc,cached_read:$cr,total:$tt}}'
 }
 
-# Strict-gate verdict per FR-S-005 (RECONCILED tolerance ±10 tokens band per NFR-S-001).
-TOKEN_TOLERANCE=10
+# Strict-gate verdict per FR-S-005 (RE-RECONCILED 2026-04-25 against audit-smoke
+# observed variance — see specs/research-first-foundation/agent-notes/audit-smoke.md).
+# The ±10 absolute band from research.md §NFR-001 was a parser-level per-FIELD
+# determinism number measured between two consecutive isolated runs; live
+# multi-fixture multi-arm runs interleaved through the cache-warming surface
+# observed deltas of 645–32232 tokens (up to ~33% of baseline_total) for
+# IDENTICAL baseline==candidate inputs. The gate now uses a multiplicative
+# 1.5x band: regression iff candidate_total > baseline_total * 1.5. This
+# absorbs the observed 33% swing with comfortable headroom and scales
+# naturally with fixture size. Per-field parser stability still asserted at
+# ±10 by parse-token-usage.sh (transcript-level invariant — separate concern).
+# Step 2 of phase 09-research-first replaces this with declarative direction
+# enforcement; v1 ships the multiplicative gate as a known-coarse heuristic.
+TOKEN_TOLERANCE_MULTIPLIER_NUM=15
+TOKEN_TOLERANCE_MULTIPLIER_DEN=10  # 15/10 = 1.5x
 compute_verdict() {
   local b_pass=$1 c_pass=$2 b_tok=$3 c_tok=$4 b_inconc=$5 c_inconc=$6
   if [[ -n $b_inconc || -n $c_inconc ]]; then
@@ -202,10 +215,16 @@ compute_verdict() {
     printf 'inconclusive (%s)' "$reason"
     return
   fi
-  local delta=$(( c_tok - b_tok ))
   local acc_reg=0 tok_reg=0
   if [[ $b_pass == "true" && $c_pass == "false" ]]; then acc_reg=1; fi
-  if (( delta > TOKEN_TOLERANCE )); then tok_reg=1; fi
+  # Multiplicative tolerance: regression iff c_tok > b_tok * 1.5 (integer-safe
+  # comparison using the num/den split). Guards b_tok=0 → any positive c_tok
+  # is a regression unless also zero.
+  if (( b_tok == 0 )); then
+    (( c_tok > 0 )) && tok_reg=1
+  elif (( c_tok * TOKEN_TOLERANCE_MULTIPLIER_DEN > b_tok * TOKEN_TOLERANCE_MULTIPLIER_NUM )); then
+    tok_reg=1
+  fi
   if (( acc_reg == 1 && tok_reg == 1 )); then echo "regression (accuracy + tokens)"
   elif (( acc_reg == 1 )); then echo "regression (accuracy)"
   elif (( tok_reg == 1 )); then echo "regression (tokens)"

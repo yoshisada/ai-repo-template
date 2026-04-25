@@ -79,3 +79,7 @@ KILN_TEST_LIVE=1 bash plugin-kiln/tests/research-runner-pass-path/run.sh
 - 3 seed corpus fixtures + 5 test fixtures.
 - All 5 test fixtures pass: 31 total assertions across the suite.
 - NFR-S-002 file allowlist diff-zero verified.
+
+## Addendum (2026-04-25 post-audit-smoke fix-up)
+
+Audit-smoke caught a real calibration miss: SC-S-003 (equal-input MUST pass) flipped FAIL on every realistic invocation under the original ±10 absolute tolerance. Live data showed deltas of 645–32232 tokens (up to 33% of baseline) for IDENTICAL baseline==candidate runs — the lightest-probe ±10 baseline didn't model multi-arm interleaved cache-warming variance. Fix-up re-calibrated `compute_verdict` to a multiplicative 1.5x band; spec NFR-S-001 + FR-S-005 + research.md §post-implementation-observation updated. PI-006 added implicitly: the lightest-probe-as-baseline pattern under-projects when production workload variance distribution is fundamentally different (interleaved vs isolated) — future research-runner-style baselines should measure against the actual production invocation shape.

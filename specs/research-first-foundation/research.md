@@ -205,3 +205,29 @@ top of the existing per-fixture loop in `wheel-test-runner.sh`.
 | NFR-002 no-fork-of-kiln-test          | reachable    | No change — substrate already extensible per current shape    |
 | NFR-003 backward compat (single `--plugin-dir`) | reachable | No change                                                  |
 | FR-003 token capture from stream-json | reachable    | No change — `usage.{input,output,cache_read,cache_creation}_tokens` parses directly from `result` envelope |
+
+---
+
+## §post-implementation-observation (audit-smoke live data, captured 2026-04-25T21:30Z)
+
+**Purpose**: append-only observation block documenting how the lightest-probe `±10 tokens absolute per usage field` projection from §NFR-001 (above) under-projected real per-fixture variance once the runner ran the full 3-fixture × 2-arm interleaved batch in production.
+
+**What the lightest-probe baseline missed**: the §NFR-001 measurement compared TWO ISOLATED consecutive runs of `kiln:kiln-version` against the same plugin-dir on the same commit. That setup has no cache-warming surface and no cross-fixture cache-state interaction. The +3 wobble on `output_tokens` / `cache_creation_input_tokens` was real for THAT measurement shape. It does NOT model what happens when the runner interleaves baseline and candidate arms across 3 fixtures = 6 subprocess invocations — each invocation warms the cache for subsequent ones, and LLM-side non-determinism in turn count cascades into wildly different `cache_creation_input_tokens` / `cache_read_input_tokens` distributions for IDENTICAL inputs.
+
+**Live observation** (`research-aad8c2de-eeb9-437e-b637-1d4a050f4202.md`, `--baseline plugin-kiln/ --candidate plugin-kiln/`, audit-smoke 2026-04-25):
+
+| Fixture | Baseline total | Candidate total | Δ tokens | Δ % of baseline |
+|---|---|---|---|---|
+| 001-noop-passthrough | 96674 | 97319 | +645 | +0.67% |
+| 002-token-floor | 97068 | 96641 | -427 | -0.44% |
+| 003-assertion-anchor | 96994 | 129226 | +32232 | **+33.2%** |
+
+For IDENTICAL baseline==candidate inputs. The `±10 tokens absolute` band is incompatible with the actual probability distribution — even the smallest delta (645) is 64× the band; the largest (32232) is 3223× the band. SC-S-003 (equal-input MUST verdict pass) would FAIL on every realistic invocation under the original gate.
+
+**Re-reconciliation (post-impl, 2026-04-25)**:
+
+- Runner gate switched from `delta > 10 absolute` to **multiplicative 1.5x band** (`candidate_total > baseline_total * 1.5`). Absorbs the observed 33% swing with comfortable headroom; scales naturally with fixture size; integer-safe via num/den split (15/10).
+- Parser-level per-field ±10 stability claim PRESERVED — that bound holds for `parse-token-usage.sh` re-parsing the SAME transcript byte-for-byte (the original §NFR-001 measurement was about transcript stability, not multi-arm interleaved variance).
+- Tradeoff acknowledged: a real candidate that bumps tokens by ~5–30% will NOT trip the v1 gate. The audit-smoke regression test ("added ~200 tokens of verbose irrelevant instructions") only tripped fixture 001 (Δ +1040, +1.07%) under the OLD gate; under the NEW 1.5x gate, that scenario would NOT be detected. v1 trades regression-detection sensitivity for SC-S-003 validity. Step 2 of phase `09-research-first` replaces this with declarative direction enforcement (per-axis `direction:`) and resolves both concerns.
+
+**Encoded in**: `spec.md` NFR-S-001 (re-reconciliation block) + FR-S-005 (gate definition) + `research-runner.sh` `compute_verdict` (multiplicative band).
