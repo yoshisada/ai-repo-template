@@ -270,6 +270,22 @@ echo "${LOG_PREFIX}: done | $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 Worked example: `plugin-shelf/scripts/step-dispatch-background-sync.sh` consolidates the counter-increment + log-append chain the `kiln:kiln-report-issue` background sub-agent previously ran as two separate Bash tool calls.
 
+## Test Runner
+
+`plugin-wheel/scripts/harness/wheel-test-runner.sh` is the plugin-agnostic test harness. It runs executable fixtures against a real Claude subprocess (`claude --print --plugin-dir <local>`) in a scratch directory, watched by a classifier that replaces hard timeouts.
+
+Three invocation forms (CLI signature in `plugin-wheel/docs/test-runner.md`):
+
+```bash
+bash plugin-wheel/scripts/harness/wheel-test-runner.sh                    # auto-detect plugin
+bash plugin-wheel/scripts/harness/wheel-test-runner.sh <plugin>           # all tests for plugin
+bash plugin-wheel/scripts/harness/wheel-test-runner.sh <plugin> <test>    # single test
+```
+
+`/kiln:kiln-test` is the kiln-side façade that delegates to this runner via `${WORKFLOW_PLUGIN_DIR}/../plugin-wheel/scripts/harness/wheel-test-runner.sh`. Non-kiln plugins can invoke the runner directly without depending on `plugin-kiln/`.
+
+See `plugin-wheel/docs/test-runner.md` for the full contract: CLI args, exit codes (0 pass / 1 fail / 2 skip), TAP v14 stdout grammar, verdict-report path (`.kiln/logs/kiln-test-<uuid>.md`), scratch-dir prefix (`/tmp/kiln-test-<uuid>/`), and a worked non-kiln consumer example.
+
 ## Requirements
 
 - Bash 3.2+ (macOS default)

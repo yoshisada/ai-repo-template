@@ -1,0 +1,12 @@
+PASS: static sanity (baseline JSON + perf driver present)
+Resolver phase median (N=5): 387.08ms (samples: 282.21 810.31 475.67 349.49 387.08)
+FAIL: NFR-F-6 — resolver+preprocess on no-deps workflow median 387.08ms > 200ms
+Gate (a) — running live perf driver against post-PRD code (~3 min wall-clock)...
+Post-PRD medians: elapsed_sec=7.751s api_ms=4364.0ms
+Thresholds (120% of b81aa25): elapsed_sec<=10.086s api_ms<=5258ms
+PASS: NFR-F-4 — wall-clock median 7.751s <= 10.086s (120% of baseline)
+PASS: NFR-F-4 — duration_api_ms median 4364.0ms <= 5258ms (120% of baseline)
+Driver output saved at /tmp/perf-driver.out
+TSV saved at /tmp/perf-results.tsv
+
+--- Results: 3 passed, 1 failed ---
