@@ -1,20 +1,23 @@
-# create-issue result
+## Issue Created
 
-issue_path: .kiln/issues/2026-04-24-shelf-write-roadmap-note-needs-batching.md
-duplicate_check: no exact duplicate found
-related_issues:
-  - .kiln/issues/2026-04-24-kiln-report-issue-workflow-cant-batch.md (sibling — kiln-report-issue workflow needs batching)
-  - .kiln/issues/2026-04-24-wheel-workflow-speed-batching-commands.md (related — intra-step command batching, orthogonal scope)
+**File**: `.kiln/issues/2026-04-25-standardize-git-behavior-across-scope.md`
+**Title**: Standardize git behavior across the entire scope
+**Date**: 2026-04-25
+**Status**: open
+**Kind**: improvement
+**Priority**: medium
+**Repo**: https://github.com/yoshisada/ai-repo-template
+**Tags**: git, hygiene, cross-plugin, workflow
+**Source**: kiln-report-issue
 
-classification:
-  type: improvement
-  area: shelf
-  category: ergonomics
-  severity: medium
+## Duplicate check
 
-summary: |
-  shelf-write-roadmap-note dispatches one note per invocation — no list/directory mode.
-  Capture flows producing many files at once (e.g. /kiln:kiln-roadmap phase + N items,
-  multi-theme /kiln:kiln-distill, legacy migration) skip the mirror entirely, defeating
-  the FR-030 contract. Proposal: accept ROADMAP_INPUT_DIR / ROADMAP_INPUT_LIST in
-  parse-roadmap-input.sh, loop inside one wheel invocation, emit per-file result array.
+Scanned `.kiln/issues/*.md` for `git behavior`, `git workflow`, `git practices`, `standardize git` — no matches. No duplicate found.
+
+## Description summary
+
+Git behavior is inconsistent across the kiln/wheel/shelf/clay/trim plugin scope and across the pipeline lifecycle. Six concrete inconsistencies documented in the issue (branch naming, auto-commits, version-bump fan-out, merge strategy ambiguity, local-vs-remote divergence after `gh pr merge`, `--no-verify` discipline). Goal: a single `docs/git-conventions.md` pinning the standard, then audit existing hooks/skills/agents for compliance.
+
+## Source context
+
+Captured during PR #163 (cross-plugin-resolver) post-merge cleanup, which surfaced 3 of the 6 inconsistencies in a single session.
