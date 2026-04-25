@@ -1,0 +1,1 @@
+../../plugin-wheel/agents/smoke-tester.md

@@ -1,0 +1,1 @@
+../../plugin-wheel/agents/spec-enforcer.md
