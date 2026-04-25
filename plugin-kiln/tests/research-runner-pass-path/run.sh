@@ -72,11 +72,14 @@ rm -rf "$empty_corpus"
 [[ $rc -eq 2 ]] || fail "expected exit 2 on empty corpus, got $rc"
 assertions=$((assertions + 1))
 
-# A6: README exists and is ≤ 200 lines (NFR-S-009 invariant).
-# Anchored to: User Story 5, NFR-S-009.
+# A6: README exists and is ≤ 250 lines (NFR-S-009 invariant — widened from
+# 200 to 250 by axis-enrichment plan §Quickstart which appends three new
+# sections: 'Authoring empirical_quality:', 'Configuring blast-radius rigor',
+# 'Time + Cost axes in reports').
+# Anchored to: User Story 5, NFR-S-009 (axis-enrichment widening).
 [[ -f $readme ]] || fail "README missing: $readme"
 lines=$(wc -l < "$readme" | tr -d ' ')
-(( lines <= 200 )) || fail "README is $lines lines (> 200, NFR-S-009 violation)"
+(( lines <= 250 )) || fail "README is $lines lines (> 250, NFR-S-009 widened-invariant violation)"
 assertions=$((assertions + 1))
 
 # --- Live mode (only when KILN_TEST_LIVE=1) ---------------------------------

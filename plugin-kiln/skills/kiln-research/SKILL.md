@@ -1,6 +1,6 @@
 ---
 name: kiln-research
-description: "Run the baseline-vs-candidate research substrate against a declared fixture corpus. Emits a comparative markdown report at .kiln/logs/research-<uuid>.md with a strict-gate verdict (any regression on accuracy OR tokens fails). Three required args: <baseline-plugin-dir> <candidate-plugin-dir> <corpus-dir>."
+description: "Run the baseline-vs-candidate research substrate against a declared fixture corpus. Emits a comparative markdown report at .kiln/logs/research-<uuid>.md with a strict-gate or per-axis-direction verdict (declared via PRD `empirical_quality:`). Required args: <baseline-plugin-dir> <candidate-plugin-dir> <corpus-dir>. Optional: --prd <path> to opt into per-axis direction enforcement."
 ---
 
 # /kiln:kiln-research
@@ -13,7 +13,8 @@ description: "Run the baseline-vs-candidate research substrate against a declare
 
 | Form | What it does |
 |---|---|
-| `/kiln:kiln-research --baseline <dir> --candidate <dir> --corpus <dir>` | Run the runner with explicit args. |
+| `/kiln:kiln-research --baseline <dir> --candidate <dir> --corpus <dir>` | Run the runner with explicit args (foundation strict gate). |
+| `/kiln:kiln-research --baseline <dir> --candidate <dir> --corpus <dir> --prd <path>` | Per-axis direction gate — reads `empirical_quality:` + `blast_radius:` + `excluded_fixtures:` from the PRD's frontmatter (FR-AE-001/008). |
 | `/kiln:kiln-research --baseline <dir> --candidate <dir> --corpus <dir> --report-path <p>` | Override report output location (used by tests for determinism). |
 
 ## What to do
