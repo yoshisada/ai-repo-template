@@ -37,8 +37,8 @@
 
 ### Helpers (parallel)
 
-- [ ] **T005** [P] [B+C] [FR-AE-002 / FR-AE-005 / §4] Author `plugin-wheel/scripts/harness/evaluate-direction.sh` (~60 LoC). Inputs: `--axis --direction --tolerance-pct --baseline --candidate`. Stdout: `pass` or `regression`. Floating-point comparison via `awk`. Loud-failure on invalid inputs. `chmod +x`.
-- [ ] **T006** [P] [B+C] [FR-AE-011 / FR-AE-012 / §5] Author `plugin-wheel/scripts/harness/compute-cost-usd.sh` (~50 LoC). Inputs: `--pricing-json --model-id --input-tokens --output-tokens --cached-input-tokens`. Stdout: 4dp-precision USD float OR `null`. Stderr warning on model-miss; loud-failure (`Bail out!`) on malformed pricing.json.
+- [X] **T005** [P] [B+C] [FR-AE-002 / FR-AE-005 / §4] Author `plugin-wheel/scripts/harness/evaluate-direction.sh` (~60 LoC). Inputs: `--axis --direction --tolerance-pct --baseline --candidate`. Stdout: `pass` or `regression`. Floating-point comparison via `awk`. Loud-failure on invalid inputs. `chmod +x`.
+- [X] **T006** [P] [B+C] [FR-AE-011 / FR-AE-012 / §5] Author `plugin-wheel/scripts/harness/compute-cost-usd.sh` (~50 LoC). Inputs: `--pricing-json --model-id --input-tokens --output-tokens --cached-input-tokens`. Stdout: 4dp-precision USD float OR `null`. Stderr warning on model-miss; loud-failure (`Bail out!`) on malformed pricing.json.
 
 ### Runner extension (sequential — single file)
 
