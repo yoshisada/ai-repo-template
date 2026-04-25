@@ -93,13 +93,13 @@ Two implementer tracks (per PRD Pipeline guidance + research-baseline ahead of b
 
 ## Phase 5 — Audit + live-smoke headline metric (audit-compliance)
 
-- [ ] T080 [audit-compliance] Verify every FR-G1..G4 has ≥1 fixture cited in implementer friction notes per NFR-G-1 + Absolute Must #2. Specifically check: each FR has a fixture file AND the friction note cites a `.kiln/logs/kiln-test-<uuid>.md` PASS verdict. Fixture file existence without a verdict report is a BLOCKER.
-- [ ] T081 [audit-compliance] Run a fresh `/kiln:kiln-report-issue` against post-PRD code (NFR-G-4 NON-NEGOTIABLE live smoke). Capture `command_log` from the new `.wheel/history/success/kiln-report-issue-*.json`.
-- [ ] T082 [audit-compliance] Compare against baseline from `research.md §baseline`. Assert recalibrated SC-G-1: (a) `dispatch-background-sync.command_log` length = 0 (down from baseline median 1), AND (b) zero `bash`/`jq`/`cat`/`grep` references in the post-PRD dispatched instruction text (down from baseline median 3 disk-fetch sub-commands). Assert SC-G-2: dispatch-step wall-clock ≤39.6s (baseline 36s + 10% tolerance). FAIL the audit if any gate fails.
-- [ ] T083 [audit-compliance] `git grep -E '\{\{[A-Z][A-Z0-9_]*\}\}' .wheel/history/success/*.json` — assert zero matches post-PRD (FR-G3-5 invariant).
-- [ ] T084 [audit-compliance] `git show <merge-commit-sha> --name-only` (or HEAD on the feature branch pre-merge) — assert BOTH `plugin-wheel/lib/resolve_inputs.sh` AND `plugin-kiln/workflows/kiln-report-issue.json` appear (NFR-G-6 atomic invariant).
-- [ ] T085 [audit-compliance] Re-run all 8 unit fixtures + 2 kiln-test fixtures against the merged tree (defense-in-depth). All must show PASS verdicts.
-- [ ] T086 [audit-compliance] Write friction note to `agent-notes/audit-compliance.md` with: live-smoke results, baseline comparison table, atomic-commit verification, fixture re-run results. Mark TaskList #5 completed.
+- [X] T080 [audit-compliance] Verify every FR-G1..G4 has ≥1 fixture cited in implementer friction notes per NFR-G-1 + Absolute Must #2. Specifically check: each FR has a fixture file AND the friction note cites a `.kiln/logs/kiln-test-<uuid>.md` PASS verdict. Fixture file existence without a verdict report is a BLOCKER.
+- [X] T081 [audit-compliance] Run a fresh `/kiln:kiln-report-issue` against post-PRD code (NFR-G-4 NON-NEGOTIABLE live smoke). Capture `command_log` from the new `.wheel/history/success/kiln-report-issue-*.json`.
+- [X] T082 [audit-compliance] Compare against baseline from `research.md §baseline`. Assert recalibrated SC-G-1: (a) `dispatch-background-sync.command_log` length = 0 (down from baseline median 1), AND (b) zero `bash`/`jq`/`cat`/`grep` references in the post-PRD dispatched instruction text (down from baseline median 3 disk-fetch sub-commands). Assert SC-G-2: dispatch-step wall-clock ≤39.6s (baseline 36s + 10% tolerance). FAIL the audit if any gate fails.
+- [X] T083 [audit-compliance] `git grep -E '\{\{[A-Z][A-Z0-9_]*\}\}' .wheel/history/success/*.json` — assert zero matches post-PRD (FR-G3-5 invariant).
+- [X] T084 [audit-compliance] `git show <merge-commit-sha> --name-only` (or HEAD on the feature branch pre-merge) — assert BOTH `plugin-wheel/lib/resolve_inputs.sh` AND `plugin-kiln/workflows/kiln-report-issue.json` appear (NFR-G-6 atomic invariant).
+- [X] T085 [audit-compliance] Re-run all 8 unit fixtures + 2 kiln-test fixtures against the merged tree (defense-in-depth). All must show PASS verdicts.
+- [X] T086 [audit-compliance] Write friction note to `agent-notes/audit-compliance.md` with: live-smoke results, baseline comparison table, atomic-commit verification, fixture re-run results. Mark TaskList #5 completed.
 
 ---
 
