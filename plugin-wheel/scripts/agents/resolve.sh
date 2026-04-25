@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# resolve.sh — Agent resolution primitive (FR-A1, FR-A3)
+# resolve.sh — Agent resolution primitive (FR-A3, simplified 2026-04-25)
 #
 # Accepts <path-or-name> and emits a single-line JSON spec on stdout:
 #   { subagent_type, system_prompt_path, tools, source, canonical_path, model_default }
 #
 # Input forms:
-#   (a) absolute path      — /abs/path/to/<name>.md
-#   (b) repo-relative path — plugin-kiln/agents/<name>.md (canonical home; FR-A1 centralization-to-wheel reversed 2026-04-25 — agents own their consumer-plugin location)
-#   (c) short name         — resolved via registry.json
-#   (d) unknown name       — passthrough with source=unknown (back-compat for
-#                            existing subagent_type: general-purpose spawns)
+#   (a) absolute path           — /abs/path/to/<name>.md
+#   (b) repo-relative path      — plugin-<name>/agents/<role>.md
+#   (c) plugin-prefixed name    — <plugin>:<role> (e.g. kiln:debugger) — passthrough
+#   (d) bare name               — <role> — passthrough as legacy back-compat (source: unknown)
 #
-# Exit: 0 on success (including form (d)), 1 on registry/read error or empty input.
+# Plugin-prefixed names are the canonical way to reference agents post-FR-A1-reversal
+# (2026-04-25). The harness discovers agents via filesystem scan at session start and
+# registers them as <plugin>:<role>. This resolver is plugin-agnostic — it does NOT
+# maintain a registry of every plugin's agents (the prior plugin-wheel/scripts/agents/
+# registry.json was a vision violation and was removed alongside this simplification).
+#
+# Exit: 0 on success (all forms), 1 on empty input or path-form file-not-found.
 # Stderr: loud diagnostic on exit 1 — NEVER silent.
-#
-# Env: WORKFLOW_PLUGIN_DIR anchors forms (b) and (c) under consumer-install
-# layouts where the source repo root doesn't contain plugin-wheel/.
 
 set -euo pipefail
 
@@ -29,32 +31,9 @@ if [[ -z "$INPUT" ]]; then
   die "empty input — usage: resolve.sh <path-or-name>"
 fi
 
-# Locate the plugin root. Prefer $WORKFLOW_PLUGIN_DIR (consumer install layout)
-# and fall back to the script's own parent (source-repo layout).
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WHEEL_ROOT_FALLBACK="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-# WORKFLOW_PLUGIN_DIR points at the plugin install dir (plugin-wheel/ equivalent).
-# If set, use it; otherwise fall back to our own resolved root.
-PLUGIN_ROOT="${WORKFLOW_PLUGIN_DIR:-${WHEEL_ROOT_FALLBACK}}"
-
-REGISTRY_FILE="${PLUGIN_ROOT}/scripts/agents/registry.json"
-if [[ ! -f "$REGISTRY_FILE" ]]; then
-  # Last-ditch: resolve via the script's own sibling directory
-  REGISTRY_FILE="${SCRIPT_DIR}/registry.json"
-  if [[ ! -f "$REGISTRY_FILE" ]]; then
-    die "registry.json not found (looked in ${PLUGIN_ROOT}/scripts/agents/ and ${SCRIPT_DIR})"
-  fi
-fi
-
-# Validate registry shape once.
-if ! jq -e '.version == 1 and (.agents | type == "object")' "$REGISTRY_FILE" >/dev/null 2>&1; then
-  die "registry.json malformed (expected .version==1 and .agents object) at $REGISTRY_FILE"
-fi
-
 emit_json() {
-  # Single-line JSON on stdout.
   local subagent_type="$1" sys_path="$2" source="$3" canonical="$4" model_default="$5"
-  local tools_json="$6"  # raw JSON array string
+  local tools_json="$6"
   jq -cn \
     --arg st "$subagent_type" \
     --arg sp "$sys_path" \
@@ -65,14 +44,7 @@ emit_json() {
     '{subagent_type: $st, system_prompt_path: $sp, tools: $tools, source: $src, canonical_path: $cp, model_default: (if $md == "" or $md == "null" then null else $md end)}'
 }
 
-# ---- Detect form ----
-# Form (a): absolute path — starts with /
-# Form (b): repo-relative path — contains / (and ends with .md or is a readable file)
-# Form (c): short name — no slash, no .md suffix; must be in registry
-# Form (d): unknown — not in registry and not a resolvable path
-
 is_path_form() {
-  # Returns 0 if the input looks like a path (contains / or ends with .md)
   case "$1" in
     /*|*/*|*.md) return 0 ;;
     *)           return 1 ;;
@@ -80,29 +52,21 @@ is_path_form() {
 }
 
 if is_path_form "$INPUT"; then
-  # Path form. Absolute or repo-relative.
+  # Path form (a/b). Locate the agent .md file.
   if [[ "$INPUT" = /* ]]; then
     candidate="$INPUT"
-    source_form="path"
+  elif [[ -f "$INPUT" ]]; then
+    candidate="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
+  elif [[ -z "${WORKFLOW_PLUGIN_DIR:-}" ]]; then
+    die "WORKFLOW_PLUGIN_DIR unset and repo-relative path '$INPUT' not found from CWD"
   else
-    # Repo-relative. Try $PWD first (source repo), then anchor under $PLUGIN_ROOT's parent
-    # (consumer install — the repo-relative form "plugin-kiln/agents/foo.md" still
-    # resolves relative to the plugins cache root via $PLUGIN_ROOT).
-    if [[ -f "$INPUT" ]]; then
-      candidate="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
-      source_form="path"
-    elif [[ -z "${WORKFLOW_PLUGIN_DIR:-}" && ! -f "$INPUT" ]]; then
-      # WORKFLOW_PLUGIN_DIR unset AND relative form doesn't resolve from CWD.
-      die "WORKFLOW_PLUGIN_DIR unset and repo-relative path '$INPUT' not found from CWD"
-    else
-      # Try anchoring under PLUGIN_ROOT's parent (e.g. $WORKFLOW_PLUGIN_DIR points at
-      # plugin-wheel/ install dir, so we peel back one level to resolve "plugin-kiln/agents/x.md").
-      parent_root="$(cd "${PLUGIN_ROOT}/.." && pwd)"
-      candidate="${parent_root}/${INPUT}"
-      if [[ ! -f "$candidate" ]]; then
-        die "repo-relative path '$INPUT' not found at $candidate"
-      fi
-      source_form="path"
+    # Anchor under WORKFLOW_PLUGIN_DIR's parent (consumer install layout)
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PLUGIN_ROOT="${WORKFLOW_PLUGIN_DIR:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
+    parent_root="$(cd "${PLUGIN_ROOT}/.." && pwd)"
+    candidate="${parent_root}/${INPUT}"
+    if [[ ! -f "$candidate" ]]; then
+      die "repo-relative path '$INPUT' not found at $candidate"
     fi
   fi
 
@@ -110,62 +74,24 @@ if is_path_form "$INPUT"; then
     die "agent file not readable: $candidate"
   fi
 
-  # Look up by canonical basename in the registry to pull subagent_type/tools/model_default.
-  # If the basename matches a short-name entry whose path also matches, use the registry
-  # values. Otherwise fall back to deriving from filename + general-purpose defaults.
-  short="$(basename "$candidate" .md)"
-  entry="$(jq -c --arg k "$short" '.agents[$k] // empty' "$REGISTRY_FILE")"
-  if [[ -n "$entry" ]]; then
-    subagent_type="$(jq -r '.subagent_type' <<<"$entry")"
-    tools="$(jq -c '.tools' <<<"$entry")"
-    model_default="$(jq -r '.model_default // ""' <<<"$entry")"
-    # Post-FR-A1-reversal (2026-04-25): canonical comes from registry's path field
-    # (e.g. plugin-kiln/agents/debugger.md) rather than being constructed from
-    # PLUGIN_ROOT — agents live in their consumer plugin, not in wheel.
-    canonical="$(jq -r '.path' <<<"$entry")"
-  else
-    subagent_type="$short"
-    tools='[]'
-    model_default=""
-    canonical="$candidate"
-  fi
-
-  emit_json "$subagent_type" "$candidate" "$source_form" "$canonical" "$model_default" "$tools"
+  # Derive subagent_type from filename. Tools + model live in agent.md frontmatter
+  # (read by the harness at spawn time) — the resolver does not parse them here.
+  subagent_type="$(basename "$candidate" .md)"
+  emit_json "$subagent_type" "$candidate" "path" "$INPUT" "" '[]'
   exit 0
 fi
 
-# Name form — consult the registry.
-entry="$(jq -c --arg k "$INPUT" '.agents[$k] // empty' "$REGISTRY_FILE")"
-if [[ -n "$entry" ]]; then
-  # Form (c): short name resolved.
-  rel_path="$(jq -r '.path' <<<"$entry")"
-  subagent_type="$(jq -r '.subagent_type' <<<"$entry")"
-  tools="$(jq -c '.tools' <<<"$entry")"
-  model_default="$(jq -r '.model_default // ""' <<<"$entry")"
-
-  # Resolve rel_path under $PLUGIN_ROOT's parent (so "plugin-kiln/agents/x.md" lands under
-  # the repo root in source layout, or under the plugins-cache root in consumer layout).
-  parent_root="$(cd "${PLUGIN_ROOT}/.." && pwd 2>/dev/null || echo "")"
-  if [[ -z "$parent_root" ]]; then
-    die "cannot resolve parent root for PLUGIN_ROOT=$PLUGIN_ROOT"
-  fi
-  sys_path="${parent_root}/${rel_path}"
-  if [[ ! -f "$sys_path" ]]; then
-    # Fallback: CWD-relative (some callers run from repo root).
-    if [[ -f "$rel_path" ]]; then
-      sys_path="$(cd "$(dirname "$rel_path")" && pwd)/$(basename "$rel_path")"
-    else
-      die "registry entry '$INPUT' points at '$rel_path' but file not found at $sys_path or CWD-relative"
-    fi
-  fi
-
-  emit_json "$subagent_type" "$sys_path" "short-name" "$rel_path" "$model_default" "$tools"
-  exit 0
-fi
-
-# Form (d): unknown name — passthrough.
-# I-R1: callers relying on the pre-resolver spawn pattern MUST NOT see a behavior change.
-# Emit a JSON shape that preserves the input as subagent_type so the caller can keep
-# passing it to Agent() as before.
-emit_json "$INPUT" "" "unknown" "$INPUT" "" '[]'
+# Name form (c/d). Plugin-prefixed names passthrough as known-good shapes.
+# Bare names also passthrough as legacy back-compat (source: unknown).
+case "$INPUT" in
+  *:*)
+    # Plugin-prefixed (e.g. kiln:debugger). The harness registered this at session start.
+    emit_json "$INPUT" "" "passthrough" "$INPUT" "" '[]'
+    ;;
+  *)
+    # Bare name — legacy back-compat. Caller may need to pass plugin-prefixed form
+    # if the harness rejects the bare name.
+    emit_json "$INPUT" "" "unknown" "$INPUT" "" '[]'
+    ;;
+esac
 exit 0

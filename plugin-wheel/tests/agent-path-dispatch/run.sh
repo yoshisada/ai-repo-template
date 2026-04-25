@@ -32,20 +32,18 @@ assert_fail() { fail=$((fail + 1)); echo "FAIL: $1" >&2; }
 
 cd "$REPO_ROOT"
 
-# --- T042: agent_path: debugger → full resolver spec wrapped under agent_path ---
-step_json='{"type":"agent","name":"t042-step","agent_path":"debugger"}'
+# --- T042: agent_path: kiln:debugger → passthrough spec wrapped under agent_path ---
+# Post-2026-04-25 cleanup: plugin-prefixed names are the canonical form. The
+# resolver passes them through (source=passthrough); no central registry is
+# consulted. The harness's filesystem-discovered registration handles the spawn.
+step_json='{"type":"agent","name":"t042-step","agent_path":"kiln:debugger"}'
 out=$(dispatch_agent_step_path "$step_json")
 subagent=$(jq -r '.agent_path.subagent_type' <<<"$out")
-sys_path=$(jq -r '.agent_path.system_prompt_path' <<<"$out")
 source_val=$(jq -r '.agent_path.source' <<<"$out")
-model_default=$(jq -r '.agent_path.model_default' <<<"$out")
-if [[ "$subagent" == "debugger" \
-      && "$source_val" == "short-name" \
-      && "$model_default" == "sonnet" \
-      && "$sys_path" == *"plugin-kiln/agents/debugger.md" ]]; then
-  assert_pass "T042: agent_path:debugger → debugger spec wrapped correctly"
+if [[ "$subagent" == "kiln:debugger" && "$source_val" == "passthrough" ]]; then
+  assert_pass "T042: agent_path:kiln:debugger → passthrough spec wrapped correctly"
 else
-  assert_fail "T042: subagent=$subagent source=$source_val model=$model_default sys_path=$sys_path"
+  assert_fail "T042: subagent=$subagent source=$source_val"
 fi
 
 # --- T043: agent_path absent → {"agent_path": null} (I-A1, NFR-5) ---
