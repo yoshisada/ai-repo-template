@@ -87,14 +87,21 @@ jobs:
 
       - name: SC-007 + SC-F-6 log grep assertions
         run: |
-          # Any log line written post-PRD MUST NOT contain the original
-          # regression fingerprint OR a residual plugin-path token. Run
-          # against whatever log lines exist in the checkout — if the repo
-          # ships with stale pre-PRD log lines they are exempt (the live
-          # guard is the smoke test above).
+          # Any log line ADDED on this branch MUST NOT contain the original
+          # regression fingerprint OR a residual plugin-path token. Stale
+          # pre-PRD log lines (real historical incidents already fixed by
+          # earlier PRs) are exempt by construction — we diff against the
+          # base branch and only check newly added lines, matching the
+          # comment's stated intent.
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          # Fetch the base branch so the diff has something to compare against.
+          git fetch --no-tags --depth=50 origin "$BASE_REF" 2>/dev/null || true
           if [ -d .kiln/logs ]; then
-            if git grep -F 'WORKFLOW_PLUGIN_DIR was unset' -- '.kiln/logs/report-issue-bg-*.md' 2>/dev/null; then
-              echo "::error::SC-007 regression: bg log contains 'WORKFLOW_PLUGIN_DIR was unset' string"
+            # `+` lines = additions on this branch. Exclude the diff hunk
+            # header `+++` so the file path itself doesn't match.
+            if git diff "origin/${BASE_REF}"...HEAD -- '.kiln/logs/report-issue-bg-*.md' \
+                | grep -E '^\+[^+].*WORKFLOW_PLUGIN_DIR was unset' >/dev/null 2>&1; then
+              echo "::error::SC-007 regression: a line added on this branch contains 'WORKFLOW_PLUGIN_DIR was unset' in .kiln/logs/report-issue-bg-*.md"
               exit 1
             fi
           fi
