@@ -1,0 +1,10 @@
+# Agent Reference Walk — T100 artifact
+# Generated: 2026-04-25T00:23:24Z
+# Tool: plugin-wheel/tests/agent-reference-walker/run.sh
+#
+# SC-008 invariant: every agent reference in every workflow JSON + every
+# kiln skill MUST resolve exit 0 through plugin-wheel/scripts/agents/resolve.sh
+# (unknown-passthrough counts as exit 0 per I-R1).
+
+Checked 1 agent references.
+PASS: all 1 references resolve through the FR-A1 resolver.
