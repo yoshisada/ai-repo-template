@@ -803,3 +803,122 @@ workflow_discover_plugin_workflows() {
     printf '%s\n' "$result"
   )
 }
+
+# §1 (specs/wheel-typed-schema-locality contracts/interfaces.md): Runtime
+# output-side validator. Validates that an agent step's `output_file` content
+# has top-level keys matching the declared `output_schema:`. Distinct from
+# the load-time `workflow_validate_inputs_outputs` shape check above.
+#
+# Three exit codes per contract §1:
+#   0 — pass (or skipped because output_schema absent / empty / null).
+#       NO stdout, NO stderr.
+#   1 — schema violation (FR-H1-2 / FR-H1-6). Stderr emits the multi-line
+#       diagnostic body verbatim per FR-H1-2 shape.
+#   2 — validator runtime error (FR-H1-7 / NFR-H-7). Stderr emits a single
+#       line naming the underlying error class.
+#
+# v1 validates ONLY top-level key presence — does NOT recurse into nested
+# paths. Empty `output_schema: {}` and absent / null fields are early-return
+# 0 (FR-H1-8 + §7 invariants).
+#
+# Params:
+#   $1  step_json         — agent step JSON (single-line). Must contain `.id`.
+#   $2  output_file_path  — path to agent's output_file. Must exist + readable.
+#
+# FRs covered: FR-H1-1, FR-H1-2, FR-H1-6, FR-H1-7, FR-H1-8.
+workflow_validate_output_against_schema() {
+  local step_json="$1"
+  local output_file_path="$2"
+
+  local step_id
+  step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"' 2>/dev/null)
+
+  # §7 invariants — early-return 0 silently when output_schema is absent /
+  # null / empty. NFR-H-3 byte-identical back-compat.
+  local schema
+  schema=$(printf '%s\n' "$step_json" | jq -c '.output_schema // null' 2>/dev/null)
+  if [[ "$schema" == "null" || "$schema" == "{}" || -z "$schema" ]]; then
+    return 0
+  fi
+
+  # output_file existence / readability checks emit exit-2 (validator runtime
+  # error, not a violation — the agent didn't write something we can't parse;
+  # we can't even reach the file).
+  if [[ ! -e "$output_file_path" ]]; then
+    printf "Output schema validator error in step '%s': output_file not found: %s\n" \
+      "$step_id" "$output_file_path" >&2
+    return 2
+  fi
+  if [[ ! -r "$output_file_path" ]]; then
+    printf "Output schema validator error in step '%s': output_file is not readable: %s\n" \
+      "$step_id" "$output_file_path" >&2
+    return 2
+  fi
+
+  # Read actual top-level keys from output_file. jq parse error → exit 2.
+  local actual_keys_raw jq_err
+  jq_err=$(jq -r 'keys_unsorted[]' "$output_file_path" 2>&1 1>/tmp/.wheel_validate_out_$$)
+  local jq_rc=$?
+  if [[ $jq_rc -ne 0 ]]; then
+    rm -f /tmp/.wheel_validate_out_$$
+    # Trim multi-line jq errors to a single line (first line is most informative).
+    local jq_err_head="${jq_err%%$'\n'*}"
+    printf "Output schema validator error in step '%s': output_file is not valid JSON: %s\n" \
+      "$step_id" "$jq_err_head" >&2
+    return 2
+  fi
+  actual_keys_raw=$(cat /tmp/.wheel_validate_out_$$)
+  rm -f /tmp/.wheel_validate_out_$$
+
+  # Read expected top-level keys from output_schema (single-line JSON).
+  local expected_keys_raw
+  expected_keys_raw=$(printf '%s' "$schema" | jq -r 'keys_unsorted[]' 2>&1) || {
+    local schema_err_head="${expected_keys_raw%%$'\n'*}"
+    printf "Output schema validator error in step '%s': output_schema directive malformed at field '?': %s\n" \
+      "$step_id" "$schema_err_head" >&2
+    return 2
+  }
+
+  # LC_ALL=C lexicographic sort for deterministic snapshot diffs (FR-H1-2).
+  local expected_sorted actual_sorted
+  expected_sorted=$(LC_ALL=C printf '%s\n' "$expected_keys_raw" | LC_ALL=C sort)
+  actual_sorted=$(LC_ALL=C printf '%s\n' "$actual_keys_raw" | LC_ALL=C sort)
+
+  # Compute Missing = expected - actual; Unexpected = actual - expected.
+  # Use comm against sorted streams; comm requires a sorted input pair.
+  local missing unexpected
+  missing=$(LC_ALL=C comm -23 <(printf '%s\n' "$expected_sorted") <(printf '%s\n' "$actual_sorted"))
+  unexpected=$(LC_ALL=C comm -13 <(printf '%s\n' "$expected_sorted") <(printf '%s\n' "$actual_sorted"))
+  # Strip stray blank lines (sort/comm round-trip can introduce one for empty input).
+  missing=$(printf '%s' "$missing" | awk 'NF')
+  unexpected=$(printf '%s' "$unexpected" | awk 'NF')
+
+  if [[ -z "$missing" && -z "$unexpected" ]]; then
+    # All expected keys present, no extras — pass silently.
+    return 0
+  fi
+
+  # Build comma-separated, sorted lines for the diagnostic.
+  local expected_csv actual_csv missing_csv unexpected_csv
+  expected_csv=$(printf '%s' "$expected_sorted" | awk 'NF' | paste -sd, -)
+  actual_csv=$(printf '%s' "$actual_sorted" | awk 'NF' | paste -sd, -)
+  missing_csv=$(printf '%s' "$missing" | paste -sd, -)
+  unexpected_csv=$(printf '%s' "$unexpected" | paste -sd, -)
+
+  # Emit FR-H1-2 diagnostic to stderr. Missing / Unexpected lines are
+  # OMITTED entirely (not "Missing: ") when their set is empty.
+  {
+    printf "Output schema violation in step '%s'.\n" "$step_id"
+    printf "  Expected keys (from output_schema): %s\n" "$expected_csv"
+    printf "  Actual keys in %s: %s\n" "$output_file_path" "$actual_csv"
+    if [[ -n "$missing_csv" ]]; then
+      printf "  Missing: %s\n" "$missing_csv"
+    fi
+    if [[ -n "$unexpected_csv" ]]; then
+      printf "  Unexpected: %s\n" "$unexpected_csv"
+    fi
+    printf "Re-write the file with the expected keys and try again.\n"
+  } >&2
+
+  return 1
+}

@@ -15,10 +15,10 @@ Implementer MUST invoke `/kiln:kiln-test plugin-wheel <fixture>` for every autho
 
 ## Phase 1 — Foundation: state-file extensions + validator scaffold
 
-- [ ] **T001** [P] Add `state_set_resolved_inputs <state_file> <step_index> <resolved_map_json>` to `plugin-wheel/lib/state.sh` per `contracts/interfaces.md` §4.1. Mirror existing `state_set_step_status` pattern (jq + temp file + atomic mv). FR reference: FR-H2-1 (caching plumbing).
-- [ ] **T002** [P] Add `state_set_contract_emitted <state_file> <step_index> <bool>` to `plugin-wheel/lib/state.sh` per §4.2. Validates `$3` ∈ {true,false} or exits 1. FR: FR-H2-5.
-- [ ] **T003** [P] Add `state_get_contract_emitted <state_file> <step_index>` to `plugin-wheel/lib/state.sh` per §4.3. Returns `false` for missing field via `// false`. FR: FR-H2-5.
-- [ ] **T004** Add `workflow_validate_output_against_schema <step_json> <output_file_path>` to `plugin-wheel/lib/workflow.sh` per §1. v1 validates top-level key presence only. Three exit codes (0/1/2) per contract. FRs: FR-H1-1, FR-H1-2, FR-H1-6, FR-H1-7, FR-H1-8.
+- [X] **T001** [P] Add `state_set_resolved_inputs <state_file> <step_index> <resolved_map_json>` to `plugin-wheel/lib/state.sh` per `contracts/interfaces.md` §4.1. Mirror existing `state_set_step_status` pattern (jq + temp file + atomic mv). FR reference: FR-H2-1 (caching plumbing).
+- [X] **T002** [P] Add `state_set_contract_emitted <state_file> <step_index> <bool>` to `plugin-wheel/lib/state.sh` per §4.2. Validates `$3` ∈ {true,false} or exits 1. FR: FR-H2-5.
+- [X] **T003** [P] Add `state_get_contract_emitted <state_file> <step_index>` to `plugin-wheel/lib/state.sh` per §4.3. Returns `false` for missing field via `// false`. FR: FR-H2-5.
+- [X] **T004** Add `workflow_validate_output_against_schema <step_json> <output_file_path>` to `plugin-wheel/lib/workflow.sh` per §1. v1 validates top-level key presence only. Three exit codes (0/1/2) per contract. FRs: FR-H1-1, FR-H1-2, FR-H1-6, FR-H1-7, FR-H1-8.
 
 ## Phase 2 — Theme H1: validate output on write
 
