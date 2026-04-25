@@ -4,11 +4,63 @@
 # Also intercepts activate.sh calls to create per-agent state files
 set -euo pipefail
 
-# 1. Read hook input from stdin and sanitize control characters for jq
+# 1. Read hook input from stdin.
+#
+# FR-C1 (specs/wheel-as-runtime): the previous implementation flattened every
+# newline in RAW_INPUT before jq parsing. That destroyed newlines in
+# tool_input.command — meaning multi-line Bash tool calls that invoked
+# activate.sh anywhere but the first line silently never activated. The fix:
+#   (a) extract .tool_input.command from the RAW input via jq first (preserves
+#       newlines);
+#   (b) fall back to python3's JSON parser with strict=False on jq failure —
+#       Claude Code's harness can emit literal U+0000–U+001F bytes inside
+#       tool_input.command values, which jq strictly rejects (exit 4) but
+#       python's json.loads(..., strict=False) accepts.
+#   (c) defensive sanitization of OTHER fields (logging metadata) is allowed
+#       for downstream jq calls, but MUST NOT touch the command string.
+#
+# This block:
+#   - RAW_INPUT is the untouched stdin payload; use this for command extraction.
+#   - HOOK_INPUT_SAFE is a control-char-flattened copy used ONLY for non-command
+#     jq reads (session_id, tool_name, tool_output, etc.) where multi-line
+#     fidelity is not required and jq robustness is the priority.
 RAW_INPUT=$(cat)
-# Replace literal control chars (newlines, tabs, etc. inside JSON string values)
-# that Claude Code may include in tool_output — jq rejects unescaped U+0000-U+001F
-HOOK_INPUT=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
+HOOK_INPUT_SAFE=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
+# Back-compat alias: some older references inside this script may still read
+# $HOOK_INPUT. Keep it pointing at the SAFE copy so those reads continue to
+# work. Command extraction below explicitly uses RAW_INPUT.
+HOOK_INPUT="$HOOK_INPUT_SAFE"
+
+# FR-C1 helper: extract tool_input.command preserving newlines.
+# 1) Try jq on raw input.
+# 2) On jq parse failure, try python3 json.loads(strict=False).
+# 3) If both fail, emit an identifiable stderr diagnostic (NFR-2: silent drop
+#    is forbidden) and return the empty string.
+_extract_command() {
+  local out
+  if out=$(printf '%s' "$RAW_INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null); then
+    printf '%s' "$out"
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    if out=$(printf '%s' "$RAW_INPUT" | python3 -c '
+import json, sys
+try:
+    d = json.loads(sys.stdin.read(), strict=False)
+except Exception as e:
+    sys.stderr.write("wheel post-tool-use: python3 JSON fallback failed: " + str(e) + "\n")
+    sys.exit(2)
+ti = d.get("tool_input") or {}
+sys.stdout.write(ti.get("command") or "")
+' 2>/dev/null); then
+      printf '%s' "$out"
+      return 0
+    fi
+  fi
+  # Both paths failed — loud, identifiable diagnostic (NFR-2 tripwire string).
+  echo "wheel post-tool-use: FR-C1 command extraction failed (jq + python3 both rejected hook input)" >&2
+  printf ''
+}
 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
@@ -21,8 +73,10 @@ wheel_log_init "post-tool-use" "$_SID"
 _TOOL=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 wheel_log "enter" "tool=${_TOOL}"
 
-# 2. Extract command for interception checks
-COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+# 2. Extract command for interception checks.
+# Use the FR-C1 helper so newlines are preserved (multi-line Bash tool calls
+# with activate.sh in any position MUST activate — FR-C2 invariant).
+COMMAND=$(_extract_command)
 
 # 2a. Check for deactivate.sh FIRST — "deactivate.sh" contains "activate.sh" as a substring,
 # so this must be checked before the activate.sh branch to avoid false matches.
