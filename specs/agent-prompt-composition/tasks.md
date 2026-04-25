@@ -23,9 +23,9 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ## Phase 1 — Setup (shared, both tracks observe)
 
-- [ ] **T001** [P] Read `.specify/memory/constitution.md`, `specs/agent-prompt-composition/spec.md`, `specs/agent-prompt-composition/plan.md`, `specs/agent-prompt-composition/contracts/interfaces.md` from each implementer track before starting any FR task. [both]
-- [ ] **T002** [P] Create implementer friction-note stubs at `specs/agent-prompt-composition/agent-notes/{impl-include-preprocessor,impl-runtime-composer}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009). [each track owns its own stub]
-- [ ] **T003** [P] Confirm `bash 5.x`, `jq`, `awk`, `sed` available (smoke: `bash --version`, `jq --version`, `awk --version`). No install task — these are existing dependencies. [both]
+- [X] **T001** [P] Read `.specify/memory/constitution.md`, `specs/agent-prompt-composition/spec.md`, `specs/agent-prompt-composition/plan.md`, `specs/agent-prompt-composition/contracts/interfaces.md` from each implementer track before starting any FR task. [both]
+- [X] **T002** [P] Create implementer friction-note stubs at `specs/agent-prompt-composition/agent-notes/{impl-include-preprocessor,impl-runtime-composer}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009). [each track owns its own stub]
+- [X] **T003** [P] Confirm `bash 5.x`, `jq`, `awk`, `sed` available (smoke: `bash --version`, `jq --version`, `awk --version`). No install task — these are existing dependencies. [both]
 
 ---
 
@@ -33,11 +33,11 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 2.B — Resolver + shared module (User Story 1, P1)
 
-- [ ] **T-B-01** [impl-include-preprocessor] Create `plugin-kiln/scripts/agent-includes/` directory.
-- [ ] **T-B-02** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/resolve.sh` per contracts §1 — directive grammar regex, fenced-code-block state machine, single-pass include expansion, error exits 1 with stderr diagnostic. ~80 lines target.
-- [ ] **T-B-03** [impl-include-preprocessor] Create `plugin-kiln/agents/_shared/` directory.
-- [ ] **T-B-04** [impl-include-preprocessor] Author `plugin-kiln/agents/_shared/coordination-protocol.md` (FR-B-5) — the SendMessage-relay-results boilerplate currently duplicated across team-mode agents. Pure markdown body, no frontmatter. Body content sourced from one of the existing agents (e.g., `qa-engineer.md` coordination footer) and de-duplicated.
-- [ ] **T-B-05** [impl-include-preprocessor] Create `plugin-kiln/tests/agent-includes-resolve/` directory + `run.sh` fixture covering: (a) zero-directive file → byte-identical output (I-B1), (b) one directive on its own line → expansion correct, (c) directive-shaped text inside fenced code block → not expanded (R-2), (d) missing target → exit 1, (e) recursive include → exit 1, (f) re-invocation → byte-identical (I-B2, SC-7). All assertions exit 0/1; fixture exits 0 only if all PASS.
+- [X] **T-B-01** [impl-include-preprocessor] Create `plugin-kiln/scripts/agent-includes/` directory.
+- [X] **T-B-02** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/resolve.sh` per contracts §1 — directive grammar regex, fenced-code-block state machine, single-pass include expansion, error exits 1 with stderr diagnostic. ~80 lines target.
+- [X] **T-B-03** [impl-include-preprocessor] Create `plugin-kiln/agents/_shared/` directory.
+- [X] **T-B-04** [impl-include-preprocessor] Author `plugin-kiln/agents/_shared/coordination-protocol.md` (FR-B-5) — the SendMessage-relay-results boilerplate currently duplicated across team-mode agents. Pure markdown body, no frontmatter. Body content sourced from one of the existing agents (e.g., `qa-engineer.md` coordination footer) and de-duplicated.
+- [X] **T-B-05** [impl-include-preprocessor] Create `plugin-kiln/tests/agent-includes-resolve/` directory + `run.sh` fixture covering: (a) zero-directive file → byte-identical output (I-B1), (b) one directive on its own line → expansion correct, (c) directive-shaped text inside fenced code block → not expanded (R-2), (d) missing target → exit 1, (e) recursive include → exit 1, (f) re-invocation → byte-identical (I-B2, SC-7). All assertions exit 0/1; fixture exits 0 only if all PASS.
 
 ### Phase 2.B-cont — CI gate + build script
 
@@ -63,20 +63,20 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 4.A — Closed vocabularies + stanza files (FR-A-4, FR-A-5, FR-A-8)
 
-- [ ] **T-A-01** [impl-runtime-composer] Create `plugin-kiln/lib/task-shapes/` directory.
-- [ ] **T-A-02** [impl-runtime-composer] Author `plugin-kiln/lib/task-shapes/_index.json` per contracts §7 — version=1, shapes=8.
-- [ ] **T-A-03** [impl-runtime-composer] Author 8 stanza files (`skill.md`, `frontend.md`, `backend.md`, `cli.md`, `infra.md`, `docs.md`, `data.md`, `agent.md`) per contracts §5 — pure markdown body, 5–15 lines, no frontmatter.
-- [ ] **T-A-04** [impl-runtime-composer] Create `plugin-wheel/scripts/agents/verbs/` directory.
-- [ ] **T-A-05** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/verbs/_index.json` per contracts §6 — version=1, verbs=6.
+- [X] **T-A-01** [impl-runtime-composer] Create `plugin-kiln/lib/task-shapes/` directory.
+- [X] **T-A-02** [impl-runtime-composer] Author `plugin-kiln/lib/task-shapes/_index.json` per contracts §7 — version=1, shapes=8.
+- [X] **T-A-03** [impl-runtime-composer] Author 8 stanza files (`skill.md`, `frontend.md`, `backend.md`, `cli.md`, `infra.md`, `docs.md`, `data.md`, `agent.md`) per contracts §5 — pure markdown body, 5–15 lines, no frontmatter.
+- [X] **T-A-04** [impl-runtime-composer] Create `plugin-wheel/scripts/agents/verbs/` directory.
+- [X] **T-A-05** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/verbs/_index.json` per contracts §6 — version=1, verbs=6.
 
 ### Phase 4.A-cont — Composer + validator (FR-A-1, FR-A-2, FR-A-7)
 
-- [ ] **T-A-06** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/compose-context.sh` per contracts §2 — argument parsing, env validation (WORKFLOW_PLUGIN_DIR), task_spec JSON validation, manifest read, override application, prompt_prefix assembly per the canonical section ordering, deterministic sorting (`LC_ALL=C`) of variables + verbs tables, JSON emission. ~150 lines target. ALL exit codes 0–7 implemented per contract.
-- [ ] **T-A-07** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/validate-bindings.sh` per contracts §3 — read manifest, walk `agent_bindings:`, refuse on unknown verb. ~60 lines target.
+- [X] **T-A-06** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/compose-context.sh` per contracts §2 — argument parsing, env validation (WORKFLOW_PLUGIN_DIR), task_spec JSON validation, manifest read, override application, prompt_prefix assembly per the canonical section ordering, deterministic sorting (`LC_ALL=C`) of variables + verbs tables, JSON emission. ~150 lines target. ALL exit codes 0–7 implemented per contract.
+- [X] **T-A-07** [impl-runtime-composer] Author `plugin-wheel/scripts/agents/validate-bindings.sh` per contracts §3 — read manifest, walk `agent_bindings:`, refuse on unknown verb. ~60 lines target.
 
 ### Phase 4.A-cont — Plugin manifest extension (FR-A-7)
 
-- [ ] **T-A-08** [impl-runtime-composer] Modify `plugin-kiln/.claude-plugin/plugin.json` — add `agent_bindings:` section per contracts §3 example (research-runner / fixture-synthesizer / output-quality-judge with v1 placeholder verb command-templates). Run `validate-bindings.sh` on the updated manifest — MUST exit 0.
+- [X] **T-A-08** [impl-runtime-composer] Modify `plugin-kiln/.claude-plugin/plugin.json` — add `agent_bindings:` section per contracts §3 example (research-runner / fixture-synthesizer / output-quality-judge with v1 placeholder verb command-templates). Run `validate-bindings.sh` on the updated manifest — MUST exit 0.
 
 ---
 
@@ -84,25 +84,25 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 5.A — 3 research-first agent.md files (FR-A-10, FR-A-11, SC-6)
 
-- [ ] **T-A-09** [impl-runtime-composer] Audit existing `plugin-kiln/agents/research-runner.md` — confirm frontmatter (`name`, `description`, `tools: Read, Bash, SendMessage, TaskUpdate, TaskList`, NO `model:`) and body (no verb tables, no tool references, no model selection, no step-by-step task prose). If non-conformant, refactor in-place. Document any divergence in `agent-notes/impl-runtime-composer.md`.
-- [ ] **T-A-10** [impl-runtime-composer] Author `plugin-kiln/agents/fixture-synthesizer.md` — frontmatter (`name: fixture-synthesizer`, `description: ...`, `tools: Read, Write, SendMessage, TaskUpdate`, NO `model:`). Body: pure role identity per FR-A-11.
-- [ ] **T-A-11** [impl-runtime-composer] Author `plugin-kiln/agents/output-quality-judge.md` — frontmatter (`name: output-quality-judge`, `description: ...`, `tools: Read, SendMessage, TaskUpdate`, NO `model:`). Body: pure role identity per FR-A-11.
+- [X] **T-A-09** [impl-runtime-composer] Audit existing `plugin-kiln/agents/research-runner.md` — confirm frontmatter (`name`, `description`, `tools: Read, Bash, SendMessage, TaskUpdate, TaskList`, NO `model:`) and body (no verb tables, no tool references, no model selection, no step-by-step task prose). If non-conformant, refactor in-place. Document any divergence in `agent-notes/impl-runtime-composer.md`.
+- [X] **T-A-10** [impl-runtime-composer] Author `plugin-kiln/agents/fixture-synthesizer.md` — frontmatter (`name: fixture-synthesizer`, `description: ...`, `tools: Read, Write, SendMessage, TaskUpdate`, NO `model:`). Body: pure role identity per FR-A-11.
+- [X] **T-A-11** [impl-runtime-composer] Author `plugin-kiln/agents/output-quality-judge.md` — frontmatter (`name: output-quality-judge`, `description: ...`, `tools: Read, SendMessage, TaskUpdate`, NO `model:`). Body: pure role identity per FR-A-11.
 
 ### Phase 5.A-cont — Test fixtures (SC-3, SC-4, SC-5, SC-6)
 
-- [ ] **T-A-12** [impl-runtime-composer] Create `plugin-wheel/tests/compose-context-shape/run.sh` (SC-3) — invokes composer with sample task_spec, asserts JSON shape per contracts §2, asserts re-invocation byte-identical (NFR-6).
-- [ ] **T-A-13** [impl-runtime-composer] Create `plugin-wheel/tests/validate-bindings-unknown-verb/run.sh` (SC-4) — fixture manifest with unknown verb, asserts validator exits 4.
-- [ ] **T-A-14** [impl-runtime-composer] Create `plugin-wheel/tests/compose-context-unknown-override/run.sh` (SC-5) — fixture PRD with override referencing unknown agent, asserts composer exits 5.
-- [ ] **T-A-15** [impl-runtime-composer] Create `plugin-kiln/tests/research-first-agents-structural/run.sh` (SC-6) — for each of 3 agents: assert frontmatter has `tools:`, no `model:`; body has no verb tables (grep for `| Verb |`), no enumerated tool references (grep for `Bash(`, etc.), no `## Steps` / `1.` numbered task lists.
+- [X] **T-A-12** [impl-runtime-composer] Create `plugin-wheel/tests/compose-context-shape/run.sh` (SC-3) — invokes composer with sample task_spec, asserts JSON shape per contracts §2, asserts re-invocation byte-identical (NFR-6).
+- [X] **T-A-13** [impl-runtime-composer] Create `plugin-wheel/tests/validate-bindings-unknown-verb/run.sh` (SC-4) — fixture manifest with unknown verb, asserts validator exits 4.
+- [X] **T-A-14** [impl-runtime-composer] Create `plugin-wheel/tests/compose-context-unknown-override/run.sh` (SC-5) — fixture PRD with override referencing unknown agent, asserts composer exits 5.
+- [X] **T-A-15** [impl-runtime-composer] Create `plugin-kiln/tests/research-first-agents-structural/run.sh` (SC-6) — for each of 3 agents: assert frontmatter has `tools:`, no `model:`; body has no verb tables (grep for `| Verb |`), no enumerated tool references (grep for `Bash(`, etc.), no `## Steps` / `1.` numbered task lists.
 
 ---
 
 ## Phase 6 — CLAUDE.md documentation (impl-runtime-composer, FR-A-12, FR-B-8, SC-8)
 
-- [ ] **T-A-16** [impl-runtime-composer] Add a section to CLAUDE.md "Active Technologies" (or a sibling "Architectural Rules" section) documenting the 6 rules from FR-A-12: (a) NEVER use `general-purpose` for specialized roles in production; (b) one role per registered subagent_type, multiple spawns per run with different injected variables; (c) injection is prompt-layer NOT system-prompt-layer; (d) top-level orchestration is correct, not nested; (e) agent registration is session-bound; (f) plain-text output is invisible to team-lead — always relay via `SendMessage`. Use canonical phrasings reviewers can grep for.
-- [ ] **T-A-17** [impl-runtime-composer] Append to the same CLAUDE.md section: Theme B directive syntax + resolver location + module convention (FR-B-8). One paragraph.
-- [ ] **T-A-18** [impl-runtime-composer] Append to the same CLAUDE.md section: composer integration recipe (per plan.md §"Integration recipe"). Code block + one-paragraph guidance.
-- [ ] **T-A-19** [impl-runtime-composer] Create `plugin-kiln/tests/claude-md-architectural-rules/run.sh` (SC-8) — greps CLAUDE.md for canonical phrases (`never use \`general-purpose\``, `injection is prompt-layer`, `agent registration is session-bound`, `relay via SendMessage`, `<!-- @include`, `compose-context.sh`); fails if any is missing.
+- [X] **T-A-16** [impl-runtime-composer] Add a section to CLAUDE.md "Active Technologies" (or a sibling "Architectural Rules" section) documenting the 6 rules from FR-A-12: (a) NEVER use `general-purpose` for specialized roles in production; (b) one role per registered subagent_type, multiple spawns per run with different injected variables; (c) injection is prompt-layer NOT system-prompt-layer; (d) top-level orchestration is correct, not nested; (e) agent registration is session-bound; (f) plain-text output is invisible to team-lead — always relay via `SendMessage`. Use canonical phrasings reviewers can grep for.
+- [X] **T-A-17** [impl-runtime-composer] Append to the same CLAUDE.md section: Theme B directive syntax + resolver location + module convention (FR-B-8). One paragraph.
+- [X] **T-A-18** [impl-runtime-composer] Append to the same CLAUDE.md section: composer integration recipe (per plan.md §"Integration recipe"). Code block + one-paragraph guidance.
+- [X] **T-A-19** [impl-runtime-composer] Create `plugin-kiln/tests/claude-md-architectural-rules/run.sh` (SC-8) — greps CLAUDE.md for canonical phrases (`never use \`general-purpose\``, `injection is prompt-layer`, `agent registration is session-bound`, `relay via SendMessage`, `<!-- @include`, `compose-context.sh`); fails if any is missing.
 
 ---
 

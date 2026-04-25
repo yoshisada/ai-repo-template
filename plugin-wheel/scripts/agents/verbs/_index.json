@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "verbs": [
+    "verify_quality",
+    "run_baseline",
+    "run_candidate",
+    "measure",
+    "synthesize_fixtures",
+    "judge_outputs"
+  ]
+}

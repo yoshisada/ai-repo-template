@@ -246,6 +246,55 @@ Trimmed to the 5 most recent feature branches per `plugin-kiln/rubrics/claude-md
 - Shared project-context reader under `plugin-kiln/scripts/context/` (`read-project-context.sh` + `read-prds.sh` + `read-plugins.sh`) — Bash 5.x + `jq` + POSIX awk; emits deterministic JSON (`LC_ALL=C` + path/name sort) consumed by `/kiln:kiln-roadmap`, `/kiln:kiln-claude-audit`, and `/kiln:kiln-distill`. Multi-theme distill helpers under `plugin-kiln/scripts/distill/` (`select-themes.sh`, `disambiguate-slug.sh`, `emit-run-plan.sh`). No new runtime dependency. (build/coach-driven-capture-ergonomics-20260424)
 - Bash 5.x + `jq` + `awk` + `shasum -a 256` (macOS) / `sha256sum` (Linux) — distill gate helpers (`plugin-kiln/scripts/distill/detect-un-promoted.sh`, `invoke-promote-handoff.sh`) classify raw `.kiln/issues/` and `.kiln/feedback/` candidates via frontmatter reciprocal-link checks; `plugin-kiln/scripts/roadmap/promote-source.sh` writes a new roadmap item with `promoted_from:` back-reference and flips the source to `status: promoted` with SHA-256-validated body byte-preservation (NFR-003). `require-feature-branch-build-prefix` fixture invokes the hook in a disposable `mktemp -d` git repo (no new runtime deps). (build/workflow-governance-20260424)
 - Bash 5.x + `jq` + `python3` (stdlib `json` for hook fallback) — agent resolver (`plugin-wheel/scripts/agents/resolve.sh` + `registry.json`), per-step model resolver (`plugin-wheel/scripts/dispatch/resolve-model.sh` + `model-defaults.json`), agent-step dispatch helpers (`dispatch-agent-step.sh::dispatch_agent_step_path` + `dispatch_agent_step_model`), Option-B `WORKFLOW_PLUGIN_DIR` templating in `plugin-wheel/lib/context.sh::context_build`, hook newline-preserving extraction (`plugin-wheel/hooks/post-tool-use.sh::_extract_command`), batched-step wrapper convention (`plugin-shelf/scripts/step-dispatch-background-sync.sh`). No new runtime dependency. (build/wheel-as-runtime-20260424)
+- Bash 5.x + `jq` + `python3` (stdlib `re`/`json` for YAML frontmatter override parsing) — runtime context-injection composer (`plugin-wheel/scripts/agents/compose-context.sh`) sibling to `resolve.sh` per OQ-4, emits `{subagent_type, prompt_prefix, model_default}` JSON; manifest verb validator (`plugin-wheel/scripts/agents/validate-bindings.sh`); closed verb namespace v1 (`plugin-wheel/scripts/agents/verbs/_index.json`, 6 verbs); closed task-shape vocabulary v1 (`plugin-kiln/lib/task-shapes/_index.json`, 8 shapes) with per-shape stanzas under the same dir; compile-time include resolver for agent boilerplate de-dup (`plugin-kiln/scripts/agent-includes/resolve.sh`, directive `<!-- @include _shared/<name>.md -->` on its own line, hybrid compile-and-commit, fenced-code-block exclusion). No new runtime dependency. (build/agent-prompt-composition-20260425)
+
+## Architectural Rules — Agent Spawning + Prompt Composition
+
+These six rules are load-bearing for every team-mode agent spawn in this codebase. Reviewers MUST flag any production code path that violates them.
+
+1. **NEVER use `general-purpose` for specialized roles in production.** `subagent_type` must always be plugin-prefixed (`<plugin>:<role>`, e.g. `kiln:research-runner`) so the harness routes to the correct registered agent definition with its `tools:` allowlist. `general-purpose` is for one-off ad-hoc tasks only — using it for a specialized role discards the role's tool scoping and identity.
+2. **One role per registered subagent_type, multiple spawns per run with different injected variables.** Do NOT create variant agent.md files (`research-runner-baseline.md`, `research-runner-candidate.md`); spawn the SAME `kiln:research-runner` multiple times with different injected `Variables` blocks via the runtime composer.
+3. **Injection is prompt-layer, NOT system-prompt-layer.** Per-spawn variables (verb bindings, role-instance variables) MUST live in the `prompt` parameter of the `Agent` call, never in the agent.md file. The agent.md is a stable, cache-friendly system prompt; per-call context goes in the prompt prefix the composer emits.
+4. **Top-level orchestration is correct, not nested.** Skills spawn agents at the top level via the team-lead. Agents do NOT spawn other agents (no `Agent` tool in their allowlists). Nested spawns blow context budgets and break the team-mode coordination model.
+5. **Agent registration is session-bound.** A new agent.md file shipped in this PR will NOT be spawnable in the session that ships it — the harness scans the filesystem at session start. Live-spawn validation of newly-shipped agents is queued for the next session; in-session validation is structural-only (file shape, allowlist conformance).
+6. **Plain-text output is invisible to team-lead — always relay via SendMessage.** A teammate's plain prose is never seen by the lead. The ONLY visible output channel is `SendMessage({to: "team-lead", message: ...})`. Every team-mode agent's coordination protocol enforces this.
+
+### Theme B directive syntax (compile-time agent-prompt includes — FR-B-8)
+
+Authors deduplicate shared boilerplate (e.g., the SendMessage relay coordination prose) across agent.md files via a directive on its own line:
+
+```markdown
+<!-- @include _shared/coordination-protocol.md -->
+```
+
+The directive is HTML-comment-shaped (markdown-rendering-safe). Path is relative to the agent file's directory; shared modules live under `plugin-kiln/agents/_shared/`. Resolution is hybrid: source files under `plugin-kiln/agents/_src/` (when a role uses includes) compile to committed `plugin-kiln/agents/<role>.md` outputs via `plugin-kiln/scripts/agent-includes/build-all.sh`; CI gate `check-compiled.sh` re-runs the build and asserts compiled == build(sources). Recursion is forbidden in v1; directives inside fenced code blocks are NEVER expanded.
+
+### Composer integration recipe (R-3 mitigation)
+
+A skill that spawns a team-mode agent SHOULD use the runtime composer like this:
+
+```bash
+# 1. Resolve agent identity (existing resolve.sh).
+SPEC_JSON=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/resolve.sh" kiln:research-runner)
+SUBAGENT_TYPE=$(jq -r .subagent_type <<<"$SPEC_JSON")
+
+# 2. Compose runtime context block.
+PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
+  --agent-name research-runner \
+  --plugin-id kiln \
+  --task-spec /tmp/task-spec.json \
+  --prd-path docs/features/<prd>.md | jq -r .prompt_prefix)
+
+# 3. Spawn — the calling skill prepends PREFIX to the actual task prompt.
+# Agent({
+#   subagent_type: SUBAGENT_TYPE,            # "kiln:research-runner" — plugin-prefixed (Rule 1)
+#   prompt: PREFIX + "\n---\n" + actual_task,
+#   team_name: "<team>",
+#   name: "baseline-runner"                  # role-instance label distinguishes parallel spawns (Rule 2)
+# })
+```
+
+The composer NEVER calls `Agent` itself — the calling skill is responsible for the spawn. The composer is a pure function: inputs → JSON. Determinism is guaranteed (NFR-6): identical inputs produce byte-identical output, so cache-friendly re-invocation in test fixtures works.
 
 ## Recent Changes
 - 2026-04-25: **Wheel agent registry deleted** (sibling cleanup to FR-A1 reversal — see `.kiln/feedback/2026-04-25-fr-a1-wheel-agent-centralization-shipped-2026-04-24.md` and `.kiln/vision.md` "Plugins ship independently — wheel is plugin-agnostic infrastructure" constraint). `plugin-wheel/scripts/agents/registry.json` was a central manifest of every plugin's agents that, by design, required every plugin release to also coordinate with wheel — defeating the independent-shipping principle. With agents living in `plugin-<name>/agents/<role>.md` and registering as `<plugin>:<role>` via the harness's filesystem scan at session start, the registry was vestigial: only resolve.sh's form-c (bare-name lookup) branch consumed it, and no kiln-skill or wheel-workflow caller actually needed bare-name resolution. The simplified resolver (`plugin-wheel/scripts/agents/resolve.sh`, ~60 lines vs prior 172) handles four input forms: absolute path, repo-relative path, plugin-prefixed name (`<plugin>:<role>` → source=passthrough), bare name (legacy back-compat → source=unknown). FR-A3 (resolver primitive), FR-A4 (`agent_path:` workflow JSON field), FR-A5 (resolver-spawn alternative in `/kiln:kiln-fix`) all preserved. `/kiln:kiln-fix` SKILL.md updated to call resolver with `kiln:debugger` (plugin-prefixed) instead of bare `debugger`. Tests adapted: agent-resolver (9→10 assertions), agent-path-dispatch (T042 now uses kiln:debugger), kiln-fix-resolver-spawn (registry-tampering inversion test retired — there's no central registry to tamper with). All 17/17 resolver-suite assertions pass.
