@@ -8,6 +8,11 @@ name: wheel-tests
 # Also runs the FR-C2 multi-line activation test and the FR-C1 fuzz test
 # plus their NFR-2 tripwires (ensuring silent-green regression ship is
 # impossible by construction).
+#
+# Note: .wheel/history/ is now gitignored — its session-archive contents
+# are no longer tracked and therefore no longer subject to the SC-F-6 +
+# FR-G3-5 grep tripwires below. The tripwires remain as a backstop
+# against the (rare) case that a state archive is intentionally added.
 
 on:
   pull_request:
