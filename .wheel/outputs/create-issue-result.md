@@ -1,32 +1,20 @@
----
-step: create-issue
-status: success
-issue_file: .kiln/issues/2026-04-24-spec-directory-lacks-temporal-ordering.md
-issue_id: 2026-04-24-spec-directory-lacks-temporal-ordering
-title: "specs/ directory has no temporal ordering — hard to see what was built when; inconsistent with docs/features/ which is date-prefixed"
-type: improvement
-severity: medium
-area: kiln
-category: ergonomics
----
+# create-issue result
 
-## Step result
+issue_path: .kiln/issues/2026-04-24-shelf-write-roadmap-note-needs-batching.md
+duplicate_check: no exact duplicate found
+related_issues:
+  - .kiln/issues/2026-04-24-kiln-report-issue-workflow-cant-batch.md (sibling — kiln-report-issue workflow needs batching)
+  - .kiln/issues/2026-04-24-wheel-workflow-speed-batching-commands.md (related — intra-step command batching, orthogonal scope)
 
-Created new backlog issue: `.kiln/issues/2026-04-24-spec-directory-lacks-temporal-ordering.md`
+classification:
+  type: improvement
+  area: shelf
+  category: ergonomics
+  severity: medium
 
-**Classification**
-- type: improvement
-- severity: medium
-- area: kiln
-- category: ergonomics
-
-**Duplicate scan**
-No exact duplicate locally. Related existing note in Obsidian: `branch-and-spec-directory-naming-is-inconsistent-causes-agent-co` — addresses naming-format inconsistency; this issue addresses temporal-ordering absence. Different aspects of the same pain surface; cross-referenced in the new issue.
-
-**Relevant repo observations**
-- `specs/` — 46 entries, alphabetical only
-- `docs/features/` — all date-prefixed (YYYY-MM-DD-<slug>)
-- One legacy spec (`specs/001-kiln-polish`) has a numeric prefix from before convention settled
-
-**User description (verbatim)**
-> we need to figure out how to number specs or something. its a bit of a mess not being able to see what was built when.
+summary: |
+  shelf-write-roadmap-note dispatches one note per invocation — no list/directory mode.
+  Capture flows producing many files at once (e.g. /kiln:kiln-roadmap phase + N items,
+  multi-theme /kiln:kiln-distill, legacy migration) skip the mirror entirely, defeating
+  the FR-030 contract. Proposal: accept ROADMAP_INPUT_DIR / ROADMAP_INPUT_LIST in
+  parse-roadmap-input.sh, loop inside one wheel invocation, emit per-file result array.

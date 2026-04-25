@@ -6,3 +6,4 @@
 2026-04-24T12:54:34Z | counter_before=7 | counter_after=8 | threshold=10 | action=increment | notes=
 2026-04-24T13:01:23Z | counter_before=8 | counter_after=9 | threshold=10 | action=increment | notes=
 2026-04-24T13:40:49Z | counter_before=9 | counter_after=0 | threshold=10 | action=full-sync | notes=
+2026-04-25T03:09:08Z | counter_before=- | counter_after=- | threshold=- | action=error | notes=WORKFLOW_PLUGIN_DIR was unset; shelf-counter.sh path resolved to /scripts/shelf-counter.sh and failed
