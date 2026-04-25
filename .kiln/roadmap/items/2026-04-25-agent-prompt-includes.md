@@ -3,9 +3,11 @@ id: 2026-04-25-agent-prompt-includes
 title: "Agent prompt-include preprocessor — shared trailing modules across kiln agents"
 kind: feature
 date: 2026-04-25
-status: open
+status: shipped
 phase: 08-in-flight
-state: distilled
+state: shipped
+shipped_date: 2026-04-25
+shipped_pr: https://github.com/yoshisada/ai-repo-template/pull/173
 blast_radius: feature
 review_cost: moderate
 context_cost: 1 session

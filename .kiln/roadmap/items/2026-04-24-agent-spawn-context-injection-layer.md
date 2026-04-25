@@ -3,9 +3,11 @@ id: 2026-04-24-agent-spawn-context-injection-layer
 title: "Agent spawn context-injection layer — Runtime Context block at the prompt layer (prereq for 09-research-first)"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 08-in-flight
-state: distilled
+state: shipped
+shipped_date: 2026-04-25
+shipped_pr: https://github.com/yoshisada/ai-repo-template/pull/173
 blast_radius: cross-cutting
 review_cost: careful
 context_cost: 4 sessions
