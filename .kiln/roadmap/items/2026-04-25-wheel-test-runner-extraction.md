@@ -5,12 +5,13 @@ kind: feature
 date: 2026-04-25
 status: open
 phase: 90-queued
-state: planned
+state: distilled
 blast_radius: isolated
 review_cost: trivial
 context_cost: "1 session"
 addresses:
   - 2026-04-23-wheel-as-plugin-agnostic-infra
+prd: docs/features/2026-04-25-wheel-test-runner-extraction/PRD.md
 ---
 
 # Extract kiln-test runner substrate to wheel
