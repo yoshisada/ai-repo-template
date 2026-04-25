@@ -3,15 +3,17 @@ id: 2026-04-25-wheel-test-runner-extraction
 title: "Extract kiln-test runner substrate to wheel — wheel:wheel-test-runner"
 kind: feature
 date: 2026-04-25
-status: open
+status: shipped
 phase: 90-queued
-state: distilled
+state: shipped
 blast_radius: isolated
 review_cost: trivial
 context_cost: "1 session"
 addresses:
   - 2026-04-23-wheel-as-plugin-agnostic-infra
 prd: docs/features/2026-04-25-wheel-test-runner-extraction/PRD.md
+completion_date: 2026-04-25
+pr: "#171"
 ---
 
 # Extract kiln-test runner substrate to wheel
