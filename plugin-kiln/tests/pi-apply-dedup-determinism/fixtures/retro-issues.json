@@ -1,0 +1,8 @@
+[
+  {
+    "number": 300,
+    "url": "https://github.com/x/y/issues/300",
+    "title": "Retro — determinism fixture",
+    "body": "## PIs\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nexisting text\n**Proposed**: ## R-1\nupdated text\n**Why**: determinism check.\n"
+  }
+]

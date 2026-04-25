@@ -129,6 +129,102 @@ Wheel uses 6 Claude Code hooks:
 | `SessionStart(resume)` | Reload state and resume from last step |
 | `PostToolUse(Bash)` | Log commands to audit trail |
 
+## Per-step model selection
+
+Agent steps support an optional `model:` field that selects the model the spawned agent will run on.
+
+```json
+{
+  "id": "classify-tags",
+  "type": "agent",
+  "model": "haiku",
+  "instruction": "Classify these entries into one of four buckets..."
+}
+```
+
+Accepted values:
+
+| Value | Resolves to |
+|-------|-------------|
+| `"haiku"` | project-default haiku id (`plugin-wheel/scripts/dispatch/model-defaults.json`) |
+| `"sonnet"` | project-default sonnet id |
+| `"opus"` | project-default opus id |
+| `"claude-..."` | explicit model id — passed through if it matches `^claude-[a-z0-9-]+$` |
+
+Rules of thumb:
+
+- **haiku** for classification / pattern-match / routing steps — cheap and fast.
+- **sonnet** for synthesis, drafting, and most multi-file work — the default balance.
+- **opus** only for hard reasoning (architecture decisions, thorny debugging, long-context synthesis where the cost is justified).
+
+Guarantees:
+
+- The `model:` field is **optional**. Absent → harness default behavior, byte-identical to pre-`model:` workflows (NFR-5).
+- Mismatches **fail loudly**. Unrecognized tiers or malformed ids surface as an activation error with the identifiable prefix `wheel: model resolve failed` (and a step-context wrapper `wheel: model resolution failed for step '<name>': ...`). There is **no silent fallback** to a default model (FR-B2).
+- Explicit-id validation is regex-only. If the harness later rejects the id, that rejection also surfaces loudly at dispatch time.
+
+## Step-internal command batching
+
+An agent step that runs 3+ deterministic bash calls back-to-back can consolidate them into a single `plugin-<name>/scripts/step-<stepname>.sh` wrapper. The agent then makes **one** Bash tool call instead of N, trading per-call LLM round-trip cost for a single script invocation.
+
+**When to batch**:
+
+- The sequence is deterministic from kickoff — no LLM reasoning / classification / branching happens between calls.
+- All inputs are knowable at step-start (from env, context, or wheel state).
+- The step has 3+ bash calls today. 1-2 calls rarely clears the round-trip-cost bar.
+
+**When to leave separate**:
+
+- The LLM has to read output from call N and decide what call N+1 should be.
+- Any call is an MCP tool or Skill invocation — MCP batching is the MCP layer's job, not ours.
+- The sequence branches on a condition that needs agent judgement (duplicate detection, classification, error-path selection).
+
+**Debuggability trade-off**:
+
+- Batching collapses N log events into 1 script execution. Per-action visibility is lost unless the wrapper emits per-action log lines explicitly. On failure, the last-emitted `action=X | start` line (with no matching `ok`) identifies which action failed.
+- Without per-action log lines, the batched wrapper becomes a black box — which is the silent-failure shape the rest of this plugin actively works against.
+
+**Required wrapper shape**:
+
+```bash
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail   # if any pipeline is used
+
+STEP_NAME="<name>"
+LOG_PREFIX="wheel:${STEP_NAME}"
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "${LOG_PREFIX}: start | $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+echo "${LOG_PREFIX}: action=<name1> | start"
+# ... do the work ...
+echo "${LOG_PREFIX}: action=<name1> | ok"
+
+echo "${LOG_PREFIX}: action=<name2> | start"
+# ... do the work ...
+echo "${LOG_PREFIX}: action=<name2> | ok"
+
+# Final structured stdout — a single-line JSON object. The calling step parses
+# this for the success/failure signal. A non-zero exit (from set -e) is the
+# failure signal; the JSON is the success signal.
+jq -c -n --arg step "${STEP_NAME}" --arg status "ok" \
+  '{step: $step, status: $status, actions: ["<name1>","<name2>"]}'
+
+echo "${LOG_PREFIX}: done | $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+```
+
+**Rules**:
+
+- `set -e` + `set -u` at top; `set -o pipefail` when any pipeline is used.
+- Every action emits `start` and `ok` (or fails under `set -e`) log lines with `LOG_PREFIX`.
+- Sibling scripts inside the same plugin are resolved via `"${SELF_DIR}/<name>.sh"` (script-relative, works under both source-repo and consumer-install layouts).
+- Cross-plugin script references are a portability bug — consolidate only within a single plugin's `scripts/` dir.
+- The final JSON object is the single parseable success signal. `set -e` non-zero-exit is the failure signal. No other stdout after the `done` log line.
+
+Worked example: `plugin-shelf/scripts/step-dispatch-background-sync.sh` consolidates the counter-increment + log-append chain the `kiln:kiln-report-issue` background sub-agent previously ran as two separate Bash tool calls.
+
 ## Requirements
 
 - Bash 3.2+ (macOS default)

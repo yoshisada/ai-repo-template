@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "FR-006 / SC-003 — happy path: /kiln:kiln-roadmap --promote on an issue with status:open produces a valid roadmap item with promoted_from: + all required frontmatter, and flips the source to status: promoted + roadmap_item:."

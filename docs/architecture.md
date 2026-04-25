@@ -120,11 +120,11 @@ flowchart TB
     checkpointFeedback -.->|"fix ready"| qaCheckpoint
 
     %% QA final
-    impl1 & impl2 & implN -->|"all complete"| QAPipelineTeam
+    impl1 & impl2 & implN -->|"all complete"| e2eAgent & chromeAgent & uxAgent
     e2eAgent & chromeAgent & uxAgent --> qaReporterPipeline
     qaReporterPipeline -->|"route findings"| impl1 & impl2
     qaReporterPipeline -->|"file unfixed"| ghIssuesQA["GitHub Issues<br/>labels: qa-pass + build-prd"]
-    QAPipelineTeam --> qaFinalGate
+    qaReporterPipeline --> qaFinalGate
 
     %% Audit
     qaFinalGate -->|"green"| auditCompliance & auditTests & auditSmoke
@@ -176,7 +176,7 @@ flowchart TB
     fixApply -->|"FAIL"| diagnose
     fixApply -->|"PASS"| debugLog
     diagnose --> debugLog
-    fixApply -->|"UI fix"| StandaloneQA
+    fixApply -->|"UI fix"| e2eStandalone & chromeStandalone & uxStandalone
 
     %% ============================================
     %% ISSUE LIFECYCLE

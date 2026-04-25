@@ -1732,8 +1732,30 @@ _teammate_flush_from_state() {
       wf="$default_sub_workflow"
     fi
 
+    # FR-B1 / FR-B2 — per-step model selection. Read `model:` from the
+    # teammate step in the workflow JSON and thread the resolved id into the
+    # spawn instruction via dispatch_agent_step_model_clause. Absent → empty
+    # clause (NFR-5 byte-identical). Malformed → ACTIVATION ERROR clause
+    # (I-M2 loud-fail; orchestrator stops instead of silently spawning on
+    # default model).
+    local model_spec
+    model_spec=$(printf '%s\n' "$WORKFLOW" | jq -r --arg aid "$agent_name" \
+      '[.steps[] | select(.type == "teammate" and (.id == $aid or .name == $aid))] | .[0].model // empty')
+    local model_clause=""
+    if [[ -n "$model_spec" ]]; then
+      # Source the helper lazily on first use to keep non-model workflows
+      # byte-identical (no extra dependency load).
+      if ! declare -f dispatch_agent_step_model_clause >/dev/null 2>&1; then
+        # shellcheck source=../scripts/dispatch/dispatch-agent-step.sh
+        source "${PLUGIN_DIR}/scripts/dispatch/dispatch-agent-step.sh"
+      fi
+      model_clause=$(dispatch_agent_step_model_clause "${agent_name}" "${model_spec}")
+      declare -f wheel_log >/dev/null 2>&1 && \
+        wheel_log "dispatch_teammate_model" "agent=${agent_name} spec=${model_spec} clause_len=${#model_clause}"
+    fi
+
     spawn_list="${spawn_list}
-- Agent '${agent_name}' on team '${team_name}': MUST run this exact Bash command to activate its sub-workflow: \`bash ${PLUGIN_DIR}/bin/activate.sh ${wf} --as ${agent_name}@${team_name}\`. Assignment: ${outdir}/assignment.json, Context: ${outdir}/context.json, Output to: ${outdir}/"
+- Agent '${agent_name}' on team '${team_name}': MUST run this exact Bash command to activate its sub-workflow: \`bash ${PLUGIN_DIR}/bin/activate.sh ${wf} --as ${agent_name}@${team_name}\`. Assignment: ${outdir}/assignment.json, Context: ${outdir}/context.json, Output to: ${outdir}/${model_clause}"
   done <<< "$names"
 
   jq -n --arg msg "Spawn ${count} teammate agent(s) with run_in_background: true and mode: bypassPermissions. Each agent MUST run the exact Bash command provided below to activate its sub-workflow — do NOT use /wheel:wheel-run, the --as flag is required so the hooks can map the agent back to the right teammate slot.${spawn_list}

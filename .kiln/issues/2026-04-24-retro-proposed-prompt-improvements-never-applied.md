@@ -3,8 +3,9 @@ title: Retrospective-proposed prompt improvements (PI-1..PI-N) never get pulled 
 type: improvement
 severity: medium
 category: workflow
-status: open
+status: prd-created
 date: 2026-04-24
+prd: docs/features/2026-04-24-workflow-governance/PRD.md
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-build-prd/SKILL.md

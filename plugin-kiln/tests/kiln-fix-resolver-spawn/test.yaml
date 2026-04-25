@@ -1,0 +1,10 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-fix
+expected-exit: 0
+description: "SC-005 anchor — /kiln:kiln-fix's resolver-spawn path (FR-A5) uses plugin-wheel/scripts/agents/resolve.sh; inversion asserts the resolver is the actual determinant of the spawned sub-agent's system prompt."
+timeout-override: 120
+# This fixture's static assertions live in run.sh — cheap tripwire form
+# suitable for CI runs. A full `/kiln:kiln-test` subprocess invocation would
+# additionally spawn a live claude --print against a fixture repo and watch
+# the sub-agent system prompt on the transcript; that is reserved for the
+# audit step's deeper end-to-end verification.

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "3 canned retro issues with 5 PI blocks (2 already-applied, 1 stale, 2 actionable). Validates FR-009, FR-010, FR-011, SC-004, SC-005."
+timeout-override: 900

@@ -6,8 +6,9 @@ category: hooks
 source: retrospective
 github_issue: null
 repo: https://github.com/yoshisada/ai-repo-template
-status: open
+status: prd-created
 date: 2026-04-10
+prd: docs/features/2026-04-24-workflow-governance/PRD.md
 files:
   - plugin-kiln/hooks/require-feature-branch.sh
   - plugin-kiln/skills/build-prd/SKILL.md

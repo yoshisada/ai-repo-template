@@ -1,0 +1,7 @@
+Set the environment variable `PI_APPLY_FETCH_STUB` to the absolute path of `retro-issues.json` in the current working directory, then run `/kiln:kiln-pi-apply`. Example bash one-liner:
+
+```bash
+export PI_APPLY_FETCH_STUB="$(pwd)/retro-issues.json"
+```
+
+Then invoke the skill. Reply empty to any prompts.

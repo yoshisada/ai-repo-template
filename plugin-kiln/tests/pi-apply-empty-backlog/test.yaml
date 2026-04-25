@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "Zero open retro issues. Report reads 'No open retro issues found' and exit 0."
+timeout-override: 900

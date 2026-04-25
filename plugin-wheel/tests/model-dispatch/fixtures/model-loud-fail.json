@@ -1,0 +1,19 @@
+{
+  "name": "model-loud-fail-fixture",
+  "version": "1.0.0",
+  "_doc": "T062 fixture — demonstrates FR-B2 loud-fail invariant. A teammate step uses a spec that does NOT match wheel's admission regex (tier word OR ^claude-[a-z0-9-]+$). The resolver exits 1 and wheel's spawn clause carries ACTIVATION ERROR, telling the orchestrator to stop rather than silently spawning on the default model.",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team_create",
+      "team": "fail-team"
+    },
+    {
+      "id": "malformed-step",
+      "type": "teammate",
+      "team": "fail-team",
+      "workflow": "does-not-matter",
+      "model": "gpt-4"
+    }
+  ]
+}
