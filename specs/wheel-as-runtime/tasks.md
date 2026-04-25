@@ -34,9 +34,9 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 2.A — Agent registry schema (impl-themeA-agents, blocks Theme B test authoring)
 
-- [ ] T010 [impl-themeA-agents] Create `plugin-wheel/agents/` directory (empty) — canonical home for all agent files per FR-A2. Do NOT move agents yet; T030 (atomic migration) is the one-commit move.
-- [ ] T011 [impl-themeA-agents] Create `plugin-wheel/scripts/agents/` directory.
-- [ ] T012 [impl-themeA-agents] Author `plugin-wheel/scripts/agents/registry.json` with schema per data-model.md §2 (version=1, agents={}). Seed entries are populated in T030 (during migration).
+- [X] T010 [impl-themeA-agents] Create `plugin-wheel/agents/` directory (empty) — canonical home for all agent files per FR-A2. Do NOT move agents yet; T030 (atomic migration) is the one-commit move.
+- [X] T011 [impl-themeA-agents] Create `plugin-wheel/scripts/agents/` directory.
+- [X] T012 [impl-themeA-agents] Author `plugin-wheel/scripts/agents/registry.json` with schema per data-model.md §2 (version=1, agents={}). Seed entries are populated in T030 (during migration).
 
 ### Phase 2.D — Env-export spike (impl-wheel-fixes, blocks FR-D1 Option A vs B decision)
 
