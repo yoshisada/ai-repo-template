@@ -39,36 +39,86 @@ implementation_hints: |
   directories like `docs/features/` use plural; this one diverges
   intentionally).
 
-  ## Schema sketch
+  ## `_meta:` schema (v1, locked 2026-04-25)
+
+  ### Top-level (loop-wide)
 
       {
         "name": "retro-to-pi-apply",
-        "description": "...",
+        "description": "<one-line — wheel's existing field>",
         "_meta": {
-          "kind": "feedback-loop",
-          "status": "active | proposed | retired",
-          "owner": "kiln-core",
-          "metrics": {
+          "kind": "feedback-loop",          // REQUIRED — discriminator
+          "status": "active",                // REQUIRED — active | proposed | retired
+          "owner": "kiln-core",              // REQUIRED — accountability
+
+          "triggers": [                      // optional — what kicks the loop off
+            "github label:retrospective",
+            "manual /kiln:kiln-pi-apply"
+          ],
+
+          "metrics": {                       // optional — open key/value
             "latency_target": "1 week",
             "current_p50": "3 weeks",
-            "throughput": "items/week"
+            "throughput": "2-3 retros/month"
           },
-          "anti_patterns": ["..."],
-          "related_loops": ["capture-to-distill"],
-          "rendered_at": ".kiln/feedback-loops/_rendered/<name>.md"
+
+          "anti_patterns": [                 // optional — mistakes to avoid
+            "auto-applying retros without human review"
+          ],
+
+          "related_loops": [                 // optional — cross-references
+            "capture-to-distill"
+          ],
+
+          "last_audited": "2026-04-25"       // optional — ISO date
         },
-        "steps": [
-          {
-            "type": "command",
-            "name": "fetch-retro-issues",
-            "_meta": {
-              "actor": "agent",
-              "doc": "Pulls label:retrospective from gh"
-            },
-            "command": "..."
-          }
-        ]
+        "steps": [...]
       }
+
+  ### Per-step (annotations)
+
+      {
+        "id": "fetch-retro-issues",
+        "type": "command",
+        "command": "...",
+        "_meta": {
+          "actor": "agent",                  // optional — agent | human | hook | command
+          "doc": "Pulls every open retro-labeled issue from gh. Skipped if zero retros — downstream steps no-op.",
+          "notes": [                         // optional — additional bullets
+            "currently scoped to one repo; will need rework for multi-repo"
+          ]
+        }
+      }
+
+  ### Field rationale
+
+  - `kind` — filterability via `jq '._meta.kind == "feedback-loop"'`. Required for the convention to work at all.
+  - `status` — lets us mark loops retired without deleting them. Documentation of past loops is valuable.
+  - `owner` — accountability. If it breaks, we know who's looking.
+  - `triggers` — most useful answer to "when does this happen?"; surfaces in rendered metadata.
+  - `metrics` — open key/value because every loop measures different things. Structured schema would force false consistency.
+  - `anti_patterns` — distilled wisdom that's easy to lose. Same shape as the existing `_meta` field on roadmap items.
+  - `related_loops` — lets the rendered page link sideways. Cheap to maintain.
+  - `last_audited` — freshness indicator. Loops rot; this surfaces stale ones.
+  - `actor` (per-step) — closed enum (`agent | human | hook | command`) so the renderer can tag/color steps consistently.
+  - `doc` (per-step) — multi-line markdown. Biggest contributor to readable rendered output.
+
+  ### Deliberately NOT included
+
+  - `failure_modes` — overlaps with `anti_patterns`. Pick one (anti-patterns wins; more actionable).
+  - `cadence` — overlaps with `triggers` + `metrics.throughput`. Redundant.
+  - `success_signal` — vague; `metrics` already covers this concretely.
+  - `outputs` — wheel workflows already encode outputs via step `output:` fields. Don't duplicate.
+  - `purpose` — wheel's existing top-level `description:` field covers this.
+  - `rendered_at` (was in earlier sketch) — convention is `<input>.md` next to `<input>.json`; no need to encode the path.
+
+  ### Validation posture
+
+  No schema enforcement in v1. Wheel's permissive-on-unknown-keys posture means `_meta:` validates by-construction. Document the shape here; if drift becomes a real problem, add a sidecar validator in v2 — same propose-don't-apply pattern as `/kiln:kiln-claude-audit`.
+
+  ### Open question (revisit after seed loops)
+
+  `metrics` keys are totally open in v1 (no curated initial set), because we don't have enough loops yet to know what the consistent cross-loop set should be. After three seed loops author, see if a curated subset emerges; if so, document it here as the "common metrics" convention without making it a hard requirement.
 
   ## Renderer (BUILT 2026-04-25)
 
