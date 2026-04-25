@@ -40,8 +40,8 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 2.D — Env-export spike (impl-wheel-fixes, blocks FR-D1 Option A vs B decision)
 
-- [ ] T020 [impl-wheel-fixes] Phase-0 spike per research.md R-001: prototype Option A — export `WORKFLOW_PLUGIN_DIR` in a `workflow-env.sh` placeholder, spawn a toy `Agent(run_in_background: true)` sub-agent in a minimal workflow, assert the var is visible in the sub-agent's env. Record result in `specs/wheel-as-runtime/agent-notes/impl-wheel-fixes.md` (Option A viable YES/NO + evidence).
-- [ ] T021 [impl-wheel-fixes] Phase-0 R-004 blast-radius audit: `git grep -n 'tool_input\.command\|tr .\\\\n. ' plugin-wheel/` — enumerate every regex / sanitization site that assumes flattened input. Record findings (site + verdict: fix-in-PRD / leave-as-is / defer) in `specs/wheel-as-runtime/agent-notes/impl-wheel-fixes.md` as a dedicated "R-004 findings" section.
+- [X] T020 [impl-wheel-fixes] Phase-0 spike per research.md R-001: prototype Option A — export `WORKFLOW_PLUGIN_DIR` in a `workflow-env.sh` placeholder, spawn a toy `Agent(run_in_background: true)` sub-agent in a minimal workflow, assert the var is visible in the sub-agent's env. Record result in `specs/wheel-as-runtime/agent-notes/impl-wheel-fixes.md` (Option A viable YES/NO + evidence). **VERDICT: Option A NOT viable (wheel hook process env dies before the harness spawns the sub-agent — wheel does not own the spawn boundary for agent steps). Shipping Option B: template `WORKFLOW_PLUGIN_DIR=<abs>` into agent-step instruction via `context_build`. Evidence in agent-notes.**
+- [X] T021 [impl-wheel-fixes] Phase-0 R-004 blast-radius audit: `git grep -n 'tool_input\.command\|tr .\\\\n. ' plugin-wheel/` — enumerate every regex / sanitization site that assumes flattened input. Record findings (site + verdict: fix-in-PRD / leave-as-is / defer) in `specs/wheel-as-runtime/agent-notes/impl-wheel-fixes.md` as a dedicated "R-004 findings" section. **Done — two fix-in-PRD sites: (1) `post-tool-use.sh:11` pre-flatten (primary FR-C1 target); (2) `block-state-write.sh:16` silent-jq-swallow via `\|\| true` (jq fails on literal control chars → COMMAND empty → regex misses → write slips through; NFR-2 silent-failure shape). `engine.sh:187` becomes safe transitively once the pre-flatten is removed. No regex-widening needed for FR-C2.**
 
 ---
 
@@ -82,9 +82,9 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### FR-B1 + FR-B2 — Model resolver + dispatch enforcement
 
-- [ ] T050 [impl-themeB-models] [US4] Author `plugin-wheel/scripts/dispatch/model-defaults.json` — tier → concrete-id mapping per contract §3 I-M4. Current defaults: `haiku → claude-haiku-4-5-20251001`, `sonnet → <current-sonnet-id>`, `opus → <current-opus-id>`. Version-controlled.
-- [ ] T051 [impl-themeB-models] [US4] Implement `plugin-wheel/scripts/dispatch/resolve-model.sh` per contract §3. Accepts `haiku|sonnet|opus|<id-matching-^claude-[a-z0-9-]+$>`. Exit 1 with identifiable stderr on unrecognized tier/id. NEVER silent fallback (I-M2).
-- [ ] T052 [DEP:Theme A] [impl-themeB-models] [US4] Extend `plugin-wheel/scripts/dispatch/dispatch-agent-step.sh` (the file Theme A creates/extends in T032) to consume the optional `model:` field — call `resolve-model.sh`, attach the concrete id to the spawned `Agent()` call. Absent field → current harness default, byte-identical (NFR-5, I-M1). Dispatch-failure propagation: `resolve-model.sh` exit 1 → dispatch step fails loudly with error string `"wheel: model resolution failed for step '<name>': <detail>"`.
+- [X] T050 [impl-themeB-models] [US4] Author `plugin-wheel/scripts/dispatch/model-defaults.json` — tier → concrete-id mapping per contract §3 I-M4. Current defaults: `haiku → claude-haiku-4-5-20251001`, `sonnet → claude-sonnet-4-6`, `opus → claude-opus-4-7`. Version-controlled.
+- [X] T051 [impl-themeB-models] [US4] Implement `plugin-wheel/scripts/dispatch/resolve-model.sh` per contract §3. Accepts `haiku|sonnet|opus|<id-matching-^claude-[a-z0-9-]+$>`. Exit 1 with identifiable stderr on unrecognized tier/id. NEVER silent fallback (I-M2).
+- [X] T052 [DEP:Theme A] [impl-themeB-models] [US4] Extend `plugin-wheel/scripts/dispatch/dispatch-agent-step.sh` (created under this track since Theme A's T032 is later in the partition; both Theme A's `dispatch_agent_step_path` and Theme B's `dispatch_agent_step_model` coexist namespaced) to consume the optional `model:` field — call `resolve-model.sh`, emit JSON fragment with the concrete id. Absent field → `{"model": null}` (NFR-5, I-M1). `resolve-model.sh` exit 1 → loud stderr with `"wheel: model resolution failed for step '<name>': <detail>"` + exit 1 (FR-B2, I-M2).
 
 ### FR-B3 — Documentation
 
