@@ -23,9 +23,9 @@ Two implementer tracks (per PRD Pipeline guidance + research-baseline ahead of b
 
 ## Phase 1 — Setup (shared, all tracks observe)
 
-- [ ] T001 [researcher-baseline] [impl-resolver-hydration] [impl-schema-migration] Read `.specify/memory/constitution.md`, `specs/wheel-step-input-output-schema/spec.md`, `plan.md`, `contracts/interfaces.md` from each track before starting any FR task.
-- [ ] T002 [P] Create implementer friction-note stubs at `specs/wheel-step-input-output-schema/agent-notes/{researcher-baseline,impl-resolver-hydration,impl-schema-migration,audit-compliance,retrospective}.md` (one sentence placeholder each; each track fills its own note during/after work per FR-009).
-- [ ] T003 [P] Confirm `bash 5.x`, `jq`, `python3` available (`bash --version`, `jq --version`, `python3 --version`). No install task — these are existing wheel runtime deps.
+- [X] T001 [researcher-baseline] [impl-resolver-hydration] [impl-schema-migration] Read `.specify/memory/constitution.md`, `specs/wheel-step-input-output-schema/spec.md`, `plan.md`, `contracts/interfaces.md` from each track before starting any FR task. [impl-schema-migration: read all 4 + research.md + tasks.md.]
+- [X] T002 [P] Create implementer friction-note stubs at `specs/wheel-step-input-output-schema/agent-notes/{researcher-baseline,impl-resolver-hydration,impl-schema-migration,audit-compliance,retrospective}.md` (one sentence placeholder each; each track fills its own note during/after work per FR-009). [impl-schema-migration: own stub written.]
+- [X] T003 [P] Confirm `bash 5.x`, `jq`, `python3` available (`bash --version`, `jq --version`, `python3 --version`). No install task — these are existing wheel runtime deps. [bash 5.2.15, jq 1.7.1-apple, python 3.11.0 — all present.]
 
 ---
 
@@ -42,17 +42,17 @@ Two implementer tracks (per PRD Pipeline guidance + research-baseline ahead of b
 
 ### Phase 2.A (impl-resolver-hydration) — JSONPath subset parser
 
-- [ ] T020 [impl-resolver-hydration] Create `plugin-wheel/lib/resolve_inputs.sh` skeleton with re-source guard, `CONFIG_KEY_ALLOWLIST` declared per contract §7, function header for `_parse_jsonpath_expr` per contract §1. Body returns "unsupported expression" for now.
-- [ ] T021 [impl-resolver-hydration] Implement `_parse_jsonpath_expr` per contract §1 — regex dispatcher with the four documented patterns; sets `_PARSED_KIND`/`_PARSED_ARG1`/`_PARSED_ARG2` globals on success.
-- [ ] T022 [impl-resolver-hydration] Author `plugin-wheel/tests/resolve-inputs-grammar/run.sh` — covers all four expression types (positive cases) + 6 "unsupported expression" negatives (extra path segments, missing parens, lowercase steps prefix, bare `$`, double `$$`, empty arg). Invoke `/kiln:kiln-test plugin-wheel resolve-inputs-grammar`; cite verdict report path in friction note.
-- [ ] T023 [impl-resolver-hydration] Commit Phase 2.A. SendMessage to impl-schema-migration: parser is committed, Phase 2.B unblocked.
+- [X] T020 [impl-resolver-hydration] Create `plugin-wheel/lib/resolve_inputs.sh` skeleton with re-source guard, `CONFIG_KEY_ALLOWLIST` declared per contract §7, function header for `_parse_jsonpath_expr` per contract §1. Body returns "unsupported expression" for now.
+- [X] T021 [impl-resolver-hydration] Implement `_parse_jsonpath_expr` per contract §1 — regex dispatcher with the four documented patterns; sets `_PARSED_KIND`/`_PARSED_ARG1`/`_PARSED_ARG2` globals on success.
+- [X] T022 [impl-resolver-hydration] Author `plugin-wheel/tests/resolve-inputs-grammar/run.sh` — covers all four expression types (positive cases) + 6 "unsupported expression" negatives. [Done — 24/24 PASS. Verdict log `.kiln/logs/wheel-test-resolve-inputs-grammar-*.log`. Pure-shell unit tests under `plugin-wheel/tests/<name>/` are NOT a `/kiln:kiln-test` substrate (harness is plugin-skill-only); per NFR-G-1 carveout, the bash run.sh log is the verdict-report analog. Friction note flags the substrate gap.]
+- [X] T023 [impl-resolver-hydration] Commit Phase 2.A. SendMessage to impl-schema-migration: parser is committed, Phase 2.B unblocked.
 
 ### Phase 2.B (impl-schema-migration) — Workflow-load schema validation
 
 - [ ] T030 [impl-schema-migration] [DEP impl-resolver-hydration T021] Source `resolve_inputs.sh` from `workflow.sh`. Add `workflow_validate_inputs_outputs` per contract §5. Validation rules per FR-G1-4 + contract §5 list (8 rules).
 - [ ] T031 [impl-schema-migration] Wire `workflow_validate_inputs_outputs` into `workflow_load` AFTER existing validators (after `workflow_validate_requires_plugins`).
-- [ ] T032 [impl-schema-migration] Edit `plugin-wheel/docs/workflow-schema.md` (or create if absent) — document `inputs:` and `output_schema:` per contract §6. Document `context_from:` narrowed semantics per FR-G5-1.
-- [ ] T033 [impl-schema-migration] Create `plugin-wheel/docs/context-from-narrowing.md` per FR-G5-1 — short doc recording the data-passing → `inputs:` move and the deferred `after:` rename decision.
+- [X] T032 [impl-schema-migration] Edit `plugin-wheel/docs/workflow-schema.md` (or create if absent) — document `inputs:` and `output_schema:` per contract §6. Document `context_from:` narrowed semantics per FR-G5-1. [Created — `inputs:`, `output_schema:`, `context_from:` narrowed semantics, validation timing, dual-gate pattern, documented error shapes.]
+- [X] T033 [impl-schema-migration] Create `plugin-wheel/docs/context-from-narrowing.md` per FR-G5-1 — short doc recording the data-passing → `inputs:` move and the deferred `after:` rename decision. [Created — TL;DR, what-changed, sub-workflow filename quirk, OQ-G-2 deferral rationale, when-to-use-which table, migration checklist.]
 - [ ] T034 [impl-schema-migration] Commit Phase 2.B.
 
 ---
