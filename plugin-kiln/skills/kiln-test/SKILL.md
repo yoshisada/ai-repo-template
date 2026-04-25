@@ -7,7 +7,7 @@ description: "Executable skill-test harness. Invokes real claude --print ... --p
 
 **Purpose**: Run executable tests against plugin skills — the real skill, in a real Claude subprocess, against a scratch-dir fixture, with assertions that verify final scratch-dir state. Replaces documentary `SMOKE.md` files with tests that actually run.
 
-**Non-negotiable**: this skill MUST delegate to `${WORKFLOW_PLUGIN_DIR}/../plugin-wheel/scripts/harness/wheel-test-runner.sh` (NFR-001 portability + sibling-plugin resolution per spec OQ-R-1). No repo-relative `plugin-kiln/scripts/...` or `plugin-wheel/scripts/...` path may appear in this file. The harness scripts resolve to the plugin's install path automatically via `${WORKFLOW_PLUGIN_DIR}` + sibling-traversal.
+**Non-negotiable**: this skill MUST delegate to wheel's `scripts/harness/wheel-test-runner.sh`, resolved via the dual-layout sibling traversal shown in "What to do" below (NFR-001 portability + sibling-plugin resolution per spec OQ-R-1). No repo-relative `plugin-kiln/scripts/...` or `plugin-wheel/scripts/...` path may appear in this file. The harness script lives at a stable relative path inside whichever plugin-wheel directory the consumer has cached.
 
 ## When to invoke
 
@@ -25,10 +25,18 @@ description: "Executable skill-test harness. Invokes real claude --print ... --p
 
 ## What to do
 
-Run:
+Resolve the wheel install dir, then invoke the runner. The if/else handles both layouts:
+
+- **Source repo**: `plugin-kiln/` and `plugin-wheel/` are siblings under the repo root.
+- **Consumer cache**: `kiln/<version>/` and `wheel/<version>/` are siblings under `~/.claude/plugins/cache/<org>-<marketplace>/`.
 
 ```bash
-bash "${WORKFLOW_PLUGIN_DIR}/../plugin-wheel/scripts/harness/wheel-test-runner.sh" $ARGUMENTS
+if [ -d "${WORKFLOW_PLUGIN_DIR}/../plugin-wheel" ]; then
+  WHEEL_DIR="${WORKFLOW_PLUGIN_DIR}/../plugin-wheel"
+else
+  WHEEL_DIR=$(ls -d "${WORKFLOW_PLUGIN_DIR}/../../wheel"/*/ 2>/dev/null | sort -V | tail -1)
+fi
+bash "${WHEEL_DIR}/scripts/harness/wheel-test-runner.sh" $ARGUMENTS
 ```
 
 That's the entire skill. The orchestrator emits TAP v14 on stdout, writes verdict reports to `.kiln/logs/kiln-test-<uuid>.md`, and retains scratch dirs under `/tmp/kiln-test-<uuid>/` on failure for post-mortem.
