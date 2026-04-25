@@ -3,8 +3,9 @@
 #
 # Covers contracts/interfaces.md §2 "Tests":
 #   T042: agent_path: debugger         -> spec.system_prompt_path points at
-#                                         plugin-wheel/agents/debugger.md
-#                                         (or equivalent absolute/$WORKFLOW_PLUGIN_DIR-rooted).
+#                                         plugin-kiln/agents/debugger.md
+#                                         (post-FR-A1-reversal 2026-04-25 — agents
+#                                         live in their consumer plugin, not wheel).
 #   T043: agent_path absent            -> fragment is {"agent_path": null}
 #                                         (NFR-5 byte-identical shape).
 #   T044: agent_path: <nonsense>       -> loud exit 1 with identifiable error string.
@@ -41,7 +42,7 @@ model_default=$(jq -r '.agent_path.model_default' <<<"$out")
 if [[ "$subagent" == "debugger" \
       && "$source_val" == "short-name" \
       && "$model_default" == "sonnet" \
-      && "$sys_path" == *"plugin-wheel/agents/debugger.md" ]]; then
+      && "$sys_path" == *"plugin-kiln/agents/debugger.md" ]]; then
   assert_pass "T042: agent_path:debugger → debugger spec wrapped correctly"
 else
   assert_fail "T042: subagent=$subagent source=$source_val model=$model_default sys_path=$sys_path"

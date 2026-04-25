@@ -14,7 +14,7 @@
 #
 # Asserted invariants:
 #   1. /kiln:kiln-fix SKILL.md text references the resolver path (FR-A5).
-#   2. resolve.sh debugger → system_prompt_path ends with plugin-wheel/agents/debugger.md.
+#   2. resolve.sh debugger → system_prompt_path ends with plugin-kiln/agents/debugger.md.
 #   3. Inversion: if we swap the registry entry for 'debugger' to point at a
 #      different path, the resolver returns the wrong path — proving the
 #      resolver is the component under test (if the SKILL.md hard-coded the
@@ -45,8 +45,8 @@ fi
 # --- 2. Happy path: resolver returns the right system prompt for 'debugger' ---
 out=$("$RESOLVE" debugger)
 sys_path=$(jq -r '.system_prompt_path' <<<"$out")
-if [[ "$sys_path" == *"plugin-wheel/agents/debugger.md" ]]; then
-  assert_pass "resolver(debugger).system_prompt_path ends with plugin-wheel/agents/debugger.md"
+if [[ "$sys_path" == *"plugin-kiln/agents/debugger.md" ]]; then
+  assert_pass "resolver(debugger).system_prompt_path ends with plugin-kiln/agents/debugger.md"
 else
   assert_fail "resolver(debugger): got system_prompt_path=$sys_path"
 fi
@@ -63,16 +63,16 @@ trap "rm -rf '$tmp_dir'" EXIT
 # Build a tampered plugin root: copy registry with a bogus entry for 'debugger'.
 mkdir -p "${tmp_dir}/scripts/agents"
 mkdir -p "${tmp_dir}/agents"
-jq '.agents.debugger.path = "plugin-wheel/agents/NOT-REAL-debugger.md"' \
+jq '.agents.debugger.path = "plugin-kiln/agents/NOT-REAL-debugger.md"' \
   "$REGISTRY" > "${tmp_dir}/scripts/agents/registry.json"
 # Create a dummy file at the bogus path so the resolver doesn't exit 1 on file-not-found.
 mkdir -p "${tmp_dir}/../agents-fake" # irrelevant but keeps intent visible
 # The resolver tries PLUGIN_ROOT's parent / rel_path; we set WORKFLOW_PLUGIN_DIR=$tmp_dir
 # and the parent is $tmp_dir/.., so we need the bogus path there.
 parent="$(cd "${tmp_dir}/.." && pwd)"
-mkdir -p "${parent}/plugin-wheel/agents"
+mkdir -p "${parent}/plugin-kiln/agents"
 # Ensure our bogus file is readable so resolver doesn't bail early.
-touch "${parent}/plugin-wheel/agents/NOT-REAL-debugger.md"
+touch "${parent}/plugin-kiln/agents/NOT-REAL-debugger.md"
 
 inverted=$(WORKFLOW_PLUGIN_DIR="$tmp_dir" "$RESOLVE" debugger)
 inv_path=$(jq -r '.system_prompt_path' <<<"$inverted")
@@ -83,7 +83,7 @@ else
 fi
 
 # Clean up the bogus parent artifact we created (outside tmp_dir).
-rm -f "${parent}/plugin-wheel/agents/NOT-REAL-debugger.md"
+rm -f "${parent}/plugin-kiln/agents/NOT-REAL-debugger.md"
 
 # --- Summary ---
 echo

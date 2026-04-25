@@ -31,7 +31,7 @@ assert_pass() { pass=$((pass + 1)); echo "PASS: $1"; }
 assert_fail() { fail=$((fail + 1)); echo "FAIL: $1" >&2; }
 
 # --- (a) absolute path ---
-out=$("$RESOLVE" "${REPO_ROOT}/plugin-wheel/agents/debugger.md")
+out=$("$RESOLVE" "${REPO_ROOT}/plugin-kiln/agents/debugger.md")
 source_val=$(jq -r '.source' <<<"$out")
 subagent_val=$(jq -r '.subagent_type' <<<"$out")
 if [[ "$source_val" == "path" && "$subagent_val" == "debugger" ]]; then
@@ -43,7 +43,7 @@ fi
 # --- (b) repo-relative path ---
 (
   cd "$REPO_ROOT"
-  rel_out=$("$RESOLVE" plugin-wheel/agents/qa-engineer.md)
+  rel_out=$("$RESOLVE" plugin-kiln/agents/qa-engineer.md)
   rel_source=$(jq -r '.source' <<<"$rel_out")
   rel_subagent=$(jq -r '.subagent_type' <<<"$rel_out")
   if [[ "$rel_source" == "path" && "$rel_subagent" == "qa-engineer" ]]; then
@@ -62,7 +62,7 @@ subagent_val=$(jq -r '.subagent_type' <<<"$out")
 canonical_val=$(jq -r '.canonical_path' <<<"$out")
 model_val=$(jq -r '.model_default' <<<"$out")
 if [[ "$source_val" == "short-name" && "$subagent_val" == "debugger" \
-      && "$canonical_val" == "plugin-wheel/agents/debugger.md" \
+      && "$canonical_val" == "plugin-kiln/agents/debugger.md" \
       && "$model_val" == "sonnet" ]]; then
   assert_pass "(c) short name 'debugger' → full registry spec"
 else

@@ -2,61 +2,61 @@
   "version": 1,
   "agents": {
     "continuance": {
-      "path": "plugin-wheel/agents/continuance.md",
+      "path": "plugin-kiln/agents/continuance.md",
       "subagent_type": "continuance",
       "tools": [],
       "model_default": "sonnet"
     },
     "debugger": {
-      "path": "plugin-wheel/agents/debugger.md",
+      "path": "plugin-kiln/agents/debugger.md",
       "subagent_type": "debugger",
       "tools": [],
       "model_default": "sonnet"
     },
     "prd-auditor": {
-      "path": "plugin-wheel/agents/prd-auditor.md",
+      "path": "plugin-kiln/agents/prd-auditor.md",
       "subagent_type": "prd-auditor",
       "tools": [],
       "model_default": "sonnet"
     },
     "qa-engineer": {
-      "path": "plugin-wheel/agents/qa-engineer.md",
+      "path": "plugin-kiln/agents/qa-engineer.md",
       "subagent_type": "qa-engineer",
       "tools": [],
       "model_default": "sonnet"
     },
     "qa-reporter": {
-      "path": "plugin-wheel/agents/qa-reporter.md",
+      "path": "plugin-kiln/agents/qa-reporter.md",
       "subagent_type": "qa-reporter",
       "tools": [],
       "model_default": "sonnet"
     },
     "smoke-tester": {
-      "path": "plugin-wheel/agents/smoke-tester.md",
+      "path": "plugin-kiln/agents/smoke-tester.md",
       "subagent_type": "smoke-tester",
       "tools": [],
       "model_default": "sonnet"
     },
     "spec-enforcer": {
-      "path": "plugin-wheel/agents/spec-enforcer.md",
+      "path": "plugin-kiln/agents/spec-enforcer.md",
       "subagent_type": "spec-enforcer",
       "tools": [],
       "model_default": "haiku"
     },
     "test-runner": {
-      "path": "plugin-wheel/agents/test-runner.md",
+      "path": "plugin-kiln/agents/test-runner.md",
       "subagent_type": "test-runner",
       "tools": [],
       "model_default": "haiku"
     },
     "test-watcher": {
-      "path": "plugin-wheel/agents/test-watcher.md",
+      "path": "plugin-kiln/agents/test-watcher.md",
       "subagent_type": "test-watcher",
       "tools": [],
       "model_default": "haiku"
     },
     "ux-evaluator": {
-      "path": "plugin-wheel/agents/ux-evaluator.md",
+      "path": "plugin-kiln/agents/ux-evaluator.md",
       "subagent_type": "ux-evaluator",
       "tools": [],
       "model_default": "sonnet"

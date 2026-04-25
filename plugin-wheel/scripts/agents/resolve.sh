@@ -6,7 +6,7 @@
 #
 # Input forms:
 #   (a) absolute path      — /abs/path/to/<name>.md
-#   (b) repo-relative path — plugin-wheel/agents/<name>.md (or legacy plugin-kiln/agents/<name>.md)
+#   (b) repo-relative path — plugin-kiln/agents/<name>.md (canonical home; FR-A1 centralization-to-wheel reversed 2026-04-25 — agents own their consumer-plugin location)
 #   (c) short name         — resolved via registry.json
 #   (d) unknown name       — passthrough with source=unknown (back-compat for
 #                            existing subagent_type: general-purpose spawns)
@@ -86,7 +86,7 @@ if is_path_form "$INPUT"; then
     source_form="path"
   else
     # Repo-relative. Try $PWD first (source repo), then anchor under $PLUGIN_ROOT's parent
-    # (consumer install — the repo-relative form "plugin-wheel/agents/foo.md" still
+    # (consumer install — the repo-relative form "plugin-kiln/agents/foo.md" still
     # resolves relative to the plugins cache root via $PLUGIN_ROOT).
     if [[ -f "$INPUT" ]]; then
       candidate="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
@@ -96,7 +96,7 @@ if is_path_form "$INPUT"; then
       die "WORKFLOW_PLUGIN_DIR unset and repo-relative path '$INPUT' not found from CWD"
     else
       # Try anchoring under PLUGIN_ROOT's parent (e.g. $WORKFLOW_PLUGIN_DIR points at
-      # plugin-wheel/ install dir, so we peel back one level to resolve "plugin-wheel/agents/x.md").
+      # plugin-wheel/ install dir, so we peel back one level to resolve "plugin-kiln/agents/x.md").
       parent_root="$(cd "${PLUGIN_ROOT}/.." && pwd)"
       candidate="${parent_root}/${INPUT}"
       if [[ ! -f "$candidate" ]]; then
@@ -119,7 +119,10 @@ if is_path_form "$INPUT"; then
     subagent_type="$(jq -r '.subagent_type' <<<"$entry")"
     tools="$(jq -c '.tools' <<<"$entry")"
     model_default="$(jq -r '.model_default // ""' <<<"$entry")"
-    canonical="${PLUGIN_ROOT%/}/agents/${short}.md"
+    # Post-FR-A1-reversal (2026-04-25): canonical comes from registry's path field
+    # (e.g. plugin-kiln/agents/debugger.md) rather than being constructed from
+    # PLUGIN_ROOT — agents live in their consumer plugin, not in wheel.
+    canonical="$(jq -r '.path' <<<"$entry")"
   else
     subagent_type="$short"
     tools='[]'
@@ -140,7 +143,7 @@ if [[ -n "$entry" ]]; then
   tools="$(jq -c '.tools' <<<"$entry")"
   model_default="$(jq -r '.model_default // ""' <<<"$entry")"
 
-  # Resolve rel_path under $PLUGIN_ROOT's parent (so "plugin-wheel/agents/x.md" lands under
+  # Resolve rel_path under $PLUGIN_ROOT's parent (so "plugin-kiln/agents/x.md" lands under
   # the repo root in source layout, or under the plugins-cache root in consumer layout).
   parent_root="$(cd "${PLUGIN_ROOT}/.." && pwd 2>/dev/null || echo "")"
   if [[ -z "$parent_root" ]]; then

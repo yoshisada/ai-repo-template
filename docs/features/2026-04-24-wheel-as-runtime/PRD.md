@@ -11,8 +11,10 @@ theme: wheel-as-runtime
 # Feature PRD: Wheel as Runtime — Centralize Agents, Per-Step Models, and Close Silent-Failure Holes
 
 **Date**: 2026-04-24
-**Status**: Draft
+**Status**: Draft (Theme A FR-A1/FR-A2 partially reversed 2026-04-25 — see below)
 **Parent PRD**: [docs/PRD.md](../../PRD.md) (if present)
+
+> **PARTIAL REVERSAL 2026-04-25** — Theme A's "centralize agents in wheel" claim (FR-A1, FR-A2) was reversed. Empirical evidence (zero wheel-side consumers; the four generic role archetypes never authored) showed the centralization moved files but didn't deliver the cross-plugin-shared layer. Agents now live in `plugin-<consumer>/agents/<name>.md`. The resolver primitive (FR-A3), `agent_path:` workflow JSON field (FR-A4), and resolver-spawn alternative (FR-A5) are preserved. See `.kiln/feedback/2026-04-25-fr-a1-wheel-agent-centralization-shipped-2026-04-24.md` for the full rationale and migration record.
 
 ## Background
 
