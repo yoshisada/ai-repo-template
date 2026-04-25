@@ -104,7 +104,28 @@ engine_init() {
   STATE_FILE="$state_file"
   STATE_DIR="$(dirname "$state_file")"
 
-  # Load and validate workflow
+  # Cross-plugin-resolver fix (2026-04-25): prefer the templated
+  # `workflow_definition` embedded in the state file over re-reading the raw
+  # workflow_file from disk. The activation-path preprocessor in
+  # post-tool-use.sh substitutes ${WHEEL_PLUGIN_<name>} and
+  # ${WORKFLOW_PLUGIN_DIR} tokens BEFORE state_init, and state_init now
+  # persists the templated JSON. Re-loading workflow_file would drop the
+  # substitutions and leak raw tokens to agent prompts (the bug shipped in
+  # PR #163).
+  #
+  # Backward compat: legacy state files (pre-fix) lack workflow_definition.
+  # Fall back to workflow_load for those — they predate cross-plugin tokens
+  # so the unsubstituted-token leak doesn't apply.
+  if [[ -f "$state_file" ]]; then
+    local embedded_wf
+    embedded_wf=$(jq -c '.workflow_definition // empty' "$state_file" 2>/dev/null || echo "")
+    if [[ -n "$embedded_wf" && "$embedded_wf" != "null" ]]; then
+      WORKFLOW="$embedded_wf"
+      return 0
+    fi
+  fi
+
+  # Fallback: load and validate from raw file (pre-fix state OR pre-state_init call paths)
   WORKFLOW=$(workflow_load "$workflow_file") || return 1
 
   return 0

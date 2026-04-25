@@ -82,7 +82,16 @@ state_init() {
     }
   ]')
 
-  # FR-016: Include parent_workflow field when provided
+  # FR-016: Include parent_workflow field when provided.
+  #
+  # Cross-plugin-resolver fix (2026-04-25): persist the FULL templated
+  # workflow JSON at top-level key `workflow_definition`. Without this, the
+  # in-memory templating done by post-tool-use.sh::activate (substituting
+  # ${WHEEL_PLUGIN_<name>} and ${WORKFLOW_PLUGIN_DIR} via preprocess.sh) was
+  # being garbage-collected at end of hook — every subsequent hook re-loaded
+  # the RAW workflow_file from disk, leaking unsubstituted tokens to agent
+  # prompts. engine_init now prefers state.workflow_definition over
+  # workflow_file when both are present.
   local state
   state=$(jq -n \
     --arg name "$wf_name" \
@@ -93,10 +102,12 @@ state_init() {
     --arg now "$now" \
     --arg parent "$parent_workflow" \
     --argjson steps "$steps_json" \
+    --argjson wf "$workflow_json" \
     '{
       workflow_name: $name,
       workflow_version: $version,
       workflow_file: $wf_file,
+      workflow_definition: $wf,
       status: "running",
       cursor: 0,
       owner_session_id: $sid,
