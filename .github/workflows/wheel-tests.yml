@@ -1,0 +1,78 @@
+name: wheel-tests
+
+# NFR-4 (specs/wheel-as-runtime/spec.md): the consumer-install smoke test
+# (FR-D2) MUST run in CI on every PR touching plugin-wheel/ or any plugin
+# workflow JSON. Local-only runs do not count — the bug shape is
+# "works locally, breaks in consumer install."
+#
+# Also runs the FR-C2 multi-line activation test and the FR-C1 fuzz test
+# plus their NFR-2 tripwires (ensuring silent-green regression ship is
+# impossible by construction).
+
+on:
+  pull_request:
+    paths:
+      - 'plugin-wheel/**'
+      - 'plugin-*/workflows/**'
+      - '.github/workflows/wheel-tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugin-wheel/**'
+      - 'plugin-*/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  hook-and-env-invariants:
+    name: Hook newline preservation + WORKFLOW_PLUGIN_DIR env parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y jq
+          # python3 ships on ubuntu-latest by default
+          jq --version
+          python3 --version
+          bash --version | head -1
+
+      - name: FR-C2 multi-line activation
+        run: bash plugin-wheel/tests/activate-multiline/run.sh
+
+      - name: FR-C1 fuzz test (NFR-3)
+        run: bash plugin-wheel/tests/hook-input-fuzz/run.sh
+
+      - name: FR-C1 NFR-2 tripwire
+        run: bash plugin-wheel/tests/hook-no-preflatten-tripwire/run.sh
+
+      - name: FR-D1 Runtime Environment unit test
+        run: bash plugin-wheel/tests/context-runtime-env/run.sh
+
+      - name: FR-D2 consumer-install smoke test
+        run: bash plugin-wheel/tests/workflow-plugin-dir-bg/run.sh
+
+      - name: FR-D1 NFR-2 tripwire
+        run: bash plugin-wheel/tests/workflow-plugin-dir-tripwire/run.sh
+
+      - name: SC-007 log grep assertion
+        run: |
+          # Any log line written post-PRD MUST NOT contain the regression
+          # fingerprint. Run against whatever log lines exist in the
+          # checkout — if the repo ships with stale pre-PRD log lines they
+          # are exempt (this greps by modified time is out of scope; the
+          # live guard is the smoke test above).
+          if [ -d .kiln/logs ]; then
+            if git grep -F 'WORKFLOW_PLUGIN_DIR was unset' -- '.kiln/logs/report-issue-bg-*.md' 2>/dev/null; then
+              echo "::error::SC-007 regression: bg log contains 'WORKFLOW_PLUGIN_DIR was unset' string"
+              exit 1
+            fi
+          fi
+          echo "SC-007 grep clean"
