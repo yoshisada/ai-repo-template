@@ -5,10 +5,11 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 08-in-flight
-state: planned
+state: distilled
 blast_radius: cross-cutting
 review_cost: careful
 context_cost: 4 sessions
+prd: docs/features/2026-04-25-agent-prompt-composition/PRD.md
 implementation_hints: |
   Architecture validated empirically in conversation 2026-04-24 with four tests + a live team demo:
 
