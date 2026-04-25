@@ -1,6 +1,6 @@
 {
   "name": "kiln",
-  "version": "000.001.009.621",
+  "version": "000.001.009.656",
   "description": "Spec-first development harness for Claude Code. Provides skills, agents, hooks, and templates for PRD-driven development with 4-gate enforcement.",
   "author": {
     "name": "yoshisada"
@@ -9,5 +9,23 @@
   "workflows": [
     "workflows/report-issue.json",
     "workflows/mistake.json"
-  ]
+  ],
+  "agent_bindings": {
+    "research-runner": {
+      "verbs": {
+        "verify_quality": "/kiln:kiln-test --plugin-dir ${PLUGIN_DIR_UNDER_TEST} --fixture ${FIXTURE_ID}",
+        "measure": "bash ${WORKFLOW_PLUGIN_DIR}/scripts/research/parse-stream-json.sh"
+      }
+    },
+    "fixture-synthesizer": {
+      "verbs": {
+        "synthesize_fixtures": "echo 'TBD by first research-first PRD'"
+      }
+    },
+    "output-quality-judge": {
+      "verbs": {
+        "judge_outputs": "echo 'TBD by first research-first PRD'"
+      }
+    }
+  }
 }

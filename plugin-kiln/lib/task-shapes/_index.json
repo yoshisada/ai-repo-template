@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "shapes": [
+    "skill",
+    "frontend",
+    "backend",
+    "cli",
+    "infra",
+    "docs",
+    "data",
+    "agent"
+  ]
+}
