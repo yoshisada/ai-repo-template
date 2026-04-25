@@ -88,8 +88,8 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### FR-B3 — Documentation
 
-- [ ] T053 [P] [impl-themeB-models] [US4] Append a "Per-step model selection" section to `plugin-wheel/README.md` with the one-line rule of thumb: *"haiku for classification / pattern-match; sonnet for synthesis; opus only for hard reasoning."* Document accepted field values (`haiku|sonnet|opus|<id>`), the absent-field default behavior, and the loud-failure contract.
-- [ ] T054 [P] [impl-themeB-models] [US4] Update `plugin-kiln/skills/plan/SKILL.md` (or the `/plan` template wheel-workflow guidance location) to echo the same rule of thumb when `/plan` emits wheel-workflow JSON.
+- [X] T053 [P] [impl-themeB-models] [US4] Append a "Per-step model selection" section to `plugin-wheel/README.md` with the one-line rule of thumb: *"haiku for classification / pattern-match; sonnet for synthesis; opus only for hard reasoning."* Document accepted field values (`haiku|sonnet|opus|<id>`), the absent-field default behavior, and the loud-failure contract.
+- [X] T054 [P] [impl-themeB-models] [US4] Update `plugin-kiln/skills/plan/SKILL.md` (or the `/plan` template wheel-workflow guidance location) to echo the same rule of thumb when `/plan` emits wheel-workflow JSON.
 
 ### Phase 4 Tests (NFR-1, SC-006)
 

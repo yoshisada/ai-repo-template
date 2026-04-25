@@ -129,6 +129,40 @@ Wheel uses 6 Claude Code hooks:
 | `SessionStart(resume)` | Reload state and resume from last step |
 | `PostToolUse(Bash)` | Log commands to audit trail |
 
+## Per-step model selection
+
+Agent steps support an optional `model:` field that selects the model the spawned agent will run on.
+
+```json
+{
+  "id": "classify-tags",
+  "type": "agent",
+  "model": "haiku",
+  "instruction": "Classify these entries into one of four buckets..."
+}
+```
+
+Accepted values:
+
+| Value | Resolves to |
+|-------|-------------|
+| `"haiku"` | project-default haiku id (`plugin-wheel/scripts/dispatch/model-defaults.json`) |
+| `"sonnet"` | project-default sonnet id |
+| `"opus"` | project-default opus id |
+| `"claude-..."` | explicit model id — passed through if it matches `^claude-[a-z0-9-]+$` |
+
+Rules of thumb:
+
+- **haiku** for classification / pattern-match / routing steps — cheap and fast.
+- **sonnet** for synthesis, drafting, and most multi-file work — the default balance.
+- **opus** only for hard reasoning (architecture decisions, thorny debugging, long-context synthesis where the cost is justified).
+
+Guarantees:
+
+- The `model:` field is **optional**. Absent → harness default behavior, byte-identical to pre-`model:` workflows (NFR-5).
+- Mismatches **fail loudly**. Unrecognized tiers or malformed ids surface as an activation error with the identifiable prefix `wheel: model resolve failed` (and a step-context wrapper `wheel: model resolution failed for step '<name>': ...`). There is **no silent fallback** to a default model (FR-B2).
+- Explicit-id validation is regex-only. If the harness later rejects the id, that rejection also surfaces loudly at dispatch time.
+
 ## Requirements
 
 - Bash 3.2+ (macOS default)
