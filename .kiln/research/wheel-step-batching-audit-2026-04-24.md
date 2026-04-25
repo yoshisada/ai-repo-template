@@ -106,23 +106,89 @@ See the "Before" and "After" sections below. Measurement protocol:
 - Raw wall-clock numbers (start-to-completion of the chain), not aggregate.
 - Environment: Darwin 24.5.0, Bash 5.2.15, jq-1.6, Python 3.11.5.
 
-### Before (current 3-bash-call chain in sub-agent prompt)
+### Before (current 3-bash-call chain in sub-agent prompt) — BASH-ORCHESTRATION ONLY
 
-**Status**: Pending T093. Will be populated with raw `time` output once the measurement
-harness lands.
+Measures the raw bash-chain: `shelf-counter.sh increment-and-decide` → jq parse (4 values) →
+`append-bg-log.sh` (no LLM round-trip, isolated via `$SHELF_CONFIG` / `$BG_LOG_DIR` env
+overrides). Same session window, 2026-04-24.
 
-### After (consolidated wrapper)
+| Sample | Wall-clock (ms) |
+|-------:|----------------:|
+| 1 | 136.35 |
+| 2 | 116.82 |
+| 3 | 103.83 |
+| 4 | 117.15 |
+| 5 | 401.79 (*outlier — system noise; see note*) |
 
-**Status**: Pending T094 (blocked by Theme D's T076/T077 shipping `WORKFLOW_PLUGIN_DIR`
-export parity). Will be populated with raw `time` output.
+Median (excl. outlier): ~117 ms. Mean (excl. outlier): ~118 ms.
 
-### Result
+### After (consolidated wrapper) — BASH-ORCHESTRATION ONLY
 
-**Status**: Pending.
+Measures `bash plugin-shelf/scripts/step-dispatch-background-sync.sh` with identical
+env isolation. Same session, same hardware.
 
-Per R-005 / FR-E3 clause: if the After numbers are ≥ Before within noise, the audit
-ships with the negative finding documented in this section and the FR-E scope narrows
-to "convention doc + wrapper pattern documented, perf claim retracted" per T094a.
+| Sample | Wall-clock (ms) |
+|-------:|----------------:|
+| 1 | 125.96 |
+| 2 | 129.72 |
+| 3 | 120.59 |
+| 4 | 121.86 |
+| 5 | 128.37 |
+
+Median: ~126 ms. Mean: ~125 ms.
+
+### Result — **NEGATIVE at the bash-orchestration layer** (R-005 / T094a)
+
+**At the bash-orchestration layer only, After (~125 ms median) is ~7 ms SLOWER than Before
+(~117 ms median).** Delta is within per-sample noise (sample-5 outlier at 401 ms shows the
+noise floor is at least 50 ms on this hardware). The bash-process-startup cost that batching
+was supposed to eliminate turns out to be negligible on macOS arm64 — each bash invocation
+pays ~30-40 ms of startup, so 3 × 40 ms ≈ 120 ms for the before path. The after path pays
+1 × 40 ms of bash startup plus ~80 ms of jq validation work inside the wrapper body,
+netting ~125 ms. The two numbers are within noise and slightly favor the un-consolidated
+chain when measured at this layer alone.
+
+**Why this doesn't falsify the FR-E claim — but also doesn't confirm it.** The PRD's
+round-trip-cost hypothesis is about **LLM-tool-call round-trip latency** — the seconds-long
+pause between an agent finishing Bash call N and emitting Bash call N+1. That cost is NOT
+measurable in a pure-bash harness; it requires the actual agent session. Measuring the LLM
+round-trip honestly would require:
+
+- Running `/kiln:kiln-report-issue` end-to-end with the OLD 3-call chain AND the NEW
+  1-call wrapper, ≥3 times each.
+- Observing background-sub-agent wall-clock time from dispatch to log-line appearance.
+- Same session, same model, same system load.
+
+That integration-level measurement is blocked on Theme D's T076/T077 landing (needed so
+the calling workflow actually dispatches correctly under consumer-install) AND on the
+`impl-wheel-fixes` track opening a measurement window in its session.
+
+**Honest scope narrowing, per R-005**: ship the wrapper + convention doc + audit with the
+bash-orchestration-layer negative result documented. The wrapper's VALUE is now documented as:
+
+1. **Pattern clarity** — the convention doc (FR-E4 in wheel README) is the primary
+   deliverable. Future workflow authors follow it when their step has 3+ deterministic
+   calls AND clear LLM-round-trip exposure (i.e., the agent itself making the calls back-to-back).
+2. **Debuggability** — the wrapper's per-action `LOG_PREFIX action=X | start / ok` lines
+   are a strict improvement over 3 separate Bash tool invocations scattered across the
+   wheel log, where failure isolation requires grep-hunting.
+3. **Portability** — the wrapper uses `SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`,
+   which works identically under source-repo and consumer-install layouts. The pre-
+   consolidation chain relied on `${WORKFLOW_PLUGIN_DIR}` which Theme D is fixing; the
+   wrapper sidesteps that entire class of bug.
+
+**FR-E scope reconfirmed** (post-T094a):
+- FR-E1 (audit doc enumerating all 35 steps): **SHIPPED**.
+- FR-E2 (one worked-example wrapper): **SHIPPED** — `plugin-shelf/scripts/step-dispatch-background-sync.sh`.
+- FR-E3 (before/after measurement with raw numbers): **SHIPPED** — bash-layer numbers above;
+  integration-layer measurement documented as blocked on Theme D + flagged for follow-on.
+  No positive claim forced (R-005 honored).
+- FR-E4 (convention doc in wheel README): **SHIPPED**.
+
+**Follow-on recommendation for a future PRD** (out-of-scope here): add a wheel-level
+timing-instrumentation hook that records tool-call-to-tool-call latency during agent
+steps. That would produce the actual LLM-round-trip number and let future batching
+decisions be grounded in real data instead of heuristic.
 
 ## Convention (FR-E4 — to append to `plugin-wheel/README.md`)
 

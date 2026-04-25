@@ -61,7 +61,7 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### FR-A5 — Kiln skill resolver-spawn integration
 
-- [ ] T033 [impl-themeA-agents] [US3] Update `plugin-kiln/skills/kiln-fix/SKILL.md` (or wherever `/kiln:kiln-fix` defines its debug-loop Agent spawn) to offer the resolver path — invoke `plugin-wheel/scripts/agents/resolve.sh debugger` and attach the returned spec to the `Agent()` call. Preserve the existing general-purpose path behind a fallback (resolver exit 1 or unknown passthrough → legacy spawn).
+- [X] T033 [impl-themeA-agents] [US3] Added Step 4 (alternative) to `plugin-kiln/skills/kiln-fix/SKILL.md` — documents the resolver-spawn path for the `debugger` agent. Inline loop remains the default (back-compat), the resolver-spawn path is opt-in, and the skill text explicitly falls back to the inline loop on resolver exit 1. SC-005 anchor test is T045.
 
 ### Phase 3 Tests (NFR-1, SC-005, SC-008)
 
@@ -155,27 +155,27 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### FR-E1 — Audit
 
-- [ ] T090 [P] [impl-themeE-batching] [US5] Create `.kiln/research/wheel-step-batching-audit-2026-04-24.md`. Walk every `"type": "agent"` step across `plugin-clay/workflows/`, `plugin-kiln/workflows/`, `plugin-shelf/workflows/`, `plugin-trim/workflows/`, `plugin-wheel/workflows/`. Populate the enumeration table per data-model.md §7 (step name, JSON path, # internal bash calls approx, deterministic?, recommended action).
+- [X] T090 [P] [impl-themeE-batching] [US5] Create `.kiln/research/wheel-step-batching-audit-2026-04-24.md`. Walk every `"type": "agent"` step across `plugin-clay/workflows/`, `plugin-kiln/workflows/`, `plugin-shelf/workflows/`, `plugin-trim/workflows/`, `plugin-wheel/workflows/`. Populate the enumeration table per data-model.md §7 (step name, JSON path, # internal bash calls approx, deterministic?, recommended action).
 
 ### FR-E2 — Prototype wrapper
 
-- [ ] T091 [DEP:Theme D T076/T077] [impl-themeE-batching] [US5] Based on T090 audit, pick the highest-leverage step (documented candidate: `dispatch-background-sync`; if audit surfaces a better target, that one wins). Implement the batched wrapper at `plugin-<name>/scripts/step-<stepname>.sh` per contract §6 — `set -e`, `set -u`, per-action log lines with `LOG_PREFIX`, final JSON on stdout, uses `${WORKFLOW_PLUGIN_DIR}` for every plugin-local path (CC-2).
-- [ ] T092 [impl-themeE-batching] [US5] Update the workflow JSON that consumed the previously-multi-call sequence to invoke the single-wrapper command instead. State-file shape MUST be semantically equivalent (verified by T095).
+- [X] T091 [DEP:Theme D T076/T077] [impl-themeE-batching] [US5] Based on T090 audit, pick the highest-leverage step (documented candidate: `dispatch-background-sync`; if audit surfaces a better target, that one wins). Implement the batched wrapper at `plugin-<name>/scripts/step-<stepname>.sh` per contract §6 — `set -e`, `set -u`, per-action log lines with `LOG_PREFIX`, final JSON on stdout, uses `${WORKFLOW_PLUGIN_DIR}` for every plugin-local path (CC-2). (Wrapper at `plugin-shelf/scripts/step-dispatch-background-sync.sh`. Sibling scripts resolved via `SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` — CC-2-compliant and layout-agnostic; rationale documented in wheel README convention section.)
+- [ ] T092 [impl-themeE-batching] [US5] Update the workflow JSON that consumed the previously-multi-call sequence to invoke the single-wrapper command instead. State-file shape MUST be semantically equivalent (verified by T095). **BLOCKED on Theme D T076/T077** — workflow needs `WORKFLOW_PLUGIN_DIR` parity to activate cleanly under consumer-install layout. Wrapper is ready; switch is a ~20-line diff.
 
 ### FR-E3 — Before/after measurement
 
-- [ ] T093 [impl-themeE-batching] [US5] Measure wall-clock time for the chosen step BEFORE consolidation: ≥3 samples, same session, same hardware. Record raw numbers + environment details (OS, Bash version, harness version) in the audit doc under a "Before" section.
-- [ ] T094 [impl-themeE-batching] [US5] Measure AFTER consolidation: ≥3 samples, same session, same hardware. Record raw numbers in the audit doc under an "After" section.
-- [ ] T094a [impl-themeE-batching] [US5] **Negative-result fallback** (per research.md R-005 + FR-E3 clause): if After ≥ Before within noise, DO NOT force a positive claim. Document the negative finding in the audit doc under "Result: No speedup observed" with the likely-cause hypothesis, and narrow FR-E shipped scope to "audit + convention doc + wrapper pattern documented but not adopted for perf claims." This task is ONLY acted on if measurements show no speedup.
+- [X] T093 [impl-themeE-batching] [US5] Measure wall-clock time for the chosen step BEFORE consolidation: ≥3 samples, same session, same hardware. Record raw numbers + environment details (OS, Bash version, harness version) in the audit doc under a "Before" section. (5 samples at bash-orchestration layer committed; integration-layer measurement flagged for Theme D unblock.)
+- [X] T094 [impl-themeE-batching] [US5] Measure AFTER consolidation: ≥3 samples, same session, same hardware. Record raw numbers in the audit doc under an "After" section. (5 samples committed.)
+- [X] T094a [impl-themeE-batching] [US5] **Negative-result fallback** (per research.md R-005 + FR-E3 clause): if After ≥ Before within noise, DO NOT force a positive claim. Document the negative finding in the audit doc under "Result: No speedup observed" with the likely-cause hypothesis, and narrow FR-E shipped scope to "audit + convention doc + wrapper pattern documented but not adopted for perf claims." This task is ONLY acted on if measurements show no speedup. (ACTED ON — bash-layer After ~125ms, Before ~117ms (within noise; ~7ms slower). Audit doc documents honest negative + re-scopes FR-E to audit + wrapper + convention doc + portability + debuggability. No positive claim forced.)
 
 ### FR-E4 — Convention doc
 
-- [ ] T095 [P] [impl-themeE-batching] [US5] Append a "Step-internal command batching convention" section to `plugin-wheel/README.md` — explain WHEN to batch (deterministic sequence, no mid-step LLM reasoning) vs. WHEN to leave separate (mid-step reasoning needed); surface the debuggability trade-off; prescribe `set -e` + per-action log lines + structured JSON success/failure output (copy invariants I-B1..I-B4 from contract §6).
+- [X] T095 [P] [impl-themeE-batching] [US5] Append a "Step-internal command batching convention" section to `plugin-wheel/README.md` — explain WHEN to batch (deterministic sequence, no mid-step LLM reasoning) vs. WHEN to leave separate (mid-step reasoning needed); surface the debuggability trade-off; prescribe `set -e` + per-action log lines + structured JSON success/failure output (copy invariants I-B1..I-B4 from contract §6).
 
 ### Phase 6 Tests (NFR-1, NFR-6, SC-004)
 
-- [ ] T096 [P] [impl-themeE-batching] [US5] Unit test `plugin-<name>/tests/step-<stepname>-wrapper/`: the wrapper runs end-to-end in a tmp dir and emits the final JSON matching `{"step": ..., "status": "ok", "actions": [...]}`. A deliberately-failing action mid-wrapper → wrapper exits non-zero AND per-action log prefix identifies WHICH action failed (I-B2).
-- [ ] T097 [P] [impl-themeE-batching] [US5] Integration test: the workflow that calls the wrapper completes with the same state-file shape as pre-batching (semantic equivalence of T092).
+- [X] T096 [P] [impl-themeE-batching] [US5] Unit test `plugin-<name>/tests/step-<stepname>-wrapper/`: the wrapper runs end-to-end in a tmp dir and emits the final JSON matching `{"step": ..., "status": "ok", "actions": [...]}`. A deliberately-failing action mid-wrapper → wrapper exits non-zero AND per-action log prefix identifies WHICH action failed (I-B2). (15 assertions in `plugin-shelf/tests/step-dispatch-background-sync-wrapper/run.sh`, all green.)
+- [ ] T097 [P] [impl-themeE-batching] [US5] Integration test: the workflow that calls the wrapper completes with the same state-file shape as pre-batching (semantic equivalence of T092). **BLOCKED on T092 → Theme D T076/T077.**
 
 ---
 
