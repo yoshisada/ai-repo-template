@@ -106,4 +106,48 @@ jobs:
               exit 1
             fi
           fi
-          echo "SC-007 + SC-F-6 grep clean"
+          # SC-G-1 recalibrated: zero residual `{{VAR}}` placeholders in any
+          # archived workflow state. The hydration tripwire (FR-G3-5) is
+          # supposed to abort dispatch before state advance, so a state file
+          # holding a residual `{{VAR}}` is structural evidence the tripwire
+          # was bypassed. Defensive — only matches if the dir exists.
+          if [ -d .wheel/history/success ]; then
+            if git grep -E '\{\{[A-Z][A-Z0-9_]*\}\}' -- '.wheel/history/success/*.json' 2>/dev/null; then
+              echo "::error::FR-G3-5 regression: residual {{VAR}} placeholder in .wheel/history/success/*.json (hydration tripwire bypassed)"
+              exit 1
+            fi
+          fi
+          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean"
+
+      - name: NFR-G-6 atomic-migration guard (wheel-step-input-output-schema)
+        # specs/wheel-step-input-output-schema NFR-G-6: the runtime change
+        # (plugin-wheel/lib/resolve_inputs.sh) and the migrated workflow
+        # (plugin-kiln/workflows/kiln-report-issue.json) MUST land together
+        # on the feature branch — squash-merge produces a single merge
+        # commit touching BOTH paths. Per plan §3.E, the guard verifies
+        # both files appear in `git log --name-only` over the PR's commit
+        # range. Two adjacent commits in the same PR satisfy the invariant.
+        if: github.event_name == 'pull_request'
+        run: |
+          PR_RANGE="origin/${{ github.base_ref }}...HEAD"
+          # Collect the union of files touched by every commit in the PR.
+          touched=$(git log --name-only --pretty=format: "$PR_RANGE" 2>/dev/null | sort -u)
+          # Decide if this is a wheel-step-input-output-schema PR (i.e. the
+          # validator + the workflow JSON both moved). If neither moved, the
+          # guard is a no-op (NFR-G-3 backward-compat — unrelated PRs unaffected).
+          touched_resolver=$(printf '%s\n' "$touched" | grep -E '^plugin-wheel/lib/resolve_inputs\.sh$' || true)
+          touched_workflow=$(printf '%s\n' "$touched" | grep -E '^plugin-kiln/workflows/kiln-report-issue\.json$' || true)
+          if [ -z "$touched_resolver" ] && [ -z "$touched_workflow" ]; then
+            echo "NFR-G-6 guard: PR does not touch resolver or migrated workflow — guard is a no-op"
+            exit 0
+          fi
+          # Once either side has moved, both MUST be in the PR.
+          if [ -z "$touched_resolver" ]; then
+            echo "::error::NFR-G-6 regression: PR touches plugin-kiln/workflows/kiln-report-issue.json but not plugin-wheel/lib/resolve_inputs.sh. Atomic-migration invariant violated — workflow uses inputs:/output_schema: but the resolver runtime is not in this PR."
+            exit 1
+          fi
+          if [ -z "$touched_workflow" ]; then
+            echo "::warning::NFR-G-6 advisory: PR touches plugin-wheel/lib/resolve_inputs.sh without the migrated workflow. Acceptable for resolver-only follow-up PRs (e.g. perf tweaks); reviewer should confirm intent."
+            exit 0
+          fi
+          echo "NFR-G-6 guard: BOTH plugin-wheel/lib/resolve_inputs.sh AND plugin-kiln/workflows/kiln-report-issue.json appear in this PR's commit range — atomic-migration invariant satisfied"
