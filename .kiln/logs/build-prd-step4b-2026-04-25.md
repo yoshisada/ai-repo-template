@@ -1,0 +1,1 @@
+step4b: scanned_issues=2 scanned_feedback=0 matched=2 archived=2 skipped=0 prd_path=docs/features/2026-04-24-cross-plugin-resolver-and-preflight-registry/PRD.md derived_from_source=frontmatter missing_entries=[]
