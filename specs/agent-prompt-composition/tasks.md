@@ -41,9 +41,9 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 2.B-cont — CI gate + build script
 
-- [ ] **T-B-06** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/build-all.sh` — walks `plugin-kiln/agents/_src/*.md`, invokes `resolve.sh` on each, writes compiled output to `plugin-kiln/agents/<role>.md`. Idempotent. Exit non-zero if resolver fails on any file.
-- [ ] **T-B-07** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/check-compiled.sh` (FR-B-7) — runs `build-all.sh` to a tempdir, diffs against committed `plugin-kiln/agents/*.md`, exits non-zero if any drift. Stderr names the drifted file.
-- [ ] **T-B-08** [impl-include-preprocessor] Create `plugin-kiln/tests/agent-includes-ci-gate/run.sh` (SC-2) — fixture mutates a source file in `_src/` without re-running build, asserts `check-compiled.sh` exits non-zero with the file name in stderr. Then runs `build-all.sh` and asserts re-run exits 0. Cleans up after itself.
+- [X] **T-B-06** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/build-all.sh` — walks `plugin-kiln/agents/_src/*.md`, invokes `resolve.sh` on each, writes compiled output to `plugin-kiln/agents/<role>.md`. Idempotent. Exit non-zero if resolver fails on any file.
+- [X] **T-B-07** [impl-include-preprocessor] Author `plugin-kiln/scripts/agent-includes/check-compiled.sh` (FR-B-7) — runs `build-all.sh` to a tempdir, diffs against committed `plugin-kiln/agents/*.md`, exits non-zero if any drift. Stderr names the drifted file.
+- [X] **T-B-08** [impl-include-preprocessor] Create `plugin-kiln/tests/agent-includes-ci-gate/run.sh` (SC-2) — fixture mutates a source file in `_src/` without re-running build, asserts `check-compiled.sh` exits non-zero with the file name in stderr. Then runs `build-all.sh` and asserts re-run exits 0. Cleans up after itself.
 
 ---
 
@@ -51,11 +51,11 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 3.B — Refactor 2–3 existing agents (User Story 1, FR-B-6, SC-1)
 
-- [ ] **T-B-09** [impl-include-preprocessor] Create `plugin-kiln/agents/_src/qa-engineer.md` — copy current `plugin-kiln/agents/qa-engineer.md`, replace inline coordination prose with `<!-- @include _shared/coordination-protocol.md -->` directive on a line by itself.
-- [ ] **T-B-10** [impl-include-preprocessor] Run `build-all.sh`. Compiled `plugin-kiln/agents/qa-engineer.md` MUST contain the expanded coordination prose at the directive site. Compare against pre-refactor file: byte-identical except for canonical whitespace around the expansion (no behavioral regression).
-- [ ] **T-B-11** [impl-include-preprocessor] Repeat T-B-09/T-B-10 for `plugin-kiln/agents/prd-auditor.md`.
-- [ ] **T-B-12** [impl-include-preprocessor] Repeat T-B-09/T-B-10 for `plugin-kiln/agents/debugger.md`. (Decision in plan.md: 3 agents in v1. If during refactor it becomes apparent that one of these has fundamentally different coordination prose, drop it from v1 and document in friction-note — minimum 2 required for FR-B-6.)
-- [ ] **T-B-13** [impl-include-preprocessor] Run the SC-1 fixture (`agent-includes-resolve/run.sh`) end-to-end. PASS required.
+- [X] **T-B-09** [impl-include-preprocessor] Create `plugin-kiln/agents/_src/qa-engineer.md` — copy current `plugin-kiln/agents/qa-engineer.md`, replace inline coordination prose with `<!-- @include _shared/coordination-protocol.md -->` directive on a line by itself.
+- [X] **T-B-10** [impl-include-preprocessor] Run `build-all.sh`. Compiled `plugin-kiln/agents/qa-engineer.md` MUST contain the expanded coordination prose at the directive site. Compare against pre-refactor file: byte-identical except for canonical whitespace around the expansion (no behavioral regression).
+- [X] **T-B-11** [impl-include-preprocessor] Repeat T-B-09/T-B-10 for `plugin-kiln/agents/prd-auditor.md`.
+- [X] **T-B-12** [impl-include-preprocessor] Repeat T-B-09/T-B-10 for `plugin-kiln/agents/debugger.md`. (Decision in plan.md: 3 agents in v1. If during refactor it becomes apparent that one of these has fundamentally different coordination prose, drop it from v1 and document in friction-note — minimum 2 required for FR-B-6.)
+- [X] **T-B-13** [impl-include-preprocessor] Run the SC-1 fixture (`agent-includes-resolve/run.sh`) end-to-end. PASS required.
 
 ---
 
