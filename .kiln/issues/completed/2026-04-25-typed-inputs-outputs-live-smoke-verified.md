@@ -1,7 +1,9 @@
 ---
 title: Typed inputs/outputs schema verified live (post-PR #166)
 date: 2026-04-25
-status: verified
+status: completed
+completed_date: 2026-04-25
+pr: "#168"
 kind: smoke-test-result
 priority: low
 repo: https://github.com/yoshisada/ai-repo-template
