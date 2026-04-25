@@ -22,17 +22,17 @@ Implementer MUST invoke `/kiln:kiln-test plugin-wheel <fixture>` for every autho
 
 ## Phase 2 — Theme H1: validate output on write
 
-- [ ] **T010** Wire validator into `dispatch.sh::dispatch_agent` `post_tool_use` branch per §2.1. Insertion at line ~833 BEFORE `state_set_step_status … done`. Three branches: pass (silent), violation (block + reason), runtime-error (block + reason). FRs: FR-H1-1, FR-H1-3, FR-H1-5, FR-H1-6, FR-H1-7.
-- [ ] **T011** Wire validator into `dispatch.sh::dispatch_agent` `stop` branch per §2.2. Defense-in-depth — same shape as T010. Insertion at line ~624. FR: FR-H1-1.
-- [ ] **T012** Wire validator into `dispatch.sh::dispatch_agent` `teammate_idle` branch per §2.3. Mirror of T011. FR: FR-H1-1.
+- [X] **T010** Wire validator into `dispatch.sh::dispatch_agent` `post_tool_use` branch per §2.1. Insertion at line ~833 BEFORE `state_set_step_status … done`. Three branches: pass (silent), violation (block + reason), runtime-error (block + reason). FRs: FR-H1-1, FR-H1-3, FR-H1-5, FR-H1-6, FR-H1-7.
+- [X] **T011** Wire validator into `dispatch.sh::dispatch_agent` `stop` branch per §2.2. Defense-in-depth — same shape as T010. Insertion at line ~624. FR: FR-H1-1.
+- [X] **T012** Wire validator into `dispatch.sh::dispatch_agent` `teammate_idle` branch per §2.3. Mirror of T011. FR: FR-H1-1.
 
 ## Phase 3 — Theme H2: contract surfacing
 
-- [ ] **T013** Add `context_compose_contract_block <step_json> <resolved_map_json>` to `plugin-wheel/lib/context.sh` per §3. Pure formatting. Reuses `substitute_inputs_into_instruction` from preprocess.sh. Section omission rules per FR-H2-6. FRs: FR-H2-1, FR-H2-2, FR-H2-3, FR-H2-6, FR-H2-4 (back-compat empty-string return).
-- [ ] **T014** Persist `_resolved_map` to state via `state_set_resolved_inputs` in `dispatch_agent` `stop` branch (line ~603) per §6. FR: FR-H2-1.
-- [ ] **T015** Mirror T014 persistence in `dispatch_agent` `teammate_idle` branch (line ~693). FR: FR-H2-1.
-- [ ] **T016** Wire contract-block emission into `dispatch_agent` `stop` branch's "Output file expected but not yet produced — short reminder" else-leaf (line ~679) per §5. Read `contract_emitted` flag, compose block on first entry, set flag, prepend block to reminder body. FRs: FR-H2-5, FR-H2-7, FR-H2-4 byte-compat path.
-- [ ] **T017** Mirror T016 in `dispatch_agent` `teammate_idle` branch (line ~759). FR: FR-H2-5.
+- [X] **T013** Add `context_compose_contract_block <step_json> <resolved_map_json>` to `plugin-wheel/lib/context.sh` per §3. Pure formatting. Reuses `substitute_inputs_into_instruction` from preprocess.sh. Section omission rules per FR-H2-6. FRs: FR-H2-1, FR-H2-2, FR-H2-3, FR-H2-6, FR-H2-4 (back-compat empty-string return).
+- [X] **T014** Persist `_resolved_map` to state via `state_set_resolved_inputs` in `dispatch_agent` `stop` branch (line ~603) per §6. FR: FR-H2-1.
+- [X] **T015** Mirror T014 persistence in `dispatch_agent` `teammate_idle` branch (line ~693). FR: FR-H2-1.
+- [X] **T016** Wire contract-block emission into `dispatch_agent` `stop` branch's "Output file expected but not yet produced — short reminder" else-leaf (line ~679) per §5. Read `contract_emitted` flag, compose block on first entry, set flag, prepend block to reminder body. FRs: FR-H2-5, FR-H2-7, FR-H2-4 byte-compat path.
+- [X] **T017** Mirror T016 in `dispatch_agent` `teammate_idle` branch (line ~759). FR: FR-H2-5.
 
 ## Phase 4 — Test fixtures (the discipline gate per NFR-H-1)
 
