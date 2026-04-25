@@ -616,12 +616,49 @@ dispatch_agent() {
           jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
           return 0
         fi
+        # specs/wheel-typed-schema-locality §6 — persist resolved_map onto
+        # the per-step state record for Stop-hook re-read (Theme H2 / FR-H2-1
+        # caching, NFR-H-5 perf budget). Always called, even when the map is
+        # `{}` — keeps the state shape uniform. Failure is non-fatal: Theme
+        # H2 gracefully degrades (Resolved Inputs section omitted) but the
+        # workflow does not abort.
+        state_set_resolved_inputs "$state_file" "$step_index" "$_resolved_map" 2>/dev/null || \
+          { declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "stop" "warning=state_set_resolved_inputs_failed step=$(printf '%s' "$step_json" | jq -r '.id // "?"')"; }
         jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       elif [[ "$step_status" == "working" ]]; then
         # Check if the agent completed its work (output file exists)
         local output_key
         output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
         if [[ -n "$output_key" && -f "$output_key" ]]; then
+          # specs/wheel-typed-schema-locality FR-H1-1 / contracts §2.2 —
+          # defense-in-depth path. Mirrors §2.1 (post_tool_use) so the Stop
+          # tick catches violations the Write/Edit tool-use match missed
+          # (e.g. file edited via Bash heredoc, or the post-tool-use hook
+          # didn't fire). Same three exit codes, same block-the-turn shape.
+          local _stop_step_id
+          _stop_step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"')
+          local _stop_validator_out _stop_validator_rc
+          _stop_validator_out=$(workflow_validate_output_against_schema "$step_json" "$output_key" 2>&1)
+          _stop_validator_rc=$?
+          case "$_stop_validator_rc" in
+            0)
+              : # pass — fall through to advance logic
+              ;;
+            1)
+              declare -f wheel_log >/dev/null 2>&1 && \
+                wheel_log "stop" "reason=output-schema-violation step=${_stop_step_id}"
+              jq -n --arg msg "$_stop_validator_out" '{"decision": "block", "reason": $msg}'
+              return 0
+              ;;
+            2)
+              declare -f wheel_log >/dev/null 2>&1 && \
+                wheel_log "stop" "reason=output-schema-validator-error step=${_stop_step_id}"
+              jq -n --arg msg "$_stop_validator_out" '{"decision": "block", "reason": $msg}'
+              return 0
+              ;;
+          esac
+
           # Agent step is done — mark complete, capture output, advance
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
@@ -677,11 +714,34 @@ dispatch_agent() {
             jq -n '{"decision": "approve"}'
           fi
         else
-          # Output file expected but not yet produced — short reminder
+          # Output file expected but not yet produced — short reminder.
+          # specs/wheel-typed-schema-locality §5 / FR-H2-5 / FR-H2-7 — emit
+          # the contract block on FIRST entry per step only. The block is
+          # prepended to the legacy reminder body. Legacy step (no inputs:
+          # / no output_schema:) → empty block → reminder is byte-identical
+          # to today (NFR-H-3).
           local step_id
           step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
-          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key}" \
-            '{"decision": "block", "reason": $msg}'
+          local _emitted
+          _emitted=$(state_get_contract_emitted "$state_file" "$step_index")
+          local _contract_block=""
+          if [[ "$_emitted" != "true" ]]; then
+            local _resolved_map_persisted
+            _resolved_map_persisted=$(jq -c --argjson idx "$step_index" \
+              '.steps[$idx].resolved_inputs // {}' "$state_file" 2>/dev/null || printf '{}')
+            _contract_block=$(context_compose_contract_block "$step_json" "$_resolved_map_persisted")
+            if [[ -n "$_contract_block" ]]; then
+              state_set_contract_emitted "$state_file" "$step_index" "true" 2>/dev/null || true
+            fi
+          fi
+          local _reminder="Step '${step_id}' is in progress. Write your output to: ${output_key}"
+          local _body
+          if [[ -n "$_contract_block" ]]; then
+            _body="${_contract_block}"$'\n\n'"${_reminder}"
+          else
+            _body="$_reminder"
+          fi
+          jq -n --arg msg "$_body" '{"decision": "block", "reason": $msg}'
         fi
       else
         jq -n '{"decision": "approve"}'
@@ -705,12 +765,43 @@ dispatch_agent() {
           jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
           return 0
         fi
+        # specs/wheel-typed-schema-locality §6 — mirror of T014 (stop branch
+        # persistence). Persist resolved_map for the Stop-hook contract
+        # surfacing path (Theme H2 / FR-H2-1).
+        state_set_resolved_inputs "$state_file" "$step_index" "$_resolved_map_t" 2>/dev/null || \
+          { declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "teammate_idle" "warning=state_set_resolved_inputs_failed step=$(printf '%s' "$step_json" | jq -r '.id // "?"')"; }
         jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       elif [[ "$step_status" == "working" ]]; then
         # Check if agent completed (output file exists) — same logic as stop handler
         local output_key
         output_key=$(printf '%s\n' "$step_json" | jq -r '.output // empty')
         if [[ -n "$output_key" && -f "$output_key" ]]; then
+          # specs/wheel-typed-schema-locality FR-H1-1 / contracts §2.3 —
+          # teammate_idle branch mirrors stop branch (defense-in-depth).
+          # Same three exit codes, same block-the-turn shape.
+          local _ti_step_id
+          _ti_step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"')
+          local _ti_validator_out _ti_validator_rc
+          _ti_validator_out=$(workflow_validate_output_against_schema "$step_json" "$output_key" 2>&1)
+          _ti_validator_rc=$?
+          case "$_ti_validator_rc" in
+            0)
+              : # pass
+              ;;
+            1)
+              declare -f wheel_log >/dev/null 2>&1 && \
+                wheel_log "teammate_idle" "reason=output-schema-violation step=${_ti_step_id}"
+              jq -n --arg msg "$_ti_validator_out" '{"decision": "block", "reason": $msg}'
+              return 0
+              ;;
+            2)
+              declare -f wheel_log >/dev/null 2>&1 && \
+                wheel_log "teammate_idle" "reason=output-schema-validator-error step=${_ti_step_id}"
+              jq -n --arg msg "$_ti_validator_out" '{"decision": "block", "reason": $msg}'
+              return 0
+              ;;
+          esac
           state_set_step_status "$state_file" "$step_index" "done"
           context_capture_output "$state_file" "$step_index" "$output_key"
           local _parent_snap
@@ -757,10 +848,30 @@ dispatch_agent() {
             jq -n '{"decision": "approve"}'
           fi
         else
+          # specs/wheel-typed-schema-locality §5 / FR-H2-5 — mirror of T016
+          # (stop branch). Same emit-once contract surfacing for teammate_idle.
           local step_id
           step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "current"')
-          jq -n --arg msg "Step '${step_id}' is in progress. Write your output to: ${output_key}" \
-            '{"decision": "block", "reason": $msg}'
+          local _emitted_t
+          _emitted_t=$(state_get_contract_emitted "$state_file" "$step_index")
+          local _contract_block_t=""
+          if [[ "$_emitted_t" != "true" ]]; then
+            local _resolved_map_persisted_t
+            _resolved_map_persisted_t=$(jq -c --argjson idx "$step_index" \
+              '.steps[$idx].resolved_inputs // {}' "$state_file" 2>/dev/null || printf '{}')
+            _contract_block_t=$(context_compose_contract_block "$step_json" "$_resolved_map_persisted_t")
+            if [[ -n "$_contract_block_t" ]]; then
+              state_set_contract_emitted "$state_file" "$step_index" "true" 2>/dev/null || true
+            fi
+          fi
+          local _reminder_t="Step '${step_id}' is in progress. Write your output to: ${output_key}"
+          local _body_t
+          if [[ -n "$_contract_block_t" ]]; then
+            _body_t="${_contract_block_t}"$'\n\n'"${_reminder_t}"
+          else
+            _body_t="$_reminder_t"
+          fi
+          jq -n --arg msg "$_body_t" '{"decision": "block", "reason": $msg}'
         fi
       else
         jq -n '{"decision": "approve"}'
@@ -829,6 +940,40 @@ dispatch_agent() {
         jq -n '{"hookEventName": "PostToolUse"}'
         return 0
       fi
+
+      # specs/wheel-typed-schema-locality FR-H1-1 / FR-H1-3 / contracts §2.1 —
+      # primary fail-fast path. Validate the just-written output_file against
+      # the step's declared output_schema (if any) BEFORE marking the step
+      # done. Three exit codes per workflow_validate_output_against_schema:
+      #   0 → silent pass; fall through to existing advance logic.
+      #   1 → schema violation (FR-H1-2/FR-H1-6). Block the agent's same turn
+      #       with the structured diagnostic body. Cursor stays on this step
+      #       (status NOT flipped to done); contract_emitted unchanged. The
+      #       bad output_file is left in place per FR-H1-5.
+      #   2 → validator runtime error (FR-H1-7/NFR-H-7). Block with distinct
+      #       reason; cursor stays put.
+      local _ptu_step_id
+      _ptu_step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"')
+      local _ptu_validator_out _ptu_validator_rc
+      _ptu_validator_out=$(workflow_validate_output_against_schema "$step_json" "$wrote_to" 2>&1)
+      _ptu_validator_rc=$?
+      case "$_ptu_validator_rc" in
+        0)
+          : # pass — fall through
+          ;;
+        1)
+          declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "post_tool_use" "reason=output-schema-violation step=${_ptu_step_id}"
+          jq -n --arg msg "$_ptu_validator_out" '{"decision": "block", "reason": $msg}'
+          return 0
+          ;;
+        2)
+          declare -f wheel_log >/dev/null 2>&1 && \
+            wheel_log "post_tool_use" "reason=output-schema-validator-error step=${_ptu_step_id}"
+          jq -n --arg msg "$_ptu_validator_out" '{"decision": "block", "reason": $msg}'
+          return 0
+          ;;
+      esac
 
       # Agent wrote to the output file — mark step done, advance
       state_set_step_status "$state_file" "$step_index" "done"

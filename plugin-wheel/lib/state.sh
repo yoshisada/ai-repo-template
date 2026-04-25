@@ -489,6 +489,105 @@ state_clear_awaiting_user_input() {
   state_write "$state_file" "$updated"
 }
 
+# §4.1 (specs/wheel-typed-schema-locality contracts/interfaces.md): Persist
+# the dispatch-time resolved-inputs map onto the per-step state record so the
+# Stop-hook contract surfacing path (Theme H2 / FR-H2-1) can re-read it
+# without re-running resolve_inputs each tick (NFR-H-5 perf budget).
+#
+# Params:
+#   $1 = state_file (string)        — absolute path to wheel state file.
+#   $2 = step_index (integer)       — 0-based index into .steps[].
+#   $3 = resolved_map_json (string) — single-line JSON; "{}" is acceptable.
+#
+# Output: none on stdout. Errors to stderr.
+# Exit:   0 on success; 1 on missing file / invalid JSON / write failure.
+state_set_resolved_inputs() {
+  local state_file="$1"
+  local step_index="$2"
+  local resolved_map_json="$3"
+  # Default to {} when caller passes empty string — keeps the state shape uniform.
+  if [[ -z "$resolved_map_json" ]]; then
+    resolved_map_json="{}"
+  fi
+  # Reject obviously-malformed JSON early so we never persist garbage.
+  if ! printf '%s' "$resolved_map_json" | jq empty 2>/dev/null; then
+    echo "ERROR: state_set_resolved_inputs: resolved_map_json is not valid JSON" >&2
+    return 1
+  fi
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --argjson idx "$step_index" \
+    --argjson map "$resolved_map_json" \
+    --arg now "$now" \
+    '.steps[$idx].resolved_inputs = $map | .updated_at = $now') || return 1
+  state_write "$state_file" "$updated"
+}
+
+# §4.2 (specs/wheel-typed-schema-locality contracts/interfaces.md): Mark that
+# the Stop-hook contract block has been emitted for this step (FR-H2-5 /
+# OQ-H-1: emit-once-per-step-entry). Only valid values are "true"/"false".
+#
+# Params:
+#   $1 = state_file (string)
+#   $2 = step_index (integer)
+#   $3 = bool (string "true" | "false")
+#
+# Output: none on stdout. Errors to stderr.
+# Exit:   0 on success; 1 on missing file / invalid JSON / write failure / bad bool.
+state_set_contract_emitted() {
+  local state_file="$1"
+  local step_index="$2"
+  local bool_value="$3"
+  if [[ "$bool_value" != "true" && "$bool_value" != "false" ]]; then
+    echo "ERROR: state_set_contract_emitted: third argument must be 'true' or 'false', got '$bool_value'" >&2
+    return 1
+  fi
+  local state
+  state=$(state_read "$state_file") || return 1
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+  local updated
+  updated=$(printf '%s\n' "$state" | jq \
+    --argjson idx "$step_index" \
+    --argjson b "$bool_value" \
+    --arg now "$now" \
+    '.steps[$idx].contract_emitted = $b | .updated_at = $now') || return 1
+  state_write "$state_file" "$updated"
+}
+
+# §4.3 (specs/wheel-typed-schema-locality contracts/interfaces.md): Read the
+# contract_emitted flag for a given step. Missing field reads as "false" so
+# legacy state files (pre-PRD) are usable without migration. FR-H2-5.
+#
+# Params:
+#   $1 = state_file (string)
+#   $2 = step_index (integer)
+#
+# Output (stdout): "true" or "false".
+# Exit: 0 always. Missing/unreadable file silently returns "false" (callers
+#       treat this as "not yet emitted" — the contract block then emits, the
+#       set-true call below catches the file-missing case loudly).
+state_get_contract_emitted() {
+  local state_file="$1"
+  local step_index="$2"
+  if [[ ! -f "$state_file" ]]; then
+    printf 'false\n'
+    return 0
+  fi
+  local result
+  result=$(jq -r --argjson idx "$step_index" '.steps[$idx].contract_emitted // false' "$state_file" 2>/dev/null)
+  if [[ "$result" == "true" ]]; then
+    printf 'true\n'
+  else
+    printf 'false\n'
+  fi
+  return 0
+}
+
 # FR-025: Remove a team from the state file (called by team-delete)
 # Params: $1 = state file, $2 = step_id (team-create step ID)
 # Output: none (updates state file)

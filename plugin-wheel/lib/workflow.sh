@@ -803,3 +803,115 @@ workflow_discover_plugin_workflows() {
     printf '%s\n' "$result"
   )
 }
+
+# §1 (specs/wheel-typed-schema-locality contracts/interfaces.md): Runtime
+# output-side validator. Validates that an agent step's `output_file` content
+# has top-level keys matching the declared `output_schema:`. Distinct from
+# the load-time `workflow_validate_inputs_outputs` shape check above.
+#
+# Three exit codes per contract §1:
+#   0 — pass (or skipped because output_schema absent / empty / null).
+#       NO stdout, NO stderr.
+#   1 — schema violation (FR-H1-2 / FR-H1-6). Stderr emits the multi-line
+#       diagnostic body verbatim per FR-H1-2 shape.
+#   2 — validator runtime error (FR-H1-7 / NFR-H-7). Stderr emits a single
+#       line naming the underlying error class.
+#
+# v1 validates ONLY top-level key presence — does NOT recurse into nested
+# paths. Empty `output_schema: {}` and absent / null fields are early-return
+# 0 (FR-H1-8 + §7 invariants).
+#
+# Params:
+#   $1  step_json         — agent step JSON (single-line). Must contain `.id`.
+#   $2  output_file_path  — path to agent's output_file. Must exist + readable.
+#
+# FRs covered: FR-H1-1, FR-H1-2, FR-H1-6, FR-H1-7, FR-H1-8.
+workflow_validate_output_against_schema() {
+  local step_json="$1"
+  local output_file_path="$2"
+
+  # NFR-H-5 perf: extract id + schema in ONE jq invocation. id and schema
+  # are emitted as separate stream elements (newline-delimited). jq -r prints
+  # one element per line.
+  local _meta step_id schema
+  _meta=$(printf '%s\n' "$step_json" | jq -r '(.id // "?"), (.output_schema // null | tojson)' 2>/dev/null)
+  step_id="${_meta%%$'\n'*}"
+  schema="${_meta#*$'\n'}"
+
+  # §7 invariants — early-return 0 silently when output_schema is absent /
+  # null / empty. NFR-H-3 byte-identical back-compat.
+  if [[ "$schema" == "null" || "$schema" == "{}" || -z "$schema" ]]; then
+    return 0
+  fi
+
+  # output_file existence / readability checks emit exit-2 (validator runtime
+  # error, not a violation).
+  if [[ ! -e "$output_file_path" ]]; then
+    printf "Output schema validator error in step '%s': output_file not found: %s\n" \
+      "$step_id" "$output_file_path" >&2
+    return 2
+  fi
+  if [[ ! -r "$output_file_path" ]]; then
+    printf "Output schema validator error in step '%s': output_file is not readable: %s\n" \
+      "$step_id" "$output_file_path" >&2
+    return 2
+  fi
+
+  # NFR-H-5 perf: do all the heavy lifting in ONE jq invocation — parse
+  # output_file, extract expected/actual key sets, compute set diff, and emit
+  # four newline-delimited CSV lines. jq's `keys` returns codepoint-sorted
+  # keys which matches LC_ALL=C lex for the ASCII identifier shape that
+  # `_validate_output_schema_directives` enforces.
+  local jq_combined jq_rc
+  jq_combined=$(jq --argjson schema "$schema" -r '
+    . as $out
+    | ($schema | keys) as $expected
+    | ($out    | keys) as $actual
+    | ($expected | join(",")),
+      ($actual   | join(",")),
+      (($expected - $actual) | join(",")),
+      (($actual - $expected) | join(","))
+  ' "$output_file_path" 2>/tmp/.wheel_validate_err_$$)
+  jq_rc=$?
+  if [[ $jq_rc -ne 0 ]]; then
+    local jq_err
+    jq_err=$(cat /tmp/.wheel_validate_err_$$ 2>/dev/null)
+    rm -f /tmp/.wheel_validate_err_$$
+    local jq_err_head="${jq_err%%$'\n'*}"
+    printf "Output schema validator error in step '%s': output_file is not valid JSON: %s\n" \
+      "$step_id" "$jq_err_head" >&2
+    return 2
+  fi
+  rm -f /tmp/.wheel_validate_err_$$
+
+  # Parse four newline-delimited CSV fields. mapfile reads each line into
+  # an array; we then bind by index. Empty lines become empty strings — the
+  # exact behavior FR-H1-2's omission rule depends on.
+  local _csv_lines=()
+  mapfile -t _csv_lines <<< "$jq_combined"
+  local expected_csv="${_csv_lines[0]:-}"
+  local actual_csv="${_csv_lines[1]:-}"
+  local missing_csv="${_csv_lines[2]:-}"
+  local unexpected_csv="${_csv_lines[3]:-}"
+
+  if [[ -z "$missing_csv" && -z "$unexpected_csv" ]]; then
+    return 0
+  fi
+
+  # Emit FR-H1-2 diagnostic to stderr. Missing / Unexpected lines are OMITTED
+  # entirely (not "Missing: ") when their set is empty.
+  {
+    printf "Output schema violation in step '%s'.\n" "$step_id"
+    printf "  Expected keys (from output_schema): %s\n" "$expected_csv"
+    printf "  Actual keys in %s: %s\n" "$output_file_path" "$actual_csv"
+    if [[ -n "$missing_csv" ]]; then
+      printf "  Missing: %s\n" "$missing_csv"
+    fi
+    if [[ -n "$unexpected_csv" ]]; then
+      printf "  Unexpected: %s\n" "$unexpected_csv"
+    fi
+    printf "Re-write the file with the expected keys and try again.\n"
+  } >&2
+
+  return 1
+}

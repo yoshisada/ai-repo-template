@@ -134,6 +134,139 @@ context_build() {
   printf '%b' "$context_parts"
 }
 
+# §3 (specs/wheel-typed-schema-locality contracts/interfaces.md):
+# context_compose_contract_block — pure formatter for Theme H2's Stop-hook
+# contract surfacing. Emits (in order) `## Resolved Inputs`, `## Step
+# Instruction` (post-{{VAR}}-substitution), and `## Required Output Schema`
+# sections for an agent step. Returns empty string when NEITHER `inputs:`
+# NOR `output_schema:` is declared (FR-H2-4 strict back-compat).
+#
+# Section omission rules (FR-H2-6):
+#   - `## Resolved Inputs` omitted iff resolved_map is `{}` OR step has no
+#     `inputs:`.
+#   - `## Step Instruction` omitted iff step's `instruction:` is absent/empty.
+#   - `## Required Output Schema` omitted iff step's `output_schema:` is
+#     absent/null/`{}`.
+#   - When ALL three are omitted: emit empty string (back-compat path).
+#
+# Pure formatting — no I/O, no state mutations.
+#
+# Params:
+#   $1  step_json          — agent step JSON (single-line). Reads .id,
+#                            .inputs, .instruction, .output_schema.
+#   $2  resolved_map_json  — resolved-inputs map from resolve_inputs (PR #166).
+#                            May be `{}` or empty.
+#
+# Output (stdout): contract markdown, or empty string for legacy steps.
+# Exit: 0 always (pure formatter).
+#
+# FRs covered: FR-H2-1, FR-H2-2, FR-H2-3, FR-H2-4 (back-compat empty path),
+#              FR-H2-6.
+context_compose_contract_block() {
+  local step_json="$1"
+  local resolved_map_json="${2:-}"
+
+  # NFR-H-5 perf: collapse step_json probes (inputs presence, has-instruction
+  # flag, schema body) into ONE jq invocation. The actual instruction body
+  # (which may span newlines) is read via a SECOND jq call only when needed
+  # (`has_instruction == "yes"` case). The probe stream is exactly 3 lines.
+  local _probe has_inputs has_instruction schema_compact instruction_raw has_output_schema
+  _probe=$(printf '%s\n' "$step_json" | jq -r '
+    (if (.inputs // null) == null or (.inputs | length) == 0 then "no" else "yes" end),
+    (if ((.instruction // "") | length) > 0 then "yes" else "no" end),
+    (.output_schema // null | tojson)' 2>/dev/null)
+  local _probe_lines=()
+  mapfile -t _probe_lines <<< "$_probe"
+  has_inputs="${_probe_lines[0]:-no}"
+  has_instruction="${_probe_lines[1]:-no}"
+  schema_compact="${_probe_lines[2]:-null}"
+  if [[ "$schema_compact" == "null" || "$schema_compact" == "{}" || -z "$schema_compact" ]]; then
+    has_output_schema="no"
+  else
+    has_output_schema="yes"
+  fi
+  if [[ "$has_instruction" == "yes" ]]; then
+    instruction_raw=$(printf '%s\n' "$step_json" | jq -r '.instruction // ""' 2>/dev/null)
+  else
+    instruction_raw=""
+  fi
+
+  # FR-H2-4 back-compat: when NEITHER inputs: NOR output_schema: is declared,
+  # emit empty string (caller falls through to legacy reminder body).
+  if [[ "$has_inputs" == "no" && "$has_output_schema" == "no" ]]; then
+    return 0
+  fi
+
+  # Resolve effective resolved-map for the Resolved Inputs section. Empty
+  # map → suppress the section (FR-H2-6). NOTE: do NOT use `${var:-{}}` —
+  # bash parameter-expansion brace pairing turns the default into `{` and
+  # leaves a stray `}` after the expansion. Plain conditional assignment is
+  # the only safe path here.
+  local resolved_effective
+  if [[ -z "${resolved_map_json:-}" ]]; then
+    resolved_effective='{}'
+  else
+    resolved_effective="$resolved_map_json"
+  fi
+
+  local out=""
+
+  # ## Resolved Inputs — only when inputs: declared AND map non-empty.
+  if [[ "$has_inputs" == "yes" && "$resolved_effective" != "{}" ]]; then
+    local resolved_block
+    resolved_block=$(printf '%s' "$resolved_effective" | jq -r '
+      "## Resolved Inputs\n" +
+      ([to_entries[] | "- **" + .key + "**: " + (.value | tostring)] | join("\n"))
+    ' 2>/dev/null)
+    if [[ -n "$resolved_block" ]]; then
+      out="${resolved_block}"
+    fi
+  fi
+
+  # ## Step Instruction — post-{{VAR}}-substitution per FR-H2-2.
+  if [[ "$has_instruction" == "yes" ]]; then
+    local instruction_substituted="$instruction_raw"
+    # Only substitute when there's a non-empty resolved map; otherwise the
+    # tripwire would fire on un-resolvable {{VAR}} placeholders. The Stop-
+    # hook composer is meant to surface what the agent already saw at
+    # dispatch — if dispatch's substitution failed, dispatch already errored
+    # and we wouldn't reach this branch.
+    if [[ "$resolved_effective" != "{}" ]]; then
+      # NFR-H-5 perf: only fork python3 when the instruction actually
+      # contains `{{NAME}}` placeholders. The grep is ~1ms vs ~25ms for
+      # python3 startup. Same regex as substitute_inputs_into_instruction.
+      if printf '%s' "$instruction_raw" | grep -qE '\{\{[A-Z][A-Z0-9_]*\}\}'; then
+        local _step_id="$has_inputs"  # placeholder; reassigned below
+        _step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"' 2>/dev/null)
+        local _sub_out
+        if _sub_out=$(substitute_inputs_into_instruction "$instruction_raw" "$resolved_effective" "$_step_id" 2>/dev/null); then
+          instruction_substituted="$_sub_out"
+        fi
+        # On substitution failure: fall back to the raw instruction so the
+        # surface is never empty when an agent expects to see it. (Dispatch's
+        # earlier substitution already produced a real error path.)
+      fi
+    fi
+    if [[ -n "$out" ]]; then
+      out="${out}"$'\n\n'
+    fi
+    out="${out}## Step Instruction"$'\n\n'"${instruction_substituted}"
+  fi
+
+  # ## Required Output Schema — fenced JSON code block (FR-H2-3).
+  if [[ "$has_output_schema" == "yes" ]]; then
+    if [[ -n "$out" ]]; then
+      out="${out}"$'\n\n'
+    fi
+    out="${out}## Required Output Schema"$'\n\n'"\`\`\`json"$'\n'"${schema_compact}"$'\n'"\`\`\`"
+  fi
+
+  if [[ -n "$out" ]]; then
+    printf '%s' "$out"
+  fi
+  return 0
+}
+
 # FR-028: Capture and store step output
 # Params: $1 = state file path, $2 = step index, $3 = output value or file path
 # Output: none (updates state file via state_set_step_output)

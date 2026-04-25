@@ -129,6 +129,51 @@ Wheel uses 6 Claude Code hooks:
 | `SessionStart(resume)` | Reload state and resume from last step |
 | `PostToolUse(Bash)` | Log commands to audit trail |
 
+## Typed-schema locality
+
+Two extensions to the typed step `inputs:` + `output_schema:` substrate (introduced in PR #166) close round-trip waste between workflow and agent:
+
+### Fail fast on output-schema violation (Theme H1)
+
+When an agent step declares `output_schema:`, wheel validates the agent's `output_file` against the declared keys **at write time** — before returning to the agent's same turn. On mismatch, the hook returns `decision=block reason=output-schema-violation` with a structured diagnostic naming expected, actual, missing, and unexpected keys:
+
+```text
+Output schema violation in step 'report-issue'.
+  Expected keys (from output_schema): issue_file
+  Actual keys in /tmp/output.json: action,backlog_path
+  Missing: issue_file
+  Unexpected: action,backlog_path
+Re-write the file with the expected keys and try again.
+```
+
+The cursor stays on the violating step; no Stop tick is required between the bad write and the corrected re-write. Validation runs in three places (post_tool_use, stop "output exists", teammate_idle "output exists") so a missed Write detection in any one path is caught by the others. Validator runtime errors (malformed JSON, unreadable output_file, etc.) surface as a distinct `reason=output-schema-validator-error` — never silent fallthrough.
+
+### Surface the contract in Stop-hook feedback (Theme H2)
+
+When the Stop-hook (or teammate_idle hook) fires for an agent step that is `working` but has not yet written its `output_file`, wheel surfaces the step's resolved contract back to the agent — once per step entry:
+
+````text
+## Resolved Inputs
+- **ISSUE_FILE**: /tmp/issues/2026-04-25-foo.md
+- **AUTHOR**: alice
+
+## Step Instruction
+
+Process /tmp/issues/2026-04-25-foo.md by alice.
+
+## Required Output Schema
+
+```json
+{"issue_file":"$.issue_file","status":"$.status"}
+```
+
+Step 'report-issue' is in progress. Write your output to: /tmp/output.json
+````
+
+The `## Resolved Inputs` block matches the same content `context_build` prepended to the agent's prompt at dispatch. The `## Step Instruction` body is post-`{{VAR}}`-substitution. The `## Required Output Schema` block surfaces the schema declaration verbatim so the agent can comply without reading upstream output files. Emission is gated by a per-step `contract_emitted` flag — surfaced ONCE per step entry; subsequent ticks emit only the legacy "Step in progress" reminder.
+
+Steps that declare neither `inputs:` nor `output_schema:` see byte-identical Stop-hook feedback to pre-PRD behavior. The contract surface is opt-in via the typed step shape.
+
 ## Per-step model selection
 
 Agent steps support an optional `model:` field that selects the model the spawned agent will run on.
