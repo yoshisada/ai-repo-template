@@ -50,3 +50,7 @@ reports/
 # Plugin skill test harness — per-run ephemeral artifacts (scratch snapshots,
 # NDJSON transcripts, verdict JSON + markdown reports). Never commit.
 .kiln/logs/kiln-test-*
+
+# Research-first runner reports (NFR-S-004) — per-run ephemeral comparative
+# reports. Maintainers may copy into PR descriptions manually.
+.kiln/logs/research-*

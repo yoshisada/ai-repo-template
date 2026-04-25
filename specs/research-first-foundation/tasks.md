@@ -67,11 +67,11 @@ Single-project, extending existing CLI substrate. Net-new files only — NFR-S-0
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Author seed corpus fixture #1 at `plugin-kiln/fixtures/research-first-seed/corpus/001-noop-passthrough/`: `input.json` (single user envelope invoking `kiln:kiln-version` — the lightest-possible probe per research.md §SC-001 anchor 1), `expected.json` (assertion_kind: "exit-code", expected_exit_code: 0), `metadata.yaml` (axes: [accuracy, tokens]; why: "anchors runner plumbing on near-no-op fixture").
-- [ ] T012 [P] [US1] Author seed corpus fixture #2 at `plugin-kiln/fixtures/research-first-seed/corpus/002-token-floor/`: same shape; verifies token-count parsing on a minimal envelope. Use a low-cost probe (e.g. another version-style skill). `metadata.yaml` why: "verifies token parsing on minimal envelope per FR-S-013".
-- [ ] T013 [P] [US1] Author seed corpus fixture #3 at `plugin-kiln/fixtures/research-first-seed/corpus/003-assertion-anchor/`: same shape; assertion designed to exercise the assertion-pass path. `metadata.yaml` why: "exercises assertion-pass path so the runner's accuracy-axis logic is reached for all 3 fixtures".
-- [ ] T014 [US1] Implement `plugin-kiln/tests/research-runner-pass-path/run.sh` (chmod +x). Constructs symlink-copied baseline=candidate plugin-dirs (`baseline -> $PWD/plugin-kiln`, `candidate -> $PWD/plugin-kiln`), invokes `bash plugin-wheel/scripts/harness/research-runner.sh --baseline … --candidate … --corpus plugin-kiln/fixtures/research-first-seed/corpus/`, asserts: (a) exit 0, (b) `.kiln/logs/research-*.md` exists, (c) report contains `Overall: PASS`, (d) report contains 3 per-fixture rows, (e) wall-clock ≤ 240 s. SC-S-001 + SC-S-003 anchor. Final stdout line: `PASS` or `FAIL`.
-- [ ] T015 [US1] Add `.gitignore` line for `.kiln/logs/research-*.md` (if not already covered by `.kiln/logs/` pattern — verify via `git check-ignore -v .kiln/logs/research-test.md`). NFR-S-004 anchor.
+- [X] T011 [P] [US1] Author seed corpus fixture #1 at `plugin-kiln/fixtures/research-first-seed/corpus/001-noop-passthrough/`: `input.json` (single user envelope invoking `kiln:kiln-version` — the lightest-possible probe per research.md §SC-001 anchor 1), `expected.json` (assertion_kind: "exit-code", expected_exit_code: 0), `metadata.yaml` (axes: [accuracy, tokens]; why: "anchors runner plumbing on near-no-op fixture").
+- [X] T012 [P] [US1] Author seed corpus fixture #2 at `plugin-kiln/fixtures/research-first-seed/corpus/002-token-floor/`: same shape; verifies token-count parsing on a minimal envelope. Use a low-cost probe (e.g. another version-style skill). `metadata.yaml` why: "verifies token parsing on minimal envelope per FR-S-013".
+- [X] T013 [P] [US1] Author seed corpus fixture #3 at `plugin-kiln/fixtures/research-first-seed/corpus/003-assertion-anchor/`: same shape; assertion designed to exercise the assertion-pass path. `metadata.yaml` why: "exercises assertion-pass path so the runner's accuracy-axis logic is reached for all 3 fixtures".
+- [X] T014 [US1] Implement `plugin-kiln/tests/research-runner-pass-path/run.sh` (chmod +x). Constructs symlink-copied baseline=candidate plugin-dirs (`baseline -> $PWD/plugin-kiln`, `candidate -> $PWD/plugin-kiln`), invokes `bash plugin-wheel/scripts/harness/research-runner.sh --baseline … --candidate … --corpus plugin-kiln/fixtures/research-first-seed/corpus/`, asserts: (a) exit 0, (b) `.kiln/logs/research-*.md` exists, (c) report contains `Overall: PASS`, (d) report contains 3 per-fixture rows, (e) wall-clock ≤ 240 s. SC-S-001 + SC-S-003 anchor. Final stdout line: `PASS` or `FAIL`.
+- [X] T015 [US1] Add `.gitignore` line for `.kiln/logs/research-*.md` (if not already covered by `.kiln/logs/` pattern — verify via `git check-ignore -v .kiln/logs/research-test.md`). NFR-S-004 anchor.
 
 **Checkpoint**: US1 fully testable. Commit Phase 3.
 
@@ -117,7 +117,7 @@ Single-project, extending existing CLI substrate. Net-new files only — NFR-S-0
 
 ### Implementation for User Story 4
 
-- [ ] T022 [US4] In `plugin-wheel/scripts/harness/README-research-runner.md` (created in T024 below), document the `fixture_corpus:` PRD-frontmatter convention in a "Forward-compat" section. Includes example PRD frontmatter snippet + note that v1 runner does NOT consume it (step 6 will). FR-S-006 + FR-S-010 anchors.
+- [X] T022 [US4] In `plugin-wheel/scripts/harness/README-research-runner.md` (created in T024 below), document the `fixture_corpus:` PRD-frontmatter convention in a "Forward-compat" section. Includes example PRD frontmatter snippet + note that v1 runner does NOT consume it (step 6 will). FR-S-006 + FR-S-010 anchors.
 
 **Checkpoint**: US4 documented. Commit Phase 6 with US5.
 
@@ -131,8 +131,8 @@ Single-project, extending existing CLI substrate. Net-new files only — NFR-S-0
 
 ### Implementation for User Story 5
 
-- [ ] T023 [P] [US5] Author `plugin-wheel/scripts/harness/README-research-runner.md` (≤ 200 LoC) per FR-S-010 + NFR-S-009. Sections: (a) Quick Start (corpus dir shape + runner invocation + report path), (b) Worked example using the FR-S-009 seed corpus, (c) Report shape reference (link to `contracts/interfaces.md §8`), (d) Forward-compat note (T022 — the `fixture_corpus:` PRD frontmatter), (e) Pointer to `kiln:kiln-research` SKILL wrapper, (f) Exit-code legend.
-- [ ] T024 [P] [US5] Verify README line count is ≤ 200 lines via `wc -l plugin-wheel/scripts/harness/README-research-runner.md`. Add an inline assertion to T014 (research-runner-pass-path/run.sh) that the README exists and ≤ 200 lines, so the gate is testable in CI.
+- [X] T023 [P] [US5] Author `plugin-wheel/scripts/harness/README-research-runner.md` (≤ 200 LoC) per FR-S-010 + NFR-S-009. Sections: (a) Quick Start (corpus dir shape + runner invocation + report path), (b) Worked example using the FR-S-009 seed corpus, (c) Report shape reference (link to `contracts/interfaces.md §8`), (d) Forward-compat note (T022 — the `fixture_corpus:` PRD frontmatter), (e) Pointer to `kiln:kiln-research` SKILL wrapper, (f) Exit-code legend.
+- [X] T024 [P] [US5] Verify README line count is ≤ 200 lines via `wc -l plugin-wheel/scripts/harness/README-research-runner.md`. Add an inline assertion to T014 (research-runner-pass-path/run.sh) that the README exists and ≤ 200 lines, so the gate is testable in CI.
 
 **Checkpoint**: US5 documented. Commit Phase 7.
 
