@@ -24,6 +24,14 @@
 - **The PR template should accommodate non-passing SC verdicts** by default (e.g., a `<PASS|FAIL>` placeholder per SC plus a "blockers vs follow-ups" reconciliation paragraph). The current template implicitly assumes all-green, which forces the audit-pr agent to reshape it under time pressure.
 - **TOKEN_TOLERANCE calibration should be relative from day one**. Absolute thresholds work for isolated single-fixture tests but break for any multi-arm runner. This is a v1 lesson worth threading into the next iteration's plan.
 
+## Addendum: Race condition with team-lead PAUSE signal (PI candidate)
+
+After PR #176 was opened, team-lead messaged a PAUSE signal asking audit-pr to hold on `gh pr create` until impl-runner shipped a SC-003 calibration fix-up and audit-smoke re-verified. The PAUSE arrived AFTER audit-pr had already pushed + opened the PR (the spawn instruction said "wait for both audits to signal unblock," and both had — audit-pr had no signal that team-lead might inject a fix-up between audit-smoke completion and PR open).
+
+**Resolution**: PR #176 flipped to draft via `gh pr ready --undo 176`, with a comment explaining the calibration fix is in flight. Body will be edited to flip SC-003 → PASS once audit-smoke re-verifies; PR flipped back to ready via `gh pr ready 176`.
+
+**PI candidate for retrospective**: audit-pr's spawn instruction should add a third gate after the audit signals — an explicit "all-green, proceed-to-PR" signal from team-lead — so a PAUSE for in-flight fix-ups can interpose between audits-complete and PR-open without race. Today's protocol couples "audits complete" with "team-lead approves PR open"; decoupling them would let team-lead inject calibration fixes (or other surprises surfaced in audit) without forcing a draft-flip dance after the PR is already public.
+
 ## Task Status
 
-Task #6 (audit-pr) → completed.
+Task #6 (audit-pr) → completed (PR shipped). Draft-flip + body-edit + ready-flip are a small fix-up under the same task per team-lead direction.
