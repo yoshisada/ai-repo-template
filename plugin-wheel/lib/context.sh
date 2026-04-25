@@ -166,23 +166,29 @@ context_compose_contract_block() {
   local step_json="$1"
   local resolved_map_json="${2:-}"
 
-  # Decide which sections apply.
-  local has_inputs has_instruction has_output_schema
-  has_inputs=$(printf '%s\n' "$step_json" | jq -r '
-    if (.inputs // null) == null or (.inputs | length) == 0 then "no" else "yes" end' 2>/dev/null)
-  local instruction_raw
-  instruction_raw=$(printf '%s\n' "$step_json" | jq -r '.instruction // ""' 2>/dev/null)
-  if [[ -n "$instruction_raw" ]]; then
-    has_instruction="yes"
-  else
-    has_instruction="no"
-  fi
-  local schema_compact
-  schema_compact=$(printf '%s\n' "$step_json" | jq -c '.output_schema // null' 2>/dev/null)
+  # NFR-H-5 perf: collapse step_json probes (inputs presence, has-instruction
+  # flag, schema body) into ONE jq invocation. The actual instruction body
+  # (which may span newlines) is read via a SECOND jq call only when needed
+  # (`has_instruction == "yes"` case). The probe stream is exactly 3 lines.
+  local _probe has_inputs has_instruction schema_compact instruction_raw has_output_schema
+  _probe=$(printf '%s\n' "$step_json" | jq -r '
+    (if (.inputs // null) == null or (.inputs | length) == 0 then "no" else "yes" end),
+    (if ((.instruction // "") | length) > 0 then "yes" else "no" end),
+    (.output_schema // null | tojson)' 2>/dev/null)
+  local _probe_lines=()
+  mapfile -t _probe_lines <<< "$_probe"
+  has_inputs="${_probe_lines[0]:-no}"
+  has_instruction="${_probe_lines[1]:-no}"
+  schema_compact="${_probe_lines[2]:-null}"
   if [[ "$schema_compact" == "null" || "$schema_compact" == "{}" || -z "$schema_compact" ]]; then
     has_output_schema="no"
   else
     has_output_schema="yes"
+  fi
+  if [[ "$has_instruction" == "yes" ]]; then
+    instruction_raw=$(printf '%s\n' "$step_json" | jq -r '.instruction // ""' 2>/dev/null)
+  else
+    instruction_raw=""
   fi
 
   # FR-H2-4 back-compat: when NEITHER inputs: NOR output_schema: is declared,
@@ -226,15 +232,20 @@ context_compose_contract_block() {
     # dispatch — if dispatch's substitution failed, dispatch already errored
     # and we wouldn't reach this branch.
     if [[ "$resolved_effective" != "{}" ]]; then
-      local _step_id
-      _step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"' 2>/dev/null)
-      local _sub_out
-      if _sub_out=$(substitute_inputs_into_instruction "$instruction_raw" "$resolved_effective" "$_step_id" 2>/dev/null); then
-        instruction_substituted="$_sub_out"
+      # NFR-H-5 perf: only fork python3 when the instruction actually
+      # contains `{{NAME}}` placeholders. The grep is ~1ms vs ~25ms for
+      # python3 startup. Same regex as substitute_inputs_into_instruction.
+      if printf '%s' "$instruction_raw" | grep -qE '\{\{[A-Z][A-Z0-9_]*\}\}'; then
+        local _step_id="$has_inputs"  # placeholder; reassigned below
+        _step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"' 2>/dev/null)
+        local _sub_out
+        if _sub_out=$(substitute_inputs_into_instruction "$instruction_raw" "$resolved_effective" "$_step_id" 2>/dev/null); then
+          instruction_substituted="$_sub_out"
+        fi
+        # On substitution failure: fall back to the raw instruction so the
+        # surface is never empty when an agent expects to see it. (Dispatch's
+        # earlier substitution already produced a real error path.)
       fi
-      # On substitution failure: fall back to the raw instruction so the
-      # surface is never empty when an agent expects to see it. (Dispatch's
-      # earlier substitution already produced a real error path.)
     fi
     if [[ -n "$out" ]]; then
       out="${out}"$'\n\n'

@@ -830,20 +830,22 @@ workflow_validate_output_against_schema() {
   local step_json="$1"
   local output_file_path="$2"
 
-  local step_id
-  step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"' 2>/dev/null)
+  # NFR-H-5 perf: extract id + schema in ONE jq invocation. id and schema
+  # are emitted as separate stream elements (newline-delimited). jq -r prints
+  # one element per line.
+  local _meta step_id schema
+  _meta=$(printf '%s\n' "$step_json" | jq -r '(.id // "?"), (.output_schema // null | tojson)' 2>/dev/null)
+  step_id="${_meta%%$'\n'*}"
+  schema="${_meta#*$'\n'}"
 
   # §7 invariants — early-return 0 silently when output_schema is absent /
   # null / empty. NFR-H-3 byte-identical back-compat.
-  local schema
-  schema=$(printf '%s\n' "$step_json" | jq -c '.output_schema // null' 2>/dev/null)
   if [[ "$schema" == "null" || "$schema" == "{}" || -z "$schema" ]]; then
     return 0
   fi
 
   # output_file existence / readability checks emit exit-2 (validator runtime
-  # error, not a violation — the agent didn't write something we can't parse;
-  # we can't even reach the file).
+  # error, not a violation).
   if [[ ! -e "$output_file_path" ]]; then
     printf "Output schema validator error in step '%s': output_file not found: %s\n" \
       "$step_id" "$output_file_path" >&2
@@ -855,58 +857,49 @@ workflow_validate_output_against_schema() {
     return 2
   fi
 
-  # Read actual top-level keys from output_file. jq parse error → exit 2.
-  local actual_keys_raw jq_err
-  jq_err=$(jq -r 'keys_unsorted[]' "$output_file_path" 2>&1 1>/tmp/.wheel_validate_out_$$)
-  local jq_rc=$?
+  # NFR-H-5 perf: do all the heavy lifting in ONE jq invocation — parse
+  # output_file, extract expected/actual key sets, compute set diff, and emit
+  # four newline-delimited CSV lines. jq's `keys` returns codepoint-sorted
+  # keys which matches LC_ALL=C lex for the ASCII identifier shape that
+  # `_validate_output_schema_directives` enforces.
+  local jq_combined jq_rc
+  jq_combined=$(jq --argjson schema "$schema" -r '
+    . as $out
+    | ($schema | keys) as $expected
+    | ($out    | keys) as $actual
+    | ($expected | join(",")),
+      ($actual   | join(",")),
+      (($expected - $actual) | join(",")),
+      (($actual - $expected) | join(","))
+  ' "$output_file_path" 2>/tmp/.wheel_validate_err_$$)
+  jq_rc=$?
   if [[ $jq_rc -ne 0 ]]; then
-    rm -f /tmp/.wheel_validate_out_$$
-    # Trim multi-line jq errors to a single line (first line is most informative).
+    local jq_err
+    jq_err=$(cat /tmp/.wheel_validate_err_$$ 2>/dev/null)
+    rm -f /tmp/.wheel_validate_err_$$
     local jq_err_head="${jq_err%%$'\n'*}"
     printf "Output schema validator error in step '%s': output_file is not valid JSON: %s\n" \
       "$step_id" "$jq_err_head" >&2
     return 2
   fi
-  actual_keys_raw=$(cat /tmp/.wheel_validate_out_$$)
-  rm -f /tmp/.wheel_validate_out_$$
+  rm -f /tmp/.wheel_validate_err_$$
 
-  # Read expected top-level keys from output_schema (single-line JSON).
-  local expected_keys_raw
-  expected_keys_raw=$(printf '%s' "$schema" | jq -r 'keys_unsorted[]' 2>&1) || {
-    local schema_err_head="${expected_keys_raw%%$'\n'*}"
-    printf "Output schema validator error in step '%s': output_schema directive malformed at field '?': %s\n" \
-      "$step_id" "$schema_err_head" >&2
-    return 2
-  }
+  # Parse four newline-delimited CSV fields. mapfile reads each line into
+  # an array; we then bind by index. Empty lines become empty strings — the
+  # exact behavior FR-H1-2's omission rule depends on.
+  local _csv_lines=()
+  mapfile -t _csv_lines <<< "$jq_combined"
+  local expected_csv="${_csv_lines[0]:-}"
+  local actual_csv="${_csv_lines[1]:-}"
+  local missing_csv="${_csv_lines[2]:-}"
+  local unexpected_csv="${_csv_lines[3]:-}"
 
-  # LC_ALL=C lexicographic sort for deterministic snapshot diffs (FR-H1-2).
-  local expected_sorted actual_sorted
-  expected_sorted=$(LC_ALL=C printf '%s\n' "$expected_keys_raw" | LC_ALL=C sort)
-  actual_sorted=$(LC_ALL=C printf '%s\n' "$actual_keys_raw" | LC_ALL=C sort)
-
-  # Compute Missing = expected - actual; Unexpected = actual - expected.
-  # Use comm against sorted streams; comm requires a sorted input pair.
-  local missing unexpected
-  missing=$(LC_ALL=C comm -23 <(printf '%s\n' "$expected_sorted") <(printf '%s\n' "$actual_sorted"))
-  unexpected=$(LC_ALL=C comm -13 <(printf '%s\n' "$expected_sorted") <(printf '%s\n' "$actual_sorted"))
-  # Strip stray blank lines (sort/comm round-trip can introduce one for empty input).
-  missing=$(printf '%s' "$missing" | awk 'NF')
-  unexpected=$(printf '%s' "$unexpected" | awk 'NF')
-
-  if [[ -z "$missing" && -z "$unexpected" ]]; then
-    # All expected keys present, no extras — pass silently.
+  if [[ -z "$missing_csv" && -z "$unexpected_csv" ]]; then
     return 0
   fi
 
-  # Build comma-separated, sorted lines for the diagnostic.
-  local expected_csv actual_csv missing_csv unexpected_csv
-  expected_csv=$(printf '%s' "$expected_sorted" | awk 'NF' | paste -sd, -)
-  actual_csv=$(printf '%s' "$actual_sorted" | awk 'NF' | paste -sd, -)
-  missing_csv=$(printf '%s' "$missing" | paste -sd, -)
-  unexpected_csv=$(printf '%s' "$unexpected" | paste -sd, -)
-
-  # Emit FR-H1-2 diagnostic to stderr. Missing / Unexpected lines are
-  # OMITTED entirely (not "Missing: ") when their set is empty.
+  # Emit FR-H1-2 diagnostic to stderr. Missing / Unexpected lines are OMITTED
+  # entirely (not "Missing: ") when their set is empty.
   {
     printf "Output schema violation in step '%s'.\n" "$step_id"
     printf "  Expected keys (from output_schema): %s\n" "$expected_csv"
