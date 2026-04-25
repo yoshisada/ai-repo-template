@@ -292,7 +292,11 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       # Create state and run kickstart with the TEMPLATED workflow JSON so
       # downstream dispatch sees literal absolute paths in agent instructions.
-      state_init "$STATE_FILE" "$TEMPLATED_WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
+      # specs/wheel-step-input-output-schema FR-G2-3 — persist the session
+      # registry alongside the templated workflow so dispatch-time
+      # `resolve_inputs` can resolve `$plugin(<name>)` without rebuilding
+      # (NFR-G-5 perf budget).
+      state_init "$STATE_FILE" "$TEMPLATED_WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE" "" "$REGISTRY_JSON"
 
       # Teammate activation: the --as flag already told us the team-format ID,
       # so stamp it on the child state file directly. No parent-state guess,

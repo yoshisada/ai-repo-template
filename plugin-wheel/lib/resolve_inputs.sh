@@ -160,10 +160,15 @@ extract_output_field() {
         echo "extract_output_field: field '${field_name}' has malformed JSON-path directive: '${jq_path}' (must start with \$.)" >&2
         return 1
       fi
+      # Translate JSONPath `$.foo.bar` → jq `.foo.bar` (strip leading `$`).
+      # JSONPath is a stable subset chosen for spec-author readability; jq is
+      # the runtime engine. Same shape used by extract_output_field's
+      # internal jq-path branch + resolve_inputs $config(file:.jq.path).
+      local jq_expr=".${jq_path#\$.}"
       # Run jq against the upstream output.
       local extracted
-      if ! extracted=$(printf '%s' "$upstream_output" | jq -r "$jq_path" 2>&1); then
-        echo "extract_output_field: jq '${jq_path}' failed against step output: ${extracted}" >&2
+      if ! extracted=$(printf '%s' "$upstream_output" | jq -r "$jq_expr" 2>&1); then
+        echo "extract_output_field: jq '${jq_expr}' failed against step output: ${extracted}" >&2
         return 1
       fi
       if [[ "$extracted" == "null" ]]; then
@@ -306,16 +311,32 @@ _read_upstream_output() {
 # -----------------------------------------------------------------------------
 # resolve_inputs — FR-G3-1 / FR-G3-4 / contract §2.
 #
-# Iterates `step.inputs`, dispatches each via `_parse_jsonpath_expr`, resolves
-# each expression, returns a single-line JSON object with the resolved map.
+# Iterates `step.inputs`, dispatches each via the JSONPath subset grammar,
+# resolves each expression, returns a single-line JSON object with the
+# resolved map.
+#
+# Implementation note (NFR-G-5 perf): the body delegates to a SINGLE
+# python3 invocation that does parsing + resolution + extraction +
+# allowlist gating. The earlier bash-and-jq implementation measured
+# ~190ms median for 5 inputs (jq cold-start ≈ 10-15ms × ~9 invocations
+# per dollar_steps input). The python3 path is dominated by the ~25ms
+# python3 cold-start with sub-ms resolution work, leaving headroom in
+# the 100ms gate. The bash `_parse_jsonpath_expr` and bash
+# `extract_output_field` helpers above are STILL used by:
+#   - workflow.sh::workflow_validate_inputs_outputs (load-time validation —
+#     no perf gate, low FR count, jq is fine);
+#   - external test fixtures (resolve-inputs-grammar/, output-schema-extract-*).
+# So the grammar lives in two homes (python3 + bash) — both must move
+# together. Mutation tripwires in both substrates guard against drift
+# (NFR-G-2).
 #
 # Args:
-#   $1  step_json       — single-line JSON, the agent step from workflow.steps[]
+#   $1  step_json       — single-line JSON, the agent step
 #   $2  state_json      — single-line JSON, parent workflow state
 #   $3  workflow_json   — single-line JSON, the templated workflow
 #   $4  registry_json   — single-line JSON, output of build_session_registry
 #
-# Stdout (on exit 0): single-line JSON `{ "<VAR>": "<resolved>", ... }` (or `{}`).
+# Stdout (on exit 0): single-line JSON `{ "<VAR>": "<resolved>", ... }` or `{}`.
 # Stderr (on exit 1): ONE line matching one of the contract §2 error shapes.
 # -----------------------------------------------------------------------------
 resolve_inputs() {
@@ -324,226 +345,324 @@ resolve_inputs() {
   local workflow_json="$3"
   local registry_json="$4"
 
-  # Pull workflow + step identifiers for error messages.
-  local wf_name step_id
-  wf_name=$(printf '%s' "$workflow_json" | jq -r '.name // "unnamed"')
-  step_id=$(printf '%s' "$step_json" | jq -r '.id // "?"')
-
-  # No-op fast path (I-RI-5 / NFR-G-5 ≤5ms).
-  local inputs_json
-  inputs_json=$(printf '%s' "$step_json" | jq -c '.inputs // {}')
-  if [[ "$inputs_json" == "{}" || -z "$inputs_json" ]]; then
+  # No-op bash fast path (I-RI-5 / NFR-G-5 ≤5ms-class) — do not pay
+  # python3 startup if step.inputs is absent or empty. Cheap bash regex
+  # check instead of jq.
+  if [[ "$step_json" != *'"inputs"'* ]] || [[ "$step_json" == *'"inputs":{}'* ]]; then
     echo '{}'
     return 0
   fi
 
-  # Iterate keys in sorted order for deterministic resolved-map ordering.
-  local var_names
-  var_names=$(printf '%s' "$inputs_json" | jq -r 'keys_unsorted[]')
+  # Build allowlist as newline-delimited keys (known-safe charset; no JSON
+  # escaping needed). The earlier per-key python3 invocation cost ~25ms each
+  # × 5 keys, blowing the NFR-G-5 budget by itself.
+  local allowlist_keys=""
+  local _key
+  for _key in "${!CONFIG_KEY_ALLOWLIST[@]}"; do
+    allowlist_keys="${allowlist_keys}${_key}"$'\n'
+  done
 
-  # Build the resolved map incrementally as JSON. Use jq to handle escaping.
-  local resolved_map='{}'
+  # Single python3 invocation does everything. Pass big JSON blobs via env.
+  local result_or_err
+  result_or_err=$(
+    STEP_JSON="$step_json" \
+    STATE_JSON="$state_json" \
+    WORKFLOW_JSON="$workflow_json" \
+    REGISTRY_JSON="$registry_json" \
+    ALLOWLIST_KEYS="$allowlist_keys" \
+    python3 - <<'PY' 2>&1
+import json, os, re, sys
 
-  local var_name expr resolved_value
+step = json.loads(os.environ["STEP_JSON"])
+state = json.loads(os.environ["STATE_JSON"])
+workflow = json.loads(os.environ["WORKFLOW_JSON"])
+registry = json.loads(os.environ.get("REGISTRY_JSON") or "{}")
+allowlist = set(
+    line for line in os.environ.get("ALLOWLIST_KEYS", "").split("\n") if line
+)
 
-  while IFS= read -r var_name; do
-    [[ -z "$var_name" ]] && continue
+wf_name = workflow.get("name", "unnamed")
+step_id = step.get("id", "?")
+inputs = step.get("inputs", {}) or {}
 
-    expr=$(printf '%s' "$inputs_json" | jq -r --arg k "$var_name" '.[$k]')
+wf_steps = workflow.get("steps", [])
+step_by_id = {s.get("id", ""): s for s in wf_steps}
+state_steps = state.get("steps", [])
 
-    if ! _parse_jsonpath_expr "$expr"; then
-      printf "Workflow '%s' step '%s' input '%s' uses unsupported expression: '%s'. Supported: \$.steps.<id>.output.<field>, \$config(<file>:<key>), \$plugin(<name>), \$step(<id>).\n" \
-        "$wf_name" "$step_id" "$var_name" "$expr" >&2
-      return 1
-    fi
+RE_DOLLAR_STEPS  = re.compile(r"^\$\.steps\.([A-Za-z0-9_-]+)\.output\.([A-Za-z0-9_-]+)$")
+RE_DOLLAR_CONFIG = re.compile(r"^\$config\(([^:)]+):([^)]+)\)$")
+RE_DOLLAR_PLUGIN = re.compile(r"^\$plugin\(([A-Za-z0-9_-]+)\)$")
+RE_DOLLAR_STEP   = re.compile(r"^\$step\(([A-Za-z0-9_-]+)\)$")
 
-    case "$_PARSED_KIND" in
-      dollar_steps)
-        local upstream_step_id="$_PARSED_ARG1"
-        local field_name="$_PARSED_ARG2"
+def fail(msg):
+    sys.stderr.write(msg + "\n")
+    sys.exit(1)
 
-        # Locate the upstream step in workflow.steps[].
-        local upstream_idx
-        upstream_idx=$(printf '%s' "$workflow_json" | jq --arg id "$upstream_step_id" '[.steps[].id] | index($id)')
-        if [[ "$upstream_idx" == "null" || -z "$upstream_idx" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
+def err_unsupported(var, expr):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' uses unsupported expression: "
+        f"'{expr}'. Supported: $.steps.<id>.output.<field>, $config(<file>:<key>), "
+        f"$plugin(<name>), $step(<id>)."
+    )
 
-        # Confirm upstream has run (status: done).
-        local upstream_status
-        upstream_status=$(printf '%s' "$state_json" | jq -r --argjson idx "$upstream_idx" '.steps[$idx].status // ""')
-        if [[ "$upstream_status" != "done" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
+def err_missing_upstream(var, ups):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' references missing upstream "
+        f"output: step '{ups}' has not run or has no output_schema declaration."
+    )
 
-        # Pull the upstream step's output_schema.
-        local upstream_step
-        upstream_step=$(printf '%s' "$workflow_json" | jq -c --argjson idx "$upstream_idx" '.steps[$idx]')
-        local upstream_schema
-        upstream_schema=$(printf '%s' "$upstream_step" | jq -c '.output_schema // null')
-        if [[ "$upstream_schema" == "null" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
+def err_field_not_in_schema(var, field, ups):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' references field '{field}' "
+        f"of step '{ups}' but '{field}' is not in that step's output_schema."
+    )
 
-        # Read the upstream output (handles sub-workflow filename aliasing).
-        local upstream_output
-        if ! upstream_output=$(_read_upstream_output "$upstream_idx" "$state_json" "$upstream_step"); then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
+def err_regex_no_match(var, ups):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves regex extractor "
+        f"against step '{ups}' output but pattern did not match."
+    )
 
-        # Extract the field per the schema.
-        if ! resolved_value=$(extract_output_field "$upstream_output" "$upstream_schema" "$field_name" 2>/dev/null); then
-          # Distinguish "field not in schema" (validation drift) vs "regex did not match" (data error).
-          local schema_has_field
-          schema_has_field=$(printf '%s' "$upstream_schema" | jq -r --arg f "$field_name" 'has($f)')
-          if [[ "$schema_has_field" != "true" ]]; then
-            printf "Workflow '%s' step '%s' input '%s' references field '%s' of step '%s' but '%s' is not in that step's output_schema.\n" \
-              "$wf_name" "$step_id" "$var_name" "$field_name" "$upstream_step_id" "$field_name" >&2
-          else
-            printf "Workflow '%s' step '%s' input '%s' resolves regex extractor against step '%s' output but pattern did not match.\n" \
-              "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          fi
-          return 1
-        fi
-        ;;
+def err_allowlist(var, fil, key):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves $config({fil}:{key}) "
+        f"but '{key}' is not in the safe-key allowlist for {fil}. Add it to "
+        f"plugin-wheel/lib/resolve_inputs.sh::CONFIG_KEY_ALLOWLIST after security review, "
+        f"or use $step()/$.steps.* for non-config values."
+    )
 
-      dollar_config)
-        local cfg_file="$_PARSED_ARG1"
-        local cfg_key="$_PARSED_ARG2"
+def err_cfg_file(var, fil, key):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves $config({fil}:{key}) "
+        f"but config file '{fil}' not found."
+    )
 
-        # Allowlist gate (I-AL-1 / NFR-G-7) — fail BEFORE any file read.
-        # JSON file form (`<file>:<jq-path>`, where the key starts with `.`)
-        # is exempt from the flat allowlist (the literal jq path is the gate).
-        local is_jq_path=0
-        if [[ "$cfg_key" == .* ]]; then
-          is_jq_path=1
-        fi
+def err_cfg_key(var, fil, key):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves $config({fil}:{key}) "
+        f"but key '{key}' not found in '{fil}'."
+    )
 
-        if [[ $is_jq_path -eq 0 ]]; then
-          local allowlist_lookup="${cfg_file}:${cfg_key}"
-          if [[ -z "${CONFIG_KEY_ALLOWLIST[$allowlist_lookup]:-}" ]]; then
-            printf "Workflow '%s' step '%s' input '%s' resolves \$config(%s:%s) but '%s' is not in the safe-key allowlist for %s. Add it to plugin-wheel/lib/resolve_inputs.sh::CONFIG_KEY_ALLOWLIST after security review, or use \$step()/\$.steps.* for non-config values.\n" \
-              "$wf_name" "$step_id" "$var_name" "$cfg_file" "$cfg_key" "$cfg_key" "$cfg_file" >&2
-            return 1
-          fi
-        fi
+def err_plugin(var, name):
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves $plugin({name}) "
+        f"but '{name}' is not in this session's registry."
+    )
 
-        # Existence gate.
-        if [[ ! -f "$cfg_file" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' resolves \$config(%s:%s) but config file '%s' not found.\n" \
-            "$wf_name" "$step_id" "$var_name" "$cfg_file" "$cfg_key" "$cfg_file" >&2
-          return 1
-        fi
+def read_upstream_output(ups_id):
+    """FR-G2-1 + sub-workflow filename aliasing per researcher-baseline §Job 2."""
+    ups_step = step_by_id.get(ups_id)
+    if ups_step is None:
+        return None
+    idx = None
+    for i, s in enumerate(state_steps):
+        if s.get("id") == ups_id:
+            idx = i
+            break
+    if idx is None:
+        return None
+    rec = state_steps[idx].get("output") or ""
+    if rec and os.path.isfile(rec):
+        with open(rec, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    if ups_step.get("type") == "workflow":
+        sub_wf = ups_step.get("workflow", "")
+        sub_wf_name = sub_wf.split(":")[-1]
+        conv = f".wheel/outputs/{sub_wf_name}-result.json"
+        if os.path.isfile(conv):
+            with open(conv, encoding="utf-8", errors="replace") as f:
+                return f.read()
+    if rec:
+        return rec
+    return None
 
-        if [[ $is_jq_path -eq 1 ]]; then
-          # JSON file form — feed the jq path to jq -r.
-          local jq_out
-          if ! jq_out=$(jq -r "$cfg_key" "$cfg_file" 2>&1); then
-            printf "Workflow '%s' step '%s' input '%s' resolves \$config(%s:%s) but key '%s' not found in '%s'.\n" \
-              "$wf_name" "$step_id" "$var_name" "$cfg_file" "$cfg_key" "$cfg_key" "$cfg_file" >&2
-            return 1
-          fi
-          if [[ "$jq_out" == "null" || -z "$jq_out" ]]; then
-            printf "Workflow '%s' step '%s' input '%s' resolves \$config(%s:%s) but key '%s' not found in '%s'.\n" \
-              "$wf_name" "$step_id" "$var_name" "$cfg_file" "$cfg_key" "$cfg_key" "$cfg_file" >&2
-            return 1
-          fi
-          resolved_value="$jq_out"
-        else
-          # Flat config (.shelf-config) — `key = value` lines, `key=value` also accepted.
-          # Match the `shelf-counter.sh read` shape (interfaces.md §2 + spec.md FR-G2-2).
-          # Pattern: optional whitespace, key, optional whitespace, `=`, optional whitespace, value.
-          local val
-          val=$(awk -v key="$cfg_key" '
-            BEGIN { found=0 }
-            {
-              line=$0
-              # Strip leading/trailing whitespace.
-              sub(/^[ \t]+/, "", line)
-              sub(/[ \t]+$/, "", line)
-              # Skip blanks + comments.
-              if (line == "" || line ~ /^#/) next
-              # Match `key = value` or `key=value`.
-              n = index(line, "=")
-              if (n == 0) next
-              k = substr(line, 1, n-1)
-              v = substr(line, n+1)
-              # Strip whitespace around k + v.
-              sub(/[ \t]+$/, "", k)
-              sub(/^[ \t]+/, "", v)
-              sub(/[ \t]+$/, "", v)
-              if (k == key) { print v; found=1; exit }
-            }
-            END { if (!found) exit 2 }
-          ' "$cfg_file" 2>/dev/null)
-          local awk_rc=$?
-          if [[ $awk_rc -ne 0 ]]; then
-            printf "Workflow '%s' step '%s' input '%s' resolves \$config(%s:%s) but key '%s' not found in '%s'.\n" \
-              "$wf_name" "$step_id" "$var_name" "$cfg_file" "$cfg_key" "$cfg_key" "$cfg_file" >&2
-            return 1
-          fi
-          resolved_value="$val"
-        fi
-        ;;
+def extract_field(upstream_output, output_schema, field, var, ups_id):
+    if not output_schema or field not in output_schema:
+        err_field_not_in_schema(var, field, ups_id)
+    directive = output_schema[field]
+    if isinstance(directive, str):
+        if not directive.startswith("$."):
+            fail(
+                f"Workflow '{wf_name}' step '{step_id}' input '{var}' references field '{field}' "
+                f"of step '{ups_id}' but its output_schema directive is malformed: '{directive}'."
+            )
+        try:
+            payload = json.loads(upstream_output)
+        except json.JSONDecodeError:
+            fail(
+                f"Workflow '{wf_name}' step '{step_id}' input '{var}' could not parse "
+                f"step '{ups_id}' output as JSON for direct path extraction."
+            )
+        path_parts = directive[2:].split(".") if directive != "$." else []
+        cur = payload
+        for part in path_parts:
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                fail(
+                    f"Workflow '{wf_name}' step '{step_id}' input '{var}' resolves direct path "
+                    f"'{directive}' against step '{ups_id}' output but path did not match."
+                )
+        if cur is None:
+            fail(
+                f"Workflow '{wf_name}' step '{step_id}' input '{var}' direct path '{directive}' "
+                f"resolved to null in step '{ups_id}' output."
+            )
+        return str(cur)
+    if isinstance(directive, dict):
+        ext = directive.get("extract", "")
+        if ext.startswith("regex:"):
+            pat = ext[len("regex:"):]
+            m = re.search(pat, upstream_output, re.MULTILINE)
+            if not m:
+                err_regex_no_match(var, ups_id)
+            return m.group(1) if m.groups() else m.group(0)
+        if ext.startswith("jq:"):
+            expr = ext[len("jq:"):]
+            if not re.match(r"^\.[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$", expr):
+                fail(
+                    f"Workflow '{wf_name}' step '{step_id}' input '{var}' uses jq extractor "
+                    f"'{expr}' which is outside the v1 dotted-path subset; full jq expressions "
+                    f"are not supported in resolve_inputs (NFR-G-5 perf budget). Use a JSON-path "
+                    f"directive ('$.foo.bar') instead."
+                )
+            try:
+                payload = json.loads(upstream_output)
+            except json.JSONDecodeError:
+                fail(
+                    f"Workflow '{wf_name}' step '{step_id}' input '{var}' could not parse "
+                    f"step '{ups_id}' output as JSON for jq-form extraction."
+                )
+            cur = payload
+            for part in expr.lstrip(".").split("."):
+                if isinstance(cur, dict) and part in cur:
+                    cur = cur[part]
+                else:
+                    fail(
+                        f"Workflow '{wf_name}' step '{step_id}' input '{var}' jq path '{expr}' "
+                        f"did not match step '{ups_id}' output."
+                    )
+            if cur is None:
+                fail(
+                    f"Workflow '{wf_name}' step '{step_id}' input '{var}' jq extractor "
+                    f"resolved to null in step '{ups_id}' output."
+                )
+            return str(cur)
+        fail(
+            f"Workflow '{wf_name}' step '{step_id}' input '{var}' has malformed extract "
+            f"directive: '{ext}' (expected regex:<pattern> or jq:<expr>)."
+        )
+    fail(
+        f"Workflow '{wf_name}' step '{step_id}' input '{var}' has unsupported directive type."
+    )
 
-      dollar_plugin)
-        local plugin_name="$_PARSED_ARG1"
-        local plugin_path
-        plugin_path=$(printf '%s' "$registry_json" | jq -r --arg n "$plugin_name" '.plugins[$n] // empty')
-        if [[ -z "$plugin_path" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' resolves \$plugin(%s) but '%s' is not in this session's registry.\n" \
-            "$wf_name" "$step_id" "$var_name" "$plugin_name" "$plugin_name" >&2
-          return 1
-        fi
-        resolved_value="$plugin_path"
-        ;;
+def read_config_flat(file_path, key):
+    try:
+        with open(file_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                if k.strip() == key:
+                    return v.strip()
+    except OSError:
+        return None
+    return None
 
-      dollar_step)
-        local upstream_step_id="$_PARSED_ARG1"
-        local upstream_idx
-        upstream_idx=$(printf '%s' "$workflow_json" | jq --arg id "$upstream_step_id" '[.steps[].id] | index($id)')
-        if [[ "$upstream_idx" == "null" || -z "$upstream_idx" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
-        local recorded
-        recorded=$(printf '%s' "$state_json" | jq -r --argjson idx "$upstream_idx" '.steps[$idx].output // empty')
-        if [[ -z "$recorded" ]]; then
-          # Sub-workflow alias fallback.
-          local upstream_step
-          upstream_step=$(printf '%s' "$workflow_json" | jq -c --argjson idx "$upstream_idx" '.steps[$idx]')
-          local upstream_type
-          upstream_type=$(printf '%s' "$upstream_step" | jq -r '.type // ""')
-          if [[ "$upstream_type" == "workflow" ]]; then
-            local sub_wf
-            sub_wf=$(printf '%s' "$upstream_step" | jq -r '.workflow // ""')
-            local sub_wf_name="${sub_wf##*:}"
-            recorded=".wheel/outputs/${sub_wf_name}-result.json"
-          fi
-        fi
-        if [[ -z "$recorded" ]]; then
-          printf "Workflow '%s' step '%s' input '%s' references missing upstream output: step '%s' has not run or has no output_schema declaration.\n" \
-            "$wf_name" "$step_id" "$var_name" "$upstream_step_id" >&2
-          return 1
-        fi
-        resolved_value="$recorded"
-        ;;
-    esac
+def read_config_json_jq(file_path, jq_path):
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not jq_path.startswith("."):
+        return None
+    parts = jq_path.lstrip(".").split(".") if jq_path != "." else []
+    cur = payload
+    for part in parts:
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        else:
+            return None
+    if cur is None:
+        return None
+    return str(cur)
 
-    # Append to resolved_map atomically.
-    resolved_map=$(printf '%s' "$resolved_map" | jq -c --arg k "$var_name" --arg v "$resolved_value" '.[$k] = $v')
+resolved = {}
+plugins = registry.get("plugins", {}) if isinstance(registry, dict) else {}
 
-  done <<< "$var_names"
+for var, expr in inputs.items():
+    if not isinstance(expr, str):
+        err_unsupported(var, str(expr))
+    m = RE_DOLLAR_STEPS.match(expr)
+    if m:
+        ups_id, field = m.group(1), m.group(2)
+        ups_step = step_by_id.get(ups_id)
+        if ups_step is None:
+            err_missing_upstream(var, ups_id)
+        ups_state = next((s for s in state_steps if s.get("id") == ups_id), None)
+        if not ups_state or ups_state.get("status") != "done":
+            err_missing_upstream(var, ups_id)
+        ups_schema = ups_step.get("output_schema")
+        if not ups_schema:
+            err_missing_upstream(var, ups_id)
+        upstream_output = read_upstream_output(ups_id)
+        if upstream_output is None:
+            err_missing_upstream(var, ups_id)
+        resolved[var] = extract_field(upstream_output, ups_schema, field, var, ups_id)
+        continue
+    m = RE_DOLLAR_CONFIG.match(expr)
+    if m:
+        cfg_file, cfg_key = m.group(1), m.group(2)
+        is_jq_path = cfg_key.startswith(".")
+        if not is_jq_path:
+            allow_lookup = f"{cfg_file}:{cfg_key}"
+            if allow_lookup not in allowlist:
+                err_allowlist(var, cfg_file, cfg_key)
+        if not os.path.isfile(cfg_file):
+            err_cfg_file(var, cfg_file, cfg_key)
+        if is_jq_path:
+            val = read_config_json_jq(cfg_file, cfg_key)
+        else:
+            val = read_config_flat(cfg_file, cfg_key)
+        if val is None:
+            err_cfg_key(var, cfg_file, cfg_key)
+        resolved[var] = val
+        continue
+    m = RE_DOLLAR_PLUGIN.match(expr)
+    if m:
+        name = m.group(1)
+        path = plugins.get(name) if isinstance(plugins, dict) else None
+        if not path:
+            err_plugin(var, name)
+        resolved[var] = path
+        continue
+    m = RE_DOLLAR_STEP.match(expr)
+    if m:
+        ups_id = m.group(1)
+        ups_step = step_by_id.get(ups_id)
+        ups_state = next((s for s in state_steps if s.get("id") == ups_id), None)
+        rec = (ups_state or {}).get("output") or ""
+        if not rec and ups_step and ups_step.get("type") == "workflow":
+            sub_wf = ups_step.get("workflow", "")
+            rec = f".wheel/outputs/{sub_wf.split(':')[-1]}-result.json"
+        if not rec:
+            err_missing_upstream(var, ups_id)
+        resolved[var] = rec
+        continue
+    err_unsupported(var, expr)
 
-  printf '%s' "$resolved_map"
+sys.stdout.write(json.dumps(resolved, separators=(",", ":")))
+PY
+  )
+  local rc=$?
+  if [[ $rc -ne 0 ]]; then
+    printf '%s\n' "$result_or_err" >&2
+    return 1
+  fi
+  printf '%s' "$result_or_err"
   return 0
 }
