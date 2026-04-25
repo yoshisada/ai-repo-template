@@ -189,13 +189,16 @@ build_session_registry() {
   if [[ "${WHEEL_REGISTRY_FALLBACK:-0}" == "1" ]]; then
     # Operator forced fallback — go straight to B.
     if ! plugins_b=$(_internal_installed_plugins_fallback); then
-      echo "registry: both candidate A (PATH parse) and candidate B (installed_plugins.json) failed; cannot build session registry" >&2
-      return 1
+      echo "registry: candidate A skipped (forced) and candidate B (installed_plugins.json) failed; falling through with empty plugin map — self-bootstrap will inject wheel" >&2
+      plugins='{}'
+      source='self-bootstrap-only'
+      fallback_used=true
+    else
+      plugins="$plugins_b"
+      source='candidate-b-installed-plugins-json'
+      fallback_used=true
+      echo "registry: WHEEL_REGISTRY_FALLBACK=1 forced; using candidate B" >&2
     fi
-    plugins="$plugins_b"
-    source='candidate-b-installed-plugins-json'
-    fallback_used=true
-    echo "registry: WHEEL_REGISTRY_FALLBACK=1 forced; using candidate B" >&2
   else
     # Try A first.
     plugins_a=$(_internal_path_parse) || plugins_a='{}'
@@ -207,12 +210,20 @@ build_session_registry() {
       # A returned empty — auto-fall-back to B.
       echo "registry: candidate A returned empty, falling back to B" >&2
       if ! plugins_b=$(_internal_installed_plugins_fallback); then
-        echo "registry: both candidate A (PATH parse) and candidate B (installed_plugins.json) failed; cannot build session registry" >&2
-        return 1
+        # Both candidates failed (e.g. fresh CI runner with no plugin
+        # install). Fall through with empty plugins map — self-bootstrap
+        # below injects wheel itself. Workflows that DO declare
+        # requires_plugins fail loud at resolve_workflow_dependencies,
+        # which is the correct gate for that error class.
+        echo "registry: both candidate A (PATH parse) and candidate B (installed_plugins.json) failed; falling through with empty plugin map — self-bootstrap will inject wheel" >&2
+        plugins='{}'
+        source='self-bootstrap-only'
+        fallback_used=true
+      else
+        plugins="$plugins_b"
+        source='candidate-b-installed-plugins-json'
+        fallback_used=true
       fi
-      plugins="$plugins_b"
-      source='candidate-b-installed-plugins-json'
-      fallback_used=true
     fi
   fi
 
