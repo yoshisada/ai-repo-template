@@ -1,0 +1,234 @@
+{
+  "workflow_name": "shelf-sync",
+  "workflow_version": "5.1.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.498/workflows/shelf-sync.json",
+  "status": "running",
+  "cursor": 11,
+  "owner_session_id": "f72781b5-0788-4a9d-9cad-5b1deb2f5d73",
+  "owner_agent_id": "",
+  "started_at": "2026-04-25T05:55:19.000Z",
+  "updated_at": "2026-04-25T05:57:44.000Z",
+  "steps": [
+    {
+      "id": "gather-repo-state",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:19.000Z",
+      "completed_at": "2026-04-25T05:55:20.000Z",
+      "output": ".wheel/outputs/gather-repo-state.txt",
+      "command_log": [
+        {
+          "command": "echo \"Branch: $(git branch --show-current)\" && echo \"Last 5 commits:\" && git log --format='%h %s' -5 && echo '---' && echo \"Open issues: $(gh issue list --state open --json number --limit 100 2>/dev/null | jq length)\" && echo \"Backlog: $(ls .kiln/issues/*.md 2>/dev/null | wc -l | tr -d ' ') items\" && echo \"PRDs: $(ls docs/features/*/PRD.md 2>/dev/null | wc -l | tr -d ' ')\" && echo '---' && echo 'Task progress:' && for f in specs/*/tasks.md; do [ -f \"$f\" ] || continue; DONE=$(grep -c '\\[X\\]' \"$f\" 2>/dev/null || echo 0); TOTAL=$(grep -c '\\[[ X]\\]' \"$f\" 2>/dev/null || echo 0); echo \"  $(dirname $f | xargs basename): $DONE/$TOTAL\"; done && echo \"VERSION: $(cat VERSION 2>/dev/null || echo none)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:20.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:20.000Z",
+      "completed_at": "2026-04-25T05:55:20.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "if [ -f .shelf-config ]; then cat .shelf-config; else echo 'No .shelf-config — using defaults'; echo \"slug=$(basename $(git remote get-url origin 2>/dev/null | sed 's/.git$//') 2>/dev/null || basename $(pwd))\"; echo 'base_path=projects'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:20.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "fetch-github-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:21.000Z",
+      "completed_at": "2026-04-25T05:55:21.000Z",
+      "output": ".wheel/outputs/fetch-github-issues.txt",
+      "command_log": [
+        {
+          "command": "gh issue list --state all --json number,title,state,updatedAt --limit 100 2>/dev/null || echo '[]'",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:21.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-backlog-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:21.000Z",
+      "completed_at": "2026-04-25T05:55:22.000Z",
+      "output": ".wheel/outputs/read-backlog-issues.txt",
+      "command_log": [
+        {
+          "command": "echo '## Backlog Issues' && for f in .kiln/issues/*.md; do [ -f \"$f\" ] || { echo '(none)'; break; }; TITLE=$(grep -m1 '^title:' \"$f\" | sed 's/^title:[[:space:]]*\"\\{0,1\\}//;s/\"$//' 2>/dev/null || echo '?'); STATUS=$(grep -m1 '^status:' \"$f\" | sed 's/^status:[[:space:]]*//' 2>/dev/null || echo '?'); echo \"$(basename $f): $TITLE [$STATUS]\"; done && echo '## Completed' && ls .kiln/issues/completed/*.md 2>/dev/null | wc -l | tr -d ' ' && echo ' completed issues'",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:22.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-feature-prds",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:22.000Z",
+      "completed_at": "2026-04-25T05:55:23.000Z",
+      "output": ".wheel/outputs/read-feature-prds.txt",
+      "command_log": [
+        {
+          "command": "for prd in docs/features/*/PRD.md; do [ -f \"$prd\" ] || { echo '(no PRDs)'; break; }; DIR=$(basename $(dirname \"$prd\")); SLUG=$(echo \"$DIR\" | sed 's/^[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}-//'); TITLE=$(grep -m1 '^# ' \"$prd\" | sed 's/^# //'); FR_COUNT=$(grep -c 'FR-' \"$prd\" 2>/dev/null || echo 0); NFR_COUNT=$(grep -c 'NFR-' \"$prd\" 2>/dev/null || echo 0); STATUS=$(grep -m1 '^\\*\\*Status\\*\\*' \"$prd\" | sed 's/.*: *//'); echo \"SLUG=$SLUG TITLE=$TITLE FRs=$FR_COUNT NFRs=$NFR_COUNT STATUS=$STATUS PATH=$prd\"; done",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "detect-tech-stack",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:23.000Z",
+      "completed_at": "2026-04-25T05:55:23.000Z",
+      "output": ".wheel/outputs/detect-tech-stack.txt",
+      "command_log": [
+        {
+          "command": "echo '## Tech Stack Detection' && ls package.json tsconfig.json Cargo.toml pyproject.toml requirements.txt go.mod Gemfile Dockerfile docker-compose.yml docker-compose.yaml compose.yml compose.yaml 2>/dev/null || echo '(no markers)' && if [ -f package.json ]; then echo '---' && echo 'package.json deps:' && cat package.json | jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' 2>/dev/null; fi && if [ -d .github/workflows ]; then echo '---' && echo 'infra/github-actions'; fi",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "read-sync-manifest",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:24.000Z",
+      "completed_at": "2026-04-25T05:55:24.000Z",
+      "output": ".wheel/outputs/sync-manifest.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/read-sync-manifest.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:24.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "compute-work-list",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:24.000Z",
+      "completed_at": "2026-04-25T05:55:24.000Z",
+      "output": ".wheel/outputs/compute-work-list.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/compute-work-list.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:24.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-apply",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-25T05:55:24.000Z",
+      "completed_at": "2026-04-25T05:57:02.000Z",
+      "output": ".wheel/outputs/obsidian-apply-results.json",
+      "command_log": [
+        {
+          "command": "SHELF=/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.247\nWORKFLOW=\"$SHELF/workflows/shelf-sync.json\"\n[ -f \"$WORKFLOW\" ] && jq -r '.steps[] | select(.id==\"obsidian-apply\") | .instruction' \"$WORKFLOW\" 2>/dev/null | head -80\necho \"---\"\necho \"=== Most recent obsidian-apply-results.json for format reference ===\"\nls -lt .wheel/outputs/obsidian-apply-results.json 2>/dev/null\ncat .wheel/outputs/obsidian-apply-results.json 2>/dev/null | head -30",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:39.000Z"
+        },
+        {
+          "command": "cat .wheel/outputs/compute-work-list.json 2>/dev/null | jq -c '{counts, dashboard: .dashboard.needs_update, progress: .progress.needs_update, mistakes_prior_state: (.mistakes_prior_state // null)}' 2>&1 | head",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:55:45.000Z"
+        },
+        {
+          "command": "jq -c '.mistakes' .wheel/outputs/compute-work-list.json 2>/dev/null | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:56:05.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0,
+      "awaiting_user_input": false,
+      "awaiting_user_input_since": null,
+      "awaiting_user_input_reason": null
+    },
+    {
+      "id": "update-sync-manifest",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:57:02.000Z",
+      "completed_at": "2026-04-25T05:57:02.000Z",
+      "output": ".wheel/outputs/update-sync-manifest.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/update-sync-manifest.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:57:02.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "generate-sync-summary",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T05:57:02.000Z",
+      "completed_at": "2026-04-25T05:57:02.000Z",
+      "output": ".wheel/outputs/sync-summary.md",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/generate-sync-summary.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:57:02.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "self-improve",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-25T05:57:02.000Z",
+      "completed_at": "2026-04-25T05:57:44.000Z",
+      "output": ".wheel/outputs/self-improve-results.txt",
+      "command_log": [
+        {
+          "command": "SHELF=/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.247\nWORKFLOW=\"$SHELF/workflows/shelf-sync.json\"\n[ -f \"$WORKFLOW\" ] && jq -r '.steps[] | select(.id==\"self-improve\") | .instruction[:1500]' \"$WORKFLOW\" 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T05:57:19.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0,
+      "awaiting_user_input": false,
+      "awaiting_user_input_since": null,
+      "awaiting_user_input_reason": null
+    }
+  ],
+  "parent_workflow": ".wheel/state_f72781b5-0788-4a9d-9cad-5b1deb2f5d73_1777096368_21369.json"
+}

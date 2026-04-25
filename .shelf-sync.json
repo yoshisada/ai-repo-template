@@ -1,64 +1,7 @@
 {
   "version": "1.0",
-  "last_synced": "2026-04-24T11:33:36Z",
-  "issues": [
-    {
-      "github_number": 83,
-      "filename_slug": "retrospective-plugin-polish-and-skill-ux-pipeline",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-plugin-polish-and-skill-ux-pipeline.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjgzLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDE4OjE1OjQyWiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 81,
-      "filename_slug": "retrospective-trim-penpot-layout-pipeline",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-penpot-layout-pipeline.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjgxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDE2OjU5OjIwWiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 79,
-      "filename_slug": "retrospective-trim-design-lifecycle-pipeline",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-design-lifecycle-pipeline.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjc5LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDA2OjE3OjIwWiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 77,
-      "filename_slug": "retrospective-trim-pipeline-build-trim-20260409",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-trim-pipeline-build-trim-20260409.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjc3LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDA1OjAyOjMzWiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 75,
-      "filename_slug": "retrospective-api-key-reveal-pipeline",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-api-key-reveal-pipeline.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjc1LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDAxOjAzOjM5WiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 74,
-      "filename_slug": "retrospective-shelf-skills-polish-pipeline",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-shelf-skills-polish-pipeline.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjc0LCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA5VDAwOjMzOjExWiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 71,
-      "filename_slug": "retrospective-kit-migration-pipeline-build-kit-migration-202",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-kit-migration-pipeline-build-kit-migration-202.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjcxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA4VDIxOjA1OjQ5WiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    },
-    {
-      "github_number": 51,
-      "filename_slug": "retrospective-wheel-skill-activation-pipeline-build-wheel-sk",
-      "path": "@second-brain/projects/ai-repo-template/issues/retrospective-wheel-skill-activation-pipeline-build-wheel-sk.md",
-      "source_hash": "sha256:eyJudW1iZXIiOjUxLCJ1cGRhdGVkQXQiOiIyMDI2LTA0LTA0VDA4OjIwOjQ4WiJ9",
-      "last_synced": "2026-04-16T22:59:41Z"
-    }
-  ],
+  "last_synced": "2026-04-25T05:57:02Z",
+  "issues": [],
   "docs": [
     {
       "slug": "continuance-agent",
@@ -245,6 +188,15 @@
       "proposal_path": "@inbox/open/2026-04-24-mistake-assumed-wheel-workflow-shapes-needed-fallback.md",
       "proposal_state": "open",
       "last_synced": "2026-04-24T11:33:36Z"
+    },
+    {
+      "path": ".kiln/mistakes/2026-04-25-assumed-component-fixtures-equal-end-to-end-coverage.md",
+      "filename_slug": "assumed-component-fixtures-equal-end-to-end-coverage",
+      "date": "2026-04-25",
+      "source_hash": "sha256:6a17d2f22b40bcff6f9327cbf04a54440eec31e8f1d833b6d95ab02cd4aa1928",
+      "proposal_path": "@inbox/open/2026-04-25-mistake-assumed-component-fixtures-equal-end-to-end-coverage.md",
+      "proposal_state": "open",
+      "last_synced": "2026-04-25T05:57:02Z"
     }
   ],
   "progress_paths": [
