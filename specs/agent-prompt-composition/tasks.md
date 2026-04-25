@@ -108,17 +108,17 @@ Two implementer tracks. Each one reads its filtered slice below:
 
 ## Phase 7 — Final validation (both tracks observe)
 
-- [ ] **T-V-01** [both] Run all 6 fixtures end-to-end:
-  - `plugin-kiln/tests/agent-includes-resolve/run.sh` (SC-1, SC-7)
-  - `plugin-kiln/tests/agent-includes-ci-gate/run.sh` (SC-2)
-  - `plugin-wheel/tests/compose-context-shape/run.sh` (SC-3)
-  - `plugin-wheel/tests/validate-bindings-unknown-verb/run.sh` (SC-4)
-  - `plugin-wheel/tests/compose-context-unknown-override/run.sh` (SC-5)
-  - `plugin-kiln/tests/research-first-agents-structural/run.sh` (SC-6)
-  - `plugin-kiln/tests/claude-md-architectural-rules/run.sh` (SC-8)
-  All MUST PASS.
-- [ ] **T-V-02** [both] Each implementer fills `specs/agent-prompt-composition/agent-notes/<track>.md` with friction observations per pipeline-contract FR-009.
-- [ ] **T-V-03** [both] Confirm spec.md "Theme Partition" table matches actual file edits — no file should have been edited by both tracks (NFR-8 disjoint partition).
+- [X] **T-V-01** [both] Run all 6 fixtures end-to-end:
+  - `plugin-kiln/tests/agent-includes-resolve/run.sh` (SC-1, SC-7) — PASS 8/8
+  - `plugin-kiln/tests/agent-includes-ci-gate/run.sh` (SC-2) — PASS 3/3
+  - `plugin-wheel/tests/compose-context-shape/run.sh` (SC-3) — PASS
+  - `plugin-wheel/tests/validate-bindings-unknown-verb/run.sh` (SC-4) — PASS
+  - `plugin-wheel/tests/compose-context-unknown-override/run.sh` (SC-5) — PASS
+  - `plugin-kiln/tests/research-first-agents-structural/run.sh` (SC-6) — PASS
+  - `plugin-kiln/tests/claude-md-architectural-rules/run.sh` (SC-8) — PASS 12/12 phrases
+  All PASS as of commit 4e731bf (Theme B) + c7699f1 (Theme A).
+- [X] **T-V-02** [both] Each implementer fills `specs/agent-prompt-composition/agent-notes/<track>.md` with friction observations per pipeline-contract FR-009.
+- [X] **T-V-03** [both] Confirm spec.md "Theme Partition" table matches actual file edits — no file should have been edited by both tracks (NFR-8 disjoint partition). Verified — every Theme A file last-touched by `c7699f1`, every Theme B file by `d5d7579`/`4e731bf`. Disjoint.
 
 ---
 
