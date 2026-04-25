@@ -12,3 +12,9 @@ Current frontier — PRDs in progress
 Items:
 - 2026-04-23-wheel-user-input
 - 2026-04-24-claude-md-audit-reframe
+
+## Items
+
+- 2026-04-23-wheel-user-input
+- 2026-04-24-agent-spawn-context-injection-layer
+- 2026-04-24-claude-md-audit-reframe
