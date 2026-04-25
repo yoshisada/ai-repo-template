@@ -5,7 +5,7 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: moderate
 context_cost: 2 sessions
@@ -35,6 +35,7 @@ implementation_hints: |
 
   The axes are opt-in per PRD (the research block declares which metrics gate). Most changes
   will only declare 1-2 axes (per 2026-04-24 conversation); don't default-declare all four.
+prd: docs/features/2026-04-25-research-first-axis-enrichment/PRD.md
 ---
 
 # Research-first step 3 — time and cost axes with maintained pricing table

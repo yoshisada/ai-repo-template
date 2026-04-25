@@ -1,0 +1,149 @@
+{
+  "workflow_name": "kiln-report-issue",
+  "workflow_version": "3.2.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/kiln/000.001.009.658/workflows/kiln-report-issue.json",
+  "workflow_definition": {
+    "name": "kiln-report-issue",
+    "version": "3.2.0",
+    "requires_plugins": [
+      "shelf"
+    ],
+    "steps": [
+      {
+        "id": "check-existing-issues",
+        "type": "command",
+        "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+        "output": ".wheel/outputs/check-existing-issues.txt"
+      },
+      {
+        "id": "create-issue",
+        "type": "agent",
+        "instruction": "Create a new backlog issue in .kiln/issues/. The user will have described the issue when they started this workflow — read the workflow activation context for their description.\n\n1. If the description references a GitHub issue number (e.g., #42), fetch it: `gh issue view <number> --json title,body,labels,state`\n2. Classify the issue:\n   - Type: bug | friction | improvement | feature-request\n   - Severity: blocking | high | medium | low\n   - Category: skills | agents | hooks | templates | scaffold | workflow | other\n   - Source: retro | manual | github-issue | pipeline-run\n3. Check existing issues (from context) — if a duplicate exists with the same GitHub number or very similar title, report it and update instead of creating new.\n4. Generate filename: YYYY-MM-DD-<short-slug>.md (today's date)\n5. Create .kiln/issues/ directory if needed: `mkdir -p .kiln/issues`\n6. Write the issue file with this frontmatter structure:\n   ---\n   title: \"<title>\"\n   type: <type>\n   severity: <severity>\n   category: <category>\n   source: <source>\n   github_issue: <number or null>\n   status: open\n   date: YYYY-MM-DD\n   ---\n   ## Description\n   <description text>\n   ## Impact\n   <impact if known>\n   ## Suggested Fix\n   <suggestion if known>\n7. Write a confirmation summary to your output file listing the filename, type, severity, and category. Include the exact `.kiln/issues/<file>.md` path on its own line so the downstream parse step can pick it up.",
+        "context_from": [
+          "check-existing-issues"
+        ],
+        "output": ".wheel/outputs/create-issue-result.md",
+        "output_schema": {
+          "issue_file": {
+            "extract": "regex:^\\.kiln/issues/.*\\.md$"
+          }
+        }
+      },
+      {
+        "id": "write-issue-note",
+        "type": "workflow",
+        "workflow": "shelf:shelf-write-issue-note",
+        "context_from": [
+          "create-issue"
+        ],
+        "output_schema": {
+          "issue_file": "$.issue_file",
+          "obsidian_path": "$.obsidian_path"
+        }
+      },
+      {
+        "id": "dispatch-background-sync",
+        "type": "agent",
+        "inputs": {
+          "ISSUE_FILE": "$.steps.write-issue-note.output.issue_file",
+          "OBSIDIAN_PATH": "$.steps.write-issue-note.output.obsidian_path",
+          "CURRENT_COUNTER": "$config(.shelf-config:shelf_full_sync_counter)",
+          "THRESHOLD": "$config(.shelf-config:shelf_full_sync_threshold)",
+          "SHELF_DIR": "$plugin(shelf)"
+        },
+        "instruction": "You are the `dispatch-background-sync` step of `kiln:kiln-report-issue`. Your job is to fire-and-forget a background sub-agent that handles counter-gated reconciliation, then write the foreground user-facing output and stop. Do NOT wait for the sub-agent. Do NOT run shelf-sync or shelf-propose-manifest-improvement yourself.\n\n## Step 1 — Use pre-resolved inputs\n\nThe wheel runtime has already resolved every value you need (see the `## Resolved Inputs` block prepended above). Use these placeholders directly — do NOT run `bash`, `jq`, `cat`, or `grep` to fetch them again:\n\n- `CURRENT_COUNTER` = {{CURRENT_COUNTER}}\n- `THRESHOLD` = {{THRESHOLD}}\n- `ISSUE_FILE` = {{ISSUE_FILE}}\n- `OBSIDIAN_PATH` = {{OBSIDIAN_PATH}}\n- `SHELF_DIR` = {{SHELF_DIR}}\n\nThe next full-sync fires when the counter reaches `THRESHOLD - 1` on increment (i.e., at invocation `THRESHOLD - CURRENT_COUNTER` from now, or simply `THRESHOLD` if the counter is 0).\n\nIf either `ISSUE_FILE` or `OBSIDIAN_PATH` is missing or contains a placeholder string (which would have failed the resolver tripwire — so this should never happen post-FR-G3-5), fall back to `(unknown)` for foreground reporting per FR-010.\n\n## Step 2 — Spawn the background sub-agent (fire-and-forget)\n\nCall the `Agent` tool EXACTLY ONCE with:\n- `subagent_type`: `general-purpose`\n- `run_in_background`: **true**  (this is the critical flag that makes the spawn asynchronous)\n- `description`: `kiln-report-issue background reconciliation`\n- `prompt`: (verbatim — the SHELF_DIR placeholder is substituted by wheel into an absolute path before this step dispatches; the sub-agent reads its own inputs):\n\n----BEGIN SUBAGENT PROMPT----\nYou are a background reconciliation sub-agent for /kiln:kiln-report-issue. Run these steps in order and exit. Do not report progress. Do not stall.\n\n1. Run the consolidated counter-and-log step (FR-E2 batched wrapper). This single bash call replaces the previous 2-call chain (shelf-counter increment-and-decide + append-bg-log) — both actions live inside the wrapper now:\n\n   `OUT=$(bash \"{{SHELF_DIR}}/scripts/step-dispatch-background-sync.sh\")`\n\n   The wrapper emits per-action log lines on stderr-prefix `wheel:dispatch-background-sync: action=<n> | start|ok` and a final single-line JSON object on stdout matching:\n   `{\"step\":\"dispatch-background-sync\",\"status\":\"ok\",\"actions\":[\"counter-increment-and-decide\",\"append-bg-log\"],\"counter\":{\"before\":N,\"after\":N,\"threshold\":N},\"next_action\":\"increment|full-sync\"}`\n   On any failure inside the wrapper, `set -e` causes a non-zero exit and the failing action's `start` log line (with no matching `ok`) identifies which action failed.\n\n2. Parse the wrapper JSON output:\n   `ACTION=$(printf '%s' \"$OUT\" | tail -1 | jq -r '.next_action')`\n\n3. If ACTION == \"increment\": exit 0.\n\n4. If ACTION == \"full-sync\":\n   a. Invoke the `/shelf:shelf-sync` skill. Wait for completion. If it errors, continue.\n   b. Invoke the `/shelf:shelf-propose-manifest-improvement` skill. Wait for completion. If it errors, continue.\n   c. Exit 0.\n\n5. On any unhandled exception, append one more log line with action=error and short notes via `bash \"{{SHELF_DIR}}/scripts/append-bg-log.sh\" 0 0 0 error \"<short reason>\"`, then exit 0. Never hang. Never retry.\n----END SUBAGENT PROMPT----\n\nAfter the `Agent` tool call returns, DO NOT call any more tools. (The tool call returns synchronously — the sub-agent is launched asynchronously because `run_in_background: true`.)\n\n## Step 3 — Write foreground user-facing output (FR-010)\n\nCompute `NEXT_FULL_SYNC_AT`:\n- If `CURRENT_COUNTER == 0`: `NEXT_FULL_SYNC_AT = THRESHOLD`\n- Otherwise: `NEXT_FULL_SYNC_AT = THRESHOLD - CURRENT_COUNTER`\n\nWrite the following three lines (plus a trailing newline) to the step's output file `.wheel/outputs/dispatch-background-sync.txt`:\n\n```\nissue_file: <ISSUE_FILE>\nobsidian_path: <OBSIDIAN_PATH>\nbackground sync queued — full reconciliation next at invocation <NEXT_FULL_SYNC_AT>/<THRESHOLD>\n```\n\nExample when counter=3, threshold=10:\n```\nissue_file: .kiln/issues/2026-04-22-slow-report.md\nobsidian_path: @second-brain/projects/ai-repo-template/issues/2026-04-22-slow-report.md\nbackground sync queued — full reconciliation next at invocation 7/10\n```\n\n## Step 4 — Stop\n\nThe step is terminal. DO NOT read the sub-agent's output. DO NOT call Sleep. DO NOT call any further tools. The wheel engine treats this step as complete once the output file exists.\n\n## Fallback note (for maintainers)\n\nIf Phase H smoke testing shows that `run_in_background: true` inside this wheel agent-step does NOT actually return control immediately (e.g., the wheel waits on the sub-agent to finish), the designated fallback per `specs/report-issue-speedup/plan.md` §Unknown 1 is to replace this step with a `type: command` step that uses `nohup ... &; disown`. Fall back only if empirical evidence forces it; this path is the primary.\n\n## Cross-plugin script resolution (Theme F5 — closed; SHELF_DIR via $plugin(shelf))\n\nThe `SHELF_DIR` input above is resolved at hook-time by `plugin-wheel/lib/resolve_inputs.sh::resolve_inputs` against the session registry built by `build_session_registry`. By the time you read this instruction, the literal absolute path to the shelf install (e.g. under marketplace cache or under a `--plugin-dir` override) is already in the prompt — both in the `## Resolved Inputs` block and substituted into every `{{SHELF_DIR}}` placeholder in this body. The pre-flight resolver fails loud at activation if shelf is not enabled in this session (FR-F3-3). The cross-plugin gap (where the legacy calling-plugin token resolved to plugin-kiln while the scripts actually lived in plugin-shelf) is structurally closed by `requires_plugins:[\"shelf\"]` + `inputs: { SHELF_DIR: $plugin(shelf) }`. See `specs/cross-plugin-resolver-and-preflight-registry/spec.md` and `specs/wheel-step-input-output-schema/spec.md` for the full design.",
+        "context_from": [
+          "create-issue",
+          "write-issue-note"
+        ],
+        "output": ".wheel/outputs/dispatch-background-sync.txt",
+        "terminal": true
+      }
+    ]
+  },
+  "status": "running",
+  "cursor": 1,
+  "owner_session_id": "f72781b5-0788-4a9d-9cad-5b1deb2f5d73",
+  "owner_agent_id": "",
+  "started_at": "2026-04-25T20:27:29.000Z",
+  "updated_at": "2026-04-25T20:29:23.000Z",
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-25T20:27:29.000Z",
+      "completed_at": "2026-04-25T20:27:29.000Z",
+      "output": ".wheel/outputs/check-existing-issues.txt",
+      "command_log": [
+        {
+          "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T20:27:29.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "status": "working",
+      "started_at": "2026-04-25T20:27:29.000Z",
+      "completed_at": null,
+      "output": null,
+      "command_log": [
+        {
+          "command": "cd /Users/ryansuematsu/Documents/github/personal/ai-repo-template\nls -la .wheel/history/ 2>/dev/null | tail -5\necho \"---\"\nls .wheel/ | head -20\necho \"---\"\ncat .wheel/.last-deactivate.log 2>/dev/null || echo \"(no log)\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T20:29:14.000Z"
+        },
+        {
+          "command": "cd /Users/ryansuematsu/Documents/github/personal/ai-repo-template\ntail -30 .wheel/HOOK_ERROR.log 2>/dev/null\necho \"---\"\nls -t .wheel/history/stopped/ | head -3",
+          "exit_code": 0,
+          "timestamp": "2026-04-25T20:29:23.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0,
+      "resolved_inputs": {}
+    },
+    {
+      "id": "write-issue-note",
+      "type": "workflow",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "dispatch-background-sync",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "session_registry": {
+    "schema_version": 1,
+    "built_at": "2026-04-25T20:27:29Z",
+    "source": "candidate-b-installed-plugins-json",
+    "fallback_used": true,
+    "plugins": {
+      "frontend-design": "/Users/ryansuematsu/.claude/plugins/cache/claude-plugins-official/frontend-design/a9ab2cdc08d7",
+      "kiln": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/kiln/000.001.009.658",
+      "shelf": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.656",
+      "wheel": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/wheel/000.001.009.656",
+      "clay": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/clay/000.001.009.656",
+      "trim": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/trim/000.001.009.656",
+      "warp": "/Users/ryansuematsu/.claude/plugins/cache/claude-code-warp/warp/2.0.0"
+    }
+  }
+}
