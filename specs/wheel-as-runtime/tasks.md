@@ -24,9 +24,9 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ## Phase 1 — Setup (shared, all tracks observe)
 
-- [ ] T001 Read `.specify/memory/constitution.md`, `specs/wheel-as-runtime/spec.md`, `specs/wheel-as-runtime/plan.md`, `specs/wheel-as-runtime/contracts/interfaces.md` from each implementer track before starting any FR task.
-- [ ] T002 [P] Create implementer friction-note stubs at `specs/wheel-as-runtime/agent-notes/{impl-themeA-agents,impl-themeB-models,impl-wheel-fixes,impl-themeE-batching}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009).
-- [ ] T003 [P] Confirm `jq`, `bash 5.x`, `python3` available (smoke: `bash --version`, `jq --version`, `python3 --version`). No install task — these are existing dependencies.
+- [X] T001 Read `.specify/memory/constitution.md`, `specs/wheel-as-runtime/spec.md`, `specs/wheel-as-runtime/plan.md`, `specs/wheel-as-runtime/contracts/interfaces.md` from each implementer track before starting any FR task. [impl-themeB-models]
+- [X] T002 [P] Create implementer friction-note stubs at `specs/wheel-as-runtime/agent-notes/{impl-themeA-agents,impl-themeB-models,impl-wheel-fixes,impl-themeE-batching}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009). [impl-themeB-models own stub only]
+- [X] T003 [P] Confirm `jq`, `bash 5.x`, `python3` available (smoke: `bash --version`, `jq --version`, `python3 --version`). No install task — these are existing dependencies. [impl-themeB-models]
 
 ---
 
