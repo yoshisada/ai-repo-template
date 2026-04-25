@@ -1,0 +1,13 @@
+{
+  "name": "perf-no-deps",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "noop",
+      "type": "command",
+      "command": "echo ok",
+      "output": ".wheel/outputs/noop.txt",
+      "terminal": true
+    }
+  ]
+}

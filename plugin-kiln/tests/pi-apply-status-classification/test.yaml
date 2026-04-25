@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "One PI per status branch (already-applied / stale / actionable). Validates FR-012 classification + diff-rendering discipline."
+timeout-override: 900

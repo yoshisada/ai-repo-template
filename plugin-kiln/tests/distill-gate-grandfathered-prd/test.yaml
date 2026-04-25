@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-distill
+expected-exit: 0
+description: "FR-008 / NFR-005 / SC-006 — pre-existing PRDs with raw-issue derived_from: continue to parse under the new gate. The gate only touches input candidates, so grandfathered PRDs are un-affected by construction."

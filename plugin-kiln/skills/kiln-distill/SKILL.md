@@ -58,6 +58,76 @@ done
 
 **`--phase current` resolution**: when `DISTILL_PHASE == "current"`, scan `.kiln/roadmap/phases/*.md` and pick the single phase with `status: in-progress`. If ZERO phases are in-progress, fall back to NO phase filter (include all non-shipped items). If MORE than one phase is in-progress, abort with a clear error naming the offending phases (violates FR-020 invariant).
 
+## Step 0.5: Un-promoted Source Gate (FR-004, FR-005 of workflow-governance)
+
+<!-- FR-004 / workflow-governance FR-004: /kiln:kiln-distill MUST refuse to
+     bundle raw issues/feedback that have not been promoted to roadmap items.
+     FR-005 / workflow-governance FR-005: confirm-never-silent per-entry
+     accept/skip prompt with a viable escape hatch to /kiln:kiln-roadmap
+     --promote. -->
+
+Before the three-stream read in Step 1, enumerate the candidate issue + feedback sources that would otherwise land in this run, classify them via `detect-un-promoted.sh`, and — if any are un-promoted — offer the user a per-entry promotion hand-off. This gate is the load-bearing governance claim of the workflow-governance PRD: the roadmap is the canonical intake, and raw issues/feedback are promotion sources, not direct PRD inputs.
+
+### §0.5.1 — Enumerate candidate sources
+
+Compute the candidate set from the same glob rules Step 1 will use (top-level only for `.kiln/issues/`; open-status for both):
+
+```bash
+CANDIDATE_SOURCES=()
+while IFS= read -r f; do
+  # Only include status: open entries — Step 1 will re-filter anyway.
+  st=$(awk '/^---/{fm++;next} fm==1 && /^status:/ { sub(/^status:[ \t]*/,""); print; exit }' "$f" 2>/dev/null)
+  if [[ "$st" == "open" ]]; then CANDIDATE_SOURCES+=("$f"); fi
+done < <(find .kiln/issues -maxdepth 1 -type f -name '*.md' 2>/dev/null; \
+         find .kiln/feedback -maxdepth 1 -type f -name '*.md' 2>/dev/null)
+```
+
+If `CANDIDATE_SOURCES` is empty, skip to Step 1 — the gate is a no-op when there are no raw sources in scope.
+
+### §0.5.2 — Classify and filter
+
+```bash
+CLASSIFICATION=$(bash plugin-kiln/scripts/distill/detect-un-promoted.sh "${CANDIDATE_SOURCES[@]}")
+UN_PROMOTED=$(printf '%s\n' "$CLASSIFICATION" | jq -r 'select(.status == "un-promoted") | .path')
+```
+
+If `UN_PROMOTED` is empty, every candidate is already promoted; skip to Step 1.
+
+### §0.5.3 — Per-entry promote hand-off (FR-005, confirm-never-silent)
+
+Otherwise, enumerate the hand-off envelopes and surface them to the user:
+
+```bash
+HANDOFF=$(bash plugin-kiln/scripts/distill/invoke-promote-handoff.sh $UN_PROMOTED)
+# $HANDOFF is NDJSON — one {"path","title","prompt"} envelope per un-promoted source.
+```
+
+For each envelope, surface the `prompt` string to the user via the Skill tool (confirm-never-silent — do NOT read stdin shell-style). The prompt is per-entry, not a global confirm:
+
+> Issues/feedback not yet promoted to roadmap items. Promote these before distilling?
+>
+> 1. [accept|skip] `.kiln/issues/2026-04-24-foo.md` — Foo needs dark mode
+> 2. [accept|skip] `.kiln/feedback/2026-04-24-bar.md` — Bar feels slow
+>
+> Reply with one decision per entry (e.g. `accept, skip`) or `skip all`.
+
+- **`accept <entry>`** → invoke `/kiln:kiln-roadmap --promote <path>` via the Skill tool. The skill runs the coached interview (Clarification 5 — pre-fill when body ≥ 200 chars) and writes a new roadmap item. On success, add the new `roadmap_item` path to the bundle for Step 1 re-read.
+- **`skip <entry>`** → exclude this path from the run; do NOT emit a PRD for it.
+- **`skip all`** → exclude every un-promoted entry from the run.
+
+### §0.5.4 — Re-read after promotions
+
+After the per-entry decision loop, re-run §0.5.2's classification to confirm no accepted entry landed back in the `un-promoted` bucket. If the resulting candidate bundle (accepted entries' newly-created roadmap items + pre-existing promoted items + any roadmap items Step 1 will pick up) is EMPTY, exit cleanly with:
+
+> No promoted sources in this theme. Nothing to distill.
+
+NO PRD is emitted. No side-effect writes. Exit 0 — the gate is non-punitive; the user declined every offer, which is a valid choice.
+
+### §0.5.5 — What the gate does NOT do
+
+- It does NOT touch existing roadmap items. `.kiln/roadmap/items/*.md` bypass this gate entirely (they're already promoted by construction).
+- It does NOT validate pre-existing PRDs. FR-008 grandfathering is by construction — the gate only looks at INPUT candidates, not at committed PRDs under `docs/features/`. Any PRD with `distilled_date:` before `2026-04-24` (the gate-rollout date) is unaffected by this section. See "FR-008 grandfathering" note under Step 4 frontmatter emission.
+
 ## Step 1: Read All Three Sources (Feedback + Items + Backlog)
 
 <!-- FR-023 / PRD FR-023: items are the third input stream. -->
@@ -285,6 +355,8 @@ Rules:
 - The frontmatter block precedes IMMEDIATELY (on the next line) the existing `# Feature PRD: <Theme Name>` heading.
 - **Empty-list case** (hand-authored PRDs per spec Decision D3): `derived_from: []` on a single inline line is valid. Typical `/kiln:kiln-distill` runs always have at least one selected entry, so this is primarily a shape the readers must accept — distill itself emits block-sequence form when the list is non-empty.
 - **Backward compat**: when NO roadmap items are selected, the middle group collapses and the list reverts to the two-group feedback-then-issues shape (byte-identical to pre-`structured-roadmap` distill output).
+- **FR-007 three-group shape (workflow-governance)**: the three-group SORT ORDER (feedback → item → issue, filename ASC within each) MUST be preserved even when the feedback or issue groups are empty. An item-only bundle emits a `derived_from:` list with only item paths but still in the stable order; re-running with identical inputs MUST produce byte-identical frontmatter. Tests `distill-gate-three-group-shape` and `distill-multi-theme-determinism` lock this invariant.
+- **FR-008 grandfathering (workflow-governance)**: the new gate (Step 0.5) operates only on INPUT candidates (`.kiln/issues/*.md`, `.kiln/feedback/*.md`). Pre-existing PRDs under `docs/features/` with raw-issue `derived_from:` entries are NOT revisited by the gate — their `distilled_date:` predates the rollout (`2026-04-24`) and grandfathering is by construction. If a future validator ever needs to check existing PRDs under the new gate, the cutoff constant lives at `plugin-kiln/scripts/distill/detect-un-promoted.sh` header comment (currently: gate only touches input candidates, no validator needed).
 
 ### Per-Theme Emission Loop (FR-017 / FR-019 / FR-020 — multi-theme scope)
 

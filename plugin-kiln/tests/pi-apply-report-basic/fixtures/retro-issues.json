@@ -1,0 +1,20 @@
+[
+  {
+    "number": 147,
+    "url": "https://github.com/yoshisada/ai-repo-template/issues/147",
+    "title": "Retrospective — version-bump drift (PI-1 R-1)",
+    "body": "## Proposed prompt improvements\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nThis rule is already here.\n**Proposed**: ## R-1\nThis rule is already here.\n**Why**: verbatim present → should classify as already-applied per FR-012.\n\n### PI-2\n**File**: plugin-kiln/skills/kiln-distill/SKILL.md\n**Current**: ## Step 1\nStep 1 already says this.\n**Proposed**: ## Step 1\nStep 1 already says this.\n**Why**: verbatim present → should classify as already-applied.\n"
+  },
+  {
+    "number": 149,
+    "url": "https://github.com/yoshisada/ai-repo-template/issues/149",
+    "title": "Retrospective — auditor R-1 blessing (SC-005)",
+    "body": "## Proposed prompt improvements\n\n### PI-1\n**File**: plugin-kiln/agents/prd-auditor.md\n**Current**: ## R-1\nThis rule is already here.\n**Proposed**: ## R-1\nStrict behavioral superset: adding options without removing existing ones is non-breaking.\n**Why**: SC-005 — the R-1 blessing was never applied after the retro.\n\n### PI-2\n**File**: plugin-kiln/skills/kiln-distill/SKILL.md\n**Current**: ## Step 1\nStep 1 already says this.\n**Proposed**: ## Step 1\nFR-005 alignment: per-entry accept/skip prompt goes here.\n**Why**: FR-005 collision — the per-entry UX detail was proposed but never landed.\n"
+  },
+  {
+    "number": 152,
+    "url": "https://github.com/yoshisada/ai-repo-template/issues/152",
+    "title": "Retrospective — anchor drift PI",
+    "body": "## Proposed prompt improvements\n\n### PI-1\n**File**: plugin-kiln/agents/ghost.md\n**Current**: ## ghost\nNo such file or anchor.\n**Proposed**: ## ghost\nSome updated text that will never land.\n**Why**: target file removed since the retro — should surface as stale per Clarification 6.\n"
+  }
+]

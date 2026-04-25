@@ -19,6 +19,25 @@ context_build() {
   local context_from
   context_from=$(printf '%s\n' "$step_json" | jq -r '.context_from // [] | .[]')
 
+  # FR-F4-3 / T042 (specs/cross-plugin-resolver-and-preflight-registry):
+  # Theme D Option B's runtime_env_block emission is REMOVED. Theme F4's
+  # preprocessor (`plugin-wheel/lib/preprocess.sh::template_workflow_json`)
+  # now substitutes the absolute path of every plugin path token directly
+  # into the agent step's `.instruction` field BEFORE state_init. By the
+  # time `context_build` runs, the instruction already contains literal
+  # absolute paths — the explicit "## Runtime Environment" header is
+  # redundant.
+  #
+  # The Theme D contract (FR-D1: bg sub-agents must see WORKFLOW_PLUGIN_DIR
+  # as a usable absolute path) is preserved by construction: if the workflow
+  # author wrote `${WORKFLOW_PLUGIN_DIR}/scripts/foo.sh` in the instruction,
+  # the preprocessor swapped that for the literal path. The bg sub-agent
+  # reads the path verbatim from the instruction text and runs the script
+  # with no env-var propagation needed. NFR-F-5 (back-compat for workflows
+  # without `requires_plugins`) still holds because the preprocessor passes
+  # the legacy `${WORKFLOW_PLUGIN_DIR}` token through the same substitution
+  # code path as `${WHEEL_PLUGIN_<calling-plugin>}`.
+
   local context_parts=""
   if [[ -n "$instruction" ]]; then
     context_parts="## Step Instruction\n\n${instruction}"

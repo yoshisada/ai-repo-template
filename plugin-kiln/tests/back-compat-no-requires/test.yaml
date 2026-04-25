@@ -1,0 +1,10 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "T052 / NFR-F-5 — Back-compat verification: workflows without `requires_plugins` MUST produce byte-identical state files + log lines pre-PRD vs post-PRD. Also covers R-F-3 / EC-4: a workflow JSON containing generic `${VAR}` syntax (e.g. `${files[@]}`) does NOT trip the narrowed tripwire."
+timeout-override: 120
+# Static + dynamic fixture. The static portion (cheap tripwire) verifies the
+# fixture's recorded baselines are present and well-formed. The dynamic
+# portion (run.sh) executes the post-PRD wheel runtime against the same
+# workflow inputs and diffs the resulting state file + bg log lines against
+# the recorded baseline, normalizing timestamps + run IDs per spec.

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-pi-apply
+expected-exit: 0
+description: "Run /kiln:kiln-pi-apply twice on the same backlog and assert report bodies (after header timestamp) are byte-identical. Validates FR-011 pi-hash stability + SC-004 determinism."
+timeout-override: 1200

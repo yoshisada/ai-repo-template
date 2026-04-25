@@ -22,6 +22,63 @@ if [[ -z "${WHEEL_LIB_DIR:-}" ]] || ! declare -f workflow_load &>/dev/null; then
   source "${WHEEL_LIB_DIR}/guard.sh"
 fi
 
+# Always source registry.sh + resolve.sh + preprocess.sh — they have their
+# own re-source guards (WHEEL_REGISTRY_SH_LOADED / WHEEL_RESOLVE_SH_LOADED /
+# WHEEL_PREPROCESS_SH_LOADED) so this is a no-op if already loaded. We can't
+# put these inside the workflow_load gate because callers may have sourced
+# workflow.sh directly, leaving the helpers unloaded.
+# shellcheck source=registry.sh
+source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/registry.sh"
+# shellcheck source=resolve.sh
+source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/resolve.sh"
+# shellcheck source=preprocess.sh
+source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/preprocess.sh"
+
+# engine_preflight_resolve — Run the cross-plugin pre-flight phase
+# (specs/cross-plugin-resolver-and-preflight-registry FR-F1 + FR-F3).
+#
+# Builds the session registry, runs the workflow's requires_plugins
+# validation, and on failure writes a diagnostic snapshot to
+# .wheel/state/registry-failed-<timestamp>.json for post-mortem.
+#
+# Args: $1 = workflow JSON (string, output of workflow_load)
+# Stdout: registry JSON (single-line envelope) on success — caller may
+#         capture and pass to the preprocessor (Theme F4).
+# Stderr: documented FR-F3-3 error text on failure.
+# Exit:   0 on success, 1 on registry build OR resolver failure.
+#
+# T031: MUST run BEFORE state_init or any other state mutation. Contract
+#       I-V-1 mandates "no side effects on resolver failure."
+engine_preflight_resolve() {
+  local workflow_json="$1"
+
+  if [[ -z "$workflow_json" ]]; then
+    echo "engine_preflight_resolve: empty workflow_json argument" >&2
+    return 1
+  fi
+
+  local registry_json
+  if ! registry_json=$(build_session_registry); then
+    echo "engine_preflight_resolve: failed to build session registry" >&2
+    return 1
+  fi
+
+  if ! resolve_workflow_dependencies "$workflow_json" "$registry_json"; then
+    # T032: Diagnostic snapshot retained on failure.
+    if [[ -d .wheel ]]; then
+      mkdir -p .wheel/state
+      local snap_path
+      snap_path=".wheel/state/registry-failed-$(date -u +%Y%m%dT%H%M%SZ).json"
+      printf '%s\n' "$registry_json" >"$snap_path" 2>/dev/null || true
+      echo "engine_preflight_resolve: diagnostic snapshot written to ${snap_path}" >&2
+    fi
+    return 1
+  fi
+
+  printf '%s\n' "$registry_json"
+  return 0
+}
+
 # Globals set by engine_init — only initialize if not already set
 # (hooks may set STATE_FILE before sourcing engine.sh)
 WORKFLOW="${WORKFLOW:-}"

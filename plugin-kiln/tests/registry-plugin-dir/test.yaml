@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "T035 / NFR-F-3 install-mode coverage — --plugin-dir override wins over marketplace-cache copy. Verified via marker file written only by the override copy's manifest path (FR-F1-4)."
+timeout-override: 60

@@ -163,6 +163,23 @@ The debug loop runs: diagnose → fix → verify → (repeat if needed, max 9 at
 
 See the `debugger` agent definition for full loop details.
 
+### Step 4 (alternative): Spawn the `debugger` agent via the wheel resolver (FR-A5)
+
+The inline loop above is the default. If you prefer to hand the loop off to a dedicated specialized sub-agent (e.g. to keep the main chat clean, or because the bug needs deeper context than fits here), you can spawn the `debugger` agent via wheel's resolver. This is the FR-A5 path from the `wheel-as-runtime` PRD — any kiln skill can now spawn a specialized agent without wrapping itself in a wheel workflow.
+
+```bash
+# Resolve the debugger spec from the central wheel registry.
+SPEC=$(plugin-wheel/scripts/agents/resolve.sh debugger)
+SUBAGENT_TYPE=$(printf '%s' "$SPEC" | jq -r '.subagent_type')
+MODEL_DEFAULT=$(printf '%s' "$SPEC" | jq -r '.model_default // "sonnet"')
+```
+
+Then call the `Agent` tool with `subagent_type: "$SUBAGENT_TYPE"` (which will be `"debugger"` when the registry resolves), passing the issue description, the spec context, and the reproduction result as the prompt.
+
+Fallback: if the resolver exits 1 (registry malformed, `WORKFLOW_PLUGIN_DIR` unset in a bg context, etc.), fall back to the inline debug loop above — do NOT silently drop the request. The resolver's `source: "unknown"` passthrough shape is also acceptable here — if the registry doesn't have an entry yet, `SUBAGENT_TYPE` echoes back your input name and the Agent tool handles it as a legacy general-purpose spawn.
+
+This path is opt-in. The inline loop remains the default for the skill. A skill-test under `plugin-kiln/tests/kiln-fix-resolver-spawn/` exercises the resolver-spawn path (see T045 in `specs/wheel-as-runtime/tasks.md`).
+
 ## Step 5: Verify and Commit
 
 Once the fix passes verification:

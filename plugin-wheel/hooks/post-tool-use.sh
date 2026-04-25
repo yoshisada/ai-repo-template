@@ -4,11 +4,63 @@
 # Also intercepts activate.sh calls to create per-agent state files
 set -euo pipefail
 
-# 1. Read hook input from stdin and sanitize control characters for jq
+# 1. Read hook input from stdin.
+#
+# FR-C1 (specs/wheel-as-runtime): the previous implementation flattened every
+# newline in RAW_INPUT before jq parsing. That destroyed newlines in
+# tool_input.command — meaning multi-line Bash tool calls that invoked
+# activate.sh anywhere but the first line silently never activated. The fix:
+#   (a) extract .tool_input.command from the RAW input via jq first (preserves
+#       newlines);
+#   (b) fall back to python3's JSON parser with strict=False on jq failure —
+#       Claude Code's harness can emit literal U+0000–U+001F bytes inside
+#       tool_input.command values, which jq strictly rejects (exit 4) but
+#       python's json.loads(..., strict=False) accepts.
+#   (c) defensive sanitization of OTHER fields (logging metadata) is allowed
+#       for downstream jq calls, but MUST NOT touch the command string.
+#
+# This block:
+#   - RAW_INPUT is the untouched stdin payload; use this for command extraction.
+#   - HOOK_INPUT_SAFE is a control-char-flattened copy used ONLY for non-command
+#     jq reads (session_id, tool_name, tool_output, etc.) where multi-line
+#     fidelity is not required and jq robustness is the priority.
 RAW_INPUT=$(cat)
-# Replace literal control chars (newlines, tabs, etc. inside JSON string values)
-# that Claude Code may include in tool_output — jq rejects unescaped U+0000-U+001F
-HOOK_INPUT=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
+HOOK_INPUT_SAFE=$(printf '%s' "$RAW_INPUT" | tr '\n' ' ' | sed 's/[[:cntrl:]]/ /g')
+# Back-compat alias: some older references inside this script may still read
+# $HOOK_INPUT. Keep it pointing at the SAFE copy so those reads continue to
+# work. Command extraction below explicitly uses RAW_INPUT.
+HOOK_INPUT="$HOOK_INPUT_SAFE"
+
+# FR-C1 helper: extract tool_input.command preserving newlines.
+# 1) Try jq on raw input.
+# 2) On jq parse failure, try python3 json.loads(strict=False).
+# 3) If both fail, emit an identifiable stderr diagnostic (NFR-2: silent drop
+#    is forbidden) and return the empty string.
+_extract_command() {
+  local out
+  if out=$(printf '%s' "$RAW_INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null); then
+    printf '%s' "$out"
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    if out=$(printf '%s' "$RAW_INPUT" | python3 -c '
+import json, sys
+try:
+    d = json.loads(sys.stdin.read(), strict=False)
+except Exception as e:
+    sys.stderr.write("wheel post-tool-use: python3 JSON fallback failed: " + str(e) + "\n")
+    sys.exit(2)
+ti = d.get("tool_input") or {}
+sys.stdout.write(ti.get("command") or "")
+' 2>/dev/null); then
+      printf '%s' "$out"
+      return 0
+    fi
+  fi
+  # Both paths failed — loud, identifiable diagnostic (NFR-2 tripwire string).
+  echo "wheel post-tool-use: FR-C1 command extraction failed (jq + python3 both rejected hook input)" >&2
+  printf ''
+}
 
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${HOOK_DIR}/.." && pwd)"
@@ -21,8 +73,10 @@ wheel_log_init "post-tool-use" "$_SID"
 _TOOL=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
 wheel_log "enter" "tool=${_TOOL}"
 
-# 2. Extract command for interception checks
-COMMAND=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+# 2. Extract command for interception checks.
+# Use the FR-C1 helper so newlines are preserved (multi-line Bash tool calls
+# with activate.sh in any position MUST activate — FR-C2 invariant).
+COMMAND=$(_extract_command)
 
 # 2a. Check for deactivate.sh FIRST — "deactivate.sh" contains "activate.sh" as a substring,
 # so this must be checked before the activate.sh branch to avoid false matches.
@@ -197,6 +251,37 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
     # Validate workflow
     WORKFLOW_JSON=$(workflow_load "$WORKFLOW_FILE" 2>/dev/null)
     if [[ $? -eq 0 && -n "$WORKFLOW_JSON" ]]; then
+      # FR-F3-1 (specs/cross-plugin-resolver-and-preflight-registry):
+      # Defense-in-depth pre-flight resolver runs BEFORE state_init. The
+      # validate-workflow.sh path already ran this on the user-facing
+      # entrypoint; this guard catches activate.sh invocations that bypass
+      # the validation skill (e.g. direct script calls). Failure here means
+      # NO state file is created.
+      #
+      # T041: capture the registry JSON on success so the preprocessor can
+      # consume it without rebuilding. On failure exit before state_init.
+      REGISTRY_JSON=$(engine_preflight_resolve "$WORKFLOW_JSON" 2>/dev/null) || REGISTRY_JSON=""
+      if [[ -z "$REGISTRY_JSON" ]]; then
+        wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=preflight-resolver-failure" 2>/dev/null || true
+        # Skip state creation entirely.
+        false
+      else
+
+      # T041 (FR-F4-3): preprocess agent step instructions BEFORE state_init.
+      # The preprocessor substitutes ${WHEEL_PLUGIN_<name>} against the
+      # registry plus ${WORKFLOW_PLUGIN_DIR} against the calling plugin's
+      # absolute path. After this step the workflow JSON contains literal
+      # absolute paths in every agent .instruction — agents (including
+      # background sub-agents) can use them verbatim with no env-var
+      # propagation needed. Tripwire failure here means NO state is created.
+      source "${PLUGIN_DIR}/lib/preprocess.sh"
+      CALLING_PLUGIN_DIR=$(cd "$(dirname "$(dirname "$WORKFLOW_FILE")")" 2>/dev/null && pwd) || CALLING_PLUGIN_DIR=""
+      TEMPLATED_WORKFLOW_JSON=$(template_workflow_json "$WORKFLOW_JSON" "$REGISTRY_JSON" "$CALLING_PLUGIN_DIR" 2>/dev/null) || TEMPLATED_WORKFLOW_JSON=""
+      if [[ -z "$TEMPLATED_WORKFLOW_JSON" ]]; then
+        wheel_log "exit" "result=activate-failed workflow=${WORKFLOW_NAME} reason=preprocess-tripwire" 2>/dev/null || true
+        false
+      else
+
       # Extract session_id and agent_id from hook input — stored as ownership
       SESSION_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
       AGENT_ID=$(printf '%s\n' "$HOOK_INPUT" | jq -r '.agent_id // empty' 2>/dev/null || echo "")
@@ -205,8 +290,9 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
       UNIQUE="${AGENT_ID:-${SESSION_ID}_$(date +%s)_${RANDOM}}"
       STATE_FILE=".wheel/state_${UNIQUE}.json"
 
-      # Create state and run kickstart
-      state_init "$STATE_FILE" "$WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
+      # Create state and run kickstart with the TEMPLATED workflow JSON so
+      # downstream dispatch sees literal absolute paths in agent instructions.
+      state_init "$STATE_FILE" "$TEMPLATED_WORKFLOW_JSON" "$SESSION_ID" "$AGENT_ID" "$WORKFLOW_FILE"
 
       # Teammate activation: the --as flag already told us the team-format ID,
       # so stamp it on the child state file directly. No parent-state guess,
@@ -218,7 +304,7 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       wheel_log_set_state "$STATE_FILE"
       wheel_log "activate" "workflow=${WORKFLOW_NAME} file=${WORKFLOW_FILE}"
-      WORKFLOW="$WORKFLOW_JSON"
+      WORKFLOW="$TEMPLATED_WORKFLOW_JSON"
       export WHEEL_HOOK_SCRIPT=""
       export WHEEL_HOOK_INPUT='{}'
       engine_kickstart "$STATE_FILE" >/dev/null 2>&1
@@ -226,6 +312,8 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
 
       # Clean up legacy pending file if present
       rm -f .wheel/pending.json
+      fi  # close preprocess guard (T041)
+      fi  # close pre-flight resolver guard (FR-F3-1)
     fi
   fi
 

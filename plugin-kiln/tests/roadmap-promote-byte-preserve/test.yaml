@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "NFR-003 — /kiln:kiln-roadmap --promote preserves source body bytes (sha256 of everything after closing --- is identical pre/post)."

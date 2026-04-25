@@ -1,0 +1,109 @@
+name: wheel-tests
+
+# NFR-4 (specs/wheel-as-runtime/spec.md): the consumer-install smoke test
+# (FR-D2) MUST run in CI on every PR touching plugin-wheel/ or any plugin
+# workflow JSON. Local-only runs do not count — the bug shape is
+# "works locally, breaks in consumer install."
+#
+# Also runs the FR-C2 multi-line activation test and the FR-C1 fuzz test
+# plus their NFR-2 tripwires (ensuring silent-green regression ship is
+# impossible by construction).
+
+on:
+  pull_request:
+    paths:
+      - 'plugin-wheel/**'
+      - 'plugin-*/workflows/**'
+      - '.github/workflows/wheel-tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugin-wheel/**'
+      - 'plugin-*/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  hook-and-env-invariants:
+    name: Hook newline preservation + WORKFLOW_PLUGIN_DIR env parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: |
+          set -e
+          sudo apt-get update
+          # bats-core is required by the FR-F4 preprocessor / FR-F3 resolver
+          # bats suites added under specs/cross-plugin-resolver-and-preflight-
+          # registry. Per NFR-F-3 / Constitution Article II, the wheel-tests
+          # job must run them on every PR touching plugin-wheel/.
+          sudo apt-get install -y jq bats
+          # python3 ships on ubuntu-latest by default
+          jq --version
+          python3 --version
+          bats --version
+          bash --version | head -1
+
+      - name: FR-C2 multi-line activation
+        run: bash plugin-wheel/tests/activate-multiline/run.sh
+
+      - name: FR-C1 fuzz test (NFR-3)
+        run: bash plugin-wheel/tests/hook-input-fuzz/run.sh
+
+      - name: FR-C1 NFR-2 tripwire
+        run: bash plugin-wheel/tests/hook-no-preflatten-tripwire/run.sh
+
+      - name: Theme F4 / T042 — context_build no-runtime-env-header invariant
+        # Repurposed from the FR-D1 Runtime Environment unit test. Theme F4
+        # superseded Option B by templating literal abs paths into agent
+        # `.instruction` BEFORE state_init; this test now guards the inverse:
+        # context_build must NOT re-introduce the runtime-env header.
+        run: bash plugin-wheel/tests/context-runtime-env/run.sh
+
+      - name: Theme F4 — consumer-install smoke test
+        # Repurposed from the FR-D2 smoke test. Asserts the preprocessor
+        # substitutes `${WORKFLOW_PLUGIN_DIR}` to a literal install-cache
+        # path (NFR-F-5 back-compat) and that no residual plugin-path
+        # tokens remain (FR-F4-6).
+        run: bash plugin-wheel/tests/workflow-plugin-dir-bg/run.sh
+
+      - name: Theme F4 — NFR-F-2 silent-failure tripwire (preprocess.sh)
+        # Repurposed from the FR-D1 NFR-2 tripwire. Now neutralizes the
+        # FR-F4-5 narrowed-pattern grep in preprocess.sh and asserts that
+        # preprocess-tripwire.bats fails loudly. By construction a silent-
+        # green Theme F4 regression cannot ship.
+        run: bash plugin-wheel/tests/workflow-plugin-dir-tripwire/run.sh
+
+      - name: FR-F4 preprocessor unit suites (bats)
+        # specs/cross-plugin-resolver-and-preflight-registry T025 + T026.
+        run: |
+          bats plugin-wheel/tests/preprocess-substitution.bats
+          bats plugin-wheel/tests/preprocess-tripwire.bats
+
+      - name: SC-007 + SC-F-6 log grep assertions
+        run: |
+          # Any log line written post-PRD MUST NOT contain the original
+          # regression fingerprint OR a residual plugin-path token. Run
+          # against whatever log lines exist in the checkout — if the repo
+          # ships with stale pre-PRD log lines they are exempt (the live
+          # guard is the smoke test above).
+          if [ -d .kiln/logs ]; then
+            if git grep -F 'WORKFLOW_PLUGIN_DIR was unset' -- '.kiln/logs/report-issue-bg-*.md' 2>/dev/null; then
+              echo "::error::SC-007 regression: bg log contains 'WORKFLOW_PLUGIN_DIR was unset' string"
+              exit 1
+            fi
+          fi
+          # SC-F-6: zero residual plugin-path tokens in completed-workflow
+          # state archives. Defensive — only matches if the dir exists.
+          if [ -d .wheel/history/success ]; then
+            if git grep -E '\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' -- '.wheel/history/success/*.json' 2>/dev/null; then
+              echo "::error::SC-F-6 regression: residual plugin-path token in .wheel/history/success/*.json"
+              exit 1
+            fi
+          fi
+          echo "SC-007 + SC-F-6 grep clean"

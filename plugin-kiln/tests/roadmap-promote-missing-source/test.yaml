@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: kiln:kiln-roadmap
+expected-exit: 0
+description: "FR-006 Acceptance Scenario 6 — --promote on a non-existent path exits 3 with 'source not found' and makes no writes."

@@ -14,6 +14,9 @@ PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
 
 source "${WHEEL_LIB_DIR}/workflow.sh"
+# Sourcing engine.sh pulls in registry.sh + resolve.sh for pre-flight
+# (specs/cross-plugin-resolver-and-preflight-registry T031).
+source "${WHEEL_LIB_DIR}/engine.sh"
 
 # --- Pre-flight ---
 if [ ! -d ".wheel" ]; then
@@ -79,6 +82,15 @@ fi
 
 if ! workflow_validate_unique_ids "$WORKFLOW"; then
   echo "ERROR: Duplicate step IDs found." >&2
+  exit 1
+fi
+
+# --- Pre-flight resolver (FR-F3-1: BEFORE any state mutation) ---
+# Runs registry build + requires_plugins validation. Failure produces a
+# documented FR-F3-3 error on stderr and a diagnostic snapshot under
+# .wheel/state/registry-failed-*.json.
+if ! engine_preflight_resolve "$WORKFLOW" >/dev/null; then
+  echo "ERROR: Pre-flight plugin-dependency check failed." >&2
   exit 1
 fi
 

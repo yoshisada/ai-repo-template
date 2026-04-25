@@ -1,0 +1,46 @@
+{
+  "workflow_name": "shelf-propose-manifest-improvement",
+  "workflow_version": "1.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.247/workflows/shelf-propose-manifest-improvement.json",
+  "status": "running",
+  "cursor": 1,
+  "owner_session_id": "e3b5c873-3c90-4701-84a7-845bea93bd5c",
+  "owner_agent_id": "aae134db5b79b46ca",
+  "started_at": "2026-04-24T13:41:56.000Z",
+  "updated_at": "2026-04-24T13:42:03.000Z",
+  "steps": [
+    {
+      "id": "reflect",
+      "type": "agent",
+      "status": "done",
+      "started_at": null,
+      "completed_at": "2026-04-24T13:42:03.000Z",
+      "output": ".wheel/outputs/propose-manifest-improvement.json",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-dispatch",
+      "type": "command",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-proposal-mcp",
+      "type": "agent",
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

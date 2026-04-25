@@ -1,6 +1,6 @@
 ---
 name: kiln-roadmap
-description: Capture a product-direction idea (feature / goal / research / constraint / non-goal / milestone / critique) as a structured item under `.kiln/roadmap/items/`. Runs an adversarial interview, classifies kind, routes cross-surface (issue / feedback / roadmap) with confirm-never-silent hand-off, migrates legacy `.kiln/roadmap.md` on first run, and mirrors to Obsidian via `shelf:shelf-write-roadmap-note`. Flags — `--quick` (no interview), `--vision` (vision update), `--phase start|complete|create <name>`, `--check` (lifecycle audit), `--reclassify` (promote unsorted). Use as `/kiln:kiln-roadmap <description>`.
+description: Capture a product-direction idea (feature / goal / research / constraint / non-goal / milestone / critique) as a structured item under `.kiln/roadmap/items/`. Runs an adversarial interview, classifies kind, routes cross-surface (issue / feedback / roadmap) with confirm-never-silent hand-off, migrates legacy `.kiln/roadmap.md` on first run, and mirrors to Obsidian via `shelf:shelf-write-roadmap-note`. Flags — `--quick` (no interview), `--vision` (vision update), `--phase start|complete|create <name>`, `--check` (lifecycle audit), `--reclassify` (promote unsorted), `--promote <path>` (promote a raw issue/feedback file into a roadmap item; FR-006 of workflow-governance). Use as `/kiln:kiln-roadmap <description>`.
 ---
 
 # Kiln Roadmap — Structured Product-Direction Capture
@@ -22,6 +22,7 @@ Arguments may include the free-text description and/or any of these flags:
 - `--phase start <name>` / `--phase complete <name>` / `--phase create <name> --order <N>` — phase management (FR-020 / PRD FR-020).
 - `--check` — report items whose `state` is inconsistent with phase/spec/PR reality (FR-022 / PRD FR-022).
 - `--reclassify` — walk all `phase: unsorted` items through the interview to promote them (FR-028 follow-up).
+- `--promote <source-path-or-issue-number>` — promote a raw `.kiln/issues/*.md` or `.kiln/feedback/*.md` source into a structured roadmap item with `promoted_from:` back-reference, and flip the source's frontmatter to `status: promoted` + `roadmap_item:` (FR-006 of workflow-governance). See **§M: Promote source** below.
 
 ## Constants and paths (FR-001..FR-004 / PRD FR-001..FR-004)
 
@@ -147,6 +148,7 @@ Parse `$ARGUMENTS` for the mode flags in this order. First match wins. If none m
 - `--phase` → jump to **§P: Phase management**.
 - `--check` → jump to **§C: Consistency check**.
 - `--reclassify` → jump to **§R: Reclassify unsorted**.
+- `--promote <source>` → jump to **§M: Promote source** (FR-006 of workflow-governance).
 - `--quick` → set `QUICK_MODE=1`, strip the flag, continue to capture pipeline.
 - Otherwise → the remaining text is the description; continue.
 
@@ -822,6 +824,123 @@ List every item with `phase: unsorted` via `list-items.sh --phase unsorted`. For
 5. Update the source phase file (remove from `unsorted` registration) AND the target phase file (add registration).
 
 Offer an `--only-next N` cap so long legacy migrations can be processed in small batches.
+
+---
+
+## §M: Promote source (`--promote <source>` — workflow-governance FR-006)
+
+<!-- FR-006 of workflow-governance / spec Clarifications 3 + 5:
+       - Resolve the argument to a source path (literal path or GitHub issue
+         number via `gh issue view <N>` + local match on
+         `github_issue: <N>`).
+       - Refuse sources with `status: promoted` (idempotency — exit 5).
+       - If source body ≥ 200 chars, run the coached interview with
+         per-question pre-fill drawn from the source body; user may type
+         `accept-all` at any point.
+       - If source body < 200 chars, run the standard adversarial interview
+         without pre-fill.
+       - Call `promote-source.sh` (contract §2). Body bytes MUST be
+         byte-preserved (NFR-003).
+       - After success, dispatch `shelf:shelf-write-roadmap-note` for the
+         new item file so Obsidian mirrors the roadmap entry. -->
+
+This section activates when the user invokes `/kiln:kiln-roadmap --promote <source>`. It reuses most of the capture pipeline (§1b context load, §5 interview, §7 phase update, §8 follow-up loop) but short-circuits Step 6 into `promote-source.sh` rather than the normal item write path, and it drives the source-file back-reference as a single atomic operation.
+
+### §M.1 — Resolve the source path
+
+```bash
+# PROMOTE_ARG is whatever followed --promote.
+PROMOTE_ARG="$1"
+
+case "$PROMOTE_ARG" in
+  .kiln/issues/*.md|.kiln/feedback/*.md)
+    PROMOTE_SOURCE="$PROMOTE_ARG"
+    ;;
+  *)
+    # Try GitHub issue number resolution — look for .kiln/issues/*.md whose
+    # frontmatter `github_issue:` equals the supplied number.
+    if [[ "$PROMOTE_ARG" =~ ^[0-9]+$ ]]; then
+      PROMOTE_SOURCE="$(grep -lE "^github_issue:[[:space:]]*${PROMOTE_ARG}\b" .kiln/issues/*.md 2>/dev/null | head -n1)"
+      if [[ -z "$PROMOTE_SOURCE" ]]; then
+        echo "no local file for issue $PROMOTE_ARG — run /kiln:kiln-report-issue first" >&2
+        exit 1
+      fi
+    else
+      echo "unrecognised --promote argument: $PROMOTE_ARG" >&2
+      echo "usage: /kiln:kiln-roadmap --promote <.kiln/issues/...md | .kiln/feedback/...md | <issue-number>>" >&2
+      exit 1
+    fi
+    ;;
+esac
+
+if [[ ! -f "$PROMOTE_SOURCE" ]]; then
+  echo "source not found: $PROMOTE_SOURCE" >&2
+  exit 1
+fi
+```
+
+### §M.2 — Idempotency pre-check
+
+Read the source's frontmatter `status:` — if already `promoted`, print the existing `roadmap_item:` back-link and exit without interviewing. This mirrors `promote-source.sh`'s exit-5 guard and avoids running the interview only to fail at the script layer.
+
+### §M.3 — Coached vs. standard interview (Clarification 5)
+
+Measure the body length (bytes after the closing `---`):
+
+- **≥ 200 chars** — run the coached-interview layer from §5 with per-question pre-fill drawn from the source body. The coached suggestion block cites the source file path. User may type `accept-all` at any question to fast-forward through the remaining questions, accepting all coached suggestions. This is the same "coach-driven-capture" pattern that `/kiln:kiln-roadmap` uses for normal capture.
+- **< 200 chars** — run the full adversarial interview from §5 with no pre-fill.
+
+In both branches, the interview captures: `KIND`, `BLAST_RADIUS`, `REVIEW_COST`, `CONTEXT_COST`, `PHASE`, `SLUG`, and (optional) `TITLE`. Use today's UTC date for the item unless the source file's basename already encodes a `YYYY-MM-DD` prefix — `promote-source.sh` handles the date-prefix heuristic; the skill need only supply the `--slug`.
+
+### §M.4 — Call `promote-source.sh` (contract §2)
+
+```bash
+PROMOTE_OUT="$(bash "$SCRIPTS/promote-source.sh" \
+  --source "$PROMOTE_SOURCE" \
+  --kind "$KIND" \
+  --blast-radius "$BLAST_RADIUS" \
+  --review-cost "$REVIEW_COST" \
+  --context-cost "$CONTEXT_COST" \
+  --phase "$PHASE_NAME" \
+  --slug "$SLUG")"
+
+# Exit codes (contract §2):
+#   0 success
+#   3 source path does not exist
+#   4 source has no frontmatter
+#   5 source already status: promoted (idempotency)
+#   6 target item file already exists
+```
+
+On non-zero exit, surface the stderr to the user verbatim and stop — do NOT retry, do NOT silently pick a different slug.
+
+### §M.5 — Mirror to Obsidian + register on the phase
+
+On exit 0, extract `new_item_path` from the stdout JSON envelope:
+
+```bash
+NEW_ITEM="$(printf '%s' "$PROMOTE_OUT" | jq -r .new_item_path)"
+export ROADMAP_INPUT_FILE="$NEW_ITEM"
+# Invoke shelf:shelf-write-roadmap-note via the Skill tool — matches
+# Step 6's Obsidian mirror handoff (FR-030).
+```
+
+Then register the new item with its phase file (matches Step 7):
+
+```bash
+bash "$H_UPDATE_PHASE" "$PHASE_NAME" register "$(basename "$NEW_ITEM" .md)"
+```
+
+### §M.6 — User-visible confirmation
+
+Print a two-line summary:
+
+```
+Promoted .kiln/issues/2026-04-24-foo.md
+      → .kiln/roadmap/items/2026-04-24-foo.md  (kind: feature, phase: workflow-governance)
+```
+
+If the skill was invoked from `/kiln:kiln-distill`'s gate hand-off (FR-005), the caller reads the stdout envelope and re-bundles the new item into the distill run. Otherwise, fall through to the Step 8 follow-up loop so the user can chain more captures.
 
 ---
 

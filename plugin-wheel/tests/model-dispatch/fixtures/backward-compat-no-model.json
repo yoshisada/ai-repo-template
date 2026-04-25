@@ -1,0 +1,18 @@
+{
+  "name": "backward-compat-no-model-fixture",
+  "version": "1.0.0",
+  "_doc": "T063 fixture — NFR-5 byte-identical backward-compat. A teammate step with NO model: field must produce an empty spawn clause, preserving wheel's pre-FR-B behavior unchanged for every existing workflow that doesn't adopt the field.",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team_create",
+      "team": "legacy-team"
+    },
+    {
+      "id": "legacy-step",
+      "type": "teammate",
+      "team": "legacy-team",
+      "workflow": "legacy-sub-workflow"
+    }
+  ]
+}

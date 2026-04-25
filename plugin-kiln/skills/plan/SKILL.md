@@ -148,6 +148,16 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 **Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
 
+## Wheel-workflow guidance (FR-B3)
+
+If the plan emits wheel workflow JSON for any agent step, pick the `model:` tier explicitly rather than relying on the harness default. Rule of thumb:
+
+- **`haiku`** — classification / pattern-match / routing steps.
+- **`sonnet`** — synthesis, drafting, most multi-file work.
+- **`opus`** — hard reasoning only (architecture decisions, thorny debugging, long-context synthesis where the cost is justified).
+
+Absent `model:` = harness default, byte-identical to pre-`model:` workflows. Mismatches (unrecognized tier or malformed id) fail loudly — never silent fallback. See `plugin-wheel/README.md#per-step-model-selection`.
+
 ## Key rules
 
 - Use absolute paths

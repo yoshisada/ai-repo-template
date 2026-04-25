@@ -1,0 +1,69 @@
+{
+  "workflow_name": "kiln-report-issue",
+  "workflow_version": "3.0.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/kiln/000.001.009.247/workflows/kiln-report-issue.json",
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "e3b5c873-3c90-4701-84a7-845bea93bd5c",
+  "owner_agent_id": "",
+  "started_at": "2026-04-24T12:51:33.000Z",
+  "updated_at": "2026-04-24T12:54:27.000Z",
+  "steps": [
+    {
+      "id": "check-existing-issues",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-24T12:51:33.000Z",
+      "completed_at": "2026-04-24T12:51:33.000Z",
+      "output": ".wheel/outputs/check-existing-issues.txt",
+      "command_log": [
+        {
+          "command": "echo '## Existing Backlog Issues' && ls .kiln/issues/*.md 2>/dev/null || echo '(none)' && echo '---' && echo '## Completed Issues' && ls .kiln/issues/completed/*.md 2>/dev/null || echo '(none)'",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T12:51:33.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "create-issue",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-24T12:51:34.000Z",
+      "completed_at": "2026-04-24T12:52:46.000Z",
+      "output": ".wheel/outputs/create-issue-result.md",
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "write-issue-note",
+      "type": "workflow",
+      "status": "done",
+      "started_at": "2026-04-24T12:52:51.000Z",
+      "completed_at": "2026-04-24T12:53:46.000Z",
+      "output": null,
+      "command_log": [],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "dispatch-background-sync",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-24T12:53:56.000Z",
+      "completed_at": "2026-04-24T12:54:27.000Z",
+      "output": ".wheel/outputs/dispatch-background-sync.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR:-/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.247}/scripts/shelf-counter.sh\" read",
+          "exit_code": 0,
+          "timestamp": "2026-04-24T12:54:09.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ]
+}

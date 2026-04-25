@@ -1,0 +1,33 @@
+{
+  "name": "model-haiku-dispatch-fixture",
+  "version": "1.0.0",
+  "_doc": "T061 / SC-006 fixture — demonstrates end-to-end per-step model selection. A classification teammate step uses model: haiku, a heavier synthesis step uses model: sonnet. This is the anchor fixture proving wheel threads the resolved claude-haiku-* id into the Agent() spawn clause.",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team_create",
+      "team": "classifier-team"
+    },
+    {
+      "id": "classify-entries",
+      "type": "teammate",
+      "team": "classifier-team",
+      "workflow": "classify-one-entry",
+      "model": "haiku",
+      "_doc": "Classification step — pure pattern-match, no LLM reasoning between calls. haiku is cheap and fast per plan.md + wheel README rule-of-thumb."
+    },
+    {
+      "id": "synthesize-summary",
+      "type": "teammate",
+      "team": "classifier-team",
+      "workflow": "synthesize-summary",
+      "model": "sonnet",
+      "_doc": "Synthesis step — multi-input draft work. sonnet is the balance."
+    },
+    {
+      "id": "wait-for-team",
+      "type": "team_wait",
+      "team": "classifier-team"
+    }
+  ]
+}

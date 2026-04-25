@@ -1,0 +1,4 @@
+harness-type: static
+skill-under-test: require-feature-branch-hook
+expected-exit: 0
+description: "FR-003 — Regression fixture locking the already-shipped `build/*` accept in require-feature-branch.sh (FR-001/FR-002 verification). 5 cases: positive build/*, negative main short-circuit, negative feature/*, negative random, positive performance ≤ baseline+50ms (NFR-001)."
