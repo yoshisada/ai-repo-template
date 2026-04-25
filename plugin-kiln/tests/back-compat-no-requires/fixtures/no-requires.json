@@ -1,0 +1,22 @@
+{
+  "name": "no-requires-back-compat",
+  "version": "1.0.0",
+  "steps": [
+    {
+      "id": "in-plugin-script-via-legacy-token",
+      "type": "command",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/echo-self.sh\"",
+      "output": ".wheel/outputs/in-plugin-script-via-legacy-token.txt"
+    },
+    {
+      "id": "agent-with-generic-var-syntax",
+      "type": "agent",
+      "instruction": "Iterate over the list of files. For each file in \"${files[@]}\", print its name. Also count entries via ${#files[@]}. The variables ${files[@]} and ${#files[@]} are bash-array references that the agent may type back into a Bash tool call. They MUST pass through preprocessing untouched (NFR-F-5 / EC-4 / R-F-3).\n\nThis instruction is the EC-4 backstop: if the narrowed tripwire is ever widened back to plain '${' detection, this step trips it.",
+      "context_from": [
+        "in-plugin-script-via-legacy-token"
+      ],
+      "output": ".wheel/outputs/agent-with-generic-var-syntax.txt",
+      "terminal": true
+    }
+  ]
+}

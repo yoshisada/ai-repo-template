@@ -1,0 +1,3 @@
+Iterate over the list of files. For each file in "${files[@]}", print its name. Also count entries via ${#files[@]}. The variables ${files[@]} and ${#files[@]} are bash-array references that the agent may type back into a Bash tool call. They MUST pass through preprocessing untouched (NFR-F-5 / EC-4 / R-F-3).
+
+This instruction is the EC-4 backstop: if the narrowed tripwire is ever widened back to plain '${' detection, this step trips it.

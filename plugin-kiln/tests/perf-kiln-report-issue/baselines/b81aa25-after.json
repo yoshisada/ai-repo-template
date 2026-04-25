@@ -1,0 +1,19 @@
+{
+  "_comment": "Frozen baseline copied from plugin-kiln/tests/kiln-report-issue-batching-perf/results-2026-04-24-with-tokens.tsv at commit b81aa25. The 'after' arm is the post-T092 (and PRE-this-PRD) bg sub-agent shape — 1 Bash tool call, the shape /kiln:kiln-report-issue uses today. Post-PRD perf must stay within 120% of these medians per NFR-F-4. Source: README.md run log 2026-04-24 (second run with token usage).",
+  "source_commit": "b81aa25",
+  "source_tsv": "plugin-kiln/tests/kiln-report-issue-batching-perf/results-2026-04-24-with-tokens.tsv",
+  "samples": 5,
+  "after_arm_medians": {
+    "elapsed_sec": 8.405,
+    "duration_api_ms": 4382,
+    "num_turns": 2,
+    "output_tokens": 176,
+    "cache_read_input_tokens": 48476,
+    "total_cost_usd": 0.118623
+  },
+  "thresholds": {
+    "elapsed_sec_max": 10.086,
+    "duration_api_ms_max": 5258,
+    "_threshold_note": "120% of baseline medians. Post-PRD median MUST be <= these values to pass NFR-F-4."
+  }
+}

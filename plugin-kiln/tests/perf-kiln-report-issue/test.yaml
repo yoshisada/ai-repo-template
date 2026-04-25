@@ -1,0 +1,10 @@
+harness-type: static
+skill-under-test: kiln:kiln-report-issue
+expected-exit: 0
+description: "T053 / NFR-F-4 + NFR-F-6 — Perf gate: post-PRD `/kiln:kiln-report-issue` median wall-clock + median duration_api_ms within 120% of the b81aa25 baseline; resolver-only overhead on a no-deps workflow ≤200ms."
+timeout-override: 1200
+# Live perf fixture. Reuses the existing kiln-report-issue-batching-perf
+# driver (perf-driver.sh) and compares against the recorded baseline at
+# commit b81aa25 (results-2026-04-24-with-tokens.tsv). Runs N=5 alternating
+# samples (~8-15s each) → ~3 min total wall-clock for the LLM portion.
+# The resolver-overhead measurement is sub-second.
