@@ -75,6 +75,7 @@ else
 fi
 
 # --- Discover fixtures (deterministic order — Decision 4) -------------------
+# FR-S-002: corpus layout <corpus-root>/<NNN-slug>/ — direct children of corpus_dir.
 declare -a fixtures=()
 while IFS= read -r -d '' dir; do
   fixtures+=("$dir")
@@ -102,6 +103,7 @@ run_arm() {
   # Run one fixture against one plugin-dir. Echoes JSON to stdout describing
   # the result. Always exits 0 from this function — failures are encoded in
   # the JSON, not via exit code (so the orchestrator can keep iterating).
+  # Satisfies: FR-S-003 (per-arm metrics capture: assertion verdict + tokens).
   local fixture_dir=$1 plugin_dir=$2 arm=$3
   local slug=${fixture_dir##*/}
   local input_json="$fixture_dir/input.json"
