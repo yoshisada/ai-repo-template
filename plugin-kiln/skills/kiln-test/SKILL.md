@@ -7,7 +7,7 @@ description: "Executable skill-test harness. Invokes real claude --print ... --p
 
 **Purpose**: Run executable tests against plugin skills — the real skill, in a real Claude subprocess, against a scratch-dir fixture, with assertions that verify final scratch-dir state. Replaces documentary `SMOKE.md` files with tests that actually run.
 
-**Non-negotiable**: this skill MUST delegate to `${WORKFLOW_PLUGIN_DIR}/scripts/harness/kiln-test.sh` (NFR-001 portability). No repo-relative `plugin-kiln/scripts/...` path may appear in this file. The harness scripts resolve to the plugin's install path automatically via `${WORKFLOW_PLUGIN_DIR}`.
+**Non-negotiable**: this skill MUST delegate to `${WORKFLOW_PLUGIN_DIR}/../plugin-wheel/scripts/harness/wheel-test-runner.sh` (NFR-001 portability + sibling-plugin resolution per spec OQ-R-1). No repo-relative `plugin-kiln/scripts/...` or `plugin-wheel/scripts/...` path may appear in this file. The harness scripts resolve to the plugin's install path automatically via `${WORKFLOW_PLUGIN_DIR}` + sibling-traversal.
 
 ## When to invoke
 
@@ -28,7 +28,7 @@ description: "Executable skill-test harness. Invokes real claude --print ... --p
 Run:
 
 ```bash
-bash "${WORKFLOW_PLUGIN_DIR}/scripts/harness/kiln-test.sh" $ARGUMENTS
+bash "${WORKFLOW_PLUGIN_DIR}/../plugin-wheel/scripts/harness/wheel-test-runner.sh" $ARGUMENTS
 ```
 
 That's the entire skill. The orchestrator emits TAP v14 on stdout, writes verdict reports to `.kiln/logs/kiln-test-<uuid>.md`, and retains scratch dirs under `/tmp/kiln-test-<uuid>/` on failure for post-mortem.
