@@ -621,7 +621,7 @@ Before completing your work and marking your task as done, you MUST write a fric
 Write the note using this structure:
 
 ```markdown
-# Agent Friction Notes: qa-engineer
+# Agent Friction Notes: <your-agent-name>
 
 **Feature**: <feature name>
 **Date**: <timestamp>
