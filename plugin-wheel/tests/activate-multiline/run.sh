@@ -28,15 +28,21 @@ STAGE="$(mktemp -d -t activate-multiline-XXXXXX)"
 trap 'rm -rf "$STAGE"' EXIT
 cd "$STAGE"
 
-# A minimal workflow the hook can activate. Point to plugin-wheel/workflows/example.json
-# via an absolute path so the test does not depend on local workflows/ scaffolding.
+# A minimal workflow the hook can activate. Seed it into the staging dir's
+# local workflows/ so the hook's relative-path lookup (workflows/<name>.json)
+# succeeds without depending on `~/.claude/plugins/` discovery — clean CI
+# runners have no plugin install, so plugin discovery returns empty and
+# bare-name resolution silently fails (the symptom this fixture catches
+# would be masked by a "missing prerequisite" failure that looks like
+# the FR-C2 invariant break it's actually testing).
 WORKFLOW_PATH="${REPO_ROOT}/plugin-wheel/workflows/example.json"
 if [[ ! -f "$WORKFLOW_PATH" ]]; then
   echo "FAIL: fixture workflow missing: $WORKFLOW_PATH" >&2
   exit 1
 fi
 
-mkdir -p .wheel
+mkdir -p .wheel workflows
+cp "$WORKFLOW_PATH" workflows/example.json
 
 # Build the hook-input JSON payload. This is the shape Claude Code's harness
 # sends on PostToolUse for a Bash tool call. Use python3 so newlines inside

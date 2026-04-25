@@ -87,23 +87,87 @@ jobs:
 
       - name: SC-007 + SC-F-6 log grep assertions
         run: |
-          # Any log line written post-PRD MUST NOT contain the original
-          # regression fingerprint OR a residual plugin-path token. Run
-          # against whatever log lines exist in the checkout — if the repo
-          # ships with stale pre-PRD log lines they are exempt (the live
-          # guard is the smoke test above).
+          # Any log line ADDED on this branch MUST NOT contain the original
+          # regression fingerprint OR a residual plugin-path token. Stale
+          # pre-PRD log lines (real historical incidents already fixed by
+          # earlier PRs) are exempt by construction — we diff against the
+          # base branch and only check newly added lines, matching the
+          # comment's stated intent.
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          # GHA actions/checkout defaults to depth=1 — fetch the base branch
+          # with full history so the diff has a merge base. `--unshallow` is
+          # safe to ignore-fail when the repo is already complete.
+          git fetch --no-tags origin "$BASE_REF" --unshallow 2>/dev/null \
+            || git fetch --no-tags origin "$BASE_REF" 2>/dev/null \
+            || true
+          MERGE_BASE=$(git merge-base "origin/${BASE_REF}" HEAD 2>/dev/null) || MERGE_BASE=""
+          if [ -z "$MERGE_BASE" ]; then
+            echo "::warning::Could not determine merge base with origin/${BASE_REF}; falling back to HEAD~1 for diff scope"
+            MERGE_BASE="HEAD~1"
+          fi
+
+          # `+` lines = additions on this branch. Exclude the diff hunk
+          # header `+++` so the file path itself doesn't match.
           if [ -d .kiln/logs ]; then
-            if git grep -F 'WORKFLOW_PLUGIN_DIR was unset' -- '.kiln/logs/report-issue-bg-*.md' 2>/dev/null; then
-              echo "::error::SC-007 regression: bg log contains 'WORKFLOW_PLUGIN_DIR was unset' string"
+            if git diff "$MERGE_BASE"..HEAD -- '.kiln/logs/report-issue-bg-*.md' \
+                | grep -E '^\+[^+].*WORKFLOW_PLUGIN_DIR was unset' >/dev/null 2>&1; then
+              echo "::error::SC-007 regression: a line added on this branch contains 'WORKFLOW_PLUGIN_DIR was unset' in .kiln/logs/report-issue-bg-*.md"
               exit 1
             fi
           fi
           # SC-F-6: zero residual plugin-path tokens in completed-workflow
-          # state archives. Defensive — only matches if the dir exists.
+          # state archives ADDED on this branch. Same merge-base scoping —
+          # historical archives that documented past regressions are exempt.
           if [ -d .wheel/history/success ]; then
-            if git grep -E '\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' -- '.wheel/history/success/*.json' 2>/dev/null; then
-              echo "::error::SC-F-6 regression: residual plugin-path token in .wheel/history/success/*.json"
+            if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
+                | grep -E '^\+[^+].*\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' >/dev/null 2>&1; then
+              echo "::error::SC-F-6 regression: a line added on this branch contains a residual plugin-path token in .wheel/history/success/*.json"
               exit 1
             fi
           fi
-          echo "SC-007 + SC-F-6 grep clean"
+          # SC-G-1 recalibrated: zero residual `{{VAR}}` placeholders in any
+          # archived workflow state ADDED on this branch. The hydration
+          # tripwire (FR-G3-5) aborts dispatch before state advance; a new
+          # state archive holding a residual `{{VAR}}` is structural evidence
+          # the tripwire was bypassed.
+          if [ -d .wheel/history/success ]; then
+            if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
+                | grep -E '^\+[^+].*\{\{[A-Z][A-Z0-9_]*\}\}' >/dev/null 2>&1; then
+              echo "::error::FR-G3-5 regression: a line added on this branch contains a residual {{VAR}} placeholder in .wheel/history/success/*.json (hydration tripwire bypassed)"
+              exit 1
+            fi
+          fi
+          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean (merge-base: $MERGE_BASE)"
+
+      - name: NFR-G-6 atomic-migration guard (wheel-step-input-output-schema)
+        # specs/wheel-step-input-output-schema NFR-G-6: the runtime change
+        # (plugin-wheel/lib/resolve_inputs.sh) and the migrated workflow
+        # (plugin-kiln/workflows/kiln-report-issue.json) MUST land together
+        # on the feature branch — squash-merge produces a single merge
+        # commit touching BOTH paths. Per plan §3.E, the guard verifies
+        # both files appear in `git log --name-only` over the PR's commit
+        # range. Two adjacent commits in the same PR satisfy the invariant.
+        if: github.event_name == 'pull_request'
+        run: |
+          PR_RANGE="origin/${{ github.base_ref }}...HEAD"
+          # Collect the union of files touched by every commit in the PR.
+          touched=$(git log --name-only --pretty=format: "$PR_RANGE" 2>/dev/null | sort -u)
+          # Decide if this is a wheel-step-input-output-schema PR (i.e. the
+          # validator + the workflow JSON both moved). If neither moved, the
+          # guard is a no-op (NFR-G-3 backward-compat — unrelated PRs unaffected).
+          touched_resolver=$(printf '%s\n' "$touched" | grep -E '^plugin-wheel/lib/resolve_inputs\.sh$' || true)
+          touched_workflow=$(printf '%s\n' "$touched" | grep -E '^plugin-kiln/workflows/kiln-report-issue\.json$' || true)
+          if [ -z "$touched_resolver" ] && [ -z "$touched_workflow" ]; then
+            echo "NFR-G-6 guard: PR does not touch resolver or migrated workflow — guard is a no-op"
+            exit 0
+          fi
+          # Once either side has moved, both MUST be in the PR.
+          if [ -z "$touched_resolver" ]; then
+            echo "::error::NFR-G-6 regression: PR touches plugin-kiln/workflows/kiln-report-issue.json but not plugin-wheel/lib/resolve_inputs.sh. Atomic-migration invariant violated — workflow uses inputs:/output_schema: but the resolver runtime is not in this PR."
+            exit 1
+          fi
+          if [ -z "$touched_workflow" ]; then
+            echo "::warning::NFR-G-6 advisory: PR touches plugin-wheel/lib/resolve_inputs.sh without the migrated workflow. Acceptable for resolver-only follow-up PRs (e.g. perf tweaks); reviewer should confirm intent."
+            exit 0
+          fi
+          echo "NFR-G-6 guard: BOTH plugin-wheel/lib/resolve_inputs.sh AND plugin-kiln/workflows/kiln-report-issue.json appear in this PR's commit range — atomic-migration invariant satisfied"

@@ -33,6 +33,12 @@ source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/registry
 source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/resolve.sh"
 # shellcheck source=preprocess.sh
 source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/preprocess.sh"
+# shellcheck source=resolve_inputs.sh
+# specs/wheel-step-input-output-schema FR-G3-1 — resolve_inputs is consumed
+# by dispatch.sh at agent-step dispatch and by workflow.sh at load-time
+# validation (single source of truth for the JSONPath grammar; see
+# contract §1 invariant I-PJ-3).
+source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/resolve_inputs.sh"
 
 # engine_preflight_resolve — Run the cross-plugin pre-flight phase
 # (specs/cross-plugin-resolver-and-preflight-registry FR-F1 + FR-F3).

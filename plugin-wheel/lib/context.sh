@@ -5,15 +5,43 @@
 # FR-027: Build the context payload for an agent step
 # Assembles: step instruction + outputs from dependency steps
 # Params: $1 = step JSON, $2 = state JSON (string), $3 = workflow JSON (string)
+#         $4 = resolved_map_json (string, optional) — output of resolve_inputs
+#              (specs/wheel-step-input-output-schema FR-G3-2; contract §2/§4).
+#              When non-empty AND step.inputs is declared, prepends the
+#              "## Resolved Inputs" block AND substitutes {{VAR}} placeholders
+#              in the instruction body (FR-G3-3) AND suppresses the legacy
+#              "## Context from Previous Steps" footer (FR-G1-3).
 # Output (stdout): context string to inject as additionalContext
-# Exit: 0
+# Exit: 0 on success, 1 on hydration tripwire failure (FR-G3-5).
 context_build() {
   local step_json="$1"
   local state_json="$2"
   local workflow_json="$3"
+  local resolved_map_json="${4:-}"
 
   local instruction
   instruction=$(printf '%s\n' "$step_json" | jq -r '.instruction // empty')
+
+  # specs/wheel-step-input-output-schema FR-G3-3 / FR-G3-5 — substitute
+  # {{VAR}} placeholders in the instruction body using the resolved map,
+  # then enforce the post-substitution tripwire. Failure exits 1; the
+  # dispatch caller marks the step failed and aborts.
+  if [[ -n "$resolved_map_json" && "$resolved_map_json" != "{}" && -n "$instruction" ]]; then
+    local _step_id
+    _step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"')
+    local _substituted
+    if ! _substituted=$(substitute_inputs_into_instruction "$instruction" "$resolved_map_json" "$_step_id"); then
+      return 1
+    fi
+    instruction="$_substituted"
+  fi
+
+  # Determine whether to suppress the legacy "## Context from Previous Steps"
+  # footer (FR-G1-3): suppression triggers when the step declares non-empty
+  # `inputs:`. This preserves NFR-G-3 byte-identical behavior for unmigrated
+  # workflows (no `inputs:` → footer behavior unchanged).
+  local _has_inputs
+  _has_inputs=$(printf '%s\n' "$step_json" | jq -r 'if (.inputs // {}) | length > 0 then "yes" else "no" end')
 
   # Collect outputs from context_from dependencies
   local context_from
@@ -39,8 +67,33 @@ context_build() {
   # code path as `${WHEEL_PLUGIN_<calling-plugin>}`.
 
   local context_parts=""
+
+  # specs/wheel-step-input-output-schema FR-G3-2 — emit the "## Resolved
+  # Inputs" block FIRST (before "## Step Instruction") when inputs:
+  # resolved successfully. The block is the canonical record of what the
+  # resolver produced; downstream agents read it as-is.
+  if [[ -n "$resolved_map_json" && "$resolved_map_json" != "{}" ]]; then
+    local _resolved_block
+    _resolved_block=$(printf '%s' "$resolved_map_json" | jq -r '
+      "## Resolved Inputs\n" +
+      ([to_entries[] | "- **" + .key + "**: " + (.value | tostring)] | join("\n"))
+    ' 2>/dev/null)
+    if [[ -n "$_resolved_block" ]]; then
+      context_parts="${_resolved_block}\n\n"
+    fi
+  fi
+
   if [[ -n "$instruction" ]]; then
-    context_parts="## Step Instruction\n\n${instruction}"
+    context_parts="${context_parts}## Step Instruction\n\n${instruction}"
+  fi
+
+  # specs/wheel-step-input-output-schema FR-G1-3 — suppress the legacy
+  # "## Context from Previous Steps" footer when inputs: is declared and
+  # non-empty (the resolved-inputs block replaces it). When inputs: is
+  # absent (or empty), preserve today's footer behavior byte-identically
+  # (NFR-G-3 backward compat).
+  if [[ "$_has_inputs" == "yes" ]]; then
+    context_from=""
   fi
 
   if [[ -n "$context_from" ]]; then

@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-24
+last_updated: 2026-04-25
 ---
 
 # Product Vision
@@ -38,6 +38,7 @@ Six-month signals:
 - **File-based state** — no services; everything persists in the repo or a configured Obsidian vault so the audit trail is portable and forkable.
 - **Spec-first, non-negotiable** — 4-gate hooks enforce spec + plan + tasks + `[X]` before `src/` edits; `/kiln:kiln-fix` is the only spec-less escape hatch and still requires an existing spec.
 - **Plugin-workflow portability** — scripts invoked from wheel workflows resolve via `${WORKFLOW_PLUGIN_DIR}`, never repo-relative paths.
+- **Plugins ship independently — wheel is plugin-agnostic infrastructure** — wheel is dispatch infrastructure (hooks, state machines, agent-resolver primitive, per-step model selection, workflow JSON validation). It MUST NOT hold any manifest, registry, or hardcoded path that requires knowledge of another plugin's contents. New agents, skills, hooks, or workflows ship inside their owning plugin without requiring a wheel release. Plugin-prefixed names (`<plugin>:<role>`) plus filesystem-backed harness discovery are the canonical way agents are found — bare names that depend on a central registry are a coupling violation. The test for any future architectural decision: *"does this require wheel to know about another plugin's contents?"* If yes, it's wrong.
 - **Quality gates ship with the build** — lint, static analysis, coverage thresholds, full-codebase audit tooling pre-wired; the senior-engineer-merge bar is the target, not the audit floor.
 - **Idempotent writes** — generators produce byte-identical output on unchanged inputs so drift is visible in git.
 - **Install must not be clunky** — consumer onboarding is a vision-level commitment, not a nice-to-have; breaking changes in the scaffold surface warrant visible version-bumps and migration notes.

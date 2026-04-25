@@ -59,7 +59,278 @@ workflow_load() {
     return 1
   fi
 
+  # FR-G1-4 (specs/wheel-step-input-output-schema): shape-only validation of
+  # the optional `inputs:` and `output_schema:` step fields per
+  # contracts/interfaces.md §5. Sources resolve_inputs.sh for the single
+  # source-of-truth grammar parser (I-PJ-3 / I-WV-1 dual-gate pattern).
+  if ! workflow_validate_inputs_outputs "$content"; then
+    return 1
+  fi
+
   printf '%s\n' "$content"
+}
+
+# FR-G1-4 (specs/wheel-step-input-output-schema): shape-only load-time
+# validation of the optional `inputs:` and `output_schema:` step fields per
+# contracts/interfaces.md §5. Implements all 8 validation rules:
+#
+#   1. `inputs:` only appears on `agent` step types (OQ-G-3 deferral).
+#   2. Each var name matches ^[A-Z][A-Z0-9_]*$.
+#   3. Each input expression parses via `_parse_jsonpath_expr` (I-PJ-3 single
+#      source of truth — workflow-load and runtime resolver share the same
+#      grammar function so error strings stay byte-identical).
+#   4. `$.steps.<id>.output.<field>` must reference a step appearing BEFORE
+#      this step in `.steps[]`.
+#   5. The referenced upstream step MUST declare `output_schema`, AND the
+#      referenced `<field>` MUST appear in that schema.
+#   6. `$plugin(<name>)` references must have `<name>` in `requires_plugins:`
+#      (or be `wheel` itself — implicit per spec §FR-G2-3).
+#   7. Each `output_schema:` field's extract directive parses (regex:<pattern>,
+#      jq:<expr>, or a JSON-path string starting with `$.`).
+#   8. `$config()` references are NOT allowlist-checked here — that's runtime
+#      resolver behavior (I-WV-2).
+#
+# Pure shape check — does not read config files, does not query the registry
+# (those are runtime concerns). First-error-wins per I-WV-3.
+#
+# Defense-in-depth (I-WV-1): error strings deliberately mirror runtime resolver
+# errors (resolve_inputs.sh) byte-for-byte so the NFR-G-2 silent-failure
+# tripwires (`resolve-inputs-error-shapes`) keep firing on the documented
+# strings regardless of which gate caught the bug.
+#
+# Params: $1 = workflow JSON (string, validated JSON post-required-fields)
+# Output (stderr): one error line on first offending issue
+# Exit:   0 if all `inputs:` + `output_schema:` declarations are well-formed
+#         (or fields absent), 1 otherwise
+workflow_validate_inputs_outputs() {
+  local workflow_json="$1"
+
+  # Lazy source of resolve_inputs.sh — re-source guard prevents duplicate work.
+  # Self-discover WHEEL_LIB_DIR if not exported (mirrors engine.sh:25-35
+  # registry/resolve/preprocess pattern for standalone-source paths).
+  # shellcheck source=resolve_inputs.sh
+  source "${WHEEL_LIB_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/resolve_inputs.sh"
+
+  local name
+  name=$(printf '%s\n' "$workflow_json" | jq -r '.name // "<unknown>"')
+
+  # Pre-extract requires_plugins for $plugin(<name>) validation. Rule 6
+  # treats `wheel` as implicit (allowed without declaration). The calling
+  # plugin is also implicit at runtime, but workflow_load doesn't know which
+  # plugin owns this workflow — rule 6 enforces only the explicit declaration
+  # path; runtime resolver covers the implicit calling-plugin case.
+  local requires_plugins_json
+  requires_plugins_json=$(printf '%s\n' "$workflow_json" | jq -c '.requires_plugins // []')
+
+  # Iterate steps. We need both the step object and its index (for "appears
+  # before this step" rule 4 — the reference set is .steps[0..<this-idx>-1]).
+  local steps_count
+  steps_count=$(printf '%s\n' "$workflow_json" | jq '.steps | length')
+
+  local i
+  for ((i = 0; i < steps_count; i++)); do
+    local step_json step_id step_type step_inputs step_output_schema
+    step_json=$(printf '%s\n' "$workflow_json" | jq -c --argjson i "$i" '.steps[$i]')
+    step_id=$(printf '%s\n' "$step_json" | jq -r '.id // "?"')
+    step_type=$(printf '%s\n' "$step_json" | jq -r '.type // "?"')
+    step_inputs=$(printf '%s\n' "$step_json" | jq -c '.inputs // {}')
+    step_output_schema=$(printf '%s\n' "$step_json" | jq -c '.output_schema // {}')
+
+    # Rule 1: `inputs:` only on `agent` step types.
+    if [[ "$step_inputs" != "{}" && "$step_type" != "agent" ]]; then
+      printf "Workflow '%s' step '%s' (type: %s) declares 'inputs:' but type 'agent' is required.\n" \
+        "$name" "$step_id" "$step_type" >&2
+      return 1
+    fi
+
+    # Rule 7: validate output_schema directives (independent of inputs:).
+    if [[ "$step_output_schema" != "{}" ]]; then
+      if ! _validate_output_schema_directives "$name" "$step_id" "$step_output_schema"; then
+        return 1
+      fi
+    fi
+
+    # Skip the per-input loop when there are no inputs.
+    if [[ "$step_inputs" == "{}" ]]; then
+      continue
+    fi
+
+    # Iterate inputs in the order the author wrote them (keys_unsorted).
+    local var_names
+    var_names=$(printf '%s\n' "$step_inputs" | jq -r 'keys_unsorted[]')
+
+    local var_name
+    while IFS= read -r var_name; do
+      [[ -z "$var_name" ]] && continue
+
+      # Rule 2: var name shape.
+      if ! [[ "$var_name" =~ ^[A-Z][A-Z0-9_]*$ ]]; then
+        printf "Workflow '%s' step '%s' input '%s' has invalid var name (must match ^[A-Z][A-Z0-9_]*\$).\n" \
+          "$name" "$step_id" "$var_name" >&2
+        return 1
+      fi
+
+      local expr
+      expr=$(printf '%s\n' "$step_inputs" | jq -r --arg k "$var_name" '.[$k]')
+
+      # Rule 3: expression parses via _parse_jsonpath_expr (single source of
+      # truth — I-PJ-3). Error string mirrors resolve_inputs.sh contract §2.
+      if ! _parse_jsonpath_expr "$expr"; then
+        printf "Workflow '%s' step '%s' input '%s' uses unsupported expression: '%s'. Supported: \$.steps.<id>.output.<field>, \$config(<file>:<key>), \$plugin(<name>), \$step(<id>).\n" \
+          "$name" "$step_id" "$var_name" "$expr" >&2
+        return 1
+      fi
+
+      case "$_PARSED_KIND" in
+        dollar_steps)
+          local upstream_id="$_PARSED_ARG1"
+          local upstream_field="$_PARSED_ARG2"
+
+          # Rule 4: upstream must appear BEFORE this step. Build the reference
+          # set as `.steps[0..i-1].id` and check membership.
+          local upstream_idx
+          upstream_idx=$(printf '%s\n' "$workflow_json" | jq --argjson n "$i" --arg id "$upstream_id" \
+            '[.steps[0:$n][].id] | index($id)')
+          if [[ "$upstream_idx" == "null" || -z "$upstream_idx" ]]; then
+            printf "Workflow '%s' step '%s' input '%s' references upstream step '%s' that does not appear before this step.\n" \
+              "$name" "$step_id" "$var_name" "$upstream_id" >&2
+            return 1
+          fi
+
+          # Rule 5: upstream must declare output_schema AND <field> must be
+          # in that schema. Look up the upstream step by ID (the upstream_idx
+          # above is the index into the slice — not the absolute step index).
+          local upstream_step upstream_schema
+          upstream_step=$(printf '%s\n' "$workflow_json" | jq -c --arg id "$upstream_id" \
+            '.steps[] | select(.id == $id)')
+          upstream_schema=$(printf '%s\n' "$upstream_step" | jq -c '.output_schema // null')
+          if [[ "$upstream_schema" == "null" ]]; then
+            printf "Workflow '%s' step '%s' input '%s' references field '%s' of step '%s' but that step has no output_schema declaration.\n" \
+              "$name" "$step_id" "$var_name" "$upstream_field" "$upstream_id" >&2
+            return 1
+          fi
+          local field_present
+          field_present=$(printf '%s\n' "$upstream_schema" | jq --arg f "$upstream_field" 'has($f)')
+          if [[ "$field_present" != "true" ]]; then
+            printf "Workflow '%s' step '%s' input '%s' references field '%s' of step '%s' but that field is not declared in that step's output_schema.\n" \
+              "$name" "$step_id" "$var_name" "$upstream_field" "$upstream_id" >&2
+            return 1
+          fi
+          ;;
+
+        dollar_plugin)
+          # Rule 6: name must be in requires_plugins or be `wheel` (implicit).
+          local plugin_name="$_PARSED_ARG1"
+          if [[ "$plugin_name" == "wheel" ]]; then
+            : # implicit — always allowed.
+          else
+            local in_requires
+            in_requires=$(printf '%s\n' "$requires_plugins_json" | jq --arg n "$plugin_name" \
+              '[.[]] | index($n)')
+            if [[ "$in_requires" == "null" || -z "$in_requires" ]]; then
+              printf "Workflow '%s' step '%s' input '%s' resolves \$plugin('%s') but '%s' is not in requires_plugins (declare it explicitly).\n" \
+                "$name" "$step_id" "$var_name" "$plugin_name" "$plugin_name" >&2
+              return 1
+            fi
+          fi
+          ;;
+
+        dollar_step)
+          # `$step(<id>)` — same upstream-existence rule as $.steps.* but
+          # the field-in-schema requirement does not apply (it returns the
+          # raw output file path as an escape hatch).
+          local upstream_id="$_PARSED_ARG1"
+          local upstream_idx
+          upstream_idx=$(printf '%s\n' "$workflow_json" | jq --argjson n "$i" --arg id "$upstream_id" \
+            '[.steps[0:$n][].id] | index($id)')
+          if [[ "$upstream_idx" == "null" || -z "$upstream_idx" ]]; then
+            printf "Workflow '%s' step '%s' input '%s' references upstream step '%s' that does not appear before this step.\n" \
+              "$name" "$step_id" "$var_name" "$upstream_id" >&2
+            return 1
+          fi
+          ;;
+
+        dollar_config)
+          # Rule 8: $config() references are NOT allowlist-checked at load
+          # time — runtime resolver enforces NFR-G-7. Workflow-load only
+          # validates shape (already done by _parse_jsonpath_expr).
+          :
+          ;;
+      esac
+    done <<< "$var_names"
+  done
+
+  return 0
+}
+
+# FR-G1-2 (specs/wheel-step-input-output-schema): validate output_schema
+# extract directives per contracts/interfaces.md §6. Helper for
+# workflow_validate_inputs_outputs (rule 7).
+#
+# Each field value is one of:
+#   - String starting with `$.`         (direct JSON path)
+#   - Object {"extract": "regex:..."}   (text-mode regex extraction)
+#   - Object {"extract": "jq:..."}      (JSON-mode jq extraction)
+#
+# Anything else fails with the contract §5 documented error.
+#
+# Params:
+#   $1  workflow_name      — for error message scope
+#   $2  step_id            — for error message scope
+#   $3  output_schema_json — single-line JSON, the step's output_schema field
+#
+# Output (stderr): one line on first malformed directive
+# Exit: 0 if all directives valid, 1 on first offender
+_validate_output_schema_directives() {
+  local wf_name="$1"
+  local step_id="$2"
+  local schema_json="$3"
+
+  local field_names
+  field_names=$(printf '%s\n' "$schema_json" | jq -r 'keys_unsorted[]')
+
+  local field
+  while IFS= read -r field; do
+    [[ -z "$field" ]] && continue
+
+    local directive directive_type
+    directive=$(printf '%s\n' "$schema_json" | jq -c --arg f "$field" '.[$f]')
+    directive_type=$(printf '%s\n' "$directive" | jq -r 'type')
+
+    case "$directive_type" in
+      string)
+        # Must start with `$.` (JSON-path form).
+        local path_str
+        path_str=$(printf '%s\n' "$directive" | jq -r '.')
+        if [[ "$path_str" != \$.* ]]; then
+          printf "Workflow '%s' step '%s' output_schema field '%s' has malformed extract directive: '%s'. Supported: regex:<pattern>, jq:<expr>, or a JSON-path string starting with \$.\n" \
+            "$wf_name" "$step_id" "$field" "$path_str" >&2
+          return 1
+        fi
+        ;;
+      object)
+        local extract_directive
+        extract_directive=$(printf '%s\n' "$directive" | jq -r '.extract // ""')
+        if [[ -z "$extract_directive" ]]; then
+          printf "Workflow '%s' step '%s' output_schema field '%s' has malformed extract directive: '%s'. Supported: regex:<pattern>, jq:<expr>, or a JSON-path string starting with \$.\n" \
+            "$wf_name" "$step_id" "$field" "$(printf '%s' "$directive")" >&2
+          return 1
+        fi
+        if [[ "$extract_directive" != regex:* && "$extract_directive" != jq:* ]]; then
+          printf "Workflow '%s' step '%s' output_schema field '%s' has malformed extract directive: '%s'. Supported: regex:<pattern>, jq:<expr>, or a JSON-path string starting with \$.\n" \
+            "$wf_name" "$step_id" "$field" "$extract_directive" >&2
+          return 1
+        fi
+        ;;
+      *)
+        printf "Workflow '%s' step '%s' output_schema field '%s' has malformed extract directive: '%s'. Supported: regex:<pattern>, jq:<expr>, or a JSON-path string starting with \$.\n" \
+          "$wf_name" "$step_id" "$field" "$(printf '%s' "$directive")" >&2
+        return 1
+        ;;
+    esac
+  done <<< "$field_names"
+
+  return 0
 }
 
 # FR-F2-3 (specs/cross-plugin-resolver-and-preflight-registry): shape-only

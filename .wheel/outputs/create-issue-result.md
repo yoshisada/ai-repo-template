@@ -1,23 +1,19 @@
 ## Issue Created
 
-**File**: `.kiln/issues/2026-04-25-standardize-git-behavior-across-scope.md`
-**Title**: Standardize git behavior across the entire scope
+**File**: `.kiln/issues/2026-04-25-cross-plugin-resolver-substitution-verified-live.md`
+**Title**: Cross-plugin-resolver substitution verified live (PR #165)
 **Date**: 2026-04-25
-**Status**: open
-**Kind**: improvement
-**Priority**: medium
+**Status**: verified
+**Kind**: smoke-test-result
+**Priority**: low
 **Repo**: https://github.com/yoshisada/ai-repo-template
-**Tags**: git, hygiene, cross-plugin, workflow
-**Source**: kiln-report-issue
+**Tags**: smoke-test, cross-plugin-resolver, verified, wheel, state-persistence
+**Source**: kiln-report-issue (meta — workflow under test is also the verification vehicle)
 
 ## Duplicate check
 
-Scanned `.kiln/issues/*.md` for `git behavior`, `git workflow`, `git practices`, `standardize git` — no matches. No duplicate found.
+Scanned `.kiln/issues/*.md` — no near-duplicate matches for "smoke", "substitut", "cross-plugin". Filed new.
 
-## Description summary
+## Smoke test verdict
 
-Git behavior is inconsistent across the kiln/wheel/shelf/clay/trim plugin scope and across the pipeline lifecycle. Six concrete inconsistencies documented in the issue (branch naming, auto-commits, version-bump fan-out, merge strategy ambiguity, local-vs-remote divergence after `gh pr merge`, `--no-verify` discipline). Goal: a single `docs/git-conventions.md` pinning the standard, then audit existing hooks/skills/agents for compliance.
-
-## Source context
-
-Captured during PR #163 (cross-plugin-resolver) post-merge cleanup, which surfaced 3 of the 6 inconsistencies in a single session.
+✅ PR #165 fix verified live. State file embeds `workflow_definition`; `engine_init` prefers it; agent prompt receives literal absolute path; no `${WHEEL_PLUGIN_shelf}` leaks to the dispatched instruction.

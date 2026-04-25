@@ -46,6 +46,11 @@ state_write() {
 #   $4 = agent_id (string) — owner agent ID (may be empty for main orchestrator)
 #   $5 = workflow_file (string, optional) — path to workflow file
 #   $6 = parent_workflow (string, optional) — path to parent state file (FR-016)
+#   $7 = session_registry (string, optional) — single-line JSON, output of
+#        build_session_registry. Persisted at top-level `session_registry`
+#        so dispatch-time hooks can read it without rebuilding (NFR-G-5
+#        perf budget). Per specs/wheel-step-input-output-schema FR-G2-3 +
+#        contract §2 — `resolve_inputs` consumes this for `$plugin(<name>)`.
 #
 # Output: none (creates state file at the given path)
 # Exit: 0 on success, 1 on failure
@@ -56,6 +61,7 @@ state_init() {
   local agent_id="${4:-}"
   local workflow_file="${5:-}"
   local parent_workflow="${6:-}"
+  local session_registry="${7:-}"
 
   local now
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
@@ -116,6 +122,14 @@ state_init() {
       updated_at: $now,
       steps: $steps
     } + (if $parent != "" then {parent_workflow: $parent} else {} end)')
+
+  # specs/wheel-step-input-output-schema FR-G2-3: persist the session
+  # registry alongside workflow_definition so dispatch-time `resolve_inputs`
+  # can consume it without rebuilding (build_session_registry is ~125ms,
+  # which would blow the NFR-G-5 100ms-per-step hydration budget).
+  if [[ -n "$session_registry" ]]; then
+    state=$(printf '%s' "$state" | jq -c --argjson reg "$session_registry" '. + {session_registry: $reg}')
+  fi
 
   mkdir -p "$(dirname "$state_file")"
   state_write "$state_file" "$state"

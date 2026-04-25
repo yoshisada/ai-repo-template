@@ -192,3 +192,84 @@ template_workflow_json() {
 
   printf '%s' "$result"
 }
+
+# -----------------------------------------------------------------------------
+# substitute_inputs_into_instruction — FR-G3-3 / FR-G3-5 / contract §4.
+#
+# Replaces every `{{VAR}}` placeholder in the instruction text with the
+# resolved value from `resolve_inputs`. Then runs the residual-placeholder
+# tripwire — if any uppercase-leading `{{NAME}}` remains, fails with the
+# documented FR-G3-5 error (no agent dispatch).
+#
+# Pattern (narrowed per plan §3.D): `\{\{[A-Z][A-Z0-9_]*\}\}`. Mixed-case or
+# lowercase `{{...}}` — e.g. mustache template literals — is invisible to
+# this scan, so other templating uses don't false-positive.
+#
+# Args:
+#   $1  instruction        — string, agent step instruction text (post-template_workflow_json)
+#   $2  resolved_map_json  — single-line JSON, output of resolve_inputs
+#   $3  step_id            — string, used in tripwire error
+#
+# Stdout (on exit 0): instruction with every `{{VAR}}` replaced.
+# Stderr (on exit 1): contract §4 / FR-G3-5 hydration tripwire error.
+substitute_inputs_into_instruction() {
+  local instruction="$1"
+  local resolved_map_json="$2"
+  local step_id="$3"
+
+  # Fast path: empty resolved map and no `{{NAME}}` placeholders → byte-identical pass-through.
+  if [[ "$resolved_map_json" == "{}" || -z "$resolved_map_json" ]]; then
+    if printf '%s' "$instruction" | grep -qE '\{\{[A-Z][A-Z0-9_]*\}\}'; then
+      # No resolutions but still has placeholders → tripwire (FR-G3-5).
+      local residuals
+      residuals=$(printf '%s' "$instruction" | grep -oE '\{\{[A-Z][A-Z0-9_]*\}\}' | sort -u | tr '\n' ' ')
+      printf "Hydration tripwire fired on step '%s': residual placeholder(s) %s remain after substitution. Either declare them in inputs: or remove the placeholder.\n" \
+        "$step_id" "$residuals" >&2
+      return 1
+    fi
+    printf '%s' "$instruction"
+    return 0
+  fi
+
+  # Substitute via python3 (already a wheel runtime dep — same path as
+  # _preprocess_substitute_string). Whole-match substitution per I-SI-1.
+  local substituted
+  substituted=$(INSTR="$instruction" RESOLVED="$resolved_map_json" python3 -c '
+import json, os, re, sys
+text = os.environ["INSTR"]
+try:
+    resolved = json.loads(os.environ["RESOLVED"])
+except json.JSONDecodeError:
+    sys.stderr.write("substitute_inputs_into_instruction: resolved map is not valid JSON\n")
+    sys.exit(2)
+
+# Substitute {{VAR}} → resolved[VAR] for every key in the map. Whole-match
+# only — {{ISSUE_FILE}} matches; {{ISSUE_FILE_X}} does not collide because
+# the regex includes the closing }} as a delimiter.
+def _sub(m):
+    name = m.group(1)
+    if name in resolved:
+        return str(resolved[name])
+    # Leave undeclared placeholders untouched — the tripwire below catches
+    # them with the offending name(s) in scope.
+    return m.group(0)
+
+text = re.sub(r"\{\{([A-Z][A-Z0-9_]*)\}\}", _sub, text)
+sys.stdout.write(text)
+') || {
+    printf "Hydration internal error on step '%s': substitute_inputs_into_instruction failed during python3 substitution.\n" "$step_id" >&2
+    return 1
+  }
+
+  # Tripwire (FR-G3-5 / I-SI-2): no `{{[A-Z]...}}` may remain post-substitution.
+  if printf '%s' "$substituted" | grep -qE '\{\{[A-Z][A-Z0-9_]*\}\}'; then
+    local residuals
+    residuals=$(printf '%s' "$substituted" | grep -oE '\{\{[A-Z][A-Z0-9_]*\}\}' | sort -u | tr '\n' ' ')
+    printf "Hydration tripwire fired on step '%s': residual placeholder(s) %s remain after substitution. Either declare them in inputs: or remove the placeholder.\n" \
+      "$step_id" "${residuals% }" >&2
+    return 1
+  fi
+
+  printf '%s' "$substituted"
+  return 0
+}

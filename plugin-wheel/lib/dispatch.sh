@@ -1,6 +1,68 @@
 #!/usr/bin/env bash
 # dispatch.sh — Step type dispatcher
 # FR-003/019/024/025/026: Routes to the correct handler based on step type
+# specs/wheel-step-input-output-schema FR-G3-1/FR-G3-4 — hydrate agent steps
+# with resolved inputs before invoking context_build.
+
+# _hydrate_agent_step — specs/wheel-step-input-output-schema FR-G3-1/FR-G3-4.
+#
+# Resolves the step's `inputs:` map (if any) against the current state +
+# workflow + persisted session_registry. On failure, marks the step failed
+# and returns 1; the caller MUST NOT proceed to dispatch.
+#
+# Args:
+#   $1  step_json    — single-line JSON, the agent step from workflow.steps[]
+#   $2  state_json   — single-line JSON, parent state
+#   $3  workflow_json — single-line JSON, the templated workflow
+#   $4  state_file   — path, used to record failure status
+#   $5  step_index   — int, used to record failure status
+#
+# Stdout (exit 0): single-line JSON resolved-map (`{}` for steps without inputs:).
+# Stderr (exit 1): the documented resolve_inputs error string (FR-G3-4).
+_hydrate_agent_step() {
+  local step_json="$1"
+  local state_json="$2"
+  local workflow_json="$3"
+  local state_file="$4"
+  local step_index="$5"
+
+  # No-op fast path: step has no inputs: → empty map.
+  local _has_inputs
+  _has_inputs=$(printf '%s' "$step_json" | jq -r 'if (.inputs // {}) | length > 0 then "yes" else "no" end')
+  if [[ "$_has_inputs" != "yes" ]]; then
+    echo '{}'
+    return 0
+  fi
+
+  # Pull persisted session registry (post-state_init persistence — see FR-G2-3).
+  # Backward compat: legacy state files from before the registry-persistence
+  # change lack `session_registry`. Rebuild on demand in that case.
+  local registry_json
+  registry_json=$(printf '%s' "$state_json" | jq -c '.session_registry // empty')
+  if [[ -z "$registry_json" || "$registry_json" == "null" ]]; then
+    if declare -f build_session_registry >/dev/null 2>&1; then
+      registry_json=$(build_session_registry 2>/dev/null) || registry_json="{}"
+    else
+      registry_json="{}"
+    fi
+  fi
+
+  local resolved_map
+  if ! resolved_map=$(resolve_inputs "$step_json" "$state_json" "$workflow_json" "$registry_json" 2>&1 1>/tmp/_hydrate_stdout_$$); then
+    # On failure, resolve_inputs printed to stderr (which we redirected
+    # into resolved_map); state_file path is captured in scope.
+    rm -f /tmp/_hydrate_stdout_$$ 2>/dev/null || true
+    state_set_step_status "$state_file" "$step_index" "failed" 2>/dev/null || true
+    printf '%s\n' "$resolved_map" >&2
+    return 1
+  fi
+
+  resolved_map=$(cat /tmp/_hydrate_stdout_$$ 2>/dev/null || echo '{}')
+  rm -f /tmp/_hydrate_stdout_$$ 2>/dev/null || true
+  printf '%s' "$resolved_map"
+  return 0
+}
+
 
 # Advance cursor past any "skipped" steps, returning the next actionable index.
 # Params: $1 = state file path, $2 = starting index, $3 = workflow JSON
@@ -539,8 +601,21 @@ dispatch_agent() {
             wheel_log "agent_pending" "removed_stale_output=${_out_clear}"
         fi
         state_set_step_status "$state_file" "$step_index" "working"
+        # specs/wheel-step-input-output-schema FR-G3-1/FR-G3-4 — hydrate
+        # `inputs:` BEFORE building context. Resolution failure marks the
+        # step failed inside _hydrate_agent_step and short-circuits dispatch.
+        local _resolved_map
+        if ! _resolved_map=$(_hydrate_agent_step "$step_json" "$state" "$WORKFLOW" "$state_file" "$step_index" 2>&1); then
+          jq -n --arg msg "$_resolved_map" '{"decision": "block", "reason": $msg}'
+          return 0
+        fi
         local context
-        context=$(context_build "$step_json" "$state" "$WORKFLOW")
+        if ! context=$(context_build "$step_json" "$state" "$WORKFLOW" "$_resolved_map" 2>&1); then
+          # FR-G3-5 hydration tripwire fired — context_build returned 1.
+          state_set_step_status "$state_file" "$step_index" "failed"
+          jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+          return 0
+        fi
         jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       elif [[ "$step_status" == "working" ]]; then
         # Check if the agent completed its work (output file exists)
@@ -617,8 +692,19 @@ dispatch_agent() {
       # Handle pending → working transition here (mirrors stop handler).
       if [[ "$step_status" == "pending" ]]; then
         state_set_step_status "$state_file" "$step_index" "working"
+        # specs/wheel-step-input-output-schema FR-G3-1/FR-G3-4 — hydrate
+        # `inputs:` for teammate-idle dispatches as well (mirrors stop branch).
+        local _resolved_map_t
+        if ! _resolved_map_t=$(_hydrate_agent_step "$step_json" "$state" "$WORKFLOW" "$state_file" "$step_index" 2>&1); then
+          jq -n --arg msg "$_resolved_map_t" '{"decision": "block", "reason": $msg}'
+          return 0
+        fi
         local context
-        context=$(context_build "$step_json" "$state" "$WORKFLOW")
+        if ! context=$(context_build "$step_json" "$state" "$WORKFLOW" "$_resolved_map_t" 2>&1); then
+          state_set_step_status "$state_file" "$step_index" "failed"
+          jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
+          return 0
+        fi
         jq -n --arg msg "$context" '{"decision": "block", "reason": $msg}'
       elif [[ "$step_status" == "working" ]]; then
         # Check if agent completed (output file exists) — same logic as stop handler

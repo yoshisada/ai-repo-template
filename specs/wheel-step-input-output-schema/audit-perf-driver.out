@@ -1,0 +1,21 @@
+1	before	el=11.773s	dur=9115ms	api=7759ms	turns=3	in=8	out=401	cr=63130	cc=31937	cost=$0.24123625	stop=end_turn	log_ok=1
+1	after	el=7.464s	dur=4925ms	api=3799ms	turns=2	in=7	out=180	cr=48621	cc=14255	cost=$0.11793925000000001	stop=end_turn	log_ok=1
+2	before	el=16.053s	dur=13556ms	api=12254ms	turns=3	in=8	out=409	cr=80553	cc=14530	cost=$0.141354	stop=end_turn	log_ok=1
+2	after	el=8.245s	dur=5942ms	api=4820ms	turns=2	in=7	out=180	cr=48621	cc=14255	cost=$0.11793925000000001	stop=end_turn	log_ok=1
+3	before	el=10.939s	dur=8711ms	api=7631ms	turns=3	in=8	out=402	cr=80546	cc=14523	cost=$0.14113175	stop=end_turn	log_ok=1
+3	after	el=7.453s	dur=5114ms	api=3969ms	turns=2	in=7	out=180	cr=48621	cc=14255	cost=$0.11793925000000001	stop=end_turn	log_ok=1
+4	before	el=11.155s	dur=9114ms	api=8099ms	turns=3	in=8	out=415	cr=80559	cc=14536	cost=$0.14154450000000002	stop=end_turn	log_ok=1
+4	after	el=7.21s	dur=5059ms	api=4030ms	turns=2	in=7	out=180	cr=48621	cc=14255	cost=$0.11793925000000001	stop=end_turn	log_ok=1
+5	before	el=13.558s	dur=10823ms	api=9573ms	turns=3	in=8	out=372	cr=80291	cc=14720	cost=$0.1414855	stop=end_turn	log_ok=1
+5	after	el=11.068s	dur=8736ms	api=7639ms	turns=2	in=7	out=213	cr=48621	cc=14287	cost=$0.11896425	stop=end_turn	log_ok=1
+
+=== SUMMARY ===
+Wall-clock (sec)                before=11.77s  after=7.46s  delta_median=+4.31s  delta_mean=+4.41s
+duration_ms (harness)           before=9115ms  after=5114ms  delta_median=+4001ms  delta_mean=+4309ms
+duration_api_ms                 before=8099ms  after=4030ms  delta_median=+4069ms  delta_mean=+4212ms
+num_turns                       before=3.0  after=2.0  delta_median=+1.0  delta_mean=+1.0
+input_tokens                    before=8  after=7  delta_median=+1  delta_mean=+1
+output_tokens                   before=402  after=180  delta_median=+222  delta_mean=+213
+cache_read_input_tokens         before=80546  after=48621  delta_median=+31925  delta_mean=+28395
+cache_creation_input_tokens     before=14536  after=14255  delta_median=+281  delta_mean=+3788
+total_cost_usd                  before=0.1415  after=0.1179  delta_median=+0.0235  delta_mean=+0.0432

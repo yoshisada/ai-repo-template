@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "T066 / FR-G4 / User Story 1 + 5 — atomic kiln-report-issue.json migration verification. Exercises the hook-time hydration path on the migrated workflow with a synthetic state (write-issue-note completed, .shelf-config seeded, session registry seeded). Asserts: (a) '## Resolved Inputs' block present in dispatched prompt with all 5 values, (b) zero '{{VAR}}' residuals in dispatched instruction, (c) zero in-step disk-fetch sub-commands ('bash .../shelf-counter.sh read', 'jq -r .../shelf-write-issue-note-result.json') in dispatched instruction (per recalibrated SC-G-1), (d) workflow_load + workflow_validate_inputs_outputs accept the migrated JSON. Live-smoke against real /kiln:kiln-report-issue is the auditor's NFR-G-4 job — this fixture locks the structural migration outcome."
+timeout-override: 60
