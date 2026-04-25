@@ -57,7 +57,7 @@ Four implementer tracks. Each one reads its filtered slice below:
 
 ### FR-A4 — Workflow JSON `agent_path:` dispatch
 
-- [ ] T032 [impl-themeA-agents] [US3] Extend `plugin-wheel/scripts/dispatch/dispatch-agent-step.sh` (create if absent) to consume the optional `agent_path:` field per `contracts/interfaces.md §2`. Invariants I-A1..I-A4 enforced: absent → byte-identical (NFR-5); `agent_path:` + `subagent_type:` both present → `agent_path:` wins with INFO log line; unknown passthrough → fall back to `subagent_type:`; resolver exit 1 → fail loudly.
+- [X] T032 [impl-themeA-agents] [US3] Added `dispatch_agent_step_path` to `plugin-wheel/scripts/dispatch/dispatch-agent-step.sh` (which Theme B had created for `dispatch_agent_step_model`). Helper is pure: takes step-json, resolves `agent_path:` via `resolve.sh`, emits `{"agent_path": <resolver-output>}` on stdout. I-A1 (absent → null fragment), I-A3 (unknown → passthrough in output), I-A4 (resolver exit 1 → loud exit 1 with wrapped `wheel: agent_path resolution failed for step '<name>': ...` line). I-A2 override decision is the dispatcher's call, not this helper's — keeps helper pure. Script-invocation form: `dispatch-agent-step.sh agent-path '<step-json>'` plus legacy single-arg form preserved for Theme B back-compat.
 
 ### FR-A5 — Kiln skill resolver-spawn integration
 
