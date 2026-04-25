@@ -1,26 +1,26 @@
 # Blockers: Research-First Foundation
 
 **Feature**: research-first-foundation
-**Audited**: 2026-04-25
+**Audited**: 2026-04-25 (initial) / 2026-04-25 (post-fix re-verify)
 **Auditors**: audit-compliance + audit-smoke
 
-## Status: 1 KNOWN ISSUE (SC-003 calibration gap; non-blocking for merge)
+## Status: CLEAR (no blockers)
 
-PRD coverage: 100% (17/17 requirements have spec FRs + implementations + tests). Smoke matrix is 3/4 PASS with one calibration gap surfaced live (SC-003).
+PRD coverage: 100% (17/17 requirements have spec FRs + implementations + tests). Smoke matrix: 4/4 PASS after the SC-003 calibration fix-up landed (commit `a0d058f`).
 
-### Known Issue: SC-003 — TOKEN_TOLERANCE too tight for multi-arm runs (audit-smoke PI-1)
+### RESOLVED: SC-003 — TOKEN_TOLERANCE re-calibrated to 1.5× multiplicative gate
 
-**Verdict**: FAIL on live run with `--baseline plugin-kiln/ --candidate plugin-kiln/` (equal arms).
-**Observed token deltas (identical inputs)**: 427–32232 tokens across 3 fixtures.
-**Configured `TOKEN_TOLERANCE`**: 10 (absolute).
-**Root cause**: `±10` was calibrated against research.md §NFR-001 measuring TWO CONSECUTIVE ISOLATED runs (±3 tokens). The runner's actual execution model is 6 interleaved invocations (3 fixtures × 2 arms) where LLM turn-count non-determinism + Anthropic API cache warming produces 600–32000 token swings even for identical inputs. The tolerance is only defensible for the isolated 2-run measurement.
+**Original verdict (pre-fix)**: FAIL on live run with `--baseline plugin-kiln/ --candidate plugin-kiln/` (equal arms). Observed token deltas 427–32232 tokens (up to ~33% of baseline).
 
-**Why non-blocking for merge**:
-- Substrate, structural tests, and regression-detection (SC-002) all PASS.
-- The fix is a tuning constant, not an architectural change (replace absolute `±10` with relative `±5–20%` band, or add `--mode accuracy-only` flag).
-- v1 strict gate semantics (any-fixture regression → FAIL) work correctly when calibration is right; SC-002 verifies this.
+**Root cause**: `±10` absolute was calibrated against research.md §NFR-001 measuring TWO CONSECUTIVE ISOLATED runs (±3 tokens). The runner's actual execution model is 6 interleaved invocations (3 fixtures × 2 arms) where LLM turn-count non-determinism + Anthropic API cache warming produces 600–32000 token swings even for identical inputs.
 
-**Required follow-up before declaring SC-003 GREEN**: file a tactical issue against `plugin-wheel/scripts/harness/research-runner.sh` to widen `TOKEN_TOLERANCE` to a relative band. Suggested values from audit-smoke: `max(500, baseline_tokens * 0.05)` floor, OR ship `--mode accuracy-only` for invariant-arm tests. See `specs/research-first-foundation/agent-notes/audit-smoke.md` PI-1..PI-4 for detail.
+**Fix-up**: commit `a0d058f` (`fix(research-runner): re-calibrate token tolerance against audit-smoke observed variance`) replaced absolute ±10 with a 1.5× multiplicative gate, updated NFR-S-001 in spec.md, and updated research.md §post-implementation-observation with the calibration rationale.
+
+**Re-verify (audit-smoke, post-fix)**:
+- SC-003 equal-arm run: 0 regressions, exit 0, max delta +839 tokens = 0.65% of baseline (safely under 1.5× gate). Report: `/tmp/sc003-rerun-report.md`.
+- SC-002 strong regression (~80k token addition, 2.3–3.1× baseline): 3/3 fixtures flagged, exit 1. Report: `/tmp/sc002-strong-report.md`.
+
+**Residual sensitivity gap (NOT a ship-blocker)**: v1 1.5× gate only catches large content-bloat regressions (>50% token increase). Subtle improvements/regressions below the gate threshold are not detected. Step 2 of `09-research-first` PRD addresses this with per-axis calibration. Documented as a known v1 trade-off.
 
 ### SC-001 Live Wall-Clock Gate — Deferred (NOT a blocker)
 
@@ -47,3 +47,7 @@ All gaps resolved in commits on branch `build/research-first-foundation-20260425
 
 - `FR-S-003` inline comment added to `run_arm()` in research-runner.sh
 - `FR-S-002` inline comment added to fixture-discovery loop in research-runner.sh
+
+### Post-Smoke Fix-Up (impl-runner)
+
+- `a0d058f` — `fix(research-runner): re-calibrate token tolerance against audit-smoke observed variance` — replaces absolute ±10 with 1.5× multiplicative gate; updates NFR-S-001 in spec.md and post-implementation observation in research.md. SC-003 verified PASS post-fix by audit-smoke.
