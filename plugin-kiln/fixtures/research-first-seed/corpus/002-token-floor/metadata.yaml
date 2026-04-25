@@ -1,0 +1,3 @@
+axes:
+  - tokens
+why_this_fixture: "Verifies token parsing on a minimal envelope per FR-S-013. Same probe as 001 to keep wall-clock floor reachable; second instance allows 6× projection across 3 fixtures."

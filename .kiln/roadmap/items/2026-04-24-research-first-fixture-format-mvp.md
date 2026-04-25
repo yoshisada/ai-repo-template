@@ -5,7 +5,7 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: careful
 context_cost: 3 sessions
@@ -36,6 +36,7 @@ implementation_hints: |
 
   Inherits design notes from `.kiln/roadmap/items/2026-04-24-skill-ab-harness-wheel-workflow.md`
   — that item is the origin idea; this step is its concrete MVP.
+prd: docs/features/2026-04-25-research-first-foundation/PRD.md
 ---
 
 # Research-first step 1 — fixture corpus format + baseline-vs-candidate runner MVP

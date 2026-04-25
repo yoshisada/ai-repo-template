@@ -1,0 +1,4 @@
+axes:
+  - accuracy
+  - tokens
+why_this_fixture: "Exercises the assertion-pass path so the runner's accuracy-axis logic is reached for all 3 fixtures. Stale if exit-code assertion semantics change."

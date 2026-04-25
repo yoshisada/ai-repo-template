@@ -5,7 +5,7 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: careful
 context_cost: 2 sessions
@@ -35,6 +35,7 @@ implementation_hints: |
 
   Excluded-fixtures escape hatch: PRD may declare `excluded_fixtures: [{path, reason}]` to skip
   specific known-noisy fixtures. Auditor flags if excluded-fixture count is >30% of corpus.
+prd: docs/features/2026-04-25-research-first-axis-enrichment/PRD.md
 ---
 
 # Research-first step 2 — per-axis direction gate + blast-radius-dynamic rigor
