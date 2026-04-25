@@ -57,7 +57,7 @@ instead of polling the live agent.
 - FR-E shipped scope is now: audit + wrapper + convention doc + honest negative at bash
   layer + integration-layer measurement flagged as blocked on Theme D.
 
-### Dependencies still open
+### Dependencies still open (now resolved — see below)
 
 - T092 (update `plugin-kiln/workflows/kiln-report-issue.json` to invoke the wrapper
   instead of embedding the 3-call chain in the sub-agent prompt): will land AFTER
@@ -68,3 +68,55 @@ instead of polling the live agent.
   extend T093/T094 with one more sample set once Theme D is green — but per R-005,
   the audit already ships with a negative-result-documented shape that doesn't
   require the positive claim.
+
+### 2026-04-24 — Theme D unblocked, T092 + T097 landed
+
+- T092: `plugin-kiln/workflows/kiln-report-issue.json` patched. The background
+  sub-agent's prompt no longer issues `shelf-counter.sh increment-and-decide` +
+  `append-bg-log.sh` as separate Bash calls; instead it issues one
+  `bash "${WORKFLOW_PLUGIN_DIR}/scripts/step-dispatch-background-sync.sh"` and
+  parses the wrapper's final-line JSON for `next_action`. Foreground Step 1's
+  `shelf-counter.sh read` (display-value gather) was intentionally NOT moved
+  into the wrapper — it's a different concern (foreground-blocking, returns to
+  the calling LLM as parsed values, not state-mutating).
+- T097: 14-assertion integration test at
+  `plugin-shelf/tests/step-dispatch-background-sync-integration/run.sh`.
+  Reframed semantic-equivalence as "wrapper produces equivalent observable
+  side-effects to running the two helpers separately" — the LLM-driven dispatch
+  side cannot be exercised in a pure-shell harness, but the side-effect contract
+  IS testable. Tests A/B run baseline + wrapper from identical state; Test C
+  asserts equivalence on counter delta + log line body + wrapper.next_action vs
+  standalone .action + wrapper.counter.after vs standalone .after; Test D
+  verifies T092's workflow-JSON edits: parses, references the wrapper, legacy
+  `increment-and-decide` direct call removed from sub-agent prompt.
+
+### Theme D / Theme E interaction friction (for retrospective)
+
+Theme D's Option B templating fixes in-plugin `${WORKFLOW_PLUGIN_DIR}` references
+but does NOT address cross-plugin script resolution. The pre-existing
+kiln-report-issue.json sub-agent prompt was already broken under consumer-install
+(`${WORKFLOW_PLUGIN_DIR}/scripts/shelf-counter.sh` inside a plugin-kiln workflow
+resolves to `plugin-kiln/scripts/shelf-counter.sh` — but the script lives in
+plugin-shelf). My T092 patch preserves this exact pre-existing flaw — I am
+NOT introducing a new bug, just deferring its fix to a follow-on PRD.
+
+The cleanest fix for cross-plugin: either (a) wheel templates ALL plugin-cache
+paths into the runtime env block (not just the calling plugin's), or
+(b) shared helpers move to `plugin-wheel/scripts/` so they're addressable via
+`${WORKFLOW_PLUGIN_DIR}` from any caller, or (c) callers symlink the sibling
+scripts they depend on into their own scripts/. Option (a) is the most
+generalizable — flagging for the retrospective.
+
+I added an explicit "Cross-plugin script resolution note (FR-E2 / Theme D
+follow-on)" section to the workflow instruction so a maintainer reading
+kiln-report-issue.json sees the gap, not just the symptoms.
+
+### Final FR-E ship summary
+
+- FR-E1 (audit doc enumerating all 35 agent steps): SHIPPED.
+- FR-E2 (wrapper + workflow-JSON switchover): SHIPPED. Wrapper at
+  `plugin-shelf/scripts/step-dispatch-background-sync.sh`; workflow patched.
+- FR-E3 (before/after measurement): SHIPPED. Bash-orchestration layer numbers
+  committed; integration-layer measurement deferred per R-005 honest-negative.
+- FR-E4 (convention doc in wheel README): SHIPPED.
+- 29 test assertions across unit + integration suites, all green.
