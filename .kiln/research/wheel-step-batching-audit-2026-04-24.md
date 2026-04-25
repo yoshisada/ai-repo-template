@@ -190,6 +190,43 @@ timing-instrumentation hook that records tool-call-to-tool-call latency during a
 steps. That would produce the actual LLM-round-trip number and let future batching
 decisions be grounded in real data instead of heuristic.
 
+### UPDATE 2026-04-24 — LLM-layer measurement completed (post-pipeline)
+
+The blocker that prevented LLM-layer measurement during the pipeline (Theme D
+integration window unavailable inside impl-wheel-fixes' session) was worked around
+after pipeline close by authoring
+`plugin-kiln/tests/kiln-report-issue-batching-perf/` — a real-`claude --print`
+subprocess fixture that reproduces the before/after tool-call structure against a
+scratch-dir scaffold. See the fixture's README.md for full method.
+
+**Results (N=5 alternating samples, same Darwin 24.5.0 + Claude Code 2.1.119 session):**
+
+| Arm | Median | Mean | Stdev | Min | Max |
+|---|---:|---:|---:|---:|---:|
+| Before (2 Bash tool calls) | 11.59 s | 13.52 s | 5.29 s | 9.89 s | 22.88 s |
+| After  (1 Bash tool call — wrapper) | 8.24 s | 8.30 s | 0.56 s | 7.75 s | 8.91 s |
+
+**Delta: median +3.35 s, mean +5.21 s** (positive = wrapper is faster).
+
+Sample 1 BEFORE (22.88 s) is a cold-start outlier. Excluding it, BEFORE stdev is
+0.83 s — the ~3 s delta is well clear of noise.
+
+**Interpretation**: each eliminated LLM tool-call round-trip is worth ~3 seconds
+on this setup. The wrapper eliminates exactly one round-trip.
+
+**SC-004 status update**: SATISFIED with real numbers at the LLM layer. The
+bash-orchestration-layer negative result above stands (the dominant cost is
+*not* bash process startup), but it measured the wrong layer. The LLM-layer
+delta is what the PRD's FR-E hypothesis was about, and it is real.
+
+**Caveats**:
+- This is background work; the user does NOT wait for the bg sub-agent.
+  The ~3 s delta does not surface as foreground response-time speedup.
+- The cross-plugin `${WORKFLOW_PLUGIN_DIR}` resolution gap documented in
+  `.kiln/issues/2026-04-24-kiln-report-issue-workflow-plugin-dir-cross-plugin-gap.md`
+  is a separate, orthogonal concern and remains open.
+- N=5 is small; stdev estimates are wide.
+
 ## Convention (FR-E4 — to append to `plugin-wheel/README.md`)
 
 **When to batch an agent step's internal commands into a single wrapper script:**
