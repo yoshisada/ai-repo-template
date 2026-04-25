@@ -24,9 +24,9 @@ Three implementer tracks. Each one reads its filtered slice below:
 
 ## Phase 1 — Setup (shared, all tracks observe)
 
-- [ ] T001 [impl-registry-resolver] [impl-preprocessor] [impl-migration-perf] Read `.specify/memory/constitution.md`, `specs/cross-plugin-resolver-and-preflight-registry/spec.md`, `plan.md`, `contracts/interfaces.md`, `research.md` from each implementer track before starting any FR task.
-- [ ] T002 [P] Create implementer friction-note stubs at `specs/cross-plugin-resolver-and-preflight-registry/agent-notes/{impl-registry-resolver,impl-preprocessor,impl-migration-perf}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009).
-- [ ] T003 [P] Confirm `bash 5.x`, `jq`, `awk`, `python3` available (smoke: `bash --version`, `jq --version`, `awk --version || true`, `python3 --version`). No install task — these are existing dependencies.
+- [X] T001 [impl-registry-resolver] [impl-preprocessor] [impl-migration-perf] Read `.specify/memory/constitution.md`, `specs/cross-plugin-resolver-and-preflight-registry/spec.md`, `plan.md`, `contracts/interfaces.md`, `research.md` from each implementer track before starting any FR task.
+- [X] T002 [P] Create implementer friction-note stubs at `specs/cross-plugin-resolver-and-preflight-registry/agent-notes/{impl-registry-resolver,impl-preprocessor,impl-migration-perf}.md` (one sentence placeholder each; each track fills its own note during/after work per pipeline-contract FR-009).
+- [X] T003 [P] Confirm `bash 5.x`, `jq`, `awk`, `python3` available (smoke: `bash --version`, `jq --version`, `awk --version || true`, `python3 --version`). No install task — these are existing dependencies.
 
 ---
 
@@ -43,13 +43,13 @@ Three implementer tracks. Each one reads its filtered slice below:
 
 ### Phase 2.B (impl-preprocessor) — Pure preprocessor logic
 
-- [ ] T020 [impl-preprocessor] Create `plugin-wheel/lib/preprocess.sh` skeleton with `template_workflow_json` function header matching contracts §3.
-- [ ] T021 [impl-preprocessor] Implement escape pre-scan via `awk` — record byte positions of `$${` sequences. (Per research §2.B + plan §3.)
-- [ ] T022 [impl-preprocessor] Implement substitution loop — iterate the workflow JSON's agent steps, substitute `${WHEEL_PLUGIN_<name>}` and `${WORKFLOW_PLUGIN_DIR}` tokens against the registry + calling_plugin_dir args.
-- [ ] T023 [impl-preprocessor] Implement post-substitution decode — replace `$${` → `${` only at recorded escape positions.
-- [ ] T024 [impl-preprocessor] Implement tripwire — narrowed pattern `\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)`; on match, exit 1 with the documented FR-F4-5 error text including step id.
-- [ ] T025 [impl-preprocessor] Author `plugin-wheel/tests/preprocess-substitution.bats` — covers token substitution, escape decoding, idempotence (I-P-5), generic `${VAR}` passthrough (EC-4).
-- [ ] T026 [impl-preprocessor] Author `plugin-wheel/tests/preprocess-tripwire.bats` — covers the four documented residual cases (unsubstituted token, unknown name, malformed escape, tripwire exact error text).
+- [X] T020 [impl-preprocessor] Create `plugin-wheel/lib/preprocess.sh` skeleton with `template_workflow_json` function header matching contracts §3.
+- [X] T021 [impl-preprocessor] Implement escape pre-scan via `awk` — record byte positions of `$${` sequences. (Per research §2.B + plan §3.) [Implemented via a sentinel-byte placeholder in a single python3 pass — equivalent semantics, fewer awk-vs-BSD-awk drift risks; rationale logged in agent-notes.]
+- [X] T022 [impl-preprocessor] Implement substitution loop — iterate the workflow JSON's agent steps, substitute `${WHEEL_PLUGIN_<name>}` and `${WORKFLOW_PLUGIN_DIR}` tokens against the registry + calling_plugin_dir args.
+- [X] T023 [impl-preprocessor] Implement post-substitution decode — replace `$${` → `${` only at recorded escape positions. [Bash-side decode runs AFTER the tripwire scan on the still-encoded text, so legitimate escapes never trip the wire.]
+- [X] T024 [impl-preprocessor] Implement tripwire — narrowed pattern `\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)`; on match, exit 1 with the documented FR-F4-5 error text including step id.
+- [X] T025 [impl-preprocessor] Author `plugin-wheel/tests/preprocess-substitution.bats` — covers token substitution, escape decoding, idempotence (I-P-5), generic `${VAR}` passthrough (EC-4). [15/15 passing]
+- [X] T026 [impl-preprocessor] Author `plugin-wheel/tests/preprocess-tripwire.bats` — covers the four documented residual cases (unsubstituted token, unknown name, malformed escape, tripwire exact error text). [10/10 passing]
 
 ---
 
