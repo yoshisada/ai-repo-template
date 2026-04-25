@@ -186,6 +186,22 @@ specifier → researcher ─┐
 
 Each teammate should run the kiln commands (`/specify`, `/plan`, `/tasks`, `/implement`, `/audit`) — not reimplement their logic. Implementers running in parallel should each get a filtered view of tasks.md (only their component's tasks).
 
+## Step 1.5: Baseline Checkpoint (when PRD has quantitative SC or NFR thresholds)
+
+If the PRD includes any SC OR NFR item with a literal number — `≥3 fewer X`, `X% faster`, `≤Nms`, `≥80% coverage`, `count drops by Y` — the team-lead MUST insert a baseline-capture step BEFORE the specifier finalizes spec.md/tasks.md. Skipping this step means the spec ships with thresholds that can't be re-derived from observed reality, which produces "+N% deviation in blockers.md" every time (see PR #166 SC-G-1 recalibration, PR #168 NFR-H-5 +5ms deviation).
+
+**Procedure**:
+
+1. Spawn `researcher-baseline` BEFORE the specifier finalizes spec.md.
+2. Wait for researcher-baseline to write `research.md §baseline` with current-main numbers.
+3. The specifier reads `research.md §baseline` and re-derives every quantitative SC/NFR threshold from the live measurement, NOT from the PRD literal.
+4. If the live measurement makes a PRD threshold unreachable (e.g., baseline already at the target — PR #166 hit this when FR-E batching had collapsed the baseline to 1 before SC-G-1 was authored), the specifier rewrites the threshold into a compound gate that captures the spirit of the metric AND flags the calibration in spec.md `## Open Questions`.
+5. If the live measurement makes a NFR perf budget unreachable on the implementation hardware (e.g., NFR-H-5 50ms target unreachable on macOS due to irreducible python3 fork), the specifier rewrites the threshold with a documented tolerance band BEFORE implementation starts. Do NOT "set the threshold and discover the tolerance after the fact" — that pattern produces blockers.md noise every pipeline.
+
+**Hard pre-req**: implementers may not begin until the specifier has reconciled SC/NFR numbers against live baseline. The specifier task is NOT complete just because spec.md exists — it must explicitly note "thresholds reconciled against research.md §baseline" in its friction note.
+
+**Why this is needed**: PRD literal "SC-G-1 ≥3 fewer Bash/Read tool calls" was unreachable in PR #166 because FR-E batching had already collapsed the baseline to 1. PRD literal "NFR-H-5 ≤50ms" was unreachable in PR #168 because of an irreducible python3 fork. Both cases produced mid-pipeline recalibration friction (specifier + researcher-baseline + audit-compliance friction notes; blockers.md R-1 in #166 + B-2 in #168). Issue #167 PI-3 + Issue #169 PI-3 captured this as the single most-recurring pipeline friction.
+
 ## Step 2: Create the Team and Tasks
 
 1. Use `TeamCreate` with a descriptive name (e.g., `kiln-{feature}`)
@@ -395,6 +411,24 @@ A QA engineer (qa-engineer) is testing your work as you build it. After completi
 5. QA feedback fixes are part of your work — do NOT mark your task as completed until QA issues in your scope are resolved
 ```
 
+### Implementer Prompt — Test Substrate Hierarchy (NON-NEGOTIABLE for any test fixture work)
+
+EVERY implementer prompt MUST include this block when the implementer authors test fixtures (which is most pipelines):
+
+```
+**Test substrate hierarchy** — when authoring fixtures, cite evidence in this order:
+
+1. **Live workflow substrate** — if a `/kiln:kiln-test <plugin> <fixture>` substrate exists for the workflow under test (e.g. `plugin-kiln/tests/perf-kiln-report-issue/`), that is PRIMARY evidence. Run it and cite the verdict report at `.kiln/logs/kiln-test-<uuid>.md`.
+2. **Pure-shell unit fixtures** (`run.sh`-only pattern, dominant in `plugin-wheel/tests/`) — invoke directly via `bash <fixture>/run.sh` and cite exit code + last-line PASS summary + assertion count. The kiln-test harness CANNOT discover these (only test.yaml-bearing dirs are discoverable per `plugin-kiln/scripts/harness/kiln-test.sh:140`) — this is a known substrate gap (B-1 in PRs #166 + #168 blockers.md), NOT a discipline failure.
+3. **Structural fixtures** (greps over migrated text, file existence checks) — TERTIARY, only acceptable when (1) and (2) are infeasible.
+
+When the spec says "invoke `/kiln:kiln-test plugin-X <fixture>`" for a `run.sh`-only fixture, treat as "invoke OR direct bash-run with PASS-cite — substrate-appropriate" until the harness ships a `harness-type: shell-test` substrate (roadmap item `2026-04-25-shell-test-substrate`). Cite the substrate you used in your friction note so the auditor doesn't have to re-derive it.
+
+Do NOT silently substitute structural fixtures for live substrates that exist. If you skip a live substrate, document why in your friction note — the auditor will check.
+```
+
+**Why this is needed**: Two consecutive PRDs (PR #166, PR #168) shipped with the same B-1 substrate carveout in blockers.md because the discipline ("invoke + cite kiln-test verdict") was absorbed but the substrate physically can't run the dominant fixture format. Naming the hierarchy explicitly prevents the next implementer from re-discovering the carveout for a third PRD. Direct lesson from issue #167 PI-1+PI-2 + issue #169 PI-1.
+
 ### Auditor Prompt — Implementation Completeness Check (NON-NEGOTIABLE)
 
 The auditor's prompt MUST include these exact instructions:
@@ -417,6 +451,24 @@ If a QA engineer ran, read `.kiln/qa/latest/QA-REPORT.md` and include its findin
 ```
 
 **Why this is needed**: In the 015 pipeline, the auditor started at 20:05 and documented blockers (missing v2 template, missing Zero/Drizzle/Auth), but the implementer committed those exact fixes at 20:06 and 20:12. The auditor was working against incomplete implementation because it began as soon as its task dependency resolved — but the implementer had marked its coarse-grained task as "completed" before finishing all phases of work.
+
+### Auditor Prompt — Live-Substrate-First Rule (NON-NEGOTIABLE for live-runtime gates)
+
+The auditor's prompt MUST include this block when ANY NFR/SC item is a live-runtime gate (e.g., live-smoke, perf, or end-to-end behavioral verification):
+
+```
+**Live-substrate-first rule** — when verifying a live-runtime gate (live-smoke, perf, end-to-end), cite evidence in this order BEFORE reaching for structural fixtures or sub-agent re-runs:
+
+1. **Live workflow substrate** — check whether a `/kiln:kiln-test <plugin> <fixture>` substrate exists that exercises the workflow under test against post-PRD code:
+     ls plugin-*/tests/ | grep -E '(perf|smoke|live)-<workflow-name>'
+   If such a substrate exists, that IS your canonical evidence. Run it and cite the verdict report path + the underlying TSV/JSON output. Structural fixtures and sub-agent re-runs are SECONDARY evidence and may NOT substitute for an available live substrate.
+2. **Wheel-hook-bound workflows** — if the workflow under test activates wheel hooks (Stop, PostToolUse), it is NOT driveable from sub-agent context — Stop hooks bind to the primary session. If no kiln-test substrate exists for a wheel-hook-bound workflow, escalate to team-lead. Do NOT silently substitute a structural fixture and call the NFR satisfied.
+3. **Structural surrogate fallback** — only when (1) and (2) are exhausted. When you fall back, document explicitly in your friction note: which live substrate you tried, why it failed, what structural surrogate you used, and what evidence the surrogate provides for the gate.
+
+If the spec says "live-smoke" but you used a structural surrogate, the auditor's job is to flag the gap to team-lead, NOT to silently downgrade the gate. The team-lead decides whether to escalate to user, accept the surrogate, or build the missing substrate.
+```
+
+**Why this is needed**: NFR-G-4 became a checkbox in PR #166 — both auditor and team-lead reached for structural surrogates first. The user intervened with "are you using the kiln-test skill?" Without that nudge, the PRD would have shipped on a structural-only verdict. PR #168 absorbed the discipline (audit-compliance reached for the proven substrate without prompting) but the gap is still latent — this rule makes the live substrate the FIRST reach, not the last. Direct lesson from issue #167 PI-1 (Theme A) + issue #169 Theme A.
 
 ### Auditor Prompt — Blocker Reconciliation Before PR (NON-NEGOTIABLE)
 
@@ -867,16 +919,28 @@ The retrospective teammate's job:
    - **Handoff failures**: Were there moments where Agent A finished but Agent B didn't know, or Agent B started before Agent A was truly done? What signal was missing or misinterpreted?
    - **Wasted work**: Did any agent do work that was thrown away or redone? Why — was it a prompt issue, a timing issue, or a scope issue?
    - **Communication overhead**: Were there too many messages between agents? Too few? Did the team lead have to manually relay information that agents should have shared directly?
-   - **Specific prompt rewrites**: For every communication problem found, propose the exact text change to the agent prompt, skill SKILL.md, or build-prd SKILL.md that would prevent it next time. Format as:
+   - **Specific prompt rewrites**: For every communication problem found, propose the exact text change to the agent prompt, skill SKILL.md, or build-prd SKILL.md that would prevent it next time. Use this EXACT format (parsed by `/kiln:kiln-pi-apply` per `plugin-kiln/scripts/pi-apply/parse-pi-blocks.sh` — bold-inline markers, NOT plain `File:` and NOT wrapped in a triple-backtick code fence):
+
      ```
-     File: [path]
-     Current: "[exact text that caused the issue]"
-     Proposed: "[rewritten text that fixes it]"
-     Why: [one sentence explaining the improvement]
+     ### PI-N — short title
+
+     **File**: [path]
+
+     **Current**: "[exact text that caused the issue]"
+
+     **Proposed**: "[rewritten text that fixes it]"
+
+     **Why**: [one sentence explaining the improvement]
      ```
-6. Creates a GitHub issue on the **ai-repo-template** repo with the `build-prd` label:
+
+     The `**File**:` / `**Current**:` / `**Proposed**:` / `**Why**:` markers MUST be bold-inline. The blocks MUST appear as raw markdown in the issue body — NOT inside a ```` ``` ```` code fence. Parse failures land in the pi-apply report's "Parse Errors" section and the PI is silently dropped. (Direct lesson from issue #170 — PR #166 + PR #168 retros both shipped with the unbold-in-code-fence format; pi-apply parsed 18/20 blocks as parse errors and reported 0 actionable.)
+6. Creates a GitHub issue on the **ai-repo-template** repo with BOTH `build-prd` and `retrospective` labels:
    ```bash
-   gh issue create -R yoshisada/ai-repo-template --label "build-prd" --title "..." --body "..."
+   gh issue create -R yoshisada/ai-repo-template --label "build-prd,retrospective" --title "..." --body "..."
+   ```
+   **Both labels are required (NON-NEGOTIABLE)**. `build-prd` makes the retro discoverable in PR/issue search; `retrospective` is the filter `/kiln:kiln-pi-apply` uses to pull retros into its propose-don't-apply diff report. Filing without `retrospective` silently breaks the retro→source feedback loop. (Direct lesson from issue #170 — PR #166 + PR #168 retros both shipped without the `retrospective` label and were invisible to pi-apply for ~24h until manually re-labeled.)
+   ```bash
+   # (Continued — body construction below)
    ```
    Containing:
    - **What worked well** (with evidence)
