@@ -182,10 +182,10 @@ Four implementer tracks. Each one reads its filtered slice below:
 ## Phase 7 — Polish & Cross-Cutting
 
 - [X] T100 [P] [impl-themeA-agents] Walker run + artifact committed at `specs/wheel-as-runtime/artifacts/agent-reference-walk-2026-04-25T002324Z.txt` — 1 reference checked, zero exit-1 paths (the sole reference `general-purpose` resolves via I-R1 passthrough as designed).
-- [ ] T101 [P] [impl-wheel-fixes] Update CLAUDE.md "Recent Changes" section with a one-paragraph summary of what this PRD shipped (Theme A/B/C/D/E in one-line each; Option A or B for D; positive-or-negative result for E).
-- [ ] T102 [P] [impl-wheel-fixes] Update CLAUDE.md "Active Technologies" list entry to note the new resolver + dispatch helpers (Bash 5.x + `jq` + `python3 -c` stdlib for hook fallback). Trim per `active_technologies_keep_last_n=5` rule.
-- [ ] T103 Each implementer writes its friction note to `specs/wheel-as-runtime/agent-notes/<track>.md` (NON-NEGOTIABLE per pipeline-contract FR-009): what was confusing, where they got stuck, what could be improved. Retrospective reads these instead of polling live agents.
-- [ ] T104 PRD auditor runs the `quickstart.md` walkthrough end-to-end — every check green per SC-001..SC-009. Any unfixable gap is documented in `specs/wheel-as-runtime/blockers.md`.
+- [X] T101 [P] [impl-wheel-fixes] CLAUDE.md "Recent Changes" section gained a `build/wheel-as-runtime-20260424` entry summarizing all five themes (A: agent centralization + atomic migration, B: per-step model selection, C: hook newline preservation, D: Option B `WORKFLOW_PLUGIN_DIR` shipped, E: honest negative-result audit). Added by auditor as part of audit finalization.
+- [X] T102 [P] [impl-wheel-fixes] CLAUDE.md "Active Technologies" entry added by auditor as part of audit finalization (oldest two entries trimmed to keep the list at 5 per `active_technologies_keep_last_n=5`). New entry covers resolver + dispatch helpers + Option-B context.sh + hook fallback + batched-step wrapper.
+- [X] T103 Friction notes shipped: `specifier.md`, `impl-themeA-agents.md`, `impl-themeB-models.md`, `impl-wheel-fixes.md`, `impl-themeE-batching.md`, `auditor.md` (six notes total).
+- [X] T104 PRD auditor ran `quickstart.md` end-to-end: Steps 1–8 green. SC-001..SC-009 all PASS. Zero unfixable gaps. `blockers.md` documents 3 follow-ons (none gating).
 
 ---
 
