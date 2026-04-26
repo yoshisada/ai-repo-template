@@ -1,0 +1,4 @@
+axes:
+  - accuracy
+  - tokens
+why_this_fixture: "Anchors runner plumbing on a near-no-op fixture (kiln:kiln-version probe) — the lightest-possible profile per research.md §SC-001 anchor 1. Stale if /kiln:kiln-version's behavior changes."

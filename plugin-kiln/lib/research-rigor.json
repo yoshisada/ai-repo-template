@@ -1,0 +1,6 @@
+{
+  "isolated":      { "min_fixtures": 3,  "tolerance_pct": 5 },
+  "feature":       { "min_fixtures": 10, "tolerance_pct": 2 },
+  "cross-cutting": { "min_fixtures": 20, "tolerance_pct": 1 },
+  "infra":         { "min_fixtures": 20, "tolerance_pct": 0 }
+}
