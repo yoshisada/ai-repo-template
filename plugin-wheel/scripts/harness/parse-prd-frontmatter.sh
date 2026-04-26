@@ -46,8 +46,16 @@ prd=$1
 # Hand-rolled YAML frontmatter parsing via python3 stdlib (re + json). Mirrors
 # plugin-wheel/scripts/agents/compose-context.sh precedent — PyYAML is NOT a
 # kiln dependency.
+#
+# Additive validator stanza for FR-010 (research-first-plan-time-agents):
+# when an empirical_quality[] entry has metric:output_quality, it MUST also
+# carry a non-empty rubric: <string>. The rubric value is preserved
+# character-for-character (no normalization, no whitespace trimming). On
+# missing/empty rubric this script exits 2 with
+# `Bail out! output_quality-axis-missing-rubric: <abs-prd-path>`.
 python3 - "$prd" <<'PY'
 import json
+import os
 import re
 import sys
 
@@ -93,8 +101,34 @@ if mb:
 #   1) Inline JSON-ish flow on one line:
 #      empirical_quality: [{metric: tokens, direction: equal_or_better, priority: primary}]
 #   2) Block style with `- metric: tokens` etc. — also support nested via single-line dicts.
+#
+# FR-010 (research-first-plan-time-agents): when an item declares
+# `metric: output_quality`, it MUST also carry a non-empty `rubric:` string.
+# The rubric value is preserved character-for-character (no normalization).
+# To avoid the existing quote_keys/quote_values regexes mangling free-text
+# rubric content (which may contain `:`, `,`, etc.), we PRE-EXTRACT each
+# rubric value via a placeholder swap, parse the rest of the flow as before,
+# and re-substitute verbatim values post-parse.
 empirical_quality = None
-me = re.search(r"^empirical_quality:\s*(.*)$", fm, re.MULTILINE)
+
+# Pre-extract rubric values (FR-010): replace `rubric: "..."` and `rubric: '...'`
+# with `rubric: __KILN_RUBRIC_PH_<N>__` placeholders that survive flow→JSON
+# conversion as ordinary bare tokens. Captured originals are restored verbatim
+# after json.loads. This guarantees byte-for-byte rubric preservation per
+# contracts/interfaces.md §3.
+_rubric_placeholders = []
+def _pre_extract_rubric(match):
+    val = match.group(1) if match.group(1) is not None else match.group(2)
+    _rubric_placeholders.append(val)
+    return f'rubric: __KILN_RUBRIC_PH_{len(_rubric_placeholders)-1}__'
+
+fm_for_parse = re.sub(
+    r"rubric:\s*(?:\"([^\"]*)\"|'([^']*)')",
+    _pre_extract_rubric,
+    fm,
+)
+
+me = re.search(r"^empirical_quality:\s*(.*)$", fm_for_parse, re.MULTILINE)
 if me:
     rest = me.group(1).rstrip()
     if rest == "" or rest == "[]":
@@ -105,7 +139,7 @@ if me:
         # Convert YAML flow → JSON: keys/values bare strings → quote them.
         flow = rest
         # Append following lines until balanced brackets, just in case author wraps.
-        lines = fm.splitlines()
+        lines = fm_for_parse.splitlines()
         for i, ln in enumerate(lines):
             if re.match(r"^empirical_quality:\s*\[", ln):
                 # accumulate until balanced
@@ -150,7 +184,37 @@ if me:
                 bail(f"unknown direction: {direction} (allowed: lower|higher|equal_or_better)")
             if priority not in ALLOWED_PRI:
                 bail(f"unknown priority: {priority} (allowed: primary|secondary)")
-            out.append({"metric": metric, "direction": direction, "priority": priority})
+
+            projected = {"metric": metric, "direction": direction, "priority": priority}
+
+            # FR-010: rubric handling for output_quality axis.
+            rubric_raw = item.get("rubric")
+            rubric_value = None
+            if isinstance(rubric_raw, str):
+                ph_match = re.match(r"^__KILN_RUBRIC_PH_(\d+)__$", rubric_raw)
+                if ph_match:
+                    idx = int(ph_match.group(1))
+                    if 0 <= idx < len(_rubric_placeholders):
+                        rubric_value = _rubric_placeholders[idx]
+                else:
+                    # Bare-token rubric (single word, no spaces) — preserved as-is
+                    # by quote_values. Acceptable but discouraged; first-real-use
+                    # rubrics will be quoted strings.
+                    rubric_value = rubric_raw
+
+            if metric == "output_quality":
+                # FR-010 loud-failure: rubric required + non-empty.
+                if rubric_value is None or rubric_value == "":
+                    sys.stderr.write(
+                        f"Bail out! output_quality-axis-missing-rubric: {os.path.abspath(prd_path)}\n"
+                    )
+                    sys.exit(2)
+                projected["rubric"] = rubric_value
+            elif rubric_value is not None:
+                # Non-output_quality axis with rubric — pass through (forward-compat).
+                projected["rubric"] = rubric_value
+
+            out.append(projected)
         # Detect duplicate metric.
         seen = set()
         for it in out:

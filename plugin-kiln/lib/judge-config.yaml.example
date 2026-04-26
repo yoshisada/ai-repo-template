@@ -1,0 +1,15 @@
+# judge-config.yaml — pinned model for the kiln:output-quality-judge agent.
+#
+# Resolved at runtime by plugin-wheel/scripts/harness/evaluate-output-quality.sh
+# in this order (FR-014):
+#   1. <repo-root>/.kiln/research/judge-config.yaml      (per-developer override; gitignored)
+#   2. <repo-root>/plugin-kiln/lib/judge-config.yaml.example  (committed default — this file)
+#
+# Schema (contracts/interfaces.md §5):
+#   pinned_model: <non-empty model id>           # REQUIRED
+#   pinned_model_fallbacks: [<model-id>, ...]    # OPTIONAL ordered list
+
+pinned_model: claude-opus-4-7
+
+pinned_model_fallbacks:
+  - claude-sonnet-4-6
