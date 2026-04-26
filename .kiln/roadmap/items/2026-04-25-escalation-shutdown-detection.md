@@ -5,11 +5,12 @@ kind: feature
 date: 2026-04-25
 status: open
 phase: 10-self-optimization
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 promoted_from: .kiln/feedback/2026-04-25-pipeline-end-shutdown-nag-loop.md
+prd: docs/features/2026-04-26-escalation-audit/PRD.md
 ---
 
 # Pipeline-end shutdown-nag loop — team-lead enters /loop after teammate pipeline finishes (verified 2026-04-25)
