@@ -35,7 +35,7 @@ normalize_tools_line() {
   sed -E 's/^tools:[[:space:]]*//' \
     | tr ',' '\n' \
     | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' \
-    | grep -v '^$' \
+    | { grep -v '^$' || true; } \
     | paste -sd ',' - \
     | sed 's/,/, /g'
 }
