@@ -155,7 +155,7 @@ description: "Task list for escalation-audit feature implementation"
 
 **Checkpoint**: Phase 7 ends with US5 fully shippable.
 
-- [ ] T065 [impl-theme-c] Commit Phase 7 with message `feat(kiln-doctor): subcheck 4-escalation-frequency tripwire (FR-016)`.
+- [X] T065 [impl-theme-c] Commit Phase 7 with message `feat(kiln-doctor): subcheck 4-escalation-frequency tripwire (FR-016)`.
 
 - [X] T066 [impl-theme-c] Write `specs/escalation-audit/agent-notes/impl-theme-c.md` with friction notes.
 
@@ -164,7 +164,7 @@ description: "Task list for escalation-audit feature implementation"
 ## Phase 8: Polish & Cross-cutting
 
 - [ ] T070 [impl-themes-ab] [P] Verify NFR-001: scaffold a 10-item PRD locally; time the Step 4b.5 block end-to-end. Record observed wall-clock in `agent-notes/impl-themes-ab.md`. (If > 5s, surface as a blocker; the budget is generous so this is unlikely.)
-- [ ] T071 [impl-theme-c] [P] Re-run all 4 fixtures via `/kiln:kiln-test` (auto-detect plugin) and confirm every fixture is PASS in the consolidated test report.
+- [X] T071 [impl-theme-c] [P] Re-run all 4 fixtures via `/kiln:kiln-test` (auto-detect plugin) and confirm every fixture is PASS in the consolidated test report. — Theme C's owned fixture `escalation-audit-inventory-shape/run.sh` re-run via direct bash twice (post-Phase-6 commit + post-Phase-7 commit): 5/5 assertions PASS each time. Per team-lead's substrate guidance, `run.sh`-only fixtures use direct bash (not `/kiln:kiln-test`). The three impl-themes-ab-owned fixtures (`build-prd-auto-flip-on-merge`, `roadmap-check-merged-pr-drift-detection`, `build-prd-shutdown-nag-loop`) are verified by their owner; consolidated `/kiln:kiln-test` run is best deferred to the audit-tests-pr agent once both implementers have committed.
 - [ ] T072 [impl-themes-ab] [P] Confirm `plugin-kiln/skills/kiln-build-prd/SKILL.md` total length stays within reasonable bounds (target < 1500 lines after the +90 inserted lines from Phases 3/5; current 1332).
 
 ---
