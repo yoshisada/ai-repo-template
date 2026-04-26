@@ -3,7 +3,6 @@ id: 2026-04-24-claude-audit-editorial-rules-skip-the-editorial-pass
 title: "claude-audit editorial rules (duplicated-in-prd, duplicated-in-constitution, stale-section) silently fall through to 'inconclusive' without doing the editorial pass"
 type: improvement
 date: 2026-04-24
-status: open
 severity: medium
 area: kiln
 category: correctness
@@ -11,6 +10,8 @@ repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
   - plugin-kiln/rubrics/claude-md-usefulness.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-execute-editorial-rules.md
 ---
 
 ## Summary

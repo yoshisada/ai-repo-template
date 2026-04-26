@@ -4,8 +4,8 @@ title: "Win-condition scorecard — make the vision falsifiable"
 kind: feature
 date: 2026-04-24
 status: open
-phase: 89-brainstorming
-state: planned
+phase: 10-self-optimization
+state: in-phase
 blast_radius: feature
 review_cost: careful
 context_cost: 2-3 sessions

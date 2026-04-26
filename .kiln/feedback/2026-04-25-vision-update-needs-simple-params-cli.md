@@ -3,13 +3,14 @@ id: 2026-04-25-vision-update-needs-simple-params-cli
 title: "Vision updates need a simple-params CLI — current /kiln:kiln-roadmap --vision flow is too heavyweight for one-line additions"
 type: feedback
 date: 2026-04-25
-status: open
 severity: medium
 area: ergonomics
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - .kiln/vision.md
   - plugin-kiln/skills/kiln-roadmap/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-25-vision-simple-params-cli.md
 ---
 
 The vision file (`.kiln/vision.md`) holds the load-bearing product principles — guiding constraints, what we're building, what's out of scope, success signals. It needs to be updated regularly as architectural insights surface mid-session (today's example: the "wheel is plugin-agnostic infrastructure" principle that emerged from the FR-A1 reversal conversation).

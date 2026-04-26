@@ -5,7 +5,7 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: distilled
+state: shipped
 prd: docs/features/2026-04-26-research-first-completion/PRD.md
 blast_radius: isolated
 review_cost: moderate

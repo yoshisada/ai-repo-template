@@ -88,11 +88,13 @@ rubric not found at <path>; run kiln init or re-install the plugin
 
 **OUTPUT_PATH**: `.kiln/logs/claude-md-audit-${TIMESTAMP}.md`. Ensure `.kiln/logs/` exists.
 
-## Step 2 — Load rubric + merge overrides
+## Step 1c — Load rubric + merge overrides
+
+> **Renumbered (claude-audit-quality FR-015 / T032)**: setup steps now sub-numbered under Step 1; the rule-execution phase begins at Step 2 (substance pass) per `contracts/interfaces.md` §4.
 
 Parse the rubric:
 - Read every `### <rule_id>` heading under the rubric.
-- For each rule, extract the fenced YAML-ish key/value block (`rule_id`, `signal_type`, `cost`, `match_rule`, `action`, `rationale`, `cached`, plus the new optional fields `classification_input`, `sort_priority`, `target_file`, `render_section`).
+- For each rule, extract the fenced YAML-ish key/value block (`rule_id`, `signal_type`, `cost`, `match_rule`, `action`, `rationale`, `cached`, plus the optional fields `classification_input`, `sort_priority`, `target_file`, `render_section`, and `ctx_json_paths` — claude-audit-quality FR-013 enforcement anchor; substance rules MUST populate it).
 - Collect the default threshold values from the preamble block (`recent_changes_keep_last_n`, `active_technologies_keep_last_n`, `migration_notice_max_age_days`).
 
 Parse the override (if any) per contract §7 + claude-md-audit-reframe contracts §2:
@@ -133,7 +135,7 @@ claude-md-audit.config: unknown rule_id '<id>' at line N — ignoring
 
 Record the list of rules whose values were changed by the override — this list goes into the Notes section of the output. Also record the missing-reason warnings keyed by override key for Notes rendering per claude-md-audit-reframe contracts §3.4.
 
-## Step 2.5 — Classify CLAUDE.md sections (claude-md-audit-reframe FR-001..FR-004)
+## Step 1d — Classify CLAUDE.md sections (claude-md-audit-reframe FR-001..FR-004)
 
 For each audited file (CLAUDE.md and the scaffold variant when applicable), perform a SINGLE editorial LLM call that classifies every `## ` heading into one of: `product | feedback-loop | convention-rationale | plugin-surface | preference | unclassified`.
 
@@ -167,9 +169,35 @@ Parse the response into a map `{ "## <heading>": "<class>" }`.
 
 Record the map keyed by audited-file path; downstream rules read it via lookup.
 
-## Step 3 — Run rubric rules
+## Step 2 — Substance pass (claude-audit-quality FR-015)
 
-For EACH audited file (source-repo case has two), run every rule (both `cost: cheap` and `cost: editorial`). A rule either fires (produces a signal) or does not.
+Before running the cheap + editorial + reframe rubric rules in Step 3 below, the model executes the **substance pass** — every rule with `signal_type: substance` defined in `plugin-kiln/rubrics/claude-md-usefulness.md` under the `## Substance rules` heading. Per FR-015, substance rules execute FIRST so substance findings lead the model's attention and the audit log's narrative.
+
+The substance rules in v1 (claude-audit-quality FR-006..FR-009 + FR-016):
+
+- `missing-thesis` (FR-006) — reads `CTX_JSON.vision.body`; pre-filter for vision-pillar phrases in opener / `## What This Repo Is`; editorial pass only on pre-filter miss.
+- `missing-loop` (FR-007) — reads `CTX_JSON.vision.body` + `CTX_JSON.roadmap.phases`; once-per-file rule; fires when a phase is `in-progress` / `complete` AND the file fails to draw the loop.
+- `missing-architectural-context` (FR-008) — reads `CTX_JSON.plugins.list`; mechanical (`cost: cheap`); fires when plugin count >1 and `## Architecture` describes only one.
+- `scaffold-undertaught` (FR-009) — reads `CTX_JSON.claude_md.body` + `CTX_JSON.vision.body`; path-scoped to `plugin-*/scaffold/CLAUDE.md`; fires per missing concept family (thesis / loop / architectural pointer per OQ-6).
+- `recent-changes-anti-pattern` (FR-016, added in Theme D) — `signal_type: substance`, `cost: cheap`; fires on presence of `## Recent Changes` heading.
+
+For each substance rule, the model:
+
+1. Reads the rule's `match_rule` and `ctx_json_paths` from the rubric.
+2. Loads the named `CTX_JSON` paths (already populated in Step 1 — re-use the parsed snapshot; do not re-invoke the reader).
+3. Runs the cheap pre-filter (when defined) before any editorial pass.
+4. For editorial rules, performs the comparison in the model's own context per Step 1c's "Editorial rules" contract — no sub-LLM call, the same FR-003 / FR-004 discipline applies.
+5. Each fired signal records a one-line **primary-justification rationale** of the form `remove-this-citation-and-verdict-changes-because: <reason>` (claude-audit-quality FR-012). This rationale lands in the Notes column of the Signal Summary row and the per-finding bullet in `## Notes`.
+
+**Output discipline carry-through (FR-001)**: every fired substance signal is subject to the Step 3.5 invariant (concrete diff OR `inconclusive` with one of the three legitimate triggers OR `keep`).
+
+**FR-013 enforcement**: substance rules' `ctx_json_paths` field is the anchor for the `(no project-context signals fired)` placeholder row. After Step 3 below completes, if zero rules with non-empty `ctx_json_paths:` fired across BOTH Step 2 (substance) AND Step 3 (cheap+editorial+reframe — most are not project-context-driven), the placeholder row is emitted in Step 4. See Step 4's "Required rendering rules" for the literal row text.
+
+After Step 2 completes, the substance signals are accumulated into the master signal list. Step 3 picks up with the remaining (non-substance) rules.
+
+## Step 3 — Run remaining rubric rules
+
+For EACH audited file (source-repo case has two), run every rule that was NOT executed in Step 2 — i.e., rules with `signal_type` ∈ {`load-bearing`, `editorial`, `freshness`, `bloat`, `coverage`} (everything except `substance`). A rule either fires (produces a signal) or does not.
 
 ### Cheap rules (grep / line-count only)
 
@@ -195,38 +223,37 @@ If `(now - commit_time)` exceeds `migration_notice_max_age_days` (default 60), f
 
 **`recent-changes-overflow`** — count bullets under `## Recent Changes`. If count > `recent_changes_keep_last_n` (default 5), fire with action `archive-candidate`. Proposed diff keeps the top N bullets (entries are assumed newest-first), removes the rest. Include the git ref each removed bullet cites as a comment in the diff so the maintainer can reconstitute.
 
+**Reconciliation with `recent-changes-anti-pattern`** (claude-audit-quality FR-017): two bookkeeping rules apply to this rule's signal emission:
+
+1. **Absent section → no signal.** When `## Recent Changes` is absent from the audited file, `recent-changes-overflow` emits no signal at all (absence is not drift; it does not constitute a missing-section coverage failure). Previously this rule may have been read as "fires only when present and over threshold"; the new wording is explicit — absence = no fire, full stop.
+2. **Anti-pattern fired in same audit → demote to keep.** When `recent-changes-anti-pattern` (the new substance rule added in claude-audit-quality FR-016) fires for the same `## Recent Changes` section in the same audit run, `recent-changes-overflow` is demoted to `keep` in the Signal Summary table — no diff is proposed for it. Rationale: the anti-pattern's removal proposal supersedes the overflow flag; proposing both would conflict (overflow trims to N, anti-pattern removes the section entirely).
+
 **`active-technologies-overflow`** — same mechanic as `recent-changes-overflow`, scoped to `## Active Technologies`. Threshold: `active_technologies_keep_last_n` (default 5).
 
-### Editorial rules (LLM calls)
+### Editorial rules (executed in the model's own context — claude-audit-quality FR-003)
 
-**`duplicated-in-prd`**, **`duplicated-in-constitution`**, **`stale-section`** — each invokes a single LLM call.
+**`duplicated-in-prd`**, **`duplicated-in-constitution`**, **`stale-section`** — the model running this skill performs the editorial evaluation directly. **There is no sub-LLM call.** The skill body below is the contract the model executes turn-by-turn; reference documents are read with `Read` / `cat` / `awk` and held inline in the model's working context.
 
-For each editorial rule:
+For each editorial rule, the model MUST:
 
 1. Read the audited CLAUDE.md file in full.
 2. Read the reference document(s):
    - `duplicated-in-prd` → `docs/PRD.md` (if present) + every `products/*/PRD.md` + every `docs/features/*/PRD.md`.
    - `duplicated-in-constitution` → `.specify/memory/constitution.md` (consumer path) OR `plugin-kiln/scaffold/constitution.md` (plugin source repo).
-   - `stale-section` → a small inventory: `ls plugin-*/skills/`, `ls plugin-*/agents/`, `ls plugin-*/workflows/`, `ls plugin-*/hooks/`, directly listed so the LLM sees what currently exists.
-3. Call the LLM with a prompt that names the rule's `match_rule` + `rationale` from the rubric and asks for a list of section headings whose content fires the rule. Prompt shape:
+   - `stale-section` → a small inventory: `ls plugin-*/skills/`, `ls plugin-*/agents/`, `ls plugin-*/workflows/`, `ls plugin-*/hooks/`, directly listed so the model can compare the section's claims against what currently exists on disk.
+3. For each `^## ` section in the audited file, compare the section body against the reference material per the rule's `match_rule:` and `rationale:`. The comparison criterion (e.g. for `duplicated-in-constitution`):
 
 ```
-You are evaluating CLAUDE.md section-by-section against rule <rule_id>.
+For each ## section in CLAUDE.md, ask: does this section paraphrase, restate, or substantively duplicate any article in the constitution? Ignore ≤3-line shared boilerplate (project name, one-liner descriptions). Flag substantive duplication only.
 
-Rule rationale: <rubric rationale>
-Rule match: <rubric match_rule>
 Known false-positive shape: <rubric prose block for the rule>
-
-<Reference material inline here>
-
-<CLAUDE.md content inline here>
-
-Return a JSON list: [{"section": "## <heading>", "justification": "<1-sentence why the rule fires>"}]
-Return an empty list if nothing fires. Do not flag sections that match the known false-positive shape.
 ```
 
-4. Parse the LLM response. Each returned entry becomes a signal with the rule's `action` from the rubric.
-5. If the LLM call errors (timeout, parse failure, rate-limit), record ONE signal for the rule with action `inconclusive` and a Notes-section line `editorial rule <rule_id>: LLM unavailable — marked inconclusive`. Do NOT propose a diff for the inconclusive signal — it goes into the Signal Summary as a row but not into the Proposed Diff body.
+4. Each section that fires becomes a signal with the rule's `action` from the rubric and a one-sentence justification. Each section that does NOT fire is silently skipped (no signal). Sections the model evaluates but explicitly clears MAY be summarised once at the end of the rule pass as `(no fire)`.
+
+5. **`inconclusive` is permitted ONLY for the three triggers documented in the rubric preamble** (`When inconclusive is legitimate` section of `plugin-kiln/rubrics/claude-md-usefulness.md` — claude-audit-quality FR-004): missing reference document, unparseable reference, or external dependency unavailable. The Notes cell MUST cite the specific trigger and resource — e.g. `inconclusive — reference document .specify/memory/constitution.md not found on disk`. Phrases like "LLM unavailable", "editorial work too expensive", "deferred", or "pending maintainer review" are explicitly forbidden as `inconclusive` reasons. When a rule legitimately fires `inconclusive`, the row appears in the Signal Summary table but no diff is proposed.
+
+**Skipping the comparison and emitting `inconclusive` because the editorial pass feels expensive is a contract violation — the audit's value is exactly this editorial pass and the model is the executor.**
 
 ### Reframe rules (claude-md-audit-reframe FR-002, FR-005..FR-008, FR-025, FR-027)
 
@@ -277,7 +304,9 @@ On LLM failure for a single section, mark `inconclusive` per the existing conven
 
 For each slot, the LLM returns `filled` or `missing|placeholder` plus a one-sentence justification. Empty slots fire one signal each with action `expand-candidate`. Findings render under a dedicated `### Vision.md Coverage` table (see Step 4 §3.2) with one row per slot — even slots that did NOT fire (rendered as ✅ filled rows) — so the maintainer sees full coverage shape every run.
 
-## Step 3.5 — Plugin & vision sync composers (FR-011..FR-016, FR-022..FR-029)
+## Step 3.7 — Plugin & vision sync composers (FR-011..FR-016, FR-022..FR-029)
+
+> **Renumbered from 3.5 → 3.7 (claude-audit-quality FR-015 / T032)**: the new Step 3.5 is the output discipline invariant per `contracts/interfaces.md` §4. Sync composers run AFTER the invariant check so any sync-candidate signals they produce are themselves subject to the invariant on the next pass-through (or — pragmatically — the invariant treats sync-candidate as a first-class action with a guaranteed diff).
 
 These produce the candidate `## Plugins` and `## Product` section bodies. They run once per audit; downstream they feed Step 4's diff renderer.
 
@@ -360,7 +389,9 @@ After collecting all signals (existing + reframe):
 - Signals with `rule_id` starting `product-` never conflict with `load-bearing-section` (the `## Product` section is machine-managed and never load-bearing).
 - Duplicate signals for the same section from the same rule collapse into one row with `count: N` = how many spans fired inside that section.
 
-## Step 3b — External best-practices evaluation (coach-driven-capture FR-014, FR-015)
+## Step 5 — External best-practices evaluation (coach-driven-capture FR-014, FR-015)
+
+> **Renumbered from 3b → 5 (claude-audit-quality FR-015 / T032)** to align with `contracts/interfaces.md` §4 ordering: external-best-practices delta sub-section comes after audit-log render (Step 4) and sibling-preview render (Step 4.5 — Theme E). The accumulated `EXTERNAL_FINDINGS` are still rendered as the `## External best-practices deltas` sub-section of the audit log written in Step 6 below.
 
 <!-- coach-driven-capture FR-014: evaluate CLAUDE.md against Anthropic's published
      guidance (cached at plugin-kiln/rubrics/claude-md-best-practices.md). Emit a
@@ -421,7 +452,87 @@ all five checks come back clean, emit a single "no deltas found" row instead.
 
 Accumulate these findings into `EXTERNAL_FINDINGS` for rendering in Step 4.
 
-## Step 4 — Write the output file
+## Step 3.5 — Output discipline invariant (claude-audit-quality FR-001)
+
+After all rule passes (cheap, editorial, reframe, sync composers, external best-practices) have run and before writing the output file, walk the collected signal list and assert the following invariant for every fired signal:
+
+> Every fired signal MUST produce **exactly one** of:
+>
+> 1. a concrete unified diff hunk in the Proposed Diff body — `git apply`-shaped, hunk-by-hunk, with a `# rule_id: <id> — <one-line reason>` annotation immediately before the `--- a/...` line; OR
+> 2. an explicit `inconclusive` row in the Signal Summary whose Notes cell cites one of the three legitimate triggers from the rubric preamble (`When inconclusive is legitimate`): missing reference document, unparseable reference, external dependency unavailable; OR
+> 3. a `keep` / `keep (load-bearing)` row for rules that only ever emit `keep` (currently `load-bearing-section`, plus rules demoted by reconciliation).
+
+**Forbidden output shapes** (FR-001):
+
+- A diff hunk consisting only of comments (e.g. `# rule_id: stale-section — No diff proposed pending maintainer call`) with no `+`/`-` lines is a contract violation. If the model can't produce a concrete diff, the rule MUST emit `inconclusive` with a specific reason — never a placeholder hunk.
+- An `inconclusive` row whose Notes cell paraphrases "expensive", "deferred", "skipped", "manual review", or any cost / capacity language is a contract violation. The triggers in the rubric preamble are exhaustive.
+- A signal row with empty / "—" action and no diff and no `inconclusive` justification is a contract violation.
+
+**Enforcement**: before rendering, the model performs a self-check pass against the signal list. Any signal failing the invariant either (a) gets a concrete diff appended in the Proposed Diff body, (b) gets reclassified to `inconclusive` with a legitimate trigger, or (c) is removed from the signal list entirely (the rule did not actually fire — emit nothing). The audit log MUST NOT contain a signal that fails the invariant.
+
+**Sanity assertion** (informal — the model performs this before writing):
+
+```text
+for each signal S in fired_signals:
+  if S.action in {removal-candidate, archive-candidate, expand-candidate, sync-candidate, correction-candidate, duplication-flag}:
+    assert at least one git-apply-shaped hunk exists in PROPOSED_DIFF for S.section with `# rule_id: <S.rule_id>` annotation
+  elif S.action == "inconclusive":
+    assert S.notes cites one of the three legitimate triggers from the rubric preamble
+  elif S.action in {"keep", "keep (load-bearing)"}:
+    pass
+  else:
+    raise contract violation
+```
+
+Violations are author bugs in the skill body, not runtime user errors — they MUST be fixed in this skill or the rubric, not silently tolerated.
+
+## Step 4 — Render the audit log (claude-audit-quality FR-015)
+
+> **Renumbered (claude-audit-quality FR-015 / T032)**: the original "Step 4 — Write the output file" combined render + write. This step now covers RENDERING the audit log structure (Signal Summary → Notes → Proposed Diff → External best-practices); Step 4.5 below renders sibling preview files (Theme E placeholder); Step 6 performs the actual `Write` to disk. In practice the model's `Write` tool call performs render-and-write in one operation — the step split reflects the conceptual contract from `contracts/interfaces.md` §4.
+
+## Step 4.5 — Render sibling preview files (claude-audit-quality FR-021)
+
+For each audited path with ≥1 proposed diff in the audit log, render ONE sibling preview file containing the proposed final state of the audited file (post-apply state — the exact bytes the file would have if every proposed diff for that path were `git apply`ed).
+
+### Filename derivation (FR-020 schema)
+
+```
+.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md
+```
+
+Where:
+- `<TIMESTAMP>` is the SAME UTC timestamp used for the main audit log filename (one shared timestamp per audit run; sibling previews and the main log all share it).
+- `<basename>` is the audited file's repo-relative path with every `/` replaced by `-`. Examples:
+  - `CLAUDE.md` → `CLAUDE.md`
+  - `plugin-kiln/scaffold/CLAUDE.md` → `plugin-kiln-scaffold-CLAUDE.md`
+
+So for the kiln source repo (which audits both files) a typical run produces:
+- `.kiln/logs/claude-md-audit-2026-04-25-202320-proposed-CLAUDE.md`
+- `.kiln/logs/claude-md-audit-2026-04-25-202320-proposed-plugin-kiln-scaffold-CLAUDE.md`
+
+### Render algorithm
+
+For each audited path `P`:
+
+1. Inspect the fired-signal list. Filter to signals that proposed a concrete unified diff hunk for path `P` (i.e., signals with one of `removal-candidate`, `archive-candidate`, `expand-candidate`, `sync-candidate`, `correction-candidate`, `duplication-flag` actions). Skip `keep` / `keep (load-bearing)` / `inconclusive` rows — they propose no diff.
+2. If the filtered list is EMPTY for path `P`, skip — no sibling preview is rendered for that path. (FR-021 contract: rendered ONLY when ≥1 proposed diff exists.)
+3. Read the current bytes of `P` (already in memory from Step 1).
+4. Apply each proposed diff hunk in order to produce the post-apply byte sequence. The model performs this synthesis directly — no `git apply` shell call. Each hunk's `--- a/<P>` / `+++ b/<P>` boundary identifies the path; only hunks targeting `P` are applied.
+5. Write the post-apply bytes verbatim to `.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`. The file contains the file body ONLY — no diff markers, no annotations, no preamble. The first line of the preview IS the first line of the post-apply file.
+
+### Render content shape (verbatim — no annotations)
+
+The sibling preview file is the post-apply file. There is no header, no footer, no annotation, no diff marker. If the audited file is a Markdown file, the preview is also a Markdown file with the same shape (just with the proposed diffs applied). Diff annotations (`# rule_id:`) live in the main audit log's `## Proposed Diff` section, NOT in the preview.
+
+### Idempotence (NFR-003)
+
+Re-running the audit on unchanged inputs MUST produce byte-identical sibling preview files (modulo the timestamp in the filename — the file BODY is byte-identical). The deterministic-rendering rules from Step 4 (`### Idempotence`) carry through: diffs apply in source-line order; no wall-clock time / random IDs / process PIDs in the body.
+
+### Cross-reference back to the audit log (FR-022)
+
+The main audit log's `## Proposed Diff` heading carries a one-line cross-reference per audited path with a sibling preview — see Step 4's "## Proposed Diff" rendering for the exact text.
+
+## Step 6 — Write outputs to `.kiln/logs/`
 
 Write to `.kiln/logs/claude-md-audit-<TIMESTAMP>.md` using the exact shape from contract §2, extended by coach-driven-capture FR-013 (project-context citation), FR-014 (External best-practices deltas subsection), and claude-md-audit-reframe contracts §3 (`## Plugins Sync`, `## Vision Sync`, `### Vision.md Coverage`):
 
@@ -448,6 +559,10 @@ At least ONE finding below MUST cite a signal from this block (e.g., a phase dri
 | ... | ... | ... | ... | ... |
 
 ## Proposed Diff
+
+<one cross-reference line per audited path with a sibling preview file (claude-audit-quality FR-022); render in audited-path order; format below verbatim:>
+
+Side-by-side preview: see `claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`.
 
 ` ``diff
 <unified-diff body, git-diff --no-index shape>
@@ -511,11 +626,43 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
 - <FR-016 reminder, ONLY when `## Plugins Sync` fires a non-✅ status: "This section is auto-synced from per-plugin `.claude-plugin/claude-guidance.md` files. Edit the plugins, not CLAUDE.md, for persistent changes." — de-duplicated against the `## Plugins Sync` blockquote.>
 - <Per-override missing-reason warnings, one line each: "Override `<key>` lacks `# reason:` comment — applied with no documented rationale.">
 - <Per LLM-failed section: "Section `<heading>` could not be classified by editorial LLM — defaulting to `unclassified` (FR-004).">
+
+Once proposed diffs land, this audit log + sibling preview files can be archived to `.kiln/logs/archive/` or deleted.
 ```
 
 **Required rendering rules**:
 
 - The `## Project Context` block MUST appear whenever `CTX_JSON` parsed successfully. It's the FR-013 anchor.
+- **Notes-section ordering** (claude-audit-quality FR-010 / FR-025): bullets in `## Notes` derived from per-finding context MUST be grouped substance → mechanical → external in matching order to the Signal Summary table sort. Per-finding bullets sourced from `signal_type: substance` rules are rendered first; bullets sourced from mechanical signal types (`coverage` / `editorial` / `freshness` / `bloat` / `load-bearing`) follow; bullets sourced from external best-practices deltas come last. Static / global Notes lines (override warnings, FR-018 anchor URL, project-context signal list) MAY appear anywhere in the section — only per-finding bullets are sort-bound.
+- **Primary-justification rationale** (claude-audit-quality FR-012): every finding whose `match_rule:` cites a `CTX_JSON` path (i.e., every signal from a rule with non-empty `ctx_json_paths:`) MUST render a one-line rationale in its Notes bullet of the exact form `remove-this-citation-and-verdict-changes-because: <reason>`. The `<reason>` is a one-sentence statement of how the verdict would flip if the cited CTX_JSON signal were removed (e.g., `remove-this-citation-and-verdict-changes-because: vision.body's "feedback loop" pillar is the only evidence the audit has that this CLAUDE.md should teach the loop`). Decorative correlations (e.g., `shipped PRD count: 46 informs the length-density finding`) are FORBIDDEN as primary justifications — they are not load-bearing and the citation would be meaningless to remove. The rationale line lives in the per-finding Notes bullet, not in the Signal Summary table cell.
+- **Project-context-driven row guarantee** (claude-audit-quality FR-013): after Step 3 completes (after both substance pass at Step 2 AND remaining rules at Step 3), inspect the fired-signal list. If ZERO signals come from rules with non-empty `ctx_json_paths:`, the Signal Summary table MUST contain an explicit placeholder row using the literal text in the rule_id cell and em-dashes in every other cell:
+
+  ```
+  | (no project-context signals fired) | — | — | — | — |
+  ```
+
+  In multi-file mode (when `AUDIT_PATHS` has two entries and the table has a leading `file` column), the placeholder row gains an em-dash in that column too:
+
+  ```
+  | — | (no project-context signals fired) | — | — | — | — |
+  ```
+
+  This row is rendered only when zero project-context-driven signals fire — when ≥1 fires, the row is OMITTED. The placeholder is the FR-013 visibility surface: the absence of project-context grounding is never silent.
+- **Sibling-preview cross-reference** (claude-audit-quality FR-022): the audit log's `## Proposed Diff` heading MUST be followed by exactly one cross-reference line per audited path that has a sibling preview file (rendered in Step 4.5). Format verbatim:
+
+  ```
+  Side-by-side preview: see `claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`.
+  ```
+
+  When multiple audited paths each have a sibling preview, render one such line per path in audited-path order. When NO audited path has a sibling preview (no path produced any proposed diff), this cross-reference block is OMITTED — the `## Proposed Diff` heading is followed directly by the diff fence.
+
+- **Audit-log footer cleanup convention** (claude-audit-quality FR-023): the audit log's last line before EOF MUST be exactly:
+
+  ```
+  Once proposed diffs land, this audit log + sibling preview files can be archived to `.kiln/logs/archive/` or deleted.
+  ```
+
+  This is a STATIC string — no timestamp interpolation, no conditional rendering. Always present. The line is present even on `no drift` runs (when no diffs were proposed); the footer documents the cleanup convention for the audit log itself, which exists regardless of whether sibling previews were rendered.
 - The `## External best-practices deltas` heading MUST appear verbatim — downstream tests grep for this exact string.
 - When `CACHE_STALE=="yes"`, the preview MUST contain the word `stale` adjacent to the cache notice — the assertions in `plugin-kiln/tests/claude-audit-cache-stale/` grep for `/stale/i`.
 - When `BP_FETCH_NOTE` is non-empty, its exact text (`cache used, network unreachable`) MUST appear in the preview — the assertions in `plugin-kiln/tests/claude-audit-network-fallback/` grep for it.
@@ -549,13 +696,17 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
 Two runs against unchanged inputs MUST produce byte-identical **Signal Summary** rows AND **Proposed Diff** body. The `# ... — <YYYY-MM-DD HH:MM:SS>` header line and the filename will differ (timestamp); everything else must be deterministic.
 
 Enforce this by:
-- Sorting signals in the Signal Summary table by `sort_priority DESC` (signals with `sort_priority: top` win — currently only `product-undefined`), then `rule_id ASC`, then `section ASC`, then `count DESC`. Multiple `sort_priority: top` signals sort among themselves by `rule_id ASC`.
+- Sorting signals in the Signal Summary table by the composite key `(sort_priority_rank, signal_type_rank, severity_rank, rule_id ASC, section ASC, count DESC)`:
+  - `sort_priority_rank`: `0` for `sort_priority: top` (currently only `product-undefined`), `1` otherwise. Top-priority signals always lead the table — preserves the existing claude-md-audit-reframe FR-025 / SC-007 behavior.
+  - `signal_type_rank` (claude-audit-quality FR-010 — substance findings lead the report): `substance` = 0, `coverage` = 1, `editorial` = 2, `freshness` = 3, `bloat` = 4, `load-bearing` = 5. Unknown / unset signal_types sort last (rank = 99).
+  - `severity_rank`: existing (within-rank tie-break).
+  - `rule_id ASC`, `section ASC`, `count DESC` are existing tie-breakers preserved verbatim.
 - Emitting hunks in the Proposed Diff in the order they appear in the source file (top-to-bottom by line number).
 - Plugin enumeration sorted with `LC_ALL=C sort -u`; `## Plugins` subsections rendered in alphabetical order by plugin name.
 - Vision.md Coverage table: 7 slots enumerated in fixed FR-024 order (1..7).
 - Never embedding wall-clock time, random IDs, or process PIDs anywhere except the header timestamp.
 
-## Step 5 — Report to the user
+## Step 7 — Report to the user
 
 Print a single line summarising the result and the output file path, then stop:
 
@@ -569,6 +720,7 @@ Exit 0 on success regardless of how many signals fired. Non-zero exit only on ha
 
 - The skill ONLY proposes a diff. It MUST NOT call `Edit`, `Write`, `sed -i`, `perl -i`, or `git apply` against CLAUDE.md (coach-driven-capture FR-016). The maintainer applies changes manually after reviewing `.kiln/logs/claude-md-audit-<timestamp>.md`. The *only* files this skill is permitted to modify are:
   - `.kiln/logs/claude-md-audit-<TIMESTAMP>.md` (the preview).
+  - `.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md` (sibling preview file — claude-audit-quality FR-020 — one per audited path with ≥1 proposed diff; `<basename>` is derived from the audited file's repo-relative path with `/` replaced by `-`, e.g. `plugin-kiln/scaffold/CLAUDE.md` → `plugin-kiln-scaffold-CLAUDE.md`).
   - `plugin-kiln/rubrics/claude-md-best-practices.md` (cache body + `fetched:` date on a successful WebFetch refresh — FR-014).
   - `.kiln/logs/` (the directory itself, if absent).
 - Every audited file is read fresh on each invocation — no caching of the source file body.

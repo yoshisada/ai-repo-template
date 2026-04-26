@@ -3,7 +3,6 @@ id: 2026-04-24-claude-audit-recent-changes-rule-is-circular
 title: "claude-audit recent-changes-overflow rule is self-defeating — the section is load-bearing because the rule cites it, and the section design is itself an anti-pattern"
 type: improvement
 date: 2026-04-24
-status: open
 severity: medium
 area: kiln
 category: design
@@ -13,6 +12,8 @@ files:
   - plugin-kiln/rubrics/claude-md-best-practices.md
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
   - plugin-kiln/skills/kiln-doctor/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-rethink-recent-changes-rule.md
 ---
 
 ## Summary

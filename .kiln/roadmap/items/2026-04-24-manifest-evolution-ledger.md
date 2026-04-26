@@ -4,8 +4,8 @@ title: "Manifest-evolution ledger — close the self-improvement loop"
 kind: feature
 date: 2026-04-24
 status: open
-phase: 89-brainstorming
-state: planned
+phase: 10-self-optimization
+state: in-phase
 blast_radius: cross-cutting
 review_cost: careful
 context_cost: 3+ sessions

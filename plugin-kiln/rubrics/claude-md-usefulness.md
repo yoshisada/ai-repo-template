@@ -8,6 +8,20 @@ This rubric is the single source of truth for "is our CLAUDE.md still pulling it
 
 A rule is a "signal" when it fires against the audited file. The audit skill collects all signals, renders them as a single table, and proposes a unified diff that codifies each action. The output is review material for a human — the audit never applies edits itself (FR-004).
 
+## When `inconclusive` is legitimate
+
+The model running `/kiln:kiln-claude-audit` performs editorial evaluation in its own context — there is no sub-LLM call. For each editorial rule, the skill MUST load the reference document(s), read every `^## ` section, compare per `match_rule`, and emit findings or `(no fire)`. Skipping the comparison and marking `inconclusive` is forbidden.
+
+The audit MAY emit `inconclusive` ONLY for these three triggers:
+
+1. **Missing reference document** — the rule's `match_rule:` requires a file (e.g. `.specify/memory/constitution.md`, `.kiln/vision.md`, source-repo `CLAUDE.md`) that is not present on disk.
+2. **Unparseable reference** — the file exists but is malformed in a way that breaks the `match_rule:` (e.g. invalid YAML frontmatter, encoding error, truncated).
+3. **External dependency unavailable** — the rule depends on a remote fetch (WebFetch / MCP) that returned non-2xx or timed out.
+
+"Editorial work feels expensive" is explicitly NOT a legitimate trigger. The Notes cell of an `inconclusive` row MUST cite the specific trigger and the specific resource (e.g. `inconclusive — reference document .specify/memory/constitution.md not found on disk`).
+
+> **FR-018 cross-reference**: the load-bearing rewording (FR-018 of `claude-audit-quality`) aligns with FR-031 of `claude-md-audit-reframe`: a section is load-bearing only when cited from skill / agent / hook / workflow PROSE (instructions, descriptions, error messages), NOT when cited only inside a rule's `match_rule:` field. `enumeration-bloat`'s carve-out over `load-bearing-section` for `plugin-surface` sections (FR-031) remains in force; the new wording reinforces rather than conflicts.
+
 ## Configurable thresholds
 
 These live under rule entries that reference them. Overridable from `.kiln/claude-md-audit.config` via the raw key name (no `rule_id.` prefix):
@@ -26,15 +40,21 @@ These live under rule entries that reference them. Overridable from `.kiln/claud
 rule_id: load-bearing-section
 signal_type: load-bearing
 cost: cheap
-match_rule: grep -F "CLAUDE.md" across plugin-*/skills plugin-*/agents plugin-*/hooks plugin-*/workflows templates/; cross-reference the cited section header
+match_rule: grep -F "CLAUDE.md" across plugin-*/skills plugin-*/agents plugin-*/hooks plugin-*/workflows templates/; cross-reference the cited section header; PROSE-only — citations from inside a rule's `match_rule:` field do NOT count (claude-audit-quality FR-018)
 action: keep
-rationale: Sections cited by name from a skill/agent/hook must never be removed — doing so silently breaks those references.
+rationale: Sections cited by name from a skill/agent/hook/workflow PROSE must never be removed — doing so silently breaks those references at runtime.
 cached: false
 ```
 
-A section is "load-bearing" if any file under `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, or `templates/` cites it by phrase-match ("per CLAUDE.md", "see the X section of CLAUDE.md", or cites the section-header text verbatim). The inventory under `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` is the authoritative starting list. When fired, the diff contains NO change for that section — the rule only ever emits a `keep` action so downstream rules know not to touch it.
+A section is "load-bearing" if any file under `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, or `templates/` cites it **from prose** — i.e., from instructions, descriptions, error messages, or any narrative text — by phrase-match ("per CLAUDE.md", "see the X section of CLAUDE.md", or cites the section-header text verbatim). The inventory under `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` is the authoritative starting list. When fired, the diff contains NO change for that section — the rule only ever emits a `keep` action so downstream rules know not to touch it.
 
-Known false-positive shape: a plugin that greps the literal string `CLAUDE.md` as part of a file-glob allow-list (e.g. `version-increment.sh`, `require-spec.sh`) does NOT make any section load-bearing — it's treating the filename as a pattern, not a content citation. Filter those out during grep.
+**FR-018 wording change** (claude-audit-quality): a section is load-bearing only when cited from **PROSE** — instructions, descriptions, error messages, narrative text. A citation from inside a rule's `match_rule:` field (e.g., this rubric's own `match_rule:` lines that mention `## Recent Changes` or `## Active Technologies`) does NOT make the cited section load-bearing. The reasoning: rule `match_rule:` fields are SELF-references — the rubric cites a section because the rule fires on it; that's not the same as a downstream skill/agent/hook needing the section to exist for its own runtime correctness.
+
+The same FR-018 wording applies to **`## Active Technologies`** — cited by `active-technologies-overflow`'s `match_rule:` but not by any skill/agent/hook prose. `## Active Technologies` is therefore NOT load-bearing under the new wording, regardless of how many rules name it in their match logic.
+
+This wording aligns with `claude-md-audit-reframe` FR-031 (where `enumeration-bloat` already wins over `load-bearing-section` for `plugin-surface` sections) — both rules say "rule-level citation alone is not enough; the load-bearing relationship must originate in the runtime-effective surface (prose instructions, runtime context)".
+
+Known false-positive shape: a plugin that greps the literal string `CLAUDE.md` as part of a file-glob allow-list (e.g. `version-increment.sh`, `require-spec.sh`) does NOT make any section load-bearing — it's treating the filename as a pattern, not a content citation. Filter those out during grep. Equally, this rubric's own `match_rule:` lines mentioning section names do NOT count as prose citations.
 
 ### stale-migration-notice
 
@@ -67,6 +87,39 @@ cached: false
 Fires when the file has a `## Recent Changes` heading and the immediately-following bulleted list exceeds the threshold. Entries are assumed to be ordered newest-first; the proposed diff keeps the top `N` (default 5) and removes the rest. The audit does NOT try to archive the removed entries to another file — that's a maintainer call. The diff annotation cites the git log entries they came from so the maintainer can reconstitute them if needed.
 
 Known false-positive shape: the section is used for long-form release notes rather than a changelog tail. In that case, override the threshold or disable this rule in `.kiln/claude-md-audit.config`.
+
+### recent-changes-anti-pattern
+
+```yaml
+rule_id: recent-changes-anti-pattern
+signal_type: substance
+cost: cheap
+match_rule: presence of literal "## Recent Changes" heading in the audited file
+action: removal-candidate
+ctx_json_paths: []
+rationale: A ## Recent Changes section becomes a churn surface and circular-load-bearing protection (rules cite it because it exists; it exists because rules cite it). git log + roadmap phases + ls docs/features/ + /kiln:kiln-next collectively cover the same need without churn.
+cached: false
+```
+
+Fires whenever the literal string `## Recent Changes` appears as a heading in the audited file. **`signal_type: substance`** — co-located with `recent-changes-overflow` for topical grouping but evaluated under the substance rules' precedence (sorts to top of Signal Summary alongside other substance findings per FR-010).
+
+When fired, the proposed diff replaces the ENTIRE `## Recent Changes` section (heading through end-of-section, i.e. up to the next `^## ` heading or EOF) with this exact block (claude-audit-quality FR-016 + OQ-4 reconciliation — generic `<active-phase>` placeholder preserves byte-identity across re-runs):
+
+```markdown
+## Looking up recent changes
+
+This file does not maintain a running changelog. To find recent changes:
+- `git log --oneline -n 20` — commit-level history.
+- `.kiln/roadmap/phases/<active-phase>.md` — phase-level status (in-progress, complete, planned items).
+- `ls docs/features/` — shipped feature PRDs.
+- `/kiln:kiln-next` — current session-pickup recommendations.
+```
+
+The audit log's Notes section MAY include a one-line companion comment naming the current phase (e.g. `current phase: 10-self-optimization`) for apply-time interpretation; this companion comment lives in Notes, NOT in the diff body, so byte-identity holds.
+
+**Reconciliation with `recent-changes-overflow`** (claude-audit-quality FR-017): when `recent-changes-anti-pattern` fires in the same audit, `recent-changes-overflow` is demoted to `keep` — the anti-pattern's removal proposal supersedes the overflow flag. When `## Recent Changes` is absent from the audited file, `recent-changes-overflow` emits no signal at all (absence is not drift, not a missing-section coverage failure).
+
+Known false-positive shape: a project that genuinely uses `## Recent Changes` as a long-form release-notes destination, where readers expect to find the changelog directly in CLAUDE.md. Override via `.kiln/claude-md-audit.config`'s `recent-changes-anti-pattern.enabled = false`.
 
 ### active-technologies-overflow
 
@@ -131,6 +184,102 @@ cached: false
 The editorial LLM receives each section body plus a small inventory of the current repo (plugin directories that exist, skill directories under each plugin, workflow file names) and is asked whether the section's claims still match the repo. Mismatch = signal fires with `removal-candidate` action; the diff proposes removal and includes the LLM's one-line justification as a diff comment. On LLM failure, mark `inconclusive`.
 
 Known false-positive shape: aspirational sections ("Planned: X") that describe work-in-progress. The LLM prompt instructs the model to only flag sections that describe features claimed to exist NOW; aspirational wording is left alone.
+
+---
+
+## Substance rules — substance evaluation against project context (claude-audit-quality FR-006..FR-009)
+
+The rules above are **drift-reducers** (content that aged badly) and the reframe rules below are **coverage-checkers** (does each section pull its weight). The substance rules below are the **teaching-quality** axis — does the audited file communicate the project's load-bearing concepts (thesis, loop, architecture)?
+
+Substance rules carry a new `signal_type: substance` value. They MUST populate the `ctx_json_paths:` field naming every `CTX_JSON` path their `match_rule:` reads — this is the FR-013 enforcement anchor (the audit emits the `(no project-context signals fired)` placeholder row only when zero rules with non-empty `ctx_json_paths:` fire).
+
+Substance findings sort to the top of the Signal Summary table per FR-010 (`signal_type_rank: 0`); they appear in `## Notes` before any mechanical findings.
+
+### missing-thesis
+
+```yaml
+rule_id: missing-thesis
+signal_type: substance
+cost: editorial
+match_rule: read CTX_JSON.vision.body; extract vision-pillar phrases (vision.md ^## headings + first paragraph); pre-filter the audited file's opener + ## What This Repo Is body via grep for any pillar phrase; if pre-filter returns 0 hits, invoke editorial pass to confirm absence
+action: expand-candidate
+ctx_json_paths: [vision.body]
+rationale: A CLAUDE.md that doesn't name the project's thesis lets Claude operate without anchoring product intent to mechanics. Vision pillars are the highest-leverage content.
+cached: false
+```
+
+Reads `.kiln/vision.md` via `CTX_JSON.vision.body`. The cheap pre-filter extracts vision-pillar phrases (every `^## ` heading from vision.md plus the first paragraph) and `grep -F`'s the audited file's opener and `## What This Repo Is` body for any pillar phrase. If the pre-filter returns ≥1 hit, the rule does NOT fire — the file already references a pillar. Only when the pre-filter returns zero hits does the model invoke the editorial pass to confirm true absence (Risk R-1 mitigation: cheap before expensive).
+
+When the rule fires, the proposed diff inserts a thesis paragraph derived from vision.md content into the audited file's opener (or creates a `## What This Repo Is` section if absent). Action: `expand-candidate`.
+
+Known false-positive shape: a CLAUDE.md that intentionally elides the thesis because the project IS the thesis statement (e.g., a README-as-CLAUDE.md). Override via per-rule disable in `.kiln/claude-md-audit.config`.
+
+### missing-loop
+
+```yaml
+rule_id: missing-loop
+signal_type: substance
+cost: editorial
+match_rule: read CTX_JSON.vision.body + CTX_JSON.roadmap.phases; if any phase has status: in-progress or status: complete (i.e., the project has shipped or is shipping a feedback loop), AND the audited file does not name the loop's input → consumer → output triple, fire
+action: expand-candidate
+ctx_json_paths: [vision.body, roadmap.phases]
+rationale: A capture surface (issues, feedback, roadmap, mistakes, fixes) without a named consumer becomes an isolated tool; the loop is the product per .kiln/vision.md.
+cached: false
+```
+
+Reads `.kiln/vision.md` (for the loop's input/consumer/output narrative) and `.kiln/roadmap/phases/*.md` (status check) via `CTX_JSON.vision.body` and `CTX_JSON.roadmap.phases`. The rule fires once per audit (not per section) when at least one roadmap phase has shipped or is shipping AND the audited file fails to draw the loop (input → consumer → output relationship).
+
+Distinct from `loop-incomplete` (in the reframe section): `loop-incomplete` checks whether CLAUDE.md names `/kiln:kiln-distill` as a capture-surface consumer; `missing-loop` checks whether the file teaches the *narrative* of the loop (where items come from, who consumes them, what comes out). A file can pass `loop-incomplete` (mentions distill) but fail `missing-loop` (mentions distill in passing without drawing the chain).
+
+The proposed diff inserts a paragraph naming the loop's input → consumer → output triple, sourced from vision.md narrative. Action: `expand-candidate`.
+
+Known false-positive shape: pre-loop projects that haven't shipped a feedback surface yet. Pre-check on `roadmap.phases` status guards against this — if no phase is `in-progress` or `complete`, the rule does not fire.
+
+### missing-architectural-context
+
+```yaml
+rule_id: missing-architectural-context
+signal_type: substance
+cost: cheap
+match_rule: count distinct plugin-*/ roots from CTX_JSON.plugins.list; if count > 1, parse the audited file's ## Architecture section (or equivalent ## Architecture-tagged heading); fire if section describes only one plugin or is absent
+action: expand-candidate
+ctx_json_paths: [plugins.list]
+rationale: Multi-plugin repos have architectural surface that one-plugin Architecture sections silently hide. Documenting only one plugin teaches the wrong mental model.
+cached: false
+```
+
+Counts distinct `plugin-*/` roots from `CTX_JSON.plugins.list`. When `>1`, parses the audited file's `## Architecture` section (or any `## ` heading containing the word "Architecture") and fires if (a) the section is absent or (b) the section describes only one plugin. The "describes only one plugin" check is grep-shaped: count `plugin-` mentions in the Architecture section; fire if `count <= 1` and `plugins.list` length `> 1`.
+
+This rule is `cost: cheap` — no editorial pass required. The check is mechanical (count vs threshold).
+
+The proposed diff inserts an architecture overview paragraph naming each plugin and its responsibility — sourced from each plugin's `.claude-plugin/plugin.json` `description:` field when available. Action: `expand-candidate`.
+
+Known false-positive shape: a multi-plugin repo where the audited file is intentionally scoped to one plugin (e.g., a per-plugin README). Override via per-rule disable in the config.
+
+### scaffold-undertaught
+
+```yaml
+rule_id: scaffold-undertaught
+signal_type: substance
+cost: editorial
+match_rule: applies only when audited file path matches plugin-*/scaffold/CLAUDE.md (or repo's documented scaffold-template glob); read CTX_JSON.claude_md.body (source-repo CLAUDE.md); for each load-bearing concept family in the source — (a) thesis (vision pillar), (b) loop (input → consumer → output), (c) architectural pointer (e.g. "scaffold deploys into consumer projects via X") — verify the scaffold communicates the same concept; fire per missing concept family
+action: expand-candidate
+ctx_json_paths: [claude_md.body, vision.body]
+rationale: Scaffolds are seeds; they propagate the load-bearing concepts the source repo teaches. A scaffold that omits thesis / loop / architecture seeds Claude with a mechanics-only template.
+cached: false
+```
+
+Path-scoped: applies only when the audited file matches `plugin-*/scaffold/CLAUDE.md` (or the equivalent scaffold-template glob the repo documents). Reads `CTX_JSON.claude_md.body` (the source-repo CLAUDE.md) and `CTX_JSON.vision.body`.
+
+For each of the **three load-bearing concept families** (per OQ-6 reconciliation), the model verifies the scaffold communicates the concept:
+
+- **(a) thesis** — a vision-pillar phrase appears in the scaffold's opener or `## What This Repo Is` body.
+- **(b) loop** — the scaffold names the input → consumer → output triple from vision.md.
+- **(c) architectural pointer** — the scaffold mentions the deployment / install path that connects scaffold → consumer project (e.g., "scaffold deploys into consumer projects via `bin/init.mjs`").
+
+The rule fires **per missing concept family** — a scaffold missing all three families fires three signals; missing one fires one signal. Each signal's proposed diff inserts a paragraph for that specific family. Action: `expand-candidate`.
+
+Known false-positive shape: a scaffold deliberately minimal because consumers customize from a near-empty starting point. Override via per-rule disable in the config.
 
 ---
 

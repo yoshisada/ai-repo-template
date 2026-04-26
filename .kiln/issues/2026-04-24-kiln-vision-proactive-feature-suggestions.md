@@ -3,7 +3,6 @@ id: 2026-04-24-kiln-vision-proactive-feature-suggestions
 title: /kiln:kiln-roadmap --vision should proactively suggest system improvements and new features (long-term vision coaching)
 type: improvement
 date: 2026-04-24
-status: open
 severity: medium
 area: kiln
 category: ergonomics
@@ -13,6 +12,8 @@ files:
   - .kiln/vision.md
 related:
   - 2026-04-24-kiln-vision-self-exploring-and-self-updating
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-vision-proactive-system-coaching.md
 ---
 
 ## Summary

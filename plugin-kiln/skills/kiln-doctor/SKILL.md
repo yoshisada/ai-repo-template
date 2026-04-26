@@ -193,18 +193,28 @@ if grep -q -E '^> \*\*Migration Notice\*\*|^> Old skill names|renamed from' CLAU
 fi
 ```
 
-**`recent-changes-overflow`**:
+**`recent-changes-overflow`** (claude-audit-quality FR-017 — gracefully handles absent section + reconciliation with `recent-changes-anti-pattern`):
 ```bash
-# Count bullets under "## Recent Changes" (lines starting with "- " within the section).
-RC_COUNT=$(awk '/^## Recent Changes/{flag=1;next} /^## /{flag=0} flag && /^- /' CLAUDE.md | wc -l | tr -d ' ')
-RC_LIMIT=5
-if [ -f ".kiln/claude-md-audit.config" ]; then
-  OVR=$(grep -E '^recent_changes_keep_last_n' .kiln/claude-md-audit.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
-  [ -n "$OVR" ] && RC_LIMIT="$OVR"
+# Pre-check: does the file have a ## Recent Changes section at all?
+# When absent, treat as no drift (FR-017 — absence is not a missing-section
+# coverage failure; the substance rule recent-changes-anti-pattern handles
+# the "should this section exist?" question separately).
+if grep -qE '^## Recent Changes$' CLAUDE.md; then
+  # Count bullets under "## Recent Changes" (lines starting with "- " within the section).
+  RC_COUNT=$(awk '/^## Recent Changes/{flag=1;next} /^## /{flag=0} flag && /^- /' CLAUDE.md | wc -l | tr -d ' ')
+  RC_LIMIT=5
+  if [ -f ".kiln/claude-md-audit.config" ]; then
+    OVR=$(grep -E '^recent_changes_keep_last_n' .kiln/claude-md-audit.config | head -1 | sed 's/.*[=:] *//' | tr -d '[:space:]')
+    [ -n "$OVR" ] && RC_LIMIT="$OVR"
+  fi
+  if [ "$RC_COUNT" -gt "$RC_LIMIT" ]; then
+    DRIFT_COUNT=$((DRIFT_COUNT + 1))
+  fi
 fi
-if [ "$RC_COUNT" -gt "$RC_LIMIT" ]; then
-  DRIFT_COUNT=$((DRIFT_COUNT + 1))
-fi
+# When the section is absent: emit no signal, no DRIFT_COUNT increment, full stop.
+# The /kiln:kiln-claude-audit skill (full rubric) is where recent-changes-anti-pattern
+# fires when ## Recent Changes is present — its removal proposal supersedes this
+# rule's archive-candidate proposal in the same audit (FR-017 reconciliation).
 ```
 
 **`active-technologies-overflow`**:
