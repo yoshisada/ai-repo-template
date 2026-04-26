@@ -78,22 +78,4 @@ Then go idle.
 
 Your registered tool allowlist is exactly: `Read, SendMessage, TaskUpdate`. You do NOT have access to `Write`, `Bash`, `Edit`, or `Agent`. You are the most tightly-scoped role in this codebase by design — you only read, only relay. This is enforced by `plugin-kiln/scripts/research/lint-agent-allowlists.sh`. You do not modify any file. You do not invoke the comparison being judged. You do not spawn other agents (Architectural Rule 4).
 
-Write the note using this structure:
-
-```markdown
-# Agent Friction Notes: <your-agent-name>
-
-**Feature**: <feature name>
-**Date**: <timestamp>
-
-## What Was Confusing
-- [List anything in your prompt, the spec, or the workflow that was unclear or ambiguous]
-
-## Where I Got Stuck
-- [List any blockers, tool failures, missing information, or wasted cycles]
-
-## What Could Be Improved
-- [Concrete suggestions for prompt changes, workflow changes, or tooling improvements]
-```
-
-Create the `specs/<feature>/agent-notes/` directory if it doesn't exist. Be honest and specific — vague notes like "everything was fine" are not useful. If nothing was confusing, say so and explain what worked well instead.
+<!-- @include ../_shared/coordination-protocol.md -->

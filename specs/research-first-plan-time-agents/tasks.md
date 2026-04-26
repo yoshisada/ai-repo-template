@@ -36,8 +36,8 @@
 
 **Purpose**: Extend the existing stubs at `plugin-kiln/agents/{fixture-synthesizer,output-quality-judge}.md` with the role-specific operating prose. After Phase B, the lint scripts from Phase A turn green for both agents.
 
-- [ ] **T006** [B] [Decision 8] Decide whether the role uses includes (CLAUDE.md "Theme B directive syntax"). If YES: author source files at `plugin-kiln/agents/_src/fixture-synthesizer.md` + `plugin-kiln/agents/_src/output-quality-judge.md`, then run `bash plugin-kiln/scripts/agent-includes/build-all.sh` to compile to the canonical `plugin-kiln/agents/<role>.md` paths. If NO: edit `plugin-kiln/agents/<role>.md` directly and skip the source-file step. Recommendation per Decision 8: USE includes for the SendMessage relay coordination prose; both agents share the boilerplate.
-- [ ] **T007** [B] [FR-001 / FR-004 / FR-006 / FR-008 / §6 / SC-004] Extend `plugin-kiln/agents/fixture-synthesizer.md` (or `_src/fixture-synthesizer.md`) with role-specific operating prose:
+- [X] **T006** [B] [Decision 8] Decide whether the role uses includes (CLAUDE.md "Theme B directive syntax"). If YES: author source files at `plugin-kiln/agents/_src/fixture-synthesizer.md` + `plugin-kiln/agents/_src/output-quality-judge.md`, then run `bash plugin-kiln/scripts/agent-includes/build-all.sh` to compile to the canonical `plugin-kiln/agents/<role>.md` paths. If NO: edit `plugin-kiln/agents/<role>.md` directly and skip the source-file step. Recommendation per Decision 8: USE includes for the SendMessage relay coordination prose; both agents share the boilerplate.
+- [X] **T007** [B] [FR-001 / FR-004 / FR-006 / FR-008 / §6 / SC-004] Extend `plugin-kiln/agents/fixture-synthesizer.md` (or `_src/fixture-synthesizer.md`) with role-specific operating prose:
     1. Verbatim diversity prompt per FR-008: `generate fixtures that exercise edge cases: empty inputs, maximum-size inputs, typical inputs, adversarial inputs`. Lint-asserted by T003.
     2. Input-format contract per §6 (composer-injected variables: `skill_id`, `empirical_quality`, `schema_path`, `target_count`, `proposed_corpus_dir`, `prd_slug`, `existing_fixtures_summary`; regenerate-only: `rejection_reason`, `rejected_fixture_summary`, `regeneration_attempt`, `target_fixture_id`).
     3. Output-format contract per FR-004 + §6: deterministic `fixture-NNN.md` zero-padded naming; YAML frontmatter with `axis_focus`, `shape ∈ {empty, minimal, typical, maximum-size, adversarial}`, `summary`. Body matches per-skill schema.
@@ -46,7 +46,7 @@
     6. Tool-allowlist conformance reminder (NFR-005): `Read, Write, SendMessage, TaskUpdate` only — NO Bash, NO Edit, NO Agent.
     7. `<!-- @include _shared/coordination-protocol.md -->` directive per Decision 8 (if T006 chose includes).
     8. Verify: `bash plugin-kiln/scripts/research/lint-synthesizer-prompt.sh` exits 0; `bash plugin-kiln/scripts/research/lint-agent-allowlists.sh` exits 0.
-- [ ] **T008** [B] [FR-009 / FR-011 / FR-012 / §1 / §7 / SC-003 / SC-005] Extend `plugin-kiln/agents/output-quality-judge.md` (or `_src/output-quality-judge.md`) with role-specific operating prose:
+- [X] **T008** [B] [FR-009 / FR-011 / FR-012 / §1 / §7 / SC-003 / SC-005] Extend `plugin-kiln/agents/output-quality-judge.md` (or `_src/output-quality-judge.md`) with role-specific operating prose:
     1. Verbatim-rubric invariant per FR-011: prompt template MUST contain literal `{{rubric_verbatim}}` interpolation token; NEVER summarize, paraphrase, truncate. Lint-asserted by T002.
     2. Input-format contract per §7 (composer-injected variables: `output_a`, `output_b`, `rubric_verbatim`, `axis_id`, `fixture_id`, `prd_slug`).
     3. Three-way verdict invariant per FR-012: judge emits `A_better | equal | B_better` (NEVER `candidate_better | equal | baseline_better` — judge doesn't know the assignment per FR-015).
@@ -55,7 +55,7 @@
     6. Tool-allowlist conformance reminder (NFR-005): `Read, SendMessage, TaskUpdate` only — judge is read-only by construction. NO Write, NO Bash, NO Edit, NO Agent.
     7. `<!-- @include _shared/coordination-protocol.md -->` directive per Decision 8.
     8. Verify: `bash plugin-kiln/scripts/research/lint-judge-prompt.sh` exits 0; `bash plugin-kiln/scripts/research/lint-agent-allowlists.sh` exits 0.
-- [ ] **T009** [B] [Decision 8] If T006 chose includes, run the CI gate `bash plugin-kiln/scripts/agent-includes/check-compiled.sh` — must exit 0 (compiled == build(sources)). Commit BOTH the `_src/` source files AND the compiled `plugin-kiln/agents/<role>.md` outputs.
+- [X] **T009** [B] [Decision 8] If T006 chose includes, run the CI gate `bash plugin-kiln/scripts/agent-includes/check-compiled.sh` — must exit 0 (compiled == build(sources)). Commit BOTH the `_src/` source files AND the compiled `plugin-kiln/agents/<role>.md` outputs.
 
 **Checkpoint B**: T006..T009 complete. All three lint scripts from Phase A pass. Commit Phase B.
 
