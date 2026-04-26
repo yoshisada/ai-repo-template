@@ -1066,7 +1066,30 @@ The retrospective teammate's job:
      ```
 
      The `**File**:` / `**Current**:` / `**Proposed**:` / `**Why**:` markers MUST be bold-inline. The blocks MUST appear as raw markdown in the issue body — NOT inside a ```` ``` ```` code fence. Parse failures land in the pi-apply report's "Parse Errors" section and the PI is silently dropped. (Direct lesson from issue #170 — PR #166 + PR #168 retros both shipped with the unbold-in-code-fence format; pi-apply parsed 18/20 blocks as parse errors and reported 0 actionable.)
-6. Creates a GitHub issue on the **ai-repo-template** repo with BOTH `build-prd` and `retrospective` labels:
+6. **Self-rate the retro using `plugin-kiln/rubrics/retro-quality.md`** (FR-024 of `claude-audit-quality`):
+
+   <!-- FR-024 anchor: retrospective insight-score self-rating. Rubric file: plugin-kiln/rubrics/retro-quality.md (FR-025). -->
+
+   - Read `plugin-kiln/rubrics/retro-quality.md` verbatim. The rubric's three criteria are: (a) non-obvious cause-and-effect claim, (b) calibration update with reasoning, (c) process-change proposal. Apply them to the retro body you just drafted (sections "What worked well", "What didn't work well", "Prompt & communication improvements", "Proposed changes"). Do NOT apply them to the PR's spec/plan/test artifacts — the rating is about THIS retrospective's substance, not the pipeline's overall quality.
+   - Score on the 1-5 scale defined in the rubric:
+     - `1` — none of the three criteria met (the retro is a status report).
+     - `2` — one criterion partially met.
+     - `3` — one criterion fully met (default threshold for "passes").
+     - `4` — two criteria fully met.
+     - `5` — all three criteria fully met, with non-obvious content.
+   - **Honest self-rating is the contract.** If the retro is a status report, emit `1`, NOT `3` to game the threshold. If you rate yourself a `1` or `2`, that's useful signal — the team-lead surfaces it so the maintainer sees the gap.
+   - Emit two YAML keys at the TOP of the GitHub issue body, BEFORE the first `## What worked well` heading. The keys MUST live in a single fenced ` ```yaml ` block at the top of the body (this IS the issue's frontmatter — GitHub issues don't have first-class frontmatter, so the leading fenced block is the convention `/kiln:kiln-pi-apply` and the team-lead summarizer parse):
+
+     ````
+     ```yaml
+     insight_score: <integer 1-5>
+     insight_score_justification: <one-line; ≤120 chars; cites the criterion(a) driving the score>
+     ```
+     ````
+
+     The `insight_score_justification` value names the criterion(a) that drove the score — e.g. `"process-change proposal: bold-inline PI for require-feature-branch.sh"` or `"status report; no cause-and-effect, no calibration update, no PI"`. Keep it under 120 chars; the team-lead surfaces it verbatim.
+
+7. Creates a GitHub issue on the **ai-repo-template** repo with BOTH `build-prd` and `retrospective` labels:
    ```bash
    gh issue create -R yoshisada/ai-repo-template --label "build-prd,retrospective" --title "..." --body "..."
    ```
@@ -1075,12 +1098,13 @@ The retrospective teammate's job:
    # (Continued — body construction below)
    ```
    Containing:
+   - The leading ` ```yaml ` frontmatter block from step 6 (with `insight_score:` + `insight_score_justification:`) — MUST be the FIRST content in the issue body
    - **What worked well** (with evidence)
    - **What didn't work well** (with evidence)
    - **Prompt & communication improvements** — specific rewrites for agent prompts, skill definitions, or pipeline orchestration (from step 5 above)
    - **Proposed changes** — other concrete suggestions for the skill, kiln commands, team structure, or codebase
-6. Reports the issue URL back to the lead
-7. Marks its task as completed via `TaskUpdate`
+8. Reports the issue URL back to the lead — include the `insight_score:` and `insight_score_justification:` values in the report message so the team-lead can surface low scores per FR-024 without re-fetching the issue body.
+9. Marks its task as completed via `TaskUpdate`
 
 **Only proceed to Step 5.5 after the retrospective task is marked completed.**
 
@@ -1154,7 +1178,25 @@ cannot self-improve. This has happened before — do not let it happen again.
 5. **Wait for all teammates to shut down** before cleaning up.
 6. **Clean up**: Use `TeamDelete` to remove the team and task directories.
 5. **Write pipeline log**: Save the pipeline report to `.kiln/logs/{feature-branch}-{timestamp}.md` for audit trail.
-6. **Summarize** the pipeline results:
+
+6. **Inspect retrospective insight-score (FR-024 of `claude-audit-quality`)**:
+
+   <!-- FR-024 anchor: team-lead surfaces low-substance retros so the maintainer sees the gap. Threshold = 3 (hardcoded; future PRs MAY make configurable). Rubric: plugin-kiln/rubrics/retro-quality.md. -->
+
+   The retrospective agent emitted `insight_score:` (1-5 integer) and `insight_score_justification:` (one-line, ≤120 chars) in its report message back to the lead, AND in the leading ` ```yaml ` frontmatter block at the top of the GitHub retro issue body.
+
+   - **Threshold**: `3` (hardcoded in this PR; future PRs MAY make this configurable via a `kiln-build-prd` step option).
+   - **If `insight_score < 3`**: Include this exact line VERBATIM (with `<N>` and `<justification>` substituted from the retro frontmatter) in the pipeline summary's body, immediately after the `**Retrospective**:` row:
+
+     ```
+     ⚠ Low-substance retrospective — insight_score: <N>. Justification: <justification>.
+     ```
+
+   - **If `insight_score >= 3`**: No warning is emitted. The score lives in the retro issue body for posterity but does NOT surface in the summary.
+
+   - **If the frontmatter block is missing or malformed**: Treat as `insight_score: unknown` and emit a soft warning in the summary: `⚠ Retrospective insight_score frontmatter missing or malformed — could not surface low-substance check (FR-024).` Do NOT block the pipeline; do NOT retry the retro.
+
+7. **Summarize** the pipeline results:
 
 ```
 ## Pipeline Report: {feature branch name}
@@ -1181,6 +1223,7 @@ cannot self-improve. This has happened before — do not let it happen again.
 **Smoke Test**: {PASS/FAIL}
 **Visual QA**: {PASS/FAIL/SKIPPED} — {video count} recordings, {N} GitHub issues filed, see .kiln/qa/latest/QA-PASS-REPORT.md
 **Retrospective**: {issue URL}
+{insight_score warning line — render the `⚠ Low-substance retrospective — insight_score: <N>. Justification: <justification>.` line VERBATIM here when `insight_score < 3` per FR-024 of claude-audit-quality. Render the malformed-frontmatter soft warning here when frontmatter is missing/unparseable. Render NOTHING when `insight_score >= 3`.}
 **What's Next**: {continuance report path or "skipped"}
 ```
 

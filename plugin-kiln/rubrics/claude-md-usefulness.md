@@ -8,6 +8,20 @@ This rubric is the single source of truth for "is our CLAUDE.md still pulling it
 
 A rule is a "signal" when it fires against the audited file. The audit skill collects all signals, renders them as a single table, and proposes a unified diff that codifies each action. The output is review material for a human — the audit never applies edits itself (FR-004).
 
+## When `inconclusive` is legitimate
+
+The model running `/kiln:kiln-claude-audit` performs editorial evaluation in its own context — there is no sub-LLM call. For each editorial rule, the skill MUST load the reference document(s), read every `^## ` section, compare per `match_rule`, and emit findings or `(no fire)`. Skipping the comparison and marking `inconclusive` is forbidden.
+
+The audit MAY emit `inconclusive` ONLY for these three triggers:
+
+1. **Missing reference document** — the rule's `match_rule:` requires a file (e.g. `.specify/memory/constitution.md`, `.kiln/vision.md`, source-repo `CLAUDE.md`) that is not present on disk.
+2. **Unparseable reference** — the file exists but is malformed in a way that breaks the `match_rule:` (e.g. invalid YAML frontmatter, encoding error, truncated).
+3. **External dependency unavailable** — the rule depends on a remote fetch (WebFetch / MCP) that returned non-2xx or timed out.
+
+"Editorial work feels expensive" is explicitly NOT a legitimate trigger. The Notes cell of an `inconclusive` row MUST cite the specific trigger and the specific resource (e.g. `inconclusive — reference document .specify/memory/constitution.md not found on disk`).
+
+> **FR-018 cross-reference**: the load-bearing rewording (FR-018 of `claude-audit-quality`) aligns with FR-031 of `claude-md-audit-reframe`: a section is load-bearing only when cited from skill / agent / hook / workflow PROSE (instructions, descriptions, error messages), NOT when cited only inside a rule's `match_rule:` field. `enumeration-bloat`'s carve-out over `load-bearing-section` for `plugin-surface` sections (FR-031) remains in force; the new wording reinforces rather than conflicts.
+
 ## Configurable thresholds
 
 These live under rule entries that reference them. Overridable from `.kiln/claude-md-audit.config` via the raw key name (no `rule_id.` prefix):

@@ -197,36 +197,30 @@ If `(now - commit_time)` exceeds `migration_notice_max_age_days` (default 60), f
 
 **`active-technologies-overflow`** — same mechanic as `recent-changes-overflow`, scoped to `## Active Technologies`. Threshold: `active_technologies_keep_last_n` (default 5).
 
-### Editorial rules (LLM calls)
+### Editorial rules (executed in the model's own context — claude-audit-quality FR-003)
 
-**`duplicated-in-prd`**, **`duplicated-in-constitution`**, **`stale-section`** — each invokes a single LLM call.
+**`duplicated-in-prd`**, **`duplicated-in-constitution`**, **`stale-section`** — the model running this skill performs the editorial evaluation directly. **There is no sub-LLM call.** The skill body below is the contract the model executes turn-by-turn; reference documents are read with `Read` / `cat` / `awk` and held inline in the model's working context.
 
-For each editorial rule:
+For each editorial rule, the model MUST:
 
 1. Read the audited CLAUDE.md file in full.
 2. Read the reference document(s):
    - `duplicated-in-prd` → `docs/PRD.md` (if present) + every `products/*/PRD.md` + every `docs/features/*/PRD.md`.
    - `duplicated-in-constitution` → `.specify/memory/constitution.md` (consumer path) OR `plugin-kiln/scaffold/constitution.md` (plugin source repo).
-   - `stale-section` → a small inventory: `ls plugin-*/skills/`, `ls plugin-*/agents/`, `ls plugin-*/workflows/`, `ls plugin-*/hooks/`, directly listed so the LLM sees what currently exists.
-3. Call the LLM with a prompt that names the rule's `match_rule` + `rationale` from the rubric and asks for a list of section headings whose content fires the rule. Prompt shape:
+   - `stale-section` → a small inventory: `ls plugin-*/skills/`, `ls plugin-*/agents/`, `ls plugin-*/workflows/`, `ls plugin-*/hooks/`, directly listed so the model can compare the section's claims against what currently exists on disk.
+3. For each `^## ` section in the audited file, compare the section body against the reference material per the rule's `match_rule:` and `rationale:`. The comparison criterion (e.g. for `duplicated-in-constitution`):
 
 ```
-You are evaluating CLAUDE.md section-by-section against rule <rule_id>.
+For each ## section in CLAUDE.md, ask: does this section paraphrase, restate, or substantively duplicate any article in the constitution? Ignore ≤3-line shared boilerplate (project name, one-liner descriptions). Flag substantive duplication only.
 
-Rule rationale: <rubric rationale>
-Rule match: <rubric match_rule>
 Known false-positive shape: <rubric prose block for the rule>
-
-<Reference material inline here>
-
-<CLAUDE.md content inline here>
-
-Return a JSON list: [{"section": "## <heading>", "justification": "<1-sentence why the rule fires>"}]
-Return an empty list if nothing fires. Do not flag sections that match the known false-positive shape.
 ```
 
-4. Parse the LLM response. Each returned entry becomes a signal with the rule's `action` from the rubric.
-5. If the LLM call errors (timeout, parse failure, rate-limit), record ONE signal for the rule with action `inconclusive` and a Notes-section line `editorial rule <rule_id>: LLM unavailable — marked inconclusive`. Do NOT propose a diff for the inconclusive signal — it goes into the Signal Summary as a row but not into the Proposed Diff body.
+4. Each section that fires becomes a signal with the rule's `action` from the rubric and a one-sentence justification. Each section that does NOT fire is silently skipped (no signal). Sections the model evaluates but explicitly clears MAY be summarised once at the end of the rule pass as `(no fire)`.
+
+5. **`inconclusive` is permitted ONLY for the three triggers documented in the rubric preamble** (`When inconclusive is legitimate` section of `plugin-kiln/rubrics/claude-md-usefulness.md` — claude-audit-quality FR-004): missing reference document, unparseable reference, or external dependency unavailable. The Notes cell MUST cite the specific trigger and resource — e.g. `inconclusive — reference document .specify/memory/constitution.md not found on disk`. Phrases like "LLM unavailable", "editorial work too expensive", "deferred", or "pending maintainer review" are explicitly forbidden as `inconclusive` reasons. When a rule legitimately fires `inconclusive`, the row appears in the Signal Summary table but no diff is proposed.
+
+**Skipping the comparison and emitting `inconclusive` because the editorial pass feels expensive is a contract violation — the audit's value is exactly this editorial pass and the model is the executor.**
 
 ### Reframe rules (claude-md-audit-reframe FR-002, FR-005..FR-008, FR-025, FR-027)
 
@@ -420,6 +414,40 @@ check, produce zero-or-more findings with: `section`, `current`, `proposed`, `ev
 all five checks come back clean, emit a single "no deltas found" row instead.
 
 Accumulate these findings into `EXTERNAL_FINDINGS` for rendering in Step 4.
+
+## Step 3.6 — Output discipline invariant (claude-audit-quality FR-001)
+
+After all rule passes (cheap, editorial, reframe, sync composers, external best-practices) have run and before writing the output file, walk the collected signal list and assert the following invariant for every fired signal:
+
+> Every fired signal MUST produce **exactly one** of:
+>
+> 1. a concrete unified diff hunk in the Proposed Diff body — `git apply`-shaped, hunk-by-hunk, with a `# rule_id: <id> — <one-line reason>` annotation immediately before the `--- a/...` line; OR
+> 2. an explicit `inconclusive` row in the Signal Summary whose Notes cell cites one of the three legitimate triggers from the rubric preamble (`When inconclusive is legitimate`): missing reference document, unparseable reference, external dependency unavailable; OR
+> 3. a `keep` / `keep (load-bearing)` row for rules that only ever emit `keep` (currently `load-bearing-section`, plus rules demoted by reconciliation).
+
+**Forbidden output shapes** (FR-001):
+
+- A diff hunk consisting only of comments (e.g. `# rule_id: stale-section — No diff proposed pending maintainer call`) with no `+`/`-` lines is a contract violation. If the model can't produce a concrete diff, the rule MUST emit `inconclusive` with a specific reason — never a placeholder hunk.
+- An `inconclusive` row whose Notes cell paraphrases "expensive", "deferred", "skipped", "manual review", or any cost / capacity language is a contract violation. The triggers in the rubric preamble are exhaustive.
+- A signal row with empty / "—" action and no diff and no `inconclusive` justification is a contract violation.
+
+**Enforcement**: before rendering, the model performs a self-check pass against the signal list. Any signal failing the invariant either (a) gets a concrete diff appended in the Proposed Diff body, (b) gets reclassified to `inconclusive` with a legitimate trigger, or (c) is removed from the signal list entirely (the rule did not actually fire — emit nothing). The audit log MUST NOT contain a signal that fails the invariant.
+
+**Sanity assertion** (informal — the model performs this before writing):
+
+```text
+for each signal S in fired_signals:
+  if S.action in {removal-candidate, archive-candidate, expand-candidate, sync-candidate, correction-candidate, duplication-flag}:
+    assert at least one git-apply-shaped hunk exists in PROPOSED_DIFF for S.section with `# rule_id: <S.rule_id>` annotation
+  elif S.action == "inconclusive":
+    assert S.notes cites one of the three legitimate triggers from the rubric preamble
+  elif S.action in {"keep", "keep (load-bearing)"}:
+    pass
+  else:
+    raise contract violation
+```
+
+Violations are author bugs in the skill body, not runtime user errors — they MUST be fixed in this skill or the rubric, not silently tolerated.
 
 ## Step 4 — Write the output file
 
