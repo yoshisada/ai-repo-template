@@ -133,7 +133,7 @@ description: "Task list for escalation-audit feature implementation"
 
 **Checkpoint**: Phase 6 ends with US4 fully shippable.
 
-- [ ] T050 [impl-theme-c] Commit Phase 6 with message `feat(kiln-escalation-audit): inventory skill V1 (FR-011..FR-015, NFR-003)`.
+- [X] T050 [impl-theme-c] Commit Phase 6 with message `feat(kiln-escalation-audit): inventory skill V1 (FR-011..FR-015, NFR-003)`.
 
 ---
 
