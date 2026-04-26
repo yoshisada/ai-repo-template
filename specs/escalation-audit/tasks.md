@@ -74,9 +74,9 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Test for User Story 2
 
-- [ ] T024 [impl-themes-ab] [US2] Create `plugin-kiln/tests/roadmap-check-merged-pr-drift-detection/run.sh` per `contracts/interfaces.md` §D.2. Test cites SC-002.
-- [ ] T025 [impl-themes-ab] [US2] Verify the fixture covers: (a) ref-walk-resolved drift, (b) heuristic-fallback drift, (c) item with empty `prd:` (no false-positive), (d) `gh pr list` returning `[]` (no flag).
-- [ ] T026 [impl-themes-ab] [US2] Run the fixture; assert PASS.
+- [X] T024 [impl-themes-ab] [US2] Create `plugin-kiln/tests/roadmap-check-merged-pr-drift-detection/run.sh` per `contracts/interfaces.md` §D.2. Test cites SC-002.
+- [X] T025 [impl-themes-ab] [US2] Verify the fixture covers: (a) ref-walk-resolved drift, (b) heuristic-fallback drift, (c) item with empty `prd:` (no false-positive), (d) `gh pr list` returning `[]` (no flag).
+- [X] T026 [impl-themes-ab] [US2] Run the fixture; assert PASS.
 
 **Checkpoint**: Phase 4 ends with US2 fully shippable.
 

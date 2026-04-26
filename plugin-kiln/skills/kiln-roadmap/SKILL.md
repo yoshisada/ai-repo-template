@@ -842,6 +842,8 @@ After any `--phase` action that mutates the file, dispatch `shelf:shelf-write-ro
 ## §C: Consistency check (`--check` — FR-022 / PRD FR-022)
 
 <!-- FR-022 / PRD FR-022: report items whose state is inconsistent with phase / spec / PR reality. -->
+<!-- FR-005 (escalation-audit): Check 5 adds a merged-PR cross-reference for distilled/specced items with populated `prd:`.
+     Spec: specs/escalation-audit/spec.md US2. Contract: specs/escalation-audit/contracts/interfaces.md §A.3. -->
 
 Walk every item via `list-items.sh` and cross-reference:
 
@@ -857,8 +859,55 @@ bash "$H_LIST_ITEMS" | while IFS= read -r item; do
   # Check 2: state:specced but spec: not set or spec.md missing → inconsistent
   # Check 3: state:distilled but prd: not set or PRD.md missing → inconsistent
   # Check 4: addresses: references a missing critique id → dangling reference
+
+  # Check 5: Merged-PR drift (FR-005, escalation-audit) — items still distilled/specced
+  # whose PRD has shipped via a merged build PR. Catches pre-existing drift the
+  # auto-flip (build-prd Step 4b.5) does NOT cover.
+  #
+  # NFR-004 backward compat: only fires when state ∈ {distilled, specced} AND `prd:` is
+  # populated AND the file exists. Items without `prd:` are untouched (Checks 1–4 still emit).
+  if { [ "$state" = "distilled" ] || [ "$state" = "specced" ]; } && [ -n "$prd" ] && [ -f "$prd" ]; then
+    # Resolve the PRD's expected build branch — prefer ref-walk (R-2 mitigation).
+    BRANCH=""
+    RESOLUTION="ref-walk"
+    MERGE_SHA="$(git log --diff-filter=A --pretty=format:%H -- "$prd" 2>/dev/null | tail -n1)"
+    if [ -n "$MERGE_SHA" ]; then
+      BRANCH="$(git for-each-ref --points-at "$MERGE_SHA" --format='%(refname:short)' 2>/dev/null \
+        | grep -E '^build/' | head -n1)"
+    fi
+    if [ -z "$BRANCH" ]; then
+      # Fallback heuristic: build/<theme>-<YYYYMMDD> derived from PRD path.
+      RESOLUTION="heuristic"
+      THEME="$(echo "$prd" | sed -E 's|^docs/features/[0-9]{4}-[0-9]{2}-[0-9]{2}-([^/]+)/PRD\.md$|\1|')"
+      DATE_PART="$(echo "$prd" | sed -E 's|^docs/features/([0-9]{4})-([0-9]{2})-([0-9]{2})-.*|\1\2\3|')"
+      BRANCH="build/${THEME}-${DATE_PART}"
+    fi
+
+    PR_NUM="$(gh pr list --state merged --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null)"
+    if [ -n "$PR_NUM" ]; then
+      # FR-005 — drift row: one block per flagged item (stdout). Format pinned by §A.3.
+      echo "[drift] ${id} state=${state} prd=${prd} branch=${BRANCH} pr=#${PR_NUM} resolution=${RESOLUTION}"
+      echo "  fix: bash plugin-kiln/scripts/roadmap/update-item-state.sh ${item} shipped --status shipped"
+      # R-2 documentation requirement: heuristic-resolved findings get a Notes-section row.
+      if [ "$RESOLUTION" = "heuristic" ]; then
+        printf '%s\n' "note: ${id} resolved via heuristic build-branch fallback (R-2)." \
+          >> "${NOTES_FILE:-/dev/stderr}"
+      fi
+    fi
+  fi
 done
 ```
+
+**Check 5 output shape** (one block per flagged item — pinned by §A.3):
+
+```
+[drift] <item-id> state=<distilled|specced> prd=<path> branch=<branch> pr=#<N> resolution=<ref-walk|heuristic>
+  fix: bash plugin-kiln/scripts/roadmap/update-item-state.sh <item-path> shipped --status shipped
+```
+
+**Notes section addendum** (FR-005, R-2): every drift entry whose `resolution=heuristic` MUST also append the line `note: <id> resolved via heuristic build-branch fallback (R-2).` to the report's `## Notes` section. The `NOTES_FILE` env var (default `/dev/stderr`) controls the destination — production sets it to the real notes-file path inside the report.
+
+**NFR-004 invariant**: items WITHOUT a populated `prd:` field skip Check 5 entirely. The pre-existing Checks 1–4 emit unchanged, byte-identical to behavior before FR-005 landed.
 
 Print a tidy report with actionable suggestions per finding. Exit 0 if consistent, non-zero if any inconsistency is found (so CI can gate on it).
 
