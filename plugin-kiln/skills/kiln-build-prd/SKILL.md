@@ -1016,6 +1016,119 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
 - The `tr -d '\r'` is non-optional. Some frontmatter files originate from CRLF environments.
 - Diagnostic output is structural prevention, not nice-to-have. It MUST emit on EVERY run including zero-match, so every future leak is visible in the log the first time it happens.
 
+### Step 4b.5: Auto-flip roadmap items on merge (FR-001..FR-004, NFR-001)
+
+<!-- Spec: specs/escalation-audit/spec.md FR-001..FR-004, NFR-001. Contract: specs/escalation-audit/contracts/interfaces.md §A.2. -->
+
+**Purpose**: After Step 4b's archival commit, when the PR for this build has been MERGED, atomically flip every roadmap item in the PRD's `derived_from:` block from `state: distilled|specced` → `state: shipped` (+ `status: shipped`, + `pr:`, + `shipped_date:`). Inline (no sub-agent), idempotent, gh-degraded-to-no-op safe. Closes the highest-friction drift loop today (PR #186 manual-flip tax × 2; PR #155 24-hour stale window).
+
+**When this runs**: Inline in the team-lead's main-chat context, AFTER Step 4b's archival commit (`git commit -m "chore: step4b lifecycle …"`) AND AFTER the audit-pr agent confirms the PR is merged. BEFORE Step 5 (Retrospective).
+
+**Inputs** (already in scope from Step 4b): `$PRD_PATH`, `$PR_NUMBER` (from audit-pr handoff), the `read_derived_from()` helper.
+
+**Bash block (verbatim from contract §A.2)**:
+
+```bash
+# FR-003 — gate on PR merge state (cached once per pipeline run; see R-1 mitigation).
+PR_STATE_JSON="$(gh pr view "$PR_NUMBER" --json state,mergedAt 2>/dev/null || echo '{}')"
+PR_STATE="$(echo "$PR_STATE_JSON" | jq -r '.state // "unknown"')"
+if [ "$PR_STATE" != "MERGED" ]; then
+  # Edge case: gh unavailable → PR_STATE="unknown" → still emits skipped, never aborts the pipeline.
+  REASON="pr-not-merged"
+  if [ "$PR_STATE" = "unknown" ]; then REASON="gh-unavailable"; fi
+  echo "step4b-auto-flip: pr-state=${PR_STATE} auto-flip=skipped items=0 patched=0 already_shipped=0 reason=${REASON}"
+  return 0 2>/dev/null || exit 0
+fi
+
+# FR-001 — read derived_from list (reuse Step 4b's read_derived_from helper; see Module E in contracts).
+ITEMS=()
+MISSING_ENTRIES=()
+while IFS= read -r entry; do
+  case "$entry" in
+    .kiln/roadmap/items/*.md)
+      if [ -f "$entry" ]; then
+        ITEMS+=("$entry")
+      else
+        MISSING_ENTRIES+=("$entry")
+      fi
+      ;;
+  esac
+done < <(read_derived_from "$PRD_PATH")
+
+# Edge case: no derived_from entries at all → diagnostic with reason=no-derived-from, no-op.
+if [ "${#ITEMS[@]}" -eq 0 ] && [ "${#MISSING_ENTRIES[@]}" -eq 0 ]; then
+  echo "step4b-auto-flip: pr-state=MERGED auto-flip=skipped items=0 patched=0 already_shipped=0 reason=no-derived-from"
+  return 0 2>/dev/null || exit 0
+fi
+
+PATCHED=0
+ALREADY_SHIPPED=0
+TODAY="$(date -u +%Y-%m-%d)"
+
+# FR-001/FR-002/FR-004 — per-item atomic flip with idempotency guard.
+for item in "${ITEMS[@]}"; do
+  # FR-004 — idempotency: skip if `pr: <PR_NUMBER>` already present (with optional leading '#').
+  if grep -qE "^pr:[[:space:]]*#?${PR_NUMBER}\b" "$item"; then
+    ALREADY_SHIPPED=$((ALREADY_SHIPPED + 1))
+    continue
+  fi
+
+  # FR-002 — atomic state+status rewrite via the extended --status flag.
+  bash plugin-kiln/scripts/roadmap/update-item-state.sh "$item" shipped --status shipped >/dev/null
+
+  # FR-001 — patch frontmatter: insert pr: + shipped_date: if absent. ONE awk pass + mv (atomic).
+  patch_pr_and_date() {
+    local _item="$1" _pr="$2" _today="$3"
+    local _tmp
+    _tmp="$(mktemp "${_item}.XXXXXX.tmp")"
+    awk -v pr="$_pr" -v today="$_today" '
+      BEGIN { fm = 0; saw_pr = 0; saw_date = 0; closed = 0 }
+      /^---[[:space:]]*$/ {
+        fm++
+        # FR-004 — on closing fence: insert pr: + shipped_date: if not seen, BEFORE printing the fence.
+        if (fm == 2 && closed == 0) {
+          if (saw_pr == 0)   { print "pr: " pr }
+          if (saw_date == 0) { print "shipped_date: " today }
+          closed = 1
+        }
+        print
+        next
+      }
+      fm == 1 && /^pr:[[:space:]]*/         { saw_pr = 1;   print; next }
+      fm == 1 && /^shipped_date:[[:space:]]*/ { saw_date = 1; print; next }
+      { print }
+    ' "$_item" > "$_tmp"
+    mv "$_tmp" "$_item"
+  }
+  patch_pr_and_date "$item" "$PR_NUMBER" "$TODAY"
+
+  PATCHED=$((PATCHED + 1))
+done
+
+# FR-001 — diagnostic line, byte-exact per contract §A.2.
+echo "step4b-auto-flip: pr-state=MERGED auto-flip=success items=${#ITEMS[@]} patched=${PATCHED} already_shipped=${ALREADY_SHIPPED} reason="
+```
+
+**Diagnostic line literal** (one line, no embedded newlines, exit-safe):
+
+```
+step4b-auto-flip: pr-state=<MERGED|OPEN|CLOSED|unknown> auto-flip=<success|skipped> items=<N> patched=<K> already_shipped=<S> reason=<|no-derived-from|pr-not-merged|gh-unavailable>
+```
+
+**Verification regex (FR-006 fixture asserts against this — anchored)**:
+
+```
+^step4b-auto-flip: pr-state=(MERGED|OPEN|CLOSED|unknown) auto-flip=(success|skipped) items=[0-9]+ patched=[0-9]+ already_shipped=[0-9]+ reason=[a-z-]*$
+```
+
+### Step 4b.5 invariants
+
+- **FR-003 gate first**: NEVER mutate any roadmap item before `PR_STATE == "MERGED"` is confirmed. `gh` failures degrade to `pr-state=unknown reason=gh-unavailable` — diagnostic only, no mutation.
+- **FR-004 idempotency**: re-running on the same merged PR MUST NOT double-write `pr:` or overwrite `shipped_date:`. The `grep -qE "^pr:[[:space:]]*#?${PR_NUMBER}\b"` guard and the `saw_pr/saw_date` awk flags BOTH defend this — the first short-circuits the per-item rewrite, the second guards against frontmatter that already has the field but a different PR number.
+- **Atomic rewrite**: `patch_pr_and_date` uses ONE awk pass + `mv` per item. No multi-`sed` chains; no partial-write windows. Constitution Article VII (interface contracts) — matches `update-item-state.sh` §A.1 invariant.
+- **NFR-001 latency budget**: ≤ 5 s for ≤ 10 items. The work is one cached `gh pr view` + ≤ 10 atomic awk rewrites; typical wall-clock < 1 s.
+- **Edge cases**: empty `derived_from:` → `reason=no-derived-from` + return; missing-on-disk entries (`MISSING_ENTRIES`) are logged but do NOT abort; `gh` unavailable → `reason=gh-unavailable` no-op.
+
 ## Step 5: Retrospective (NON-NEGOTIABLE — do NOT skip)
 
 **⛔ STOP. DO NOT send ANY shutdown requests or run TeamDelete until the retrospective is COMPLETE. ⛔**

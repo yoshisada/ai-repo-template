@@ -51,8 +51,8 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Test for User Story 1
 
-- [ ] T014 [impl-themes-ab] [US1] Create `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` per `contracts/interfaces.md` §D.1. Test cites SC-001 in a header comment.
-- [ ] T015 [impl-themes-ab] [US1] Verify `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` returns PASS locally (one PR_STATE=MERGED case, one PR_STATE=OPEN case, one idempotency re-run case).
+- [X] T014 [impl-themes-ab] [US1] Create `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` per `contracts/interfaces.md` §D.1. Test cites SC-001 in a header comment.
+- [X] T015 [impl-themes-ab] [US1] Verify `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` returns PASS locally (one PR_STATE=MERGED case, one PR_STATE=OPEN case, one idempotency re-run case).
 
 **Checkpoint**: Phase 3 ends with US1 fully shippable. Commit before moving to Phase 4.
 
