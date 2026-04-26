@@ -91,20 +91,20 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Implementation
 
-- [ ] T030 [impl-themes-ab] [US3] In `plugin-kiln/skills/kiln-build-prd/SKILL.md` Step 6, AFTER the existing initial `shutdown_request` broadcast (current step 3 in Step 6, around line 1169) and BEFORE `5. Wait for all teammates to shut down`, insert a new sub-section `### 3a. Shutdown-nag loop (FR-007..FR-009, NFR-005)`.
-- [ ] T031 [impl-themes-ab] [US3] In sub-section 3a, document the tick contract from `contracts/interfaces.md` §B.1 verbatim: `ScheduleWakeup({delaySeconds: 60, prompt: "<<autonomous-loop-dynamic>>", reason: ...})` invocation; tick body sequence; emit lines for `re-poke` / `force-shutdown` / `team-empty`; env-var `KILN_SHUTDOWN_NAG_MAX_TICKS` (default 10).
-- [ ] T032 [impl-themes-ab] [US3] Document NFR-005: re-sending `shutdown_request` to a terminated teammate is a no-op (emit `action=already-terminated reason=` instead of `re-poke`).
-- [ ] T033 [impl-themes-ab] [US3] Document the substrate gap (B-1) inline: full `/loop` integration test deferred; FR-010 verifies via direct text assertions only.
+- [X] T030 [impl-themes-ab] [US3] In `plugin-kiln/skills/kiln-build-prd/SKILL.md` Step 6, AFTER the existing initial `shutdown_request` broadcast (current step 3 in Step 6, around line 1169) and BEFORE `5. Wait for all teammates to shut down`, insert a new sub-section `### 3a. Shutdown-nag loop (FR-007..FR-009, NFR-005)`.
+- [X] T031 [impl-themes-ab] [US3] In sub-section 3a, document the tick contract from `contracts/interfaces.md` §B.1 verbatim: `ScheduleWakeup({delaySeconds: 60, prompt: "<<autonomous-loop-dynamic>>", reason: ...})` invocation; tick body sequence; emit lines for `re-poke` / `force-shutdown` / `team-empty`; env-var `KILN_SHUTDOWN_NAG_MAX_TICKS` (default 10).
+- [X] T032 [impl-themes-ab] [US3] Document NFR-005: re-sending `shutdown_request` to a terminated teammate is a no-op (emit `action=already-terminated reason=` instead of `re-poke`).
+- [X] T033 [impl-themes-ab] [US3] Document the substrate gap (B-1) inline: full `/loop` integration test deferred; FR-010 verifies via direct text assertions only.
 
 ### Test for User Story 3
 
-- [ ] T034 [impl-themes-ab] [US3] Create `plugin-kiln/tests/build-prd-shutdown-nag-loop/run.sh` per `contracts/interfaces.md` §D.3. Test cites SC-003.
-- [ ] T035 [impl-themes-ab] [US3] Verify the fixture greps for the four required patterns (`ScheduleWakeup` + `delaySeconds: 60`; `KILN_SHUTDOWN_NAG_MAX_TICKS`; `TaskStop`; `team-empty`).
-- [ ] T036 [impl-themes-ab] [US3] Run fixture; assert PASS.
+- [X] T034 [impl-themes-ab] [US3] Create `plugin-kiln/tests/build-prd-shutdown-nag-loop/run.sh` per `contracts/interfaces.md` §D.3. Test cites SC-003.
+- [X] T035 [impl-themes-ab] [US3] Verify the fixture greps for the four required patterns (`ScheduleWakeup` + `delaySeconds: 60`; `KILN_SHUTDOWN_NAG_MAX_TICKS`; `TaskStop`; `team-empty`).
+- [X] T036 [impl-themes-ab] [US3] Run fixture; assert PASS.
 
 **Checkpoint**: Phase 5 ends with US3 fully shippable.
 
-- [ ] T037 [impl-themes-ab] Commit Phase 5 with message `feat(build-prd): step 6 shutdown-nag /loop pass (FR-007..FR-010)`.
+- [X] T037 [impl-themes-ab] Commit Phase 5 with message `feat(build-prd): step 6 shutdown-nag /loop pass (FR-007..FR-010)`.
 
 - [ ] T038 [impl-themes-ab] Write `specs/escalation-audit/agent-notes/impl-themes-ab.md` with friction notes (any unclear contract, blockers encountered, deferrals).
 

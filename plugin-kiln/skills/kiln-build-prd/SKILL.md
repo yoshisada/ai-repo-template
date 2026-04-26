@@ -1281,6 +1281,63 @@ cannot self-improve. This has happened before — do not let it happen again.
 
 3. **Shut down teammates gracefully**: Only AFTER every agent has confirmed 'READY TO SHUTDOWN', send each teammate `SendMessage` with `message: {type: "shutdown_request"}`.
 
+### 3a. Shutdown-nag loop (FR-007..FR-009, NFR-005)
+
+<!-- Spec: specs/escalation-audit/spec.md FR-007..FR-010, NFR-005. Contract: specs/escalation-audit/contracts/interfaces.md §B.1.
+     Substrate gap (B-1): full /loop integration test deferred — wheel-hook-bound substrate not yet shipped; FR-010 verifies via direct text assertions on this Step 6 body only. -->
+
+After the initial `shutdown_request` broadcast in step 3 completes, the team-lead enters `/loop` dynamic-mode polling that re-pokes any teammate that has NOT terminated, capped at 10 ticks per teammate, with `TaskStop` force-shutdown fallback. Self-terminates when the team is empty.
+
+#### Tick contract (FR-007, FR-008, FR-009)
+
+The tick body is the team-lead's main-chat thinking + tool-call sequence per `ScheduleWakeup` firing. Persisted across ticks via the team-lead's in-session state (no on-disk state required for V1):
+
+- `tick_count: integer` — starts at 1; increments per fire.
+- `team: string` — team name from build-prd.
+- `max_ticks: integer` — default `${KILN_SHUTDOWN_NAG_MAX_TICKS:-10}` (FR-009 R-3 mitigation: configurable via env var).
+- `pending_teammates: string[]` — teammates that have NOT terminated.
+
+#### Tick body (sequential)
+
+1. Re-read `~/.claude/teams/<team>/config.json`; recompute `pending_teammates` (active teammates whose owning tasks are not completed).
+2. **Empty-team self-terminate (FR-008 self-termination)**: if `pending_teammates` is empty → emit `tick=<N> action=team-empty` and DO NOT call `ScheduleWakeup`. Loop self-terminates; Step 6 proceeds to step 5 (wait for shutdown) → step 6 (TeamDelete).
+3. For each pending teammate:
+   - **Force-shutdown (FR-009)**: if `tick_count > max_ticks` → invoke `TaskStop` on the teammate's owning task; emit `tick=<N> teammate=<name> action=force-shutdown reason=10-tick-timeout`.
+   - **Re-poke (FR-008)**: else → `SendMessage({to: <name>, message: {type: "shutdown_request"}})`; emit `tick=<N> teammate=<name> action=re-poke reason=`.
+   - **NFR-005 idempotency**: re-sending `shutdown_request` to a teammate that already approved-then-terminated MUST be a no-op — the harness silently drops the message; emit `action=already-terminated reason=` instead of `re-poke` so the diagnostic reflects reality.
+4. **Reschedule (FR-007)**: if `tick_count <= max_ticks` AND `pending_teammates` was non-empty → `ScheduleWakeup({delaySeconds: 60, prompt: "<<autonomous-loop-dynamic>>", reason: "shutdown-nag tick ${tick_count}"})`.
+
+#### Tick output (stdout — one line per teammate per tick)
+
+```
+tick=<N> teammate=<name> action=<re-poke|force-shutdown|already-terminated> reason=<|10-tick-timeout>
+```
+
+Or, on empty-team self-terminate:
+
+```
+tick=<N> action=team-empty
+```
+
+#### Edge case — `ScheduleWakeup` unavailable
+
+If `ScheduleWakeup` is not available in the harness running Step 6, the shutdown-nag loop falls through to a single fallback `wheel:wheel-stop` invocation + emits a warning. Step 6 still proceeds to step 5 (wait for shutdown) → step 6 (TeamDelete).
+
+#### Substrate gap (B-1)
+
+Full `/loop` integration test is deferred — the wheel-hook-bound substrate required to drive a real `ScheduleWakeup` chain from a sub-agent context is not yet shipped. FR-010 verifies the contract above via direct text assertions on this Step 6 body (`plugin-kiln/tests/build-prd-shutdown-nag-loop/run.sh`). When the substrate lands, a follow-on `plugin-kiln/tests/build-prd-shutdown-nag-loop-live/` fixture will exercise the live `/loop` invocation. Documented in `specs/escalation-audit/blockers.md` §FR-010.
+
+#### Verification regex (FR-010 fixture, applied to this Step 6 body)
+
+All four patterns MUST match in the rendered Step 6 block:
+
+```
+ScheduleWakeup\(\{[^}]*delaySeconds:[[:space:]]*60
+KILN_SHUTDOWN_NAG_MAX_TICKS
+TaskStop
+team-empty
+```
+
 4. **Shutdown order**:
    - First: shut down testing/QA agents (e2e-agent, chrome-agent, ux-agent, qa-reporter)
    - Then: shut down implementers and researcher
