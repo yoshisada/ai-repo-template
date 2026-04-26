@@ -5,7 +5,7 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: in-phase
 blast_radius: isolated
 review_cost: moderate
 context_cost: 1 session

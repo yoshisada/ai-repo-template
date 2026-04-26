@@ -1,7 +1,8 @@
 ---
 name: 09-research-first
-status: planned
+status: in-progress
 order: 9
+started: 2026-04-26
 ---
 
 <!--

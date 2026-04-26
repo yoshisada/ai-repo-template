@@ -3,8 +3,9 @@ id: 2026-04-24-claude-md-audit-reframe
 title: Claude md audit reframe
 kind: feature
 date: 2026-04-24
-status: in-progress
-state: distilled
+status: shipped
+state: shipped
+pr: 180
 phase: 08-in-flight
 blast_radius: feature
 review_cost: moderate

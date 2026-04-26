@@ -5,7 +5,7 @@ kind: goal
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: in-phase
 blast_radius: infra
 review_cost: expert
 context_cost: 6 sessions
