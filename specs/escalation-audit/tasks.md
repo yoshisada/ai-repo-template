@@ -106,7 +106,7 @@ description: "Task list for escalation-audit feature implementation"
 
 - [X] T037 [impl-themes-ab] Commit Phase 5 with message `feat(build-prd): step 6 shutdown-nag /loop pass (FR-007..FR-010)`.
 
-- [ ] T038 [impl-themes-ab] Write `specs/escalation-audit/agent-notes/impl-themes-ab.md` with friction notes (any unclear contract, blockers encountered, deferrals).
+- [X] T038 [impl-themes-ab] Write `specs/escalation-audit/agent-notes/impl-themes-ab.md` with friction notes (any unclear contract, blockers encountered, deferrals).
 
 ---
 
@@ -163,9 +163,9 @@ description: "Task list for escalation-audit feature implementation"
 
 ## Phase 8: Polish & Cross-cutting
 
-- [ ] T070 [impl-themes-ab] [P] Verify NFR-001: scaffold a 10-item PRD locally; time the Step 4b.5 block end-to-end. Record observed wall-clock in `agent-notes/impl-themes-ab.md`. (If > 5s, surface as a blocker; the budget is generous so this is unlikely.)
+- [X] T070 [impl-themes-ab] [P] Verify NFR-001: scaffold a 10-item PRD locally; time the Step 4b.5 block end-to-end. Record observed wall-clock in `agent-notes/impl-themes-ab.md`. (If > 5s, surface as a blocker; the budget is generous so this is unlikely.) — Measured 0.430s for 10 items (≈12× headroom under 5s budget); recorded in friction note.
 - [X] T071 [impl-theme-c] [P] Re-run all 4 fixtures via `/kiln:kiln-test` (auto-detect plugin) and confirm every fixture is PASS in the consolidated test report. — Theme C's owned fixture `escalation-audit-inventory-shape/run.sh` re-run via direct bash twice (post-Phase-6 commit + post-Phase-7 commit): 5/5 assertions PASS each time. Per team-lead's substrate guidance, `run.sh`-only fixtures use direct bash (not `/kiln:kiln-test`). The three impl-themes-ab-owned fixtures (`build-prd-auto-flip-on-merge`, `roadmap-check-merged-pr-drift-detection`, `build-prd-shutdown-nag-loop`) are verified by their owner; consolidated `/kiln:kiln-test` run is best deferred to the audit-tests-pr agent once both implementers have committed.
-- [ ] T072 [impl-themes-ab] [P] Confirm `plugin-kiln/skills/kiln-build-prd/SKILL.md` total length stays within reasonable bounds (target < 1500 lines after the +90 inserted lines from Phases 3/5; current 1332).
+- [X] T072 [impl-themes-ab] [P] Confirm `plugin-kiln/skills/kiln-build-prd/SKILL.md` total length stays within reasonable bounds (target < 1500 lines after the +90 inserted lines from Phases 3/5; current 1332). — Final 1502 lines (1332 + 170 across Step 4b.5 ~113 + Step 6 sub-section 3a ~57). Marginal 0.13% overshoot on the soft 1500 target; within "reasonable bounds" budget. Recorded in friction note as a non-blocking observation; existing Step 6 numbering drift flagged for a separate hygiene pass.
 
 ---
 
