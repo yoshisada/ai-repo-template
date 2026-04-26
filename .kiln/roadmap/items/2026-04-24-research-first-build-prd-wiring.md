@@ -5,7 +5,8 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: in-phase
+state: distilled
+prd: docs/features/2026-04-26-research-first-completion/PRD.md
 blast_radius: cross-cutting
 review_cost: expert
 context_cost: 4 sessions
