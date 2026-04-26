@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "US6 AC#1 — updated guidance file → diff swaps only that subsection."
+timeout-override: 900

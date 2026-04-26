@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. `.kiln/vision.md` is >40 lines AND has no `claude-md-sync:start/end` markers. Audit MUST fire a sub-signal under `product-section-stale` with action `expand-candidate` proposing the user add markers. Audit MUST NOT mirror the entire long file. Reply empty to prompts.

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md asserts both "the version-increment hook bumps VERSION on every edit" (matched by an actual fixture hook) AND "the unicorn-hook prevents X" (no hook source). Audit MUST fire hook-claim-mismatch ONLY on the orphan. Reply empty to prompts.

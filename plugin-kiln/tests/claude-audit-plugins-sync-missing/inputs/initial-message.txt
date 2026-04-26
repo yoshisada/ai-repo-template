@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. The fixture has `kiln` enabled but ships NO `claude-guidance.md` for kiln. Audit MUST silently skip the plugin (no warning fired). Reply empty to prompts.

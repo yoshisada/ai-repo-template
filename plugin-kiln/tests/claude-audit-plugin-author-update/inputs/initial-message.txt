@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md `## Plugins` has an outdated `### kiln` subsection; `plugin-kiln/.claude-plugin/claude-guidance.md` was updated. Audit MUST propose replacing only the `### kiln` subsection. Other subsections must be untouched. Reply empty to prompts.

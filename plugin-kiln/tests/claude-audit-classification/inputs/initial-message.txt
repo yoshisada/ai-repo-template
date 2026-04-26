@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit` against the fixtures. The CLAUDE.md contains five distinct sections — Product (product), Capture loop (feedback-loop), Mandatory workflow (convention-rationale with rationale), Available commands (plugin-surface), and a maintainer Preference section. The audit MUST classify each per FR-001..FR-004. Reply empty to any prompts.

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. `.kiln/vision.md` is ≤40 lines. CLAUDE.md has no `## Product` section. Audit MUST propose inserting `## Product` with the vision body, demoting `#` to `## Product` and `##` headings to `###` per FR-028. Reply empty to prompts.

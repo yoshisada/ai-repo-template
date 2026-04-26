@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-029 — product_sync = false suppresses all product-* rules. Validates US2 AC#4."
+timeout-override: 900

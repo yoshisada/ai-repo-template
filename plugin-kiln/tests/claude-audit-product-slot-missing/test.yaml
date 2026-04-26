@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-026 — empty/placeholder slot fires; output rendered under ### Vision.md Coverage."
+timeout-override: 900

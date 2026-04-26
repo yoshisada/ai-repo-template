@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. The fixture's `.kiln/claude-md-audit.config` excludes `trim` from sync. The Plugins Sync section MUST list `trim` under "Excluded by override" and not include it as a built subsection. Reply empty to prompts.

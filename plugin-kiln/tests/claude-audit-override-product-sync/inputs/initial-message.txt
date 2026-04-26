@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. `.kiln/claude-md-audit.config` has `product_sync = false`. The audit MUST suppress all `product-*` rules and skip Vision Sync rendering (or render the 🚫 status line). Reply empty to prompts.

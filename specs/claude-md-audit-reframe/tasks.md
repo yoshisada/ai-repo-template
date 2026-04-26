@@ -129,25 +129,25 @@ description: "Task list for CLAUDE.md Audit Reframe — content classification +
 
 Each fixture directory under `plugin-kiln/tests/` follows the existing `claude-audit-*/` convention: `run.sh` runs the skill against fixture inputs, asserts on the produced log file. See existing `claude-audit-cache-stale/` and `claude-audit-network-fallback/` for shape.
 
-- [ ] T070 [impl-audit-logic] [P] [US3] `claude-audit-classification/` — verify FR-001..FR-004 (classification produces all 6 enum values; `unclassified` defaults to keep)
-- [ ] T071 [impl-audit-logic] [P] [US3] `claude-audit-enumeration-bloat/` — verify FR-002 (plugin-surface section flagged removal-candidate; rationale text matches)
-- [ ] T072 [impl-audit-logic] [P] [US3] `claude-audit-benefit-missing/` — verify FR-005 (rationale-bearing section unflagged; rationale-missing section flagged expand-candidate with `Why:` placeholder)
-- [ ] T073 [impl-audit-logic] [P] [US5] `claude-audit-loop-incomplete/` — verify FR-006 (capture-surface populated + no `/kiln:kiln-distill` mention → fires; both present → unfires)
-- [ ] T074 [impl-audit-logic] [P] [US4] `claude-audit-hook-claim-mismatch/` — verify FR-007 (claim with hook-grep hit → unfires; orphan claim → fires)
-- [ ] T075 [impl-audit-logic] [P] `claude-audit-existing-rules-regression/` — verify SC-010 (re-run of pre-existing rule fixtures continues to fire correctly)
-- [ ] T076 [impl-audit-logic] [P] [US3] `claude-audit-override-section/` — verify FR-017 `exclude_section_from_classification` (matched section classified as preference; `enumeration-bloat` does not fire)
-- [ ] T077 [impl-audit-logic] [P] [US1] `claude-audit-override-plugin/` — verify FR-017 `exclude_plugin_from_sync` (listed plugin skipped during sync)
-- [ ] T078 [impl-audit-logic] [P] [US2] `claude-audit-override-product-sync/` — verify FR-029 `product_sync = false` (all `product-*` rules suppressed)
-- [ ] T079 [impl-audit-logic] [P] [US2] `claude-audit-product-undefined/` — verify FR-025 (rule fires AND signal appears at row 1 of Signal Summary table per SC-007)
-- [ ] T080 [impl-audit-logic] [P] [US2] `claude-audit-product-stale/` — verify FR-027 (current `## Product` differs from synced composition → sync-candidate)
-- [ ] T081 [impl-audit-logic] [P] [US2] `claude-audit-product-slot-missing/` — verify FR-026 (empty/placeholder slot fires; output rendered under `### Vision.md Coverage`)
-- [ ] T082 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync/` — verify FR-014, FR-015 (US1 AC#1 — section absent → insert; US1 AC#3 — section matches → no diff). Depends on `impl-plugin-guidance` having shipped at least 2 reference guidance files (kiln + shelf)
-- [ ] T083 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync-disabled/` — verify FR-015 (US1 AC#2 — disabled plugin's subsection removed only)
-- [ ] T084 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync-missing/` — verify FR-013 (plugin without guidance file silently skipped — no signal, no warning)
-- [ ] T085 [impl-audit-logic] [P] [US2] `claude-audit-product-sync/` — verify FR-022, FR-023 whole-file mode, FR-028 header demotion (US2 AC#1)
-- [ ] T086 [impl-audit-logic] [P] [US2] `claude-audit-vision-fenced/` — verify FR-023 fenced region (US2 AC#2)
-- [ ] T087 [impl-audit-logic] [P] [US2] `claude-audit-vision-overlong/` — verify spec.md Edge Cases (vision.md >40 lines without markers → sub-signal under `product-section-stale`)
-- [ ] T088 [impl-audit-logic] [P] [US6] `claude-audit-plugin-author-update/` — verify US6 AC#1 (updated guidance file → diff swaps only that subsection). Depends on `impl-plugin-guidance` having shipped kiln's guidance file
+- [X] T070 [impl-audit-logic] [P] [US3] `claude-audit-classification/` — verify FR-001..FR-004 (classification produces all 6 enum values; `unclassified` defaults to keep)
+- [X] T071 [impl-audit-logic] [P] [US3] `claude-audit-enumeration-bloat/` — verify FR-002 (plugin-surface section flagged removal-candidate; rationale text matches)
+- [X] T072 [impl-audit-logic] [P] [US3] `claude-audit-benefit-missing/` — verify FR-005 (rationale-bearing section unflagged; rationale-missing section flagged expand-candidate with `Why:` placeholder)
+- [X] T073 [impl-audit-logic] [P] [US5] `claude-audit-loop-incomplete/` — verify FR-006 (capture-surface populated + no `/kiln:kiln-distill` mention → fires; both present → unfires)
+- [X] T074 [impl-audit-logic] [P] [US4] `claude-audit-hook-claim-mismatch/` — verify FR-007 (claim with hook-grep hit → unfires; orphan claim → fires)
+- [X] T075 [impl-audit-logic] [P] `claude-audit-existing-rules-regression/` — verify SC-010 (re-run of pre-existing rule fixtures continues to fire correctly)
+- [X] T076 [impl-audit-logic] [P] [US3] `claude-audit-override-section/` — verify FR-017 `exclude_section_from_classification` (matched section classified as preference; `enumeration-bloat` does not fire)
+- [X] T077 [impl-audit-logic] [P] [US1] `claude-audit-override-plugin/` — verify FR-017 `exclude_plugin_from_sync` (listed plugin skipped during sync)
+- [X] T078 [impl-audit-logic] [P] [US2] `claude-audit-override-product-sync/` — verify FR-029 `product_sync = false` (all `product-*` rules suppressed)
+- [X] T079 [impl-audit-logic] [P] [US2] `claude-audit-product-undefined/` — verify FR-025 (rule fires AND signal appears at row 1 of Signal Summary table per SC-007)
+- [X] T080 [impl-audit-logic] [P] [US2] `claude-audit-product-stale/` — verify FR-027 (current `## Product` differs from synced composition → sync-candidate)
+- [X] T081 [impl-audit-logic] [P] [US2] `claude-audit-product-slot-missing/` — verify FR-026 (empty/placeholder slot fires; output rendered under `### Vision.md Coverage`)
+- [X] T082 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync/` — verify FR-014, FR-015 (US1 AC#1 — section absent → insert; US1 AC#3 — section matches → no diff). Depends on `impl-plugin-guidance` having shipped at least 2 reference guidance files (kiln + shelf)
+- [X] T083 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync-disabled/` — verify FR-015 (US1 AC#2 — disabled plugin's subsection removed only)
+- [X] T084 [impl-audit-logic] [P] [US1] `claude-audit-plugins-sync-missing/` — verify FR-013 (plugin without guidance file silently skipped — no signal, no warning)
+- [X] T085 [impl-audit-logic] [P] [US2] `claude-audit-product-sync/` — verify FR-022, FR-023 whole-file mode, FR-028 header demotion (US2 AC#1)
+- [X] T086 [impl-audit-logic] [P] [US2] `claude-audit-vision-fenced/` — verify FR-023 fenced region (US2 AC#2)
+- [X] T087 [impl-audit-logic] [P] [US2] `claude-audit-vision-overlong/` — verify spec.md Edge Cases (vision.md >40 lines without markers → sub-signal under `product-section-stale`)
+- [X] T088 [impl-audit-logic] [P] [US6] `claude-audit-plugin-author-update/` — verify US6 AC#1 (updated guidance file → diff swaps only that subsection). Depends on `impl-plugin-guidance` having shipped kiln's guidance file
 
 **Checkpoint 2A.9**: All fixtures pass via `/kiln:kiln-test plugin-kiln`. Write `specs/claude-md-audit-reframe/agent-notes/impl-audit-logic.md` friction note. Commit.
 

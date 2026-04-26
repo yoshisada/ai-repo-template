@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md has no `## Plugins` section. The fixture ships `plugin-kiln/.claude-plugin/claude-guidance.md` and `plugin-shelf/.claude-plugin/claude-guidance.md`. Audit MUST propose inserting an alphabetically-ordered `## Plugins` section per FR-014/FR-015. Reply empty to prompts.

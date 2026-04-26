@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md has two convention-rationale sections — one with a `Why:` line, one without. The audit MUST fire `benefit-missing` only on the section without rationale. Reply empty to prompts.

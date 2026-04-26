@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md `## Product` section is out of sync with `.kiln/vision.md`. Audit MUST fire `product-section-stale` with action `sync-candidate`. Reply empty to prompts.

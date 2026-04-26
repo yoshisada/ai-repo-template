@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md `## Plugins` lists kiln, shelf, trim, but trim is no longer in `enabledPlugins`. Audit MUST propose removing only the trim subsection. Reply empty to prompts.

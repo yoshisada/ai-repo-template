@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. `.kiln/vision.md` has missing/placeholder slots (no non-goals, no north-star). Audit MUST fire `product-slot-missing` with output rendered under `### Vision.md Coverage`. Reply empty to prompts.

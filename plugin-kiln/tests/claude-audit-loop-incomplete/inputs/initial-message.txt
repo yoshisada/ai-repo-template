@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. The fixture has `.kiln/issues/2026-04-25-test.md` populated but CLAUDE.md only mentions `/kiln:kiln-report-issue` — not `/kiln:kiln-distill`. The audit MUST fire `loop-incomplete` with `expand-candidate`. Reply empty to prompts.

@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md contains a stale Migration Notice and a Recent Changes overflow. The pre-existing rules (`stale-migration-notice` and `recent-changes-overflow`) MUST still fire correctly. Reply empty to prompts.

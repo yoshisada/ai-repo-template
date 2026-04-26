@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-005 — convention-rationale section without rationale fires benefit-missing with expand-candidate; rationale-bearing section is silent. Validates: US3 AC#2 + AC#3."
+timeout-override: 900
