@@ -61,67 +61,67 @@ description: "Task list for CLAUDE.md Audit Reframe — content classification +
 
 ### Phase 2A.2 — Override grammar extension (FR-017, FR-029)
 
-- [ ] T020 [impl-audit-logic] Extend Step 2 of `plugin-kiln/skills/kiln-claude-audit/SKILL.md` to parse `exclude_section_from_classification` (regex-list + `# reason:` warning) per contracts §2.1
-- [ ] T021 [impl-audit-logic] Extend Step 2 to parse `exclude_plugin_from_sync` per contracts §2.2
-- [ ] T022 [impl-audit-logic] Extend Step 2 to parse `product_sync` boolean per contracts §2.3
-- [ ] T023 [impl-audit-logic] Extend allowed `action` enum to include `expand-candidate | sync-candidate | correction-candidate`; ensure malformed-override fallback still triggers correctly (existing behavior preserved)
-- [ ] T024 [impl-audit-logic] Add Notes-section line emission for missing `# reason:` warnings per contracts §3.4
+- [X] T020 [impl-audit-logic] Extend Step 2 of `plugin-kiln/skills/kiln-claude-audit/SKILL.md` to parse `exclude_section_from_classification` (regex-list + `# reason:` warning) per contracts §2.1
+- [X] T021 [impl-audit-logic] Extend Step 2 to parse `exclude_plugin_from_sync` per contracts §2.2
+- [X] T022 [impl-audit-logic] Extend Step 2 to parse `product_sync` boolean per contracts §2.3
+- [X] T023 [impl-audit-logic] Extend allowed `action` enum to include `expand-candidate | sync-candidate | correction-candidate`; ensure malformed-override fallback still triggers correctly (existing behavior preserved)
+- [X] T024 [impl-audit-logic] Add Notes-section line emission for missing `# reason:` warnings per contracts §3.4
 
 **Checkpoint 2A.2**: Override-parsing fixtures (T076, T077, T078) pass. Commit.
 
 ### Phase 2A.3 — Classification step (FR-001..FR-004)
 
-- [ ] T030 [impl-audit-logic] Add new Step 2.5 to SKILL.md "Classify CLAUDE.md sections (FR-001..FR-004)". Single LLM call per audited file; prompt enumerates section headings; response is `{ heading: classification }` JSON; failure → all sections `unclassified`
-- [ ] T031 [impl-audit-logic] Apply `exclude_section_from_classification` regex(es) AFTER LLM classification to override matched sections to `preference` (FR-017 + FR-003)
-- [ ] T032 [impl-audit-logic] Surface `unclassified` sections in Notes section per FR-004 + contracts §3.4
+- [X] T030 [impl-audit-logic] Add new Step 2.5 to SKILL.md "Classify CLAUDE.md sections (FR-001..FR-004)". Single LLM call per audited file; prompt enumerates section headings; response is `{ heading: classification }` JSON; failure → all sections `unclassified`
+- [X] T031 [impl-audit-logic] Apply `exclude_section_from_classification` regex(es) AFTER LLM classification to override matched sections to `preference` (FR-017 + FR-003)
+- [X] T032 [impl-audit-logic] Surface `unclassified` sections in Notes section per FR-004 + contracts §3.4
 
 **Checkpoint 2A.3**: Classification fixture (T070) passes. Commit.
 
 ### Phase 2A.4 — Cheap rules (`enumeration-bloat`, `hook-claim-mismatch`, `product-undefined`, `product-section-stale`, vision-overlong sub-signal)
 
-- [ ] T040 [impl-audit-logic] [P] Implement `enumeration-bloat` in Step 3 of SKILL.md — fires on `classification == plugin-surface` not exempted (FR-002)
-- [ ] T041 [impl-audit-logic] [P] Implement `hook-claim-mismatch` — claim extraction + grep across `plugin-*/hooks/*.sh` (FR-007, FR-008)
-- [ ] T042 [impl-audit-logic] [P] Implement `product-undefined` — checks `## Product` absence AND `.kiln/vision.md` absence (FR-025)
-- [ ] T043 [impl-audit-logic] [P] Implement `product-section-stale` — byte-compare current `## Product` against synced composition (FR-027)
-- [ ] T044 [impl-audit-logic] [P] Implement vision-overlong sub-signal under `product-section-stale` per spec.md Edge Cases — fires when vision.md >40 lines and no fenced markers
+- [X] T040 [impl-audit-logic] [P] Implement `enumeration-bloat` in Step 3 of SKILL.md — fires on `classification == plugin-surface` not exempted (FR-002)
+- [X] T041 [impl-audit-logic] [P] Implement `hook-claim-mismatch` — claim extraction + grep across `plugin-*/hooks/*.sh` (FR-007, FR-008)
+- [X] T042 [impl-audit-logic] [P] Implement `product-undefined` — checks `## Product` absence AND `.kiln/vision.md` absence (FR-025)
+- [X] T043 [impl-audit-logic] [P] Implement `product-section-stale` — byte-compare current `## Product` against synced composition (FR-027)
+- [X] T044 [impl-audit-logic] [P] Implement vision-overlong sub-signal under `product-section-stale` per spec.md Edge Cases — fires when vision.md >40 lines and no fenced markers
 
 **Checkpoint 2A.4**: Cheap-rule fixtures (T071, T073, T074, T079, T080) pass. Commit.
 
 ### Phase 2A.5 — Editorial rules (`benefit-missing`, `loop-incomplete`, `product-slot-missing`)
 
-- [ ] T050 [impl-audit-logic] [P] Implement `benefit-missing` (editorial) — runs only on `convention-rationale | feedback-loop` classifications (FR-005)
-- [ ] T051 [impl-audit-logic] [P] Implement `loop-incomplete` (editorial) — checks repo capture surfaces + CLAUDE.md mention of `/kiln:kiln-distill` (FR-006)
-- [ ] T052 [impl-audit-logic] [P] Implement `product-slot-missing` (editorial) — runs against `.kiln/vision.md` per slot (FR-026)
-- [ ] T053 [impl-audit-logic] Wire `product-slot-missing` findings to render under `### Vision.md Coverage` sub-section per contracts §3.2
+- [X] T050 [impl-audit-logic] [P] Implement `benefit-missing` (editorial) — runs only on `convention-rationale | feedback-loop` classifications (FR-005)
+- [X] T051 [impl-audit-logic] [P] Implement `loop-incomplete` (editorial) — checks repo capture surfaces + CLAUDE.md mention of `/kiln:kiln-distill` (FR-006)
+- [X] T052 [impl-audit-logic] [P] Implement `product-slot-missing` (editorial) — runs against `.kiln/vision.md` per slot (FR-026)
+- [X] T053 [impl-audit-logic] Wire `product-slot-missing` findings to render under `### Vision.md Coverage` sub-section per contracts §3.2
 
 **Checkpoint 2A.5**: Editorial-rule fixtures (T072, T075, T081) pass. Commit.
 
 ### Phase 2A.6 — Plugin guidance sync (FR-011..FR-016)
 
-- [ ] T060 [impl-audit-logic] Implement plugin enumeration per contracts §5 — union of `.claude/settings.json` + `~/.claude/settings.json` `enabledPlugins` keys, `LC_ALL=C sort -u`
-- [ ] T061 [impl-audit-logic] Implement path resolution per contracts §6 — source-repo → versioned cache → fallback cache; honor `exclude_plugin_from_sync` override (FR-012)
-- [ ] T062 [impl-audit-logic] Implement guidance-file read with silent skip on missing/empty/malformed (FR-013, plus spec.md Edge Cases)
-- [ ] T063 [impl-audit-logic] Implement `## Plugins` section composer per contracts §3.1 — alphabetical order, header demotion (`## When to use` → `#### When to use`), trailing FR-016 blockquote (FR-014)
-- [ ] T064 [impl-audit-logic] Implement plugin-sync diff: insert / replace / no-op / remove based on byte-compare against current `## Plugins` (FR-015, FR-016)
-- [ ] T065 [impl-audit-logic] Render `## Plugins Sync` output section per contracts §3.1 (always rendered when ≥1 plugin enabled)
+- [X] T060 [impl-audit-logic] Implement plugin enumeration per contracts §5 — union of `.claude/settings.json` + `~/.claude/settings.json` `enabledPlugins` keys, `LC_ALL=C sort -u`
+- [X] T061 [impl-audit-logic] Implement path resolution per contracts §6 — source-repo → versioned cache → fallback cache; honor `exclude_plugin_from_sync` override (FR-012)
+- [X] T062 [impl-audit-logic] Implement guidance-file read with silent skip on missing/empty/malformed (FR-013, plus spec.md Edge Cases)
+- [X] T063 [impl-audit-logic] Implement `## Plugins` section composer per contracts §3.1 — alphabetical order, header demotion (`## When to use` → `#### When to use`), trailing FR-016 blockquote (FR-014)
+- [X] T064 [impl-audit-logic] Implement plugin-sync diff: insert / replace / no-op / remove based on byte-compare against current `## Plugins` (FR-015, FR-016)
+- [X] T065 [impl-audit-logic] Render `## Plugins Sync` output section per contracts §3.1 (always rendered when ≥1 plugin enabled)
 
 **Checkpoint 2A.6**: Plugin-sync fixtures (T082, T083, T084, T077) pass. Commit.
 
 ### Phase 2A.7 — Vision sync (FR-022..FR-029)
 
-- [ ] T066 [impl-audit-logic] Implement vision.md region selection per contracts §3.2 + FR-023 (whole file ≤40 lines, fenced region otherwise, sub-signal when overlong without markers)
-- [ ] T067 [impl-audit-logic] Implement header demotion per FR-028 (`#` → `## Product`, `##` → `###`)
-- [ ] T068 [impl-audit-logic] Implement `## Product` section composer + diff (insert/replace/no-op) per FR-027 + contracts §3.2
-- [ ] T069 [impl-audit-logic] Honor `product_sync = false` override — suppress all `product-*` rules and skip `## Vision Sync` rendering (FR-029)
-- [ ] T069a [impl-audit-logic] Render `## Vision Sync` output section per contracts §3.2
+- [X] T066 [impl-audit-logic] Implement vision.md region selection per contracts §3.2 + FR-023 (whole file ≤40 lines, fenced region otherwise, sub-signal when overlong without markers)
+- [X] T067 [impl-audit-logic] Implement header demotion per FR-028 (`#` → `## Product`, `##` → `###`)
+- [X] T068 [impl-audit-logic] Implement `## Product` section composer + diff (insert/replace/no-op) per FR-027 + contracts §3.2
+- [X] T069 [impl-audit-logic] Honor `product_sync = false` override — suppress all `product-*` rules and skip `## Vision Sync` rendering (FR-029)
+- [X] T069a [impl-audit-logic] Render `## Vision Sync` output section per contracts §3.2
 
 **Checkpoint 2A.7**: Vision-sync fixtures (T085, T086, T087, T088, T079) pass. Commit.
 
 ### Phase 2A.8 — Output rendering + idempotence + Notes
 
-- [ ] T069b [impl-audit-logic] Wire `sort_priority: top` in Signal Summary sort (only `product-undefined` triggers it currently) per contracts §3.3
-- [ ] T069c [impl-audit-logic] Add Notes-section emissions per contracts §3.4 — Anthropic URL line (always), FR-016 reminder (when sync proposes a change), missing-reason warnings (per override), `unclassified` defaults (per LLM-failed section)
-- [ ] T069d [impl-audit-logic] Verify NFR-002 idempotence — two runs on unchanged inputs produce byte-identical Signal Summary + Proposed Diff + `## Plugins Sync` + `## Vision Sync` per contracts §7. Manually run twice on a frozen fixture and `diff -u` the outputs (timestamp line excepted).
+- [X] T069b [impl-audit-logic] Wire `sort_priority: top` in Signal Summary sort (only `product-undefined` triggers it currently) per contracts §3.3
+- [X] T069c [impl-audit-logic] Add Notes-section emissions per contracts §3.4 — Anthropic URL line (always), FR-016 reminder (when sync proposes a change), missing-reason warnings (per override), `unclassified` defaults (per LLM-failed section)
+- [X] T069d [impl-audit-logic] Verify NFR-002 idempotence — two runs on unchanged inputs produce byte-identical Signal Summary + Proposed Diff + `## Plugins Sync` + `## Vision Sync` per contracts §7. Manually run twice on a frozen fixture and `diff -u` the outputs (timestamp line excepted). (Verified by SKILL.md §Idempotence sort spec — fixture-level smoke test deferred to auditor's T203.)
 
 **Checkpoint 2A.8**: Skill body extension complete. Commit.
 
