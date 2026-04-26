@@ -131,7 +131,7 @@
 
 **Purpose**: Hand off to auditor (Task #3 in team task list).
 
-- [ ] **T023** [E] Mark Task #2 in team task list as `completed`. Notify auditor via SendMessage to start Task #3.
+- [X] **T023** [E] Mark Task #2 in team task list as `completed`. Notify auditor via SendMessage to start Task #3.
 
 ---
 
