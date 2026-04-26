@@ -174,4 +174,47 @@ if [ -z "$VALIDATION_JSON" ]; then
   exit 0
 fi
 
+# T002 / FR-001 / contracts §2 — additive research-block validation.
+# Strategy: research-block fields use flow-style YAML that the existing
+# parse-item-frontmatter.sh (line-oriented awk) cannot handle correctly. So
+# we use the dedicated research-block extractor (python3-based, same shape
+# as parse-prd-frontmatter.sh) to project research-block fields, then call
+# the shared validation helper.
+#
+# Backward compat: items without research-block keys produce a projection
+# with all-null values; the helper passes them as { ok: true, errors: [] }.
+# The existing `{ ok, errors }` JSON shape is preserved — research warnings
+# emit to stderr (NFR-001 backward compat — callers reading only stdout
+# remain unaffected).
+RESEARCH_PARSER="$SCRIPT_DIR/../research/parse-research-block.sh"
+RESEARCH_HELPER="$SCRIPT_DIR/../research/validate-research-block.sh"
+if [ -x "$RESEARCH_PARSER" ] && [ -x "$RESEARCH_HELPER" ]; then
+  RB_STDERR="$(mktemp)"
+  RB_JSON="$(bash "$RESEARCH_PARSER" "$ITEM_PATH" 2>"$RB_STDERR")"
+  RB_RC=$?
+  if [ "$RB_RC" -ne 0 ]; then
+    # Parser bailed (loud-failure on malformed value per NFR-007). Surface
+    # the bail message as a validation error so the item is rejected.
+    PARSE_ERR="$(grep -oE 'parse error: .*' "$RB_STDERR" | head -1 | sed 's/^parse error: //')"
+    [ -z "$PARSE_ERR" ] && PARSE_ERR="research-block parse failed (rc=$RB_RC)"
+    VALIDATION_JSON="$(jq --arg e "$PARSE_ERR" -c '
+      .errors += [$e]
+      | .ok = false
+    ' <<<"$VALIDATION_JSON" 2>/dev/null)"
+  elif [ -n "$RB_JSON" ]; then
+    RESEARCH_RESULT="$(bash "$RESEARCH_HELPER" "$RB_JSON" 2>/dev/null || true)"
+    if [ -n "$RESEARCH_RESULT" ]; then
+      VALIDATION_JSON="$(jq --argjson rb "$RESEARCH_RESULT" -c '
+        .errors = (.errors + ($rb.errors // []))
+        | .ok = (.ok and ($rb.ok // true))
+      ' <<<"$VALIDATION_JSON" 2>/dev/null)"
+      printf '%s' "$RESEARCH_RESULT" | jq -r '.warnings[]?' 2>/dev/null \
+        | while IFS= read -r w; do
+            [ -n "$w" ] && printf 'Warning: %s\n' "$w" >&2
+          done
+    fi
+  fi
+  rm -f "$RB_STDERR"
+fi
+
 printf '%s\n' "$VALIDATION_JSON"
