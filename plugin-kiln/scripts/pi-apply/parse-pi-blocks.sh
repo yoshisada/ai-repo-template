@@ -135,9 +135,29 @@ for ((i = 0; i < NUM_HEADERS; i++)); do
   # Trim leading whitespace on FILE_VAL (path), leave text fields as-is.
   FILE_VAL=$(printf '%s' "$FILE_VAL" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
+  # Retro templates wrap Current/Proposed prose in matched outer double-quotes
+  # (`**Current**: "..."`). Strip them so verbatim-substring matching against
+  # the target file works — files contain the prose without quote wrapping.
+  strip_outer_quotes() {
+    local v="$1"
+    if [[ "${v:0:1}" == '"' && "${v: -1}" == '"' ]]; then
+      v="${v:1:${#v}-2}"
+    fi
+    printf '%s' "$v"
+  }
+  CURRENT_VAL=$(strip_outer_quotes "$CURRENT_VAL")
+  PROPOSED_VAL=$(strip_outer_quotes "$PROPOSED_VAL")
+
   # The target anchor is the FIRST line of CURRENT that starts with "#" — that
-  # is the heading the PI points at. If none, anchor defaults to the FILE path.
+  # is the heading the PI points at. If none, fall back to the first non-empty
+  # line of CURRENT (verbatim prose substring) so the classifier can locate
+  # the PI's section in the target file. The previous fallback to FILE_VAL
+  # guaranteed-stale every prose-anchored PI because files don't reference
+  # their own path.
   ANCHOR=$(printf '%s\n' "$CURRENT_VAL" | awk '/^#/{print; exit}')
+  if [[ -z "$ANCHOR" ]]; then
+    ANCHOR=$(printf '%s\n' "$CURRENT_VAL" | awk 'NF{print; exit}')
+  fi
   if [[ -z "$ANCHOR" ]]; then
     ANCHOR="$FILE_VAL"
   fi
