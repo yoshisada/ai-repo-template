@@ -452,6 +452,59 @@ Ask exactly these three. Do NOT ask human-time, story-points, T-shirt sizes, pom
 2. `review_cost` — `trivial | moderate | careful | expert` (how much scrutiny does this PR need)?
 3. `context_cost` — rough free-text estimate (e.g., "1 session", "3 sessions", "one-shot"). Free-form — no units enforced beyond "don't use hours/days".
 
+### §6.8 Research-block question (FR-015 / FR-016 of research-first-completion)
+
+<!-- T010 / FR-015 / FR-016 / NFR-006 / Decision 9 / contracts §8 of
+     research-first-completion. Conditional question stanza — fires ONLY
+     when classify-description.sh emitted a `research_inference` key in
+     its output. Absent → silently skipped (false-negative recovery is
+     structural per NFR-006). -->
+
+After the sizing questions, conditionally render the research-block proposal
+when the classifier inferred one. **Skip silently when `research_inference`
+is absent from `CLASSIFICATION_JSON`** — false-negative recovery is
+structural absence per NFR-006.
+
+```bash
+HAS_RESEARCH_INFERENCE=$(printf '%s' "$CLASSIFICATION_JSON" | jq -r 'has("research_inference")' 2>/dev/null)
+if [ "$HAS_RESEARCH_INFERENCE" = "true" ]; then
+  RB_PROPOSAL=$(printf '%s' "$CLASSIFICATION_JSON" | jq -c .research_inference)
+  RB_RATIONALE=$(printf '%s' "$RB_PROPOSAL" | jq -r .rationale)
+  # Render the proposed YAML block (compact, multi-line readable).
+  RB_YAML=$(printf '%s' "$RB_PROPOSAL" | jq -r '
+    "needs_research: true\nempirical_quality:" +
+    (
+      [.proposed_axes[] | "\n  - metric: \(.metric)\n    direction: \(.direction)\n    priority: \(.priority)"]
+      | join("")
+    )
+  ')
+fi
+```
+
+**Question shape** (per §5.0 template + FR-016 rationale extension):
+
+```
+Q: Does this need research?
+   Proposed: <RB_YAML — needs_research:true + empirical_quality block>
+   Why: <RB_RATIONALE — matched signal word: <word>
+        [for output_quality axes, FR-016 verbatim warning on its own line]>
+   [accept / tweak <value> / reject / skip / accept-all]
+   > _
+```
+
+**Response handling** (per §5.0a parser):
+- `accept` → record `needs_research: true` + the proposed `empirical_quality:` block on the item; in §6 frontmatter emission, write the research-block keys verbatim after the existing schema keys.
+- `tweak <value>` → maintainer edits any field (axes, direction, priority, fixture_corpus, etc.); re-prompt with the edited proposal.
+- `reject` → write NO research-block keys (NFR-006 structural absence — NOT `needs_research: false`, NOT empty `empirical_quality: []`).
+- `skip` → equivalent to `reject` for this question.
+- `accept-all` → accept this proposal AND auto-accept all subsequent questions in the interview.
+
+**False-positive recovery** (NFR-006): rejection results in the captured
+artifact having NO research-block frontmatter (structural absence, not
+`needs_research: false` and not empty values). The §6 frontmatter writer
+inspects the recorded answer state and emits research-block keys only when
+`accept` was the recorded response.
+
 ### Phase-assignment question (FR-016 / PRD FR-016)
 
 Ask once (or once per batch for multi-item):

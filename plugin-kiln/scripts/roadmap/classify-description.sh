@@ -97,9 +97,113 @@ else
   alts='[]'
 fi
 
-# Emit JSON
-if [ "$kind" = "null" ]; then
-  printf '{"surface":"%s","kind":null,"confidence":"%s","alternatives":%s}\n' "$surface" "$confidence" "$alts"
+# --- T008 / FR-013 / FR-014 / FR-016 / contracts §4 (research-first-completion):
+# comparative-improvement signal-word detection with axis inference. Adds an
+# OPTIONAL research_inference key to the output JSON when ANY signal matches.
+# When NO signal matches, the key is OMITTED entirely (NOT null, NOT {}) —
+# false-negative recovery is structural (NFR-006 sibling).
+
+# Word match: case-insensitive whole-word. Use python3 for robust regex
+# (POSIX awk's word boundaries differ across BSD vs GNU). The classifier is
+# already a small bash script; one python3 invocation is acceptable overhead
+# for the inference layer.
+RESEARCH_INFERENCE=$(python3 - "$DESC" <<'PY'
+import json
+import re
+import sys
+
+desc = sys.argv[1]
+
+# FR-013 + FR-014 signal-word table. Each tuple: (regex pattern as
+# whole-word match, list of axes inferred). Order matters for first-match
+# bookkeeping but final emission is set-union deduplicated by metric.
+#
+# Whole-word boundaries: literal pattern is wrapped with (?<!\w) ... (?!\w)
+# to handle non-ASCII safely. Multi-word phrases are matched with literal
+# spaces — boundaries on outermost tokens.
+TABLE = [
+    # latency / time
+    (r"faster",            [{"metric": "time", "direction": "lower"}]),
+    (r"slower",            [{"metric": "time", "direction": "lower"}]),
+    (r"latency",           [{"metric": "time", "direction": "lower"}]),
+    # cost + tokens
+    (r"cheaper",           [{"metric": "cost", "direction": "lower"}, {"metric": "tokens", "direction": "lower"}]),
+    (r"more expensive",    [{"metric": "cost", "direction": "lower"}, {"metric": "tokens", "direction": "lower"}]),
+    (r"expensive",         [{"metric": "cost", "direction": "lower"}, {"metric": "tokens", "direction": "lower"}]),
+    (r"cost",              [{"metric": "cost", "direction": "lower"}, {"metric": "tokens", "direction": "lower"}]),
+    # tokens-only
+    (r"tokens",            [{"metric": "tokens", "direction": "lower"}]),
+    (r"smaller",           [{"metric": "tokens", "direction": "lower"}]),
+    (r"concise",           [{"metric": "tokens", "direction": "lower"}]),
+    (r"verbose",           [{"metric": "tokens", "direction": "lower"}]),
+    # accuracy
+    (r"accurate",          [{"metric": "accuracy", "direction": "equal_or_better"}]),
+    (r"wrong",             [{"metric": "accuracy", "direction": "equal_or_better"}]),
+    (r"regression",        [{"metric": "accuracy", "direction": "equal_or_better"}]),
+    # output_quality (with FR-016 warning)
+    (r"clearer",           [{"metric": "output_quality", "direction": "equal_or_better"}]),
+    (r"better-structured", [{"metric": "output_quality", "direction": "equal_or_better"}]),
+    (r"more actionable",   [{"metric": "output_quality", "direction": "equal_or_better"}]),
+    # signal-only (no axis-inference; emit needs_research:true with rationale)
+    (r"compare to",        []),
+    (r"versus",            []),
+    (r"vs ",               []),
+    (r"better than",       []),
+    (r"improve",           []),
+    (r"optimize",          []),
+    (r"efficient",         []),
+    (r"degradation",       []),
+    (r"reduce",            []),
+    (r"increase",          []),
+]
+
+matched_signals = []
+proposed_axes = []
+seen_metrics = set()
+
+for pat, axes in TABLE:
+    # Whole-word, case-insensitive. We use a positive boundary regex.
+    # For multi-word phrases, the trailing space in `vs ` is preserved
+    # by the user's pattern.
+    if re.search(r"(?<!\w)" + re.escape(pat) + r"(?!\w)", desc, re.IGNORECASE):
+        matched_signals.append(pat.strip())
+        for axis in axes:
+            if axis["metric"] not in seen_metrics:
+                seen_metrics.add(axis["metric"])
+                proposed_axes.append({**axis, "priority": "primary"})
+
+if not matched_signals:
+    sys.stdout.write("")
+    sys.exit(0)
+
+# FR-016: when output_quality is in proposed axes, the rationale gains a
+# verbatim warning on a separate line.
+rationale = f"matched signal word: {matched_signals[0]}"
+if any(a["metric"] == "output_quality" for a in proposed_axes):
+    rationale += "\n(`output_quality` enables the judge-agent — see `2026-04-24-research-first-output-quality-judge.md` for drift-risk caveats)"
+
+inference = {
+    "needs_research": True,
+    "matched_signals": matched_signals,
+    "proposed_axes": proposed_axes,
+    "rationale": rationale,
+}
+sys.stdout.write(json.dumps(inference, separators=(",", ":")))
+PY
+)
+
+# Emit JSON. When research_inference is present, append it; otherwise emit
+# the original three-key shape.
+if [ -n "$RESEARCH_INFERENCE" ]; then
+  if [ "$kind" = "null" ]; then
+    printf '{"surface":"%s","kind":null,"confidence":"%s","alternatives":%s,"research_inference":%s}\n' "$surface" "$confidence" "$alts" "$RESEARCH_INFERENCE"
+  else
+    printf '{"surface":"%s","kind":"%s","confidence":"%s","alternatives":%s,"research_inference":%s}\n' "$surface" "$kind" "$confidence" "$alts" "$RESEARCH_INFERENCE"
+  fi
 else
-  printf '{"surface":"%s","kind":"%s","confidence":"%s","alternatives":%s}\n' "$surface" "$kind" "$confidence" "$alts"
+  if [ "$kind" = "null" ]; then
+    printf '{"surface":"%s","kind":null,"confidence":"%s","alternatives":%s}\n' "$surface" "$confidence" "$alts"
+  else
+    printf '{"surface":"%s","kind":"%s","confidence":"%s","alternatives":%s}\n' "$surface" "$kind" "$confidence" "$alts"
+  fi
 fi
