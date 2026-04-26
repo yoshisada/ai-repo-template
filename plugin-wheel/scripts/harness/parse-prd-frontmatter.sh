@@ -73,6 +73,11 @@ ALLOWED_BLAST = {"isolated", "feature", "cross-cutting", "infra"}
 ALLOWED_METRIC = {"accuracy", "tokens", "time", "cost", "output_quality"}
 ALLOWED_DIR = {"lower", "higher", "equal_or_better"}
 ALLOWED_PRI = {"primary", "secondary"}
+# T004 / FR-004 / NFR-009 / contracts §3 (research-first-completion):
+# additive enums for the three new field projections. Existing projections
+# (blast_radius / empirical_quality / excluded_fixtures) UNCHANGED in shape
+# and exit codes.
+ALLOWED_FIXTURE_CORPUS = {"synthesized", "declared", "promoted"}
 
 def bail(msg):
     sys.stderr.write(f"Bail out! parse error: {msg}\n")
@@ -277,10 +282,70 @@ if mx:
     else:
         bail("excluded_fixtures: only inline-flow shape `[...]` supported in v1")
 
+# T004 / FR-004 / NFR-009 / contracts §3 — three more additive field
+# projections: needs_research, fixture_corpus, fixture_corpus_path,
+# promote_synthesized. Loud-fail on malformed values (NFR-007). Absent →
+# JSON null (matches existing pattern). Backward compat: PRDs without these
+# keys produce the existing three-key projection plus four nulls — callers
+# that read only the existing keys are unaffected (NFR-001).
+
+def parse_bool(s):
+    s = s.strip()
+    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
+        s = s[1:-1]
+    s = s.lower()
+    if s == "true":
+        return True
+    if s == "false":
+        return False
+    return None
+
+needs_research = None
+mn = re.search(r"^needs_research:\s*(.+?)\s*$", fm, re.MULTILINE)
+if mn:
+    val = mn.group(1).strip()
+    if val != "":
+        b = parse_bool(val)
+        if b is None:
+            bail(f"needs_research must be true|false (got: {val})")
+        needs_research = b
+
+fixture_corpus = None
+mfc = re.search(r"^fixture_corpus:\s*(.+?)\s*$", fm, re.MULTILINE)
+if mfc:
+    val = strip_quotes(mfc.group(1))
+    if val != "":
+        if val not in ALLOWED_FIXTURE_CORPUS:
+            bail(f"unknown fixture_corpus: {val} (allowed: synthesized|declared|promoted)")
+        fixture_corpus = val
+
+fixture_corpus_path = None
+mfp = re.search(r"^fixture_corpus_path:\s*(.+?)\s*$", fm, re.MULTILINE)
+if mfp:
+    val = strip_quotes(mfp.group(1))
+    if val != "":
+        if val.startswith("/"):
+            bail(f"fixture-corpus-path-must-be-relative: {val}")
+        fixture_corpus_path = val
+
+promote_synthesized = None
+mps = re.search(r"^promote_synthesized:\s*(.+?)\s*$", fm, re.MULTILINE)
+if mps:
+    val = mps.group(1).strip()
+    if val != "":
+        b = parse_bool(val)
+        if b is None:
+            bail(f"promote_synthesized must be true|false (got: {val})")
+        promote_synthesized = b
+
 projection = {
     "blast_radius": blast_radius,
     "empirical_quality": empirical_quality,
     "excluded_fixtures": excluded_fixtures,
+    "fixture_corpus": fixture_corpus,
+    "fixture_corpus_path": fixture_corpus_path,
+    "needs_research": needs_research,
+    "promote_synthesized": promote_synthesized,
 }
 
 # Sorted-keys JSON, single line — matches `jq -c -S` byte-stability.

@@ -1,0 +1,43 @@
+
+=== Sub-path: happy ===
+    pass  PRD inherits needs_research:true
+    pass  PRD inherits fixture_corpus_path
+research-first variant invoked
+gate pass
+PR created (mocked)
+    pass  happy: gate pass
+    pass  happy: research report exists
+  Sub-path 'happy' assertions: ok
+
+=== Sub-path: regression ===
+    pass  PRD inherits needs_research:true
+    pass  PRD inherits fixture_corpus_path
+research-first variant invoked
+gate fail
+{
+  "axis": "tokens",
+  "direction": "lower",
+  "priority": "primary",
+  "overall": "regression",
+  "fixtures": [
+    {
+      "fixture": "001-basic.txt",
+      "axis": "tokens",
+      "verdict": "regression",
+      "baseline": 100,
+      "candidate": 1000
+    },
+    {
+      "fixture": "002-edge.txt",
+      "axis": "tokens",
+      "verdict": "regression",
+      "baseline": 200,
+      "candidate": 2000
+    }
+  ]
+}Bail out! research-first-gate-failed: 2026-04-26-test
+    pass  regression: gate fail
+    pass  regression: per-axis JSON shows tokens regression
+  Sub-path 'regression' assertions: ok
+
+PASS: 8/8 assertions

@@ -121,6 +121,53 @@ For `area == other`, the interview is exactly 3 questions total. For every other
 
 **Skip mid-interview**: if skip is selected at any question (including Q1), discard any answers already collected and jump to Step 5 with an empty answer list (signals no `## Interview` section).
 
+## Step 4c: Research-Block Inference (FR-015 / FR-016 of research-first-completion)
+
+<!-- T012 / FR-015 / FR-016 / NFR-006 / Decision 9 / contracts §8 of
+     research-first-completion. Conditional question stanza — fires ONLY
+     when classify-description.sh emitted a research_inference key.
+     Inserted as a coached-capture step BEFORE the Step 5 file-write,
+     conditional on research_inference being present. Absent → silently
+     skipped (false-negative recovery is structural per NFR-006). -->
+
+Run the classifier against the feedback description. If `research_inference`
+is present, render the FR-015 single accept/tweak/reject question; record
+the response and pass the resolved research-block fields (or absence) to
+Step 5's frontmatter writer.
+
+```bash
+CLASSIFICATION_JSON=$(bash plugin-kiln/scripts/roadmap/classify-description.sh "$ARGUMENTS" 2>/dev/null)
+HAS_RESEARCH_INFERENCE=$(printf '%s' "$CLASSIFICATION_JSON" | jq -r 'has("research_inference")' 2>/dev/null)
+if [ "$HAS_RESEARCH_INFERENCE" = "true" ]; then
+  RB_PROPOSAL=$(printf '%s' "$CLASSIFICATION_JSON" | jq -c .research_inference)
+  # Render the question per coach-driven-capture §5.0; for output_quality
+  # axes the rationale carries the FR-016 verbatim warning on its own line.
+fi
+```
+
+**Question shape**:
+
+```
+Q: Does this need research?
+   Proposed: needs_research: true
+             empirical_quality:
+               - metric: <metric>
+                 direction: <direction>
+                 priority: primary
+   Why: matched signal word: <word>
+        [for output_quality axes, FR-016 verbatim warning on its own line]
+   [accept / tweak <value> / reject / skip / accept-all]
+   > _
+```
+
+**Response handling**:
+- `accept` → record the proposed research-block fields; Step 5 emits them in the feedback frontmatter after the existing keys.
+- `tweak <value>` → maintainer edits any field; re-prompt with edited proposal.
+- `reject` / `skip` → write NO research-block keys (NFR-006 structural absence).
+- `accept-all` → accept this proposal.
+
+**Validator surface**: `plugin-kiln/scripts/issues-feedback/validate-frontmatter.sh` validates the resulting feedback file's research-block frontmatter (callable post-write for cross-check).
+
 ## Step 5: Write the File
 
 Write the file to `.kiln/feedback/${today}-${slug}.md` with frontmatter matching Contract 1 exactly. Frontmatter is byte-identical to today's shape (NFR-003 Contract 1) — the interview changes ONLY the body, not the frontmatter.

@@ -293,6 +293,138 @@ Before spawning any teammates, verify:
 - [ ] All dependencies are wired correctly
 - [ ] Every task has an owner assigned
 
+## Step 2.5: Research-First Variant Routing (FR-009 — FR-012 of research-first-completion)
+
+<!-- T007 / FR-009 / FR-010 / FR-011 / FR-012 / NFR-002 / Decision 2 /
+     Decision 4 / Decision 7 / contracts/interfaces.md §7
+     (research-first-completion). PRD-frontmatter-driven routing — no flag-
+     level bypass, no new wheel workflow JSON, no new top-level skill.
+     Skip-path is structurally a no-op (NFR-002 byte-identity). -->
+
+Read the PRD frontmatter and decide whether this run uses the **research-
+first variant pipeline** (a per-axis empirical gate inserted between
+`/tasks` and `/implement`) or the **standard pipeline** (byte-identical to
+pre-research-first behavior).
+
+### §2.5.1 — Skip-path probe (NFR-002 byte-identity)
+
+```bash
+# parse-prd-frontmatter.sh already ran during Pre-Flight; PRD_FRONTMATTER_JSON
+# is populated. Single jq lookup on already-parsed JSON — NO new subprocess
+# fork on the skip path.
+NEEDS_RESEARCH=$(jq -r '.needs_research // false' <<<"$PRD_FRONTMATTER_JSON")
+if [ "$NEEDS_RESEARCH" != "true" ]; then
+  # Skip-path: structural no-op — single jq lookup on already-parsed JSON;
+  # NEVER emit stdout on skip path (Decision 7 — NFR-002 byte-identity).
+  : # explicitly do nothing; fall through to Step 3
+else
+  # Variant path — see §2.5.2.
+  echo "research-first variant invoked: $PRD_PATH"
+fi
+```
+
+**NEVER emit stdout on the skip path.** Decision 7 / NFR-002 mandates byte-
+identity routing for non-research PRDs. A "research-first-skipped" log line
+would create a stdout diff against pre-PR behavior, violating the byte-
+identity invariant. OQ-6 (deferred) explicitly notes this — re-open if
+maintainers want skip-path observability.
+
+### §2.5.2 — Variant pipeline steps (FR-010)
+
+When `NEEDS_RESEARCH == "true"`, the variant pipeline executes these steps
+between `/tasks` (already complete by Step 2) and `/implement` (spawned via
+implementer in Step 3). The team-lead orchestrates the variant inline; NO
+new wheel workflow JSON is shipped (Decision 2):
+
+1. **establish-baseline** — invoke
+   `plugin-wheel/scripts/harness/research-runner.sh` against the declared
+   corpus (`fixture_corpus: declared|promoted` → use `fixture_corpus_path`)
+   OR the synthesizer's accepted output (`fixture_corpus: synthesized` →
+   coordinate with the fixture-synthesizer agent shipped per plan-time-
+   agents). Capture metrics to
+   `.kiln/research/<prd-slug>/baseline-metrics.json`.
+
+2. **implement-in-worktree** — `git worktree add <tempdir> <branch>` per
+   Decision 4. Spawn the implementer in the worktree (the implementer's
+   prompt MUST include `Working directory: <worktree-tempdir>`). Record the
+   tempdir for cleanup via `trap` so it survives interruptions.
+
+   **Loud-fail invariant** (NFR-007 / Decision 4): if `git worktree add`
+   fails (e.g., locked working tree, filesystem incompatible), bail with:
+   ```
+   Bail out! research-first-worktree-failed: <error>
+   ```
+   NO silent fallback to `cp -R` — Decision 4.
+
+3. **measure-candidate** — invoke `research-runner.sh` against the
+   candidate plugin-dir (from the worktree) against the SAME corpus.
+   Capture metrics to `.kiln/research/<prd-slug>/candidate-metrics.json`.
+
+4. **gate** — invoke
+   `plugin-wheel/scripts/harness/evaluate-direction.sh` for mechanical
+   axes (per axis-enrichment §4); invoke
+   `plugin-wheel/scripts/harness/evaluate-output-quality.sh` for the
+   `output_quality` axis (per plan-time-agents §4). Capture per-axis
+   verdicts to `.kiln/research/<prd-slug>/per-axis-verdicts.json`. (This
+   PR does NOT modify the per-axis verdicts JSON shape — foundation
+   precedent / NFR-009 invariant.)
+
+5. **gate-pass branch (FR-012)** — every axis returns `pass`. Continue to
+   the existing `/audit` + PR-creation steps. The auditor MUST be told to
+   inject a `## Research Results` heading + per-axis pass-status table
+   into the PR body, and to attach the research-report path
+   (`.kiln/logs/research-<uuid>.md` — foundation precedent). Pass these
+   inputs in the auditor's prompt.
+
+   Per-axis table shape (markdown):
+   ```
+   | metric | direction | priority | verdict |
+   |--------|-----------|----------|---------|
+   | tokens | lower | primary | pass (-22% mean across 12 fixtures) |
+   | output_quality | equal_or_better | primary | pass (5/5 candidate_better) |
+   ```
+
+6. **gate-fail branch (FR-011)** — ANY axis returns `regression`. **HALT
+   the pipeline before invoking `/audit` or PR-creation.** Surface the
+   verbatim per-axis report (read from `per-axis-verdicts.json`) on
+   stdout. Emit:
+   ```
+   Bail out! research-first-gate-failed: <prd-slug>
+   ```
+   to stderr; exit 2. **The auditor + PR-creator agents are NEVER spawned
+   on the gate-fail path** — FR-011 reviewer-visible invariant.
+
+7. **worktree cleanup** — regardless of branch (pass OR fail), run:
+   ```bash
+   trap 'git worktree remove --force "$WORKTREE_TEMPDIR" 2>/dev/null || true' EXIT
+   ```
+   so the worktree is cleaned up even if the variant pipeline is
+   interrupted.
+
+### §2.5.3 — Edge cases
+
+- **`needs_research: true` but no `fixture_corpus:`** — bail at the
+  corpus-load step (between baseline and gate) with:
+  ```
+  Bail out! research-first-routed-but-no-corpus: <prd-path>
+  ```
+  The validator emits a write-time warning per
+  `validate-research-block.sh` rule 10, but build-prd is the gate that
+  cannot proceed without a corpus.
+
+- **`needs_research: true` but `empirical_quality: []`** — bail at the
+  pre-baseline step with:
+  ```
+  Bail out! research-first-routed-but-no-axes: <prd-path>
+  ```
+
+### §2.5.4 — Operational note for maintainers
+
+The variant pipeline is opt-in **per PRD frontmatter only**. There is no
+`--research` flag and no environment-variable bypass — that is a non-goal
+of this PRD. To bypass research-first routing, the maintainer hand-edits
+the PRD frontmatter to remove `needs_research: true`.
+
 ## Step 3: Spawn Teammates
 
 **Spawn all teammates EXCEPT the retrospective agent.** The retrospective is spawned later in Step 5 after all auditors complete. This keeps its context clean — an agent spawned at pipeline start accumulates idle notifications and peer DM summaries for the entire run, burning tokens on irrelevant context.
