@@ -492,7 +492,45 @@ Violations are author bugs in the skill body, not runtime user errors — they M
 
 ## Step 4.5 — Render sibling preview files (claude-audit-quality FR-021)
 
-> **Theme E placeholder** — the rendering algorithm and file-path schema land in T051 of `specs/claude-audit-quality/tasks.md`. Until Theme E commits, this step is a no-op (no sibling previews rendered).
+For each audited path with ≥1 proposed diff in the audit log, render ONE sibling preview file containing the proposed final state of the audited file (post-apply state — the exact bytes the file would have if every proposed diff for that path were `git apply`ed).
+
+### Filename derivation (FR-020 schema)
+
+```
+.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md
+```
+
+Where:
+- `<TIMESTAMP>` is the SAME UTC timestamp used for the main audit log filename (one shared timestamp per audit run; sibling previews and the main log all share it).
+- `<basename>` is the audited file's repo-relative path with every `/` replaced by `-`. Examples:
+  - `CLAUDE.md` → `CLAUDE.md`
+  - `plugin-kiln/scaffold/CLAUDE.md` → `plugin-kiln-scaffold-CLAUDE.md`
+
+So for the kiln source repo (which audits both files) a typical run produces:
+- `.kiln/logs/claude-md-audit-2026-04-25-202320-proposed-CLAUDE.md`
+- `.kiln/logs/claude-md-audit-2026-04-25-202320-proposed-plugin-kiln-scaffold-CLAUDE.md`
+
+### Render algorithm
+
+For each audited path `P`:
+
+1. Inspect the fired-signal list. Filter to signals that proposed a concrete unified diff hunk for path `P` (i.e., signals with one of `removal-candidate`, `archive-candidate`, `expand-candidate`, `sync-candidate`, `correction-candidate`, `duplication-flag` actions). Skip `keep` / `keep (load-bearing)` / `inconclusive` rows — they propose no diff.
+2. If the filtered list is EMPTY for path `P`, skip — no sibling preview is rendered for that path. (FR-021 contract: rendered ONLY when ≥1 proposed diff exists.)
+3. Read the current bytes of `P` (already in memory from Step 1).
+4. Apply each proposed diff hunk in order to produce the post-apply byte sequence. The model performs this synthesis directly — no `git apply` shell call. Each hunk's `--- a/<P>` / `+++ b/<P>` boundary identifies the path; only hunks targeting `P` are applied.
+5. Write the post-apply bytes verbatim to `.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`. The file contains the file body ONLY — no diff markers, no annotations, no preamble. The first line of the preview IS the first line of the post-apply file.
+
+### Render content shape (verbatim — no annotations)
+
+The sibling preview file is the post-apply file. There is no header, no footer, no annotation, no diff marker. If the audited file is a Markdown file, the preview is also a Markdown file with the same shape (just with the proposed diffs applied). Diff annotations (`# rule_id:`) live in the main audit log's `## Proposed Diff` section, NOT in the preview.
+
+### Idempotence (NFR-003)
+
+Re-running the audit on unchanged inputs MUST produce byte-identical sibling preview files (modulo the timestamp in the filename — the file BODY is byte-identical). The deterministic-rendering rules from Step 4 (`### Idempotence`) carry through: diffs apply in source-line order; no wall-clock time / random IDs / process PIDs in the body.
+
+### Cross-reference back to the audit log (FR-022)
+
+The main audit log's `## Proposed Diff` heading carries a one-line cross-reference per audited path with a sibling preview — see Step 4's "## Proposed Diff" rendering for the exact text.
 
 ## Step 6 — Write outputs to `.kiln/logs/`
 
@@ -521,6 +559,10 @@ At least ONE finding below MUST cite a signal from this block (e.g., a phase dri
 | ... | ... | ... | ... | ... |
 
 ## Proposed Diff
+
+<one cross-reference line per audited path with a sibling preview file (claude-audit-quality FR-022); render in audited-path order; format below verbatim:>
+
+Side-by-side preview: see `claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`.
 
 ` ``diff
 <unified-diff body, git-diff --no-index shape>
@@ -584,6 +626,8 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
 - <FR-016 reminder, ONLY when `## Plugins Sync` fires a non-✅ status: "This section is auto-synced from per-plugin `.claude-plugin/claude-guidance.md` files. Edit the plugins, not CLAUDE.md, for persistent changes." — de-duplicated against the `## Plugins Sync` blockquote.>
 - <Per-override missing-reason warnings, one line each: "Override `<key>` lacks `# reason:` comment — applied with no documented rationale.">
 - <Per LLM-failed section: "Section `<heading>` could not be classified by editorial LLM — defaulting to `unclassified` (FR-004).">
+
+Once proposed diffs land, this audit log + sibling preview files can be archived to `.kiln/logs/archive/` or deleted.
 ```
 
 **Required rendering rules**:
@@ -604,6 +648,21 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
   ```
 
   This row is rendered only when zero project-context-driven signals fire — when ≥1 fires, the row is OMITTED. The placeholder is the FR-013 visibility surface: the absence of project-context grounding is never silent.
+- **Sibling-preview cross-reference** (claude-audit-quality FR-022): the audit log's `## Proposed Diff` heading MUST be followed by exactly one cross-reference line per audited path that has a sibling preview file (rendered in Step 4.5). Format verbatim:
+
+  ```
+  Side-by-side preview: see `claude-md-audit-<TIMESTAMP>-proposed-<basename>.md`.
+  ```
+
+  When multiple audited paths each have a sibling preview, render one such line per path in audited-path order. When NO audited path has a sibling preview (no path produced any proposed diff), this cross-reference block is OMITTED — the `## Proposed Diff` heading is followed directly by the diff fence.
+
+- **Audit-log footer cleanup convention** (claude-audit-quality FR-023): the audit log's last line before EOF MUST be exactly:
+
+  ```
+  Once proposed diffs land, this audit log + sibling preview files can be archived to `.kiln/logs/archive/` or deleted.
+  ```
+
+  This is a STATIC string — no timestamp interpolation, no conditional rendering. Always present. The line is present even on `no drift` runs (when no diffs were proposed); the footer documents the cleanup convention for the audit log itself, which exists regardless of whether sibling previews were rendered.
 - The `## External best-practices deltas` heading MUST appear verbatim — downstream tests grep for this exact string.
 - When `CACHE_STALE=="yes"`, the preview MUST contain the word `stale` adjacent to the cache notice — the assertions in `plugin-kiln/tests/claude-audit-cache-stale/` grep for `/stale/i`.
 - When `BP_FETCH_NOTE` is non-empty, its exact text (`cache used, network unreachable`) MUST appear in the preview — the assertions in `plugin-kiln/tests/claude-audit-network-fallback/` grep for it.
@@ -661,6 +720,7 @@ Exit 0 on success regardless of how many signals fired. Non-zero exit only on ha
 
 - The skill ONLY proposes a diff. It MUST NOT call `Edit`, `Write`, `sed -i`, `perl -i`, or `git apply` against CLAUDE.md (coach-driven-capture FR-016). The maintainer applies changes manually after reviewing `.kiln/logs/claude-md-audit-<timestamp>.md`. The *only* files this skill is permitted to modify are:
   - `.kiln/logs/claude-md-audit-<TIMESTAMP>.md` (the preview).
+  - `.kiln/logs/claude-md-audit-<TIMESTAMP>-proposed-<basename>.md` (sibling preview file — claude-audit-quality FR-020 — one per audited path with ≥1 proposed diff; `<basename>` is derived from the audited file's repo-relative path with `/` replaced by `-`, e.g. `plugin-kiln/scaffold/CLAUDE.md` → `plugin-kiln-scaffold-CLAUDE.md`).
   - `plugin-kiln/rubrics/claude-md-best-practices.md` (cache body + `fetched:` date on a successful WebFetch refresh — FR-014).
   - `.kiln/logs/` (the directory itself, if absent).
 - Every audited file is read fresh on each invocation — no caching of the source file body.
