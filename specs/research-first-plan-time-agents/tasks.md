@@ -65,7 +65,7 @@
 
 **Purpose**: Land the orchestrator-side anti-drift plumbing (`evaluate-output-quality.sh`) and the /plan SKILL.md spawn wiring. Single edit point (SKILL.md) — implementer works in one file at a time.
 
-- [ ] **T010** [C] [FR-013 / FR-014 / FR-015 / FR-016 / §1 / §2 / §4 / NFR-008 / Decision 6 / Decision 7] Author `plugin-wheel/scripts/harness/evaluate-output-quality.sh` (~140 LoC) per contracts §4. CLI surface: `--prd-slug --rubric-verbatim --baseline-outputs --candidate-outputs --fixture-list --judge-config`. Implements:
+- [X] **T010** [C] [FR-013 / FR-014 / FR-015 / FR-016 / §1 / §2 / §4 / NFR-008 / Decision 6 / Decision 7] Author `plugin-wheel/scripts/harness/evaluate-output-quality.sh` (~140 LoC) per contracts §4. CLI surface: `--prd-slug --rubric-verbatim --baseline-outputs --candidate-outputs --fixture-list --judge-config`. Implements:
     1. Parse `judge-config.yaml` per §5 schema; loud-fail on malformation per §4 bail-out table.
     2. Resolve pinned model via probe ladder per FR-014; record `model_used`.
     3. Insert identical-input control fixture per FR-016 (deterministic seeded selection per §2 algorithm).
@@ -78,7 +78,7 @@
     10. Write `position-mapping.json` per §2.
     11. Stdout: `pass` if every non-control fixture's `deanonymized_verdict ∈ {candidate_better, equal}`; `regression` otherwise. Matches axis-enrichment §4 `evaluate-direction.sh` contract for downstream gate consumption.
     `chmod +x`.
-- [ ] **T011** [C] [FR-002 / FR-005 / FR-006 / FR-007 / NFR-006a / NFR-006b / §8 / Decision 1 / Decision 2 / Decision 3] Extend `plugin-kiln/skills/plan/SKILL.md` with new "Phase 1.5: research-first plan-time agents" stanza per §8. Inserted between current Phase 1 and the existing "Stop and report" step (which is the §"Outline" step 4). The stanza MUST:
+- [X] **T011** [C] [FR-002 / FR-005 / FR-006 / FR-007 / NFR-006a / NFR-006b / §8 / Decision 1 / Decision 2 / Decision 3] Extend `plugin-kiln/skills/plan/SKILL.md` with new "Phase 1.5: research-first plan-time agents" stanza per §8. Inserted between current Phase 1 and the existing "Stop and report" step (which is the §"Outline" step 4). The stanza MUST:
     1. Probe the parsed PRD frontmatter JSON (already loaded in Phase 0 / Phase 1) for `fixture_corpus: synthesized` AND for any `empirical_quality[].metric == output_quality`. Use jq on the already-parsed JSON — NO new subprocess fork on the skip path (NFR-006a). Fallback to single `grep -E` per §8 invariants if frontmatter not yet parsed.
     2. SKIP-PATH: if neither feature declared, return immediately. NO spawn, NO net-new subprocess. Per NFR-006a structural invariant.
     3. SYNTHESIZER PATH (`fixture_corpus: synthesized`):
@@ -91,7 +91,7 @@
     4. JUDGE PATH (`metric: output_quality`):
         a. The judge is NOT spawned by `/plan` directly. /plan's job at this phase is to ensure the orchestrator (`evaluate-output-quality.sh`) has its prerequisites: `judge-config.yaml` resolved (per §5 resolution order), `rubric_verbatim` extracted from frontmatter (validator from T005 already caught missing).
         b. Surface a research-first run-time banner: `Pinned judge model: <model> (source: .kiln/research/judge-config.yaml | plugin-kiln/lib/judge-config.yaml.example)` so the human reviewer sees the resolved config before downstream gate-eval runs.
-- [ ] **T012** [C] [NFR-006a / NFR-006b] Audit T011's edits to confirm the skip-path probe re-uses already-parsed JSON when available. Add a comment in the SKILL.md prose explicitly stating "skip-path: structural no-op — single jq lookup on already-parsed JSON OR single grep -E if JSON unavailable; NEVER spawn python3 / jq cold-fork solely for the probe". This is the documented constraint that T015 perf test will enforce.
+- [X] **T012** [C] [NFR-006a / NFR-006b] Audit T011's edits to confirm the skip-path probe re-uses already-parsed JSON when available. Add a comment in the SKILL.md prose explicitly stating "skip-path: structural no-op — single jq lookup on already-parsed JSON OR single grep -E if JSON unavailable; NEVER spawn python3 / jq cold-fork solely for the probe". This is the documented constraint that T015 perf test will enforce.
 
 **Checkpoint C**: T010..T012 complete. Run `bash plugin-wheel/scripts/harness/evaluate-output-quality.sh --help` (or equivalent dry-run probe) — must NOT crash when invoked with valid args against a mock fixture set. Commit Phase C.
 

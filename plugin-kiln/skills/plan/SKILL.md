@@ -148,6 +148,73 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 **Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
 
+### Phase 1.5: Research-first plan-time agents
+
+This phase ships with `specs/research-first-plan-time-agents/` (see plan.md Decision 1 + 2 — single edit point). It is invoked unconditionally on every `/plan` run AFTER Phase 1; the **skip-path is a structural no-op** so PRDs that declare neither feature pay zero net-new agent spawns and no net-new subprocess beyond the spawn-or-skip probe (NFR-006a + NFR-006b).
+
+**Skip-path probe constraint (NFR-006a + NFR-006b — RECONCILED 2026-04-25)**: the skip-path detector is a single jq lookup on already-parsed JSON when available OR a single `grep -E` on the raw PRD path otherwise — NEVER a fresh python3 / jq cold-fork solely for the probe. Implemented at `plugin-kiln/scripts/research/probe-plan-time-agents.sh` (~50 LoC). Asserted by `plugin-kiln/tests/plan-time-agents-skip-perf/`.
+
+**Step 1 — Probe**:
+
+```bash
+# If Phase 0 / Phase 1 already parsed the PRD frontmatter into a JSON file,
+# pass --frontmatter-json <path> to skip the grep fallback. Otherwise the
+# probe will single-grep the raw PRD file.
+ROUTE=$(bash "$WORKFLOW_PLUGIN_DIR/../plugin-kiln/scripts/research/probe-plan-time-agents.sh" \
+  --prd "$PRD_PATH" \
+  ${PRD_FRONTMATTER_JSON_PATH:+--frontmatter-json "$PRD_FRONTMATTER_JSON_PATH"})
+# ROUTE ∈ {synthesizer, judge, both, skip}
+```
+
+If `ROUTE == skip`: return immediately. NO spawn. NO net-new subprocess. NO further work in Phase 1.5.
+
+**Step 2 — Synthesizer path** (when `ROUTE` ∈ {`synthesizer`, `both`}, i.e. `fixture_corpus: synthesized`):
+
+1. **Schema pre-check (FR-003)** — verify `plugin-<skill-plugin>/skills/<skill>/fixture-schema.md` exists. If not, halt with `Bail out! fixture-schema-missing: <expected-path>`. Do NOT spawn the synthesizer if the schema is missing.
+
+2. **Spawn via composer recipe (CLAUDE.md "Composer integration recipe")**:
+
+   ```bash
+   SPEC_JSON=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/resolve.sh" kiln:fixture-synthesizer)
+   SUBAGENT_TYPE=$(jq -r .subagent_type <<<"$SPEC_JSON")
+   PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
+     --agent-name fixture-synthesizer \
+     --plugin-id kiln \
+     --task-spec /tmp/fixture-synth-spec.json \
+     --prd-path "$PRD_PATH" | jq -r .prompt_prefix)
+   # The Agent({...}) call is made by /plan with subagent_type=$SUBAGENT_TYPE
+   # and prompt = "$PREFIX\n---\n<per-call task>". name="synth-<prd-slug>".
+   ```
+
+   Role-instance variables per `specs/research-first-plan-time-agents/contracts/interfaces.md §6`: `skill_id`, `empirical_quality`, `schema_path`, `target_count` (= `min_fixtures` from rigor row), `proposed_corpus_dir` (= `<repo-root>/.kiln/research/<prd-slug>/corpus/proposed/`), `prd_slug`, `existing_fixtures_summary` (empty list on initial spawn).
+
+3. **Per-fixture confirm-never-silent review (FR-005)** — after the synthesizer relays success, render each `proposed/fixture-NNN.md` with its 3-line summary header and prompt the user with: `accept | reject [reason] | edit | accept-all | abandon`. No fixture is moved to the committed path without an explicit accept (per-fixture or via `accept-all`). `abandon` aborts Phase 1.5 — proposed-corpus directory is preserved for inspection.
+
+4. **Reject-then-regenerate (FR-006)** — on `reject`, re-spawn the synthesizer with regenerate role-instance vars: `rejection_reason`, `rejected_fixture_summary`, `regeneration_attempt` (1-indexed), `target_fixture_id`. Bounded by `max_regenerations` per fixture (default 3, frontmatter-overridable via `max_regenerations: <int>`). On exhaustion (regeneration_attempt > max_regenerations) halt with `Bail out! regeneration-exhausted: fixture-<id> rejected <N> times`.
+
+5. **Finalize (FR-007)** — on `accept-all` or full per-fixture acceptance, MOVE accepted fixtures from `proposed/` to one of:
+   - `.kiln/research/<prd-slug>/corpus/` when `promote_synthesized: false` (default — one-off per-PRD scratch).
+   - `plugin-<skill-plugin>/fixtures/<skill>/corpus/` when `promote_synthesized: true` (committed shared corpus).
+
+   Pre-write collision check on the promotion target — bail with `Bail out! promotion-collision: <existing-path>` if the target file already exists.
+
+6. **Synthesis report (FR-007 + NFR-009)** — write `.kiln/research/<prd-slug>/synthesis-report.md` logging per-fixture which target path was used + the regeneration counter so token spend is auditable. Header: `Regeneration budget used: <N>/<corpus_size × max_regenerations>`.
+
+**Step 3 — Judge path** (when `ROUTE` ∈ {`judge`, `both`}, i.e. PRD declares an `empirical_quality[].metric: output_quality` axis):
+
+The judge is NOT spawned by `/plan` directly. The judge spawn happens INSIDE `plugin-wheel/scripts/harness/evaluate-output-quality.sh` (which is invoked downstream by the per-axis gate in `specs/research-first-axis-enrichment/contracts/interfaces.md §4`). `/plan`'s job at this phase is to ensure the orchestrator's prerequisites are in place:
+
+1. **Resolve `judge-config.yaml` (FR-014, two-path resolution per Decision 4)**:
+   1. `<repo-root>/.kiln/research/judge-config.yaml` (per-developer override; gitignored).
+   2. `<repo-root>/plugin-kiln/lib/judge-config.yaml.example` (committed default).
+   3. Else halt with `Bail out! judge-config-missing: looked at .kiln/research/judge-config.yaml + plugin-kiln/lib/judge-config.yaml.example`.
+
+2. **Verify rubric_verbatim available** — `parse-prd-frontmatter.sh` (extended in T005 / FR-010) already validated that every `metric: output_quality` entry has a non-empty `rubric:`. This is a guard against late-stage drift; the validator's exit code is the source of truth.
+
+3. **Surface the banner** — print `Pinned judge model: <model> (source: <local-config | example-fallback>)` so the human reviewer sees the resolved config before downstream gate-eval runs the judge.
+
+**Step 4 — Mock-injection contract (CLAUDE.md Rule 5)**: agents shipped in this PR are NOT live-spawnable in the same session. Test fixtures under `plugin-kiln/tests/` set `KILN_TEST_MOCK_SYNTHESIZER_DIR` / `KILN_TEST_MOCK_JUDGE_DIR` to inject pre-baked envelopes; the same env-var pattern is honored by `evaluate-output-quality.sh` and by Phase 1.5 review-loop helpers. Live-spawn validation is the auditor's first follow-on activity in Task #3.
+
 ## Wheel-workflow guidance (FR-B3)
 
 If the plan emits wheel workflow JSON for any agent step, pick the `model:` tier explicitly rather than relying on the harness default. Rule of thumb:
