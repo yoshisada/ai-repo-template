@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/kiln",
-  "version": "000.001.009.805",
+  "version": "000.001.009.809",
   "description": "Spec-first development harness for Claude Code",
   "author": "yoshisada",
   "license": "MIT",

@@ -25,15 +25,15 @@ description: "Task list for escalation-audit feature implementation"
 
 **Purpose**: Confirm working tree is clean and the constitution + spec are read. No code edits yet.
 
-- [ ] T001 [impl-themes-ab] Read `.specify/memory/constitution.md`, `specs/escalation-audit/spec.md`, `specs/escalation-audit/plan.md`, `specs/escalation-audit/contracts/interfaces.md` end-to-end before any edit.
-- [ ] T002 [impl-themes-ab] Verify `git status` is clean on `build/escalation-audit-20260426`. If dirty, stash before starting.
+- [X] T001 [impl-themes-ab] Read `.specify/memory/constitution.md`, `specs/escalation-audit/spec.md`, `specs/escalation-audit/plan.md`, `specs/escalation-audit/contracts/interfaces.md` end-to-end before any edit.
+- [X] T002 [impl-themes-ab] Verify `git status` is clean on `build/escalation-audit-20260426`. If dirty, stash before starting.
 
 ---
 
 ## Phase 2: Setup — Theme C (impl-theme-c) [P with Phase 1]
 
-- [ ] T003 [impl-theme-c] Read `.specify/memory/constitution.md`, `specs/escalation-audit/spec.md`, `specs/escalation-audit/plan.md`, `specs/escalation-audit/contracts/interfaces.md` end-to-end before any edit.
-- [ ] T004 [impl-theme-c] Confirm `plugin-kiln/skills/kiln-escalation-audit/` does NOT exist yet (skill is being created fresh).
+- [X] T003 [impl-theme-c] Read `.specify/memory/constitution.md`, `specs/escalation-audit/spec.md`, `specs/escalation-audit/plan.md`, `specs/escalation-audit/contracts/interfaces.md` end-to-end before any edit.
+- [X] T004 [impl-theme-c] Confirm `plugin-kiln/skills/kiln-escalation-audit/` does NOT exist yet (skill is being created fresh).
 
 ---
 
@@ -44,10 +44,10 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Implementation
 
-- [ ] T010 [impl-themes-ab] [US1] Extend `plugin-kiln/scripts/roadmap/update-item-state.sh` per `contracts/interfaces.md` §A.1: parse optional `--status <value>` flag; rewrite BOTH `state:` and `status:` in one atomic awk + tempfile + mv cycle; preserve existing `<state>`-only API byte-identically. Add `# FR-002` comment on every new branch.
-- [ ] T011 [impl-themes-ab] [US1] In `plugin-kiln/skills/kiln-build-prd/SKILL.md`, append a new sub-section `### Step 4b.5: Auto-flip roadmap items on merge (FR-001..FR-004, NFR-001)` AFTER the existing Step 4b commit block (around line 1010 of current SKILL.md) and BEFORE `## Step 5: Retrospective`. Use the inline Bash from `contracts/interfaces.md` §A.2 verbatim. Mark each block with the FR reference.
-- [ ] T012 [impl-themes-ab] [US1] Verify Step 4b.5 emits the exact diagnostic line from §A.2 (anchored regex). Add a one-line verification regex comment in the SKILL.md body so the test harness can assert against it.
-- [ ] T013 [impl-themes-ab] [US1] Idempotency: confirm the patch_pr_and_date inline awk MUST detect existing `pr:` lines and skip them (FR-004); never overwrite `shipped_date:` once present.
+- [X] T010 [impl-themes-ab] [US1] Extend `plugin-kiln/scripts/roadmap/update-item-state.sh` per `contracts/interfaces.md` §A.1: parse optional `--status <value>` flag; rewrite BOTH `state:` and `status:` in one atomic awk + tempfile + mv cycle; preserve existing `<state>`-only API byte-identically. Add `# FR-002` comment on every new branch.
+- [X] T011 [impl-themes-ab] [US1] In `plugin-kiln/skills/kiln-build-prd/SKILL.md`, append a new sub-section `### Step 4b.5: Auto-flip roadmap items on merge (FR-001..FR-004, NFR-001)` AFTER the existing Step 4b commit block (around line 1010 of current SKILL.md) and BEFORE `## Step 5: Retrospective`. Use the inline Bash from `contracts/interfaces.md` §A.2 verbatim. Mark each block with the FR reference.
+- [X] T012 [impl-themes-ab] [US1] Verify Step 4b.5 emits the exact diagnostic line from §A.2 (anchored regex). Add a one-line verification regex comment in the SKILL.md body so the test harness can assert against it.
+- [X] T013 [impl-themes-ab] [US1] Idempotency: confirm the patch_pr_and_date inline awk MUST detect existing `pr:` lines and skip them (FR-004); never overwrite `shipped_date:` once present.
 
 ### Test for User Story 1
 
@@ -117,19 +117,19 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Implementation
 
-- [ ] T040 [impl-theme-c] [US4] Create directory `plugin-kiln/skills/kiln-escalation-audit/`.
-- [ ] T041 [impl-theme-c] [US4] Create `plugin-kiln/skills/kiln-escalation-audit/SKILL.md` with the metadata block from `contracts/interfaces.md` §C.1 + the three source ingestors (wheel, confirm-never-silent, hook-block) + sort logic + report assembly. Cite FR-011..FR-014 in section anchors.
-- [ ] T042 [impl-theme-c] [US4] Implement the empty-corpus path (FR-013) — body reads `No pause events found in the last 30 days` when total count == 0.
-- [ ] T043 [impl-theme-c] [US4] Implement the verdict-deferred placeholder (FR-014) — `## Notes` section ends with the literal string from spec FR-014.
-- [ ] T044 [impl-theme-c] [US4] Implement ISO-8601 UTC normalization across sources (OQ-3 / NFR-003) — wheel JSON `started_at` is primary; git log `%aI`; for `.kiln/logs/*.md`, use the filename's embedded date if present (`escalation-audit-YYYY-MM-DD.*`), else file mtime as last resort with a Notes row noting the fallback.
-- [ ] T045 [impl-theme-c] [US4] Implement deterministic sort `(timestamp ASC, source ASC, surface ASC)` with stable tie-break (NFR-003 byte-identical re-run requirement).
+- [X] T040 [impl-theme-c] [US4] Create directory `plugin-kiln/skills/kiln-escalation-audit/`.
+- [X] T041 [impl-theme-c] [US4] Create `plugin-kiln/skills/kiln-escalation-audit/SKILL.md` with the metadata block from `contracts/interfaces.md` §C.1 + the three source ingestors (wheel, confirm-never-silent, hook-block) + sort logic + report assembly. Cite FR-011..FR-014 in section anchors.
+- [X] T042 [impl-theme-c] [US4] Implement the empty-corpus path (FR-013) — body reads `No pause events found in the last 30 days` when total count == 0.
+- [X] T043 [impl-theme-c] [US4] Implement the verdict-deferred placeholder (FR-014) — `## Notes` section ends with the literal string from spec FR-014.
+- [X] T044 [impl-theme-c] [US4] Implement ISO-8601 UTC normalization across sources (OQ-3 / NFR-003) — wheel JSON `started_at` is primary; git log `%aI`; for `.kiln/logs/*.md`, use the filename's embedded date if present (`escalation-audit-YYYY-MM-DD.*`), else file mtime as last resort with a Notes row noting the fallback.
+- [X] T045 [impl-theme-c] [US4] Implement deterministic sort `(timestamp ASC, source ASC, surface ASC)` with stable tie-break (NFR-003 byte-identical re-run requirement).
 
 ### Test for User Story 4
 
-- [ ] T046 [impl-theme-c] [US4] Create `plugin-kiln/tests/escalation-audit-inventory-shape/run.sh` per `contracts/interfaces.md` §D.4. Cites SC-004 + SC-005.
-- [ ] T047 [impl-theme-c] [US4] Add SC-005 second-run idempotency assertion (`diff` of `## Events` block between two runs returns empty).
-- [ ] T048 [impl-theme-c] [US4] Add empty-corpus assertion: with zero source files, the report body contains the exact string `No pause events found in the last 30 days`.
-- [ ] T049 [impl-theme-c] [US4] Run fixture; assert PASS.
+- [X] T046 [impl-theme-c] [US4] Create `plugin-kiln/tests/escalation-audit-inventory-shape/run.sh` per `contracts/interfaces.md` §D.4. Cites SC-004 + SC-005.
+- [X] T047 [impl-theme-c] [US4] Add SC-005 second-run idempotency assertion (`diff` of `## Events` block between two runs returns empty).
+- [X] T048 [impl-theme-c] [US4] Add empty-corpus assertion: with zero source files, the report body contains the exact string `No pause events found in the last 30 days`.
+- [X] T049 [impl-theme-c] [US4] Run fixture; assert PASS.
 
 **Checkpoint**: Phase 6 ends with US4 fully shippable.
 
