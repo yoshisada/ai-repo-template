@@ -56,7 +56,7 @@ description: "Task list for escalation-audit feature implementation"
 
 **Checkpoint**: Phase 3 ends with US1 fully shippable. Commit before moving to Phase 4.
 
-- [ ] T016 [impl-themes-ab] Commit Phase 3 with message `feat(build-prd): step 4b.5 auto-flip roadmap items on PR merge (FR-001..FR-004)`.
+- [X] T016 [impl-themes-ab] Commit Phase 3 with message `feat(build-prd): step 4b.5 auto-flip roadmap items on PR merge (FR-001..FR-004)`.
 
 ---
 
@@ -67,10 +67,10 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Implementation
 
-- [ ] T020 [impl-themes-ab] [US2] In `plugin-kiln/skills/kiln-roadmap/SKILL.md` §C (Consistency check), append `### Check 5: Merged-PR drift (FR-005)` after the existing Checks 1–4 inside the per-item walk loop. Use the pseudo-code from `contracts/interfaces.md` §A.3 verbatim.
-- [ ] T021 [impl-themes-ab] [US2] Add the heuristic-fallback block (R-2 mitigation) — prefer `git for-each-ref --points-at <merge-sha>`, then `build/<theme>-<YYYYMMDD>` heuristic. Document the chosen path in each drift row's `resolution=` field.
-- [ ] T022 [impl-themes-ab] [US2] In §C's report assembly, append a Notes-section row for every drift entry whose `resolution=heuristic` (R-2 documentation requirement).
-- [ ] T023 [impl-themes-ab] [US2] Confirm NFR-004 backward compat: items with EMPTY `prd:` field MUST skip the new check entirely. Inspect Check 5 entry condition.
+- [X] T020 [impl-themes-ab] [US2] In `plugin-kiln/skills/kiln-roadmap/SKILL.md` §C (Consistency check), append `### Check 5: Merged-PR drift (FR-005)` after the existing Checks 1–4 inside the per-item walk loop. Use the pseudo-code from `contracts/interfaces.md` §A.3 verbatim.
+- [X] T021 [impl-themes-ab] [US2] Add the heuristic-fallback block (R-2 mitigation) — prefer `git for-each-ref --points-at <merge-sha>`, then `build/<theme>-<YYYYMMDD>` heuristic. Document the chosen path in each drift row's `resolution=` field.
+- [X] T022 [impl-themes-ab] [US2] In §C's report assembly, append a Notes-section row for every drift entry whose `resolution=heuristic` (R-2 documentation requirement).
+- [X] T023 [impl-themes-ab] [US2] Confirm NFR-004 backward compat: items with EMPTY `prd:` field MUST skip the new check entirely. Inspect Check 5 entry condition.
 
 ### Test for User Story 2
 
@@ -144,20 +144,20 @@ description: "Task list for escalation-audit feature implementation"
 
 ### Implementation
 
-- [ ] T060 [impl-theme-c] [US5] In `plugin-kiln/skills/kiln-doctor/SKILL.md`, AFTER existing `### 3h: Structural hygiene drift` section, insert a new section `### 4: Escalation-frequency tripwire (FR-016)`.
-- [ ] T061 [impl-theme-c] [US5] Use the Bash block from `contracts/interfaces.md` §C.2 verbatim. Threshold: `> 20` events in 7-day window.
-- [ ] T062 [impl-theme-c] [US5] Confirm the subcheck is suggestion-only — no auto-invoke of `/kiln:kiln-escalation-audit`.
-- [ ] T063 [impl-theme-c] [US5] Update doctor's `### 3e: Report` (or equivalent terminal report block) to include subcheck `4` in its enumeration.
+- [X] T060 [impl-theme-c] [US5] In `plugin-kiln/skills/kiln-doctor/SKILL.md`, AFTER existing `### 3h: Structural hygiene drift` section, insert a new section `### 4: Escalation-frequency tripwire (FR-016)`.
+- [X] T061 [impl-theme-c] [US5] Use the Bash block from `contracts/interfaces.md` §C.2 verbatim. Threshold: `> 20` events in 7-day window.
+- [X] T062 [impl-theme-c] [US5] Confirm the subcheck is suggestion-only — no auto-invoke of `/kiln:kiln-escalation-audit`.
+- [X] T063 [impl-theme-c] [US5] Update doctor's `### 3e: Report` (or equivalent terminal report block) to include subcheck `4` in its enumeration.
 
 ### Test for User Story 5
 
-- [ ] T064 [impl-theme-c] [US5] Add an inline doctor smoke assertion to the existing fixture coverage (or, if absent, document SC-007 as covered by an audit-phase manual run with seeded `.wheel/history/` and recorded in `blockers.md` if substrate-blocked). Cite SC-007.
+- [X] T064 [impl-theme-c] [US5] Add an inline doctor smoke assertion to the existing fixture coverage (or, if absent, document SC-007 as covered by an audit-phase manual run with seeded `.wheel/history/` and recorded in `blockers.md` if substrate-blocked). Cite SC-007. — Verified inline via scratch-dir smoke (25-event corpus → WARN, 5-event corpus → OK, missing `.wheel/history/` → OK with 0). No standing doctor-subcheck fixture exists to extend; SC-007 captured in `agent-notes/impl-theme-c.md`.
 
 **Checkpoint**: Phase 7 ends with US5 fully shippable.
 
 - [ ] T065 [impl-theme-c] Commit Phase 7 with message `feat(kiln-doctor): subcheck 4-escalation-frequency tripwire (FR-016)`.
 
-- [ ] T066 [impl-theme-c] Write `specs/escalation-audit/agent-notes/impl-theme-c.md` with friction notes.
+- [X] T066 [impl-theme-c] Write `specs/escalation-audit/agent-notes/impl-theme-c.md` with friction notes.
 
 ---
 
