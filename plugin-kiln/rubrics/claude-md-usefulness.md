@@ -148,6 +148,102 @@ Known false-positive shape: aspirational sections ("Planned: X") that describe w
 
 ---
 
+## Substance rules — substance evaluation against project context (claude-audit-quality FR-006..FR-009)
+
+The rules above are **drift-reducers** (content that aged badly) and the reframe rules below are **coverage-checkers** (does each section pull its weight). The substance rules below are the **teaching-quality** axis — does the audited file communicate the project's load-bearing concepts (thesis, loop, architecture)?
+
+Substance rules carry a new `signal_type: substance` value. They MUST populate the `ctx_json_paths:` field naming every `CTX_JSON` path their `match_rule:` reads — this is the FR-013 enforcement anchor (the audit emits the `(no project-context signals fired)` placeholder row only when zero rules with non-empty `ctx_json_paths:` fire).
+
+Substance findings sort to the top of the Signal Summary table per FR-010 (`signal_type_rank: 0`); they appear in `## Notes` before any mechanical findings.
+
+### missing-thesis
+
+```yaml
+rule_id: missing-thesis
+signal_type: substance
+cost: editorial
+match_rule: read CTX_JSON.vision.body; extract vision-pillar phrases (vision.md ^## headings + first paragraph); pre-filter the audited file's opener + ## What This Repo Is body via grep for any pillar phrase; if pre-filter returns 0 hits, invoke editorial pass to confirm absence
+action: expand-candidate
+ctx_json_paths: [vision.body]
+rationale: A CLAUDE.md that doesn't name the project's thesis lets Claude operate without anchoring product intent to mechanics. Vision pillars are the highest-leverage content.
+cached: false
+```
+
+Reads `.kiln/vision.md` via `CTX_JSON.vision.body`. The cheap pre-filter extracts vision-pillar phrases (every `^## ` heading from vision.md plus the first paragraph) and `grep -F`'s the audited file's opener and `## What This Repo Is` body for any pillar phrase. If the pre-filter returns ≥1 hit, the rule does NOT fire — the file already references a pillar. Only when the pre-filter returns zero hits does the model invoke the editorial pass to confirm true absence (Risk R-1 mitigation: cheap before expensive).
+
+When the rule fires, the proposed diff inserts a thesis paragraph derived from vision.md content into the audited file's opener (or creates a `## What This Repo Is` section if absent). Action: `expand-candidate`.
+
+Known false-positive shape: a CLAUDE.md that intentionally elides the thesis because the project IS the thesis statement (e.g., a README-as-CLAUDE.md). Override via per-rule disable in `.kiln/claude-md-audit.config`.
+
+### missing-loop
+
+```yaml
+rule_id: missing-loop
+signal_type: substance
+cost: editorial
+match_rule: read CTX_JSON.vision.body + CTX_JSON.roadmap.phases; if any phase has status: in-progress or status: complete (i.e., the project has shipped or is shipping a feedback loop), AND the audited file does not name the loop's input → consumer → output triple, fire
+action: expand-candidate
+ctx_json_paths: [vision.body, roadmap.phases]
+rationale: A capture surface (issues, feedback, roadmap, mistakes, fixes) without a named consumer becomes an isolated tool; the loop is the product per .kiln/vision.md.
+cached: false
+```
+
+Reads `.kiln/vision.md` (for the loop's input/consumer/output narrative) and `.kiln/roadmap/phases/*.md` (status check) via `CTX_JSON.vision.body` and `CTX_JSON.roadmap.phases`. The rule fires once per audit (not per section) when at least one roadmap phase has shipped or is shipping AND the audited file fails to draw the loop (input → consumer → output relationship).
+
+Distinct from `loop-incomplete` (in the reframe section): `loop-incomplete` checks whether CLAUDE.md names `/kiln:kiln-distill` as a capture-surface consumer; `missing-loop` checks whether the file teaches the *narrative* of the loop (where items come from, who consumes them, what comes out). A file can pass `loop-incomplete` (mentions distill) but fail `missing-loop` (mentions distill in passing without drawing the chain).
+
+The proposed diff inserts a paragraph naming the loop's input → consumer → output triple, sourced from vision.md narrative. Action: `expand-candidate`.
+
+Known false-positive shape: pre-loop projects that haven't shipped a feedback surface yet. Pre-check on `roadmap.phases` status guards against this — if no phase is `in-progress` or `complete`, the rule does not fire.
+
+### missing-architectural-context
+
+```yaml
+rule_id: missing-architectural-context
+signal_type: substance
+cost: cheap
+match_rule: count distinct plugin-*/ roots from CTX_JSON.plugins.list; if count > 1, parse the audited file's ## Architecture section (or equivalent ## Architecture-tagged heading); fire if section describes only one plugin or is absent
+action: expand-candidate
+ctx_json_paths: [plugins.list]
+rationale: Multi-plugin repos have architectural surface that one-plugin Architecture sections silently hide. Documenting only one plugin teaches the wrong mental model.
+cached: false
+```
+
+Counts distinct `plugin-*/` roots from `CTX_JSON.plugins.list`. When `>1`, parses the audited file's `## Architecture` section (or any `## ` heading containing the word "Architecture") and fires if (a) the section is absent or (b) the section describes only one plugin. The "describes only one plugin" check is grep-shaped: count `plugin-` mentions in the Architecture section; fire if `count <= 1` and `plugins.list` length `> 1`.
+
+This rule is `cost: cheap` — no editorial pass required. The check is mechanical (count vs threshold).
+
+The proposed diff inserts an architecture overview paragraph naming each plugin and its responsibility — sourced from each plugin's `.claude-plugin/plugin.json` `description:` field when available. Action: `expand-candidate`.
+
+Known false-positive shape: a multi-plugin repo where the audited file is intentionally scoped to one plugin (e.g., a per-plugin README). Override via per-rule disable in the config.
+
+### scaffold-undertaught
+
+```yaml
+rule_id: scaffold-undertaught
+signal_type: substance
+cost: editorial
+match_rule: applies only when audited file path matches plugin-*/scaffold/CLAUDE.md (or repo's documented scaffold-template glob); read CTX_JSON.claude_md.body (source-repo CLAUDE.md); for each load-bearing concept family in the source — (a) thesis (vision pillar), (b) loop (input → consumer → output), (c) architectural pointer (e.g. "scaffold deploys into consumer projects via X") — verify the scaffold communicates the same concept; fire per missing concept family
+action: expand-candidate
+ctx_json_paths: [claude_md.body, vision.body]
+rationale: Scaffolds are seeds; they propagate the load-bearing concepts the source repo teaches. A scaffold that omits thesis / loop / architecture seeds Claude with a mechanics-only template.
+cached: false
+```
+
+Path-scoped: applies only when the audited file matches `plugin-*/scaffold/CLAUDE.md` (or the equivalent scaffold-template glob the repo documents). Reads `CTX_JSON.claude_md.body` (the source-repo CLAUDE.md) and `CTX_JSON.vision.body`.
+
+For each of the **three load-bearing concept families** (per OQ-6 reconciliation), the model verifies the scaffold communicates the concept:
+
+- **(a) thesis** — a vision-pillar phrase appears in the scaffold's opener or `## What This Repo Is` body.
+- **(b) loop** — the scaffold names the input → consumer → output triple from vision.md.
+- **(c) architectural pointer** — the scaffold mentions the deployment / install path that connects scaffold → consumer project (e.g., "scaffold deploys into consumer projects via `bin/init.mjs`").
+
+The rule fires **per missing concept family** — a scaffold missing all three families fires three signals; missing one fires one signal. Each signal's proposed diff inserts a paragraph for that specific family. Action: `expand-candidate`.
+
+Known false-positive shape: a scaffold deliberately minimal because consumers customize from a near-empty starting point. Override via per-rule disable in the config.
+
+---
+
 ## Reframe rules — content classification + sync (claude-md-audit-reframe, FR-001..FR-008, FR-022..FR-029)
 
 The seven rules above are the **drift-reducer** axis (content that aged badly). The rules below are the **coverage** axis — they classify what each section is FOR and flag content that is fundamentally not pulling its weight regardless of age.

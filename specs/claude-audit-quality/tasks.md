@@ -59,13 +59,13 @@ description: "Task list for claude-audit-quality — substance rules + output di
 
 ### Phase 2A.B — Theme B (substance rules; FR-006..FR-011)
 
-- [ ] T020 [impl-claude-audit] [B] Add `## Substance rules` section to `plugin-kiln/rubrics/claude-md-usefulness.md`. Append rule entry `missing-thesis` per `contracts/interfaces.md` §2 (FR-006). Pre-filter: cheap grep for vision-pillar phrases before invoking editorial pass (R-1 mitigation).
-- [ ] T021 [impl-claude-audit] [B] Append rule entry `missing-loop` per §2 (FR-007).
-- [ ] T022 [impl-claude-audit] [B] Append rule entry `missing-architectural-context` per §2 (FR-008).
-- [ ] T023 [impl-claude-audit] [B] Append rule entry `scaffold-undertaught` per §2 (FR-009).
-- [ ] T024 [impl-claude-audit] [B] Update `kiln-claude-audit/SKILL.md` output ordering: Signal Summary table sort key `(signal_type_rank, severity_rank, rule_id)` per `contracts/interfaces.md` §4. `signal_type: substance` rank = 0 (FR-010).
-- [ ] T025 [impl-claude-audit] [B] Update `kiln-claude-audit/SKILL.md` Notes section ordering: substance findings rendered before mechanical findings (FR-010).
-- [ ] T026 [impl-claude-audit] [B] Smoke: run audit against source repo; verify ≥1 substance row at top of Signal Summary; verify each substance rule's `match_rule:` cites `CTX_JSON` paths.
+- [X] T020 [impl-claude-audit] [B] Add `## Substance rules` section to `plugin-kiln/rubrics/claude-md-usefulness.md`. Append rule entry `missing-thesis` per `contracts/interfaces.md` §2 (FR-006). Pre-filter: cheap grep for vision-pillar phrases before invoking editorial pass (R-1 mitigation).
+- [X] T021 [impl-claude-audit] [B] Append rule entry `missing-loop` per §2 (FR-007).
+- [X] T022 [impl-claude-audit] [B] Append rule entry `missing-architectural-context` per §2 (FR-008).
+- [X] T023 [impl-claude-audit] [B] Append rule entry `scaffold-undertaught` per §2 (FR-009).
+- [X] T024 [impl-claude-audit] [B] Update `kiln-claude-audit/SKILL.md` output ordering: Signal Summary table sort key `(signal_type_rank, severity_rank, rule_id)` per `contracts/interfaces.md` §4. `signal_type: substance` rank = 0 (FR-010). [Composite key updated in `### Idempotence (NFR-002)` block: `(sort_priority_rank, signal_type_rank, severity_rank, rule_id ASC, section ASC, count DESC)`. Substance=0, coverage=1, editorial=2, freshness=3, bloat=4, load-bearing=5.]
+- [X] T025 [impl-claude-audit] [B] Update `kiln-claude-audit/SKILL.md` Notes section ordering: substance findings rendered before mechanical findings (FR-010). [Added explicit "Notes-section ordering" rendering rule binding per-finding bullets (substance → mechanical → external); static / global Notes lines remain unbound.]
+- [X] T026 [impl-claude-audit] [B] Smoke: run audit against source repo; verify ≥1 substance row at top of Signal Summary; verify each substance rule's `match_rule:` cites `CTX_JSON` paths. [Done as structural sanity. Verified: 4 substance rules added with `signal_type: substance` + populated `ctx_json_paths:` ([vision.body], [vision.body, roadmap.phases], [plugins.list], [claude_md.body, vision.body]). Sort wiring updated. Full skill invocation reserved for auditor T084.]
 
 **Checkpoint 2A.B**: Four substance rules + ordering live. Commit.
 

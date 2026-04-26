@@ -92,7 +92,7 @@ rubric not found at <path>; run kiln init or re-install the plugin
 
 Parse the rubric:
 - Read every `### <rule_id>` heading under the rubric.
-- For each rule, extract the fenced YAML-ish key/value block (`rule_id`, `signal_type`, `cost`, `match_rule`, `action`, `rationale`, `cached`, plus the new optional fields `classification_input`, `sort_priority`, `target_file`, `render_section`).
+- For each rule, extract the fenced YAML-ish key/value block (`rule_id`, `signal_type`, `cost`, `match_rule`, `action`, `rationale`, `cached`, plus the optional fields `classification_input`, `sort_priority`, `target_file`, `render_section`, and `ctx_json_paths` — claude-audit-quality FR-013 enforcement anchor; substance rules MUST populate it).
 - Collect the default threshold values from the preamble block (`recent_changes_keep_last_n`, `active_technologies_keep_last_n`, `migration_notice_max_age_days`).
 
 Parse the override (if any) per contract §7 + claude-md-audit-reframe contracts §2:
@@ -544,6 +544,7 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
 **Required rendering rules**:
 
 - The `## Project Context` block MUST appear whenever `CTX_JSON` parsed successfully. It's the FR-013 anchor.
+- **Notes-section ordering** (claude-audit-quality FR-010 / FR-025): bullets in `## Notes` derived from per-finding context MUST be grouped substance → mechanical → external in matching order to the Signal Summary table sort. Per-finding bullets sourced from `signal_type: substance` rules are rendered first; bullets sourced from mechanical signal types (`coverage` / `editorial` / `freshness` / `bloat` / `load-bearing`) follow; bullets sourced from external best-practices deltas come last. Static / global Notes lines (override warnings, FR-018 anchor URL, project-context signal list) MAY appear anywhere in the section — only per-finding bullets are sort-bound.
 - The `## External best-practices deltas` heading MUST appear verbatim — downstream tests grep for this exact string.
 - When `CACHE_STALE=="yes"`, the preview MUST contain the word `stale` adjacent to the cache notice — the assertions in `plugin-kiln/tests/claude-audit-cache-stale/` grep for `/stale/i`.
 - When `BP_FETCH_NOTE` is non-empty, its exact text (`cache used, network unreachable`) MUST appear in the preview — the assertions in `plugin-kiln/tests/claude-audit-network-fallback/` grep for it.
@@ -577,7 +578,11 @@ The 7 slots from FR-024 MUST be enumerated in this exact fixed order, even slots
 Two runs against unchanged inputs MUST produce byte-identical **Signal Summary** rows AND **Proposed Diff** body. The `# ... — <YYYY-MM-DD HH:MM:SS>` header line and the filename will differ (timestamp); everything else must be deterministic.
 
 Enforce this by:
-- Sorting signals in the Signal Summary table by `sort_priority DESC` (signals with `sort_priority: top` win — currently only `product-undefined`), then `rule_id ASC`, then `section ASC`, then `count DESC`. Multiple `sort_priority: top` signals sort among themselves by `rule_id ASC`.
+- Sorting signals in the Signal Summary table by the composite key `(sort_priority_rank, signal_type_rank, severity_rank, rule_id ASC, section ASC, count DESC)`:
+  - `sort_priority_rank`: `0` for `sort_priority: top` (currently only `product-undefined`), `1` otherwise. Top-priority signals always lead the table — preserves the existing claude-md-audit-reframe FR-025 / SC-007 behavior.
+  - `signal_type_rank` (claude-audit-quality FR-010 — substance findings lead the report): `substance` = 0, `coverage` = 1, `editorial` = 2, `freshness` = 3, `bloat` = 4, `load-bearing` = 5. Unknown / unset signal_types sort last (rank = 99).
+  - `severity_rank`: existing (within-rank tie-break).
+  - `rule_id ASC`, `section ASC`, `count DESC` are existing tie-breakers preserved verbatim.
 - Emitting hunks in the Proposed Diff in the order they appear in the source file (top-to-bottom by line number).
 - Plugin enumeration sorted with `LC_ALL=C sort -u`; `## Plugins` subsections rendered in alphabetical order by plugin name.
 - Vision.md Coverage table: 7 slots enumerated in fixed FR-024 order (1..7).
