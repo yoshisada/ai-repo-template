@@ -1,0 +1,159 @@
+{
+  "workflow_name": "shelf-write-issue-note",
+  "workflow_version": "1.1.0",
+  "workflow_file": "/Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.658/workflows/shelf-write-issue-note.json",
+  "workflow_definition": {
+    "name": "shelf-write-issue-note",
+    "version": "1.1.0",
+    "steps": [
+      {
+        "id": "read-shelf-config",
+        "type": "command",
+        "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh\"",
+        "output": ".wheel/outputs/read-shelf-config.txt"
+      },
+      {
+        "id": "parse-create-issue-output",
+        "type": "command",
+        "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-create-issue-output.sh\"",
+        "output": ".wheel/outputs/parse-create-issue-output.json"
+      },
+      {
+        "id": "obsidian-write",
+        "type": "agent",
+        "instruction": "You are the `obsidian-write` step of the `shelf:shelf-write-issue-note` sub-workflow. Your job: write EXACTLY ONE Obsidian note for the backlog issue that was just filed. No dashboard writes, no progress writes, no GitHub fetches, no manifest-scope writes.\n\n## MCP scope\n\nYou may ONLY call:\n- `mcp__claude_ai_obsidian-projects__create_file`\n- `mcp__claude_ai_obsidian-projects__patch_file` (as the cold-start collision fallback — see §4)\n\nYou MUST NOT call: `list_files`, `append_file`, `update_file`, `read_file`, or ANY `mcp__claude_ai_obsidian-manifest__*` tool. You MUST NOT invoke `shelf-propose-manifest-improvement` or any other workflow/skill.\n\n## Step 1 — Read inputs\n\nFrom your context:\n\n- `read-shelf-config` output: a fixed-shape structured block bounded by `## SHELF_CONFIG_PARSED` and `## END_SHELF_CONFIG_PARSED`. Between those markers are four lines:\n  - `slug = <value or empty>`\n  - `base_path = <value or empty>`\n  - `dashboard_path = <value or empty>`\n  - `shelf_config_present = <true|false>`\n  Parse these four values verbatim. DO NOT call the parser or re-read `.shelf-config` yourself — consume the structured block as-is.\n- `parse-create-issue-output` output: JSON blob `{ issue_file, basename, frontmatter, body }`. Parse it. If the JSON is malformed or `issue_file` is empty, write the error result in §5 and stop.\n\n## Step 2 — Compute target path + path_source (decision rule)\n\nApply this decision rule VERBATIM:\n\n```\nIF shelf_config_present == \"true\" AND slug != \"\" AND base_path != \"\":\n  path_source = \".shelf-config (base_path + slug)\"\n  target_path = \"${base_path}/${slug}/issues/${basename}\"\nELSE:\n  path_source = \"discovery (shelf-config incomplete)\"\n  slug      = $(basename of git remote, .git stripped) ; fallback to \"$(basename $(pwd))\"\n  base_path = \"projects\"\n  target_path = \"${base_path}/${slug}/issues/${basename}\"\n```\n\n`path_source` is one of EXACTLY these two literal strings (no embellishments, no variations):\n- `\".shelf-config (base_path + slug)\"`\n- `\"discovery (shelf-config incomplete)\"`\n\nThe `discovery` branch MUST NOT call `mcp__claude_ai_obsidian-projects__list_files`. \"Discovery\" here means \"fall back to derived defaults\" — NOT vault listing.\n\nExample success path: `@second-brain/projects/ai-repo-template/issues/2026-04-22-smoke-test-1.md`.\n\n## Step 3 — Compose the note content\n\nRender the note with this exact structure (matches `shelf-sync`'s `obsidian-apply` backlog template so notes from both paths converge):\n\n```\n---\ntype: issue\nstatus: <frontmatter.status || \"open\">\nseverity: <derived — see below>\ntype_tag: <frontmatter.type || \"improvement\">\nsource: backlog:<basename>\ngithub_number: null\nproject: \"[[<slug>]]\"\ntags:\n  - source/backlog\n  - severity/<derived-severity>\n  - type/<frontmatter.type || \"improvement\">\n  - category/<frontmatter.category || \"workflow\">\nsummary: <one-line summary derived from frontmatter.title or first H1 of body>\ncategory: <frontmatter.category || \"workflow\">\ndate: <frontmatter.date>\nlast_synced: <current ISO-8601 UTC timestamp, e.g. 2026-04-22T17:03:12Z>\n---\n\n# <frontmatter.title — fall back to first H1 of body, else the basename sans .md>\n\n<body from parse-create-issue-output — verbatim>\n\n*Synced from backlog: `<issue_file>`*\n```\n\nSeverity derivation (from frontmatter):\n- Explicit `severity` field: use verbatim if one of `blocking | high | medium | low`; anything else → `medium`.\n- Missing: `medium`.\n\n## Step 4 — Write via MCP (single call)\n\nCall `mcp__claude_ai_obsidian-projects__create_file({ path: \"<target-path>\", content: \"<composed note>\" })` exactly once.\n\n### Cold-start collision fallback\n\nIf the create call fails with an \"already exists\" (or equivalent \"file exists\", HTTP 409, or path-collision) error, call `mcp__claude_ai_obsidian-projects__patch_file({ path: \"<target-path>\", frontmatter: { source: \"backlog:<basename>\", project: \"[[<slug>]]\", last_synced: \"<now>\", status: \"<frontmatter.status || 'open'>\" } })`.\n\nIMPORTANT: on the patch fallback, DO NOT include `summary`, `tags`, `severity`, `category`, or `type_tag`. Those are INFERRED fields set on creation only and must not be clobbered.\n\nSet result action = `\"created\"` on a successful create, `\"patched\"` on a successful patch fallback.\n\n## Step 5 — Emit result\n\nWrite EXACTLY ONE JSON object to your output file `.wheel/outputs/shelf-write-issue-note-result.json`:\n\nSuccess:\n```json\n{\n  \"issue_file\": \"<the .kiln/issues path from context>\",\n  \"obsidian_path\": \"<target path you wrote to>\",\n  \"action\": \"created\" | \"patched\",\n  \"path_source\": \".shelf-config (base_path + slug)\" | \"discovery (shelf-config incomplete)\",\n  \"errors\": []\n}\n```\n\nError (parse failure / all MCP calls fail):\n```json\n{\n  \"issue_file\": \"<path or empty>\",\n  \"obsidian_path\": \"<target or empty>\",\n  \"action\": \"failed\",\n  \"path_source\": \"unknown\",\n  \"errors\": [\"<short diagnostic>\"]\n}\n```\n\n`path_source` MUST be present in every result JSON — one of the three literal strings above (`.shelf-config (base_path + slug)`, `discovery (shelf-config incomplete)`, or `unknown` on failure).\n\nAn error result MUST NOT crash the sub-workflow — `action: \"failed\"` is returned normally and the caller decides what to do.\n\n## Invariants\n\n- At most ONE successful MCP write per run (either one create OR one patch — never both).\n- No other tool calls after the write + result emission.\n- If `issue_file` cannot be determined, the step still emits the error result (with `path_source: \"unknown\"`) and exits normally.\n- The decision rule for `path_source` uses the structured block from `read-shelf-config` VERBATIM. Do not re-parse `.shelf-config` directly.",
+        "context_from": [
+          "read-shelf-config",
+          "parse-create-issue-output"
+        ],
+        "output": ".wheel/outputs/shelf-write-issue-note-result.json"
+      },
+      {
+        "id": "finalize-result",
+        "type": "command",
+        "command": "RESULT=\".wheel/outputs/shelf-write-issue-note-result.json\"; if [ ! -s \"$RESULT\" ] || ! jq -e . \"$RESULT\" >/dev/null 2>&1; then printf '{\"issue_file\":\"\",\"obsidian_path\":\"\",\"action\":\"failed\",\"path_source\":\"unknown\",\"errors\":[\"obsidian-write agent produced empty or invalid result JSON\"]}\\n' > \"$RESULT\"; fi; echo '## shelf-write-issue-note result'; jq . \"$RESULT\"",
+        "context_from": [
+          "obsidian-write"
+        ],
+        "output": ".wheel/outputs/shelf-write-issue-note-finalize.txt",
+        "terminal": true
+      }
+    ]
+  },
+  "status": "running",
+  "cursor": 3,
+  "owner_session_id": "aadb0be3-5253-4155-9b9f-3a58f2643457",
+  "owner_agent_id": "",
+  "started_at": "2026-04-26T00:00:07.000Z",
+  "updated_at": "2026-04-26T00:02:04.000Z",
+  "steps": [
+    {
+      "id": "read-shelf-config",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-26T00:00:07.000Z",
+      "completed_at": "2026-04-26T00:00:07.000Z",
+      "output": ".wheel/outputs/read-shelf-config.txt",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-shelf-config.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "parse-create-issue-output",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-26T00:00:07.000Z",
+      "completed_at": "2026-04-26T00:00:07.000Z",
+      "output": ".wheel/outputs/parse-create-issue-output.json",
+      "command_log": [
+        {
+          "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/parse-create-issue-output.sh\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:07.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    },
+    {
+      "id": "obsidian-write",
+      "type": "agent",
+      "status": "done",
+      "started_at": "2026-04-26T00:00:07.000Z",
+      "completed_at": "2026-04-26T00:02:04.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-result.json",
+      "command_log": [
+        {
+          "command": "cat .shelf-config 2>/dev/null\necho \"---\"\nls plugin-shelf/skills/shelf-write-issue-note/ 2>/dev/null\nls /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/*/skills/shelf-write-issue-note/ 2>/dev/null | head -5",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:23.000Z"
+        },
+        {
+          "command": "find /Users/ryansuematsu/.claude/plugins/cache -type d -name \"shelf-write-issue-note\" 2>/dev/null\necho \"---\"\nfind /Users/ryansuematsu/.claude/plugins/cache -name \"shelf-write-issue-note.json\" 2>/dev/null",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:27.000Z"
+        },
+        {
+          "command": "cat /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.658/workflows/shelf-write-issue-note.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:38.000Z"
+        },
+        {
+          "command": "echo \"=== read-shelf-config ===\"\ncat .wheel/outputs/read-shelf-config.txt 2>/dev/null\necho\necho \"=== parse-create-issue-output ===\"\ncat .wheel/outputs/parse-create-issue-output.json 2>/dev/null | jq . | head -40",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:45.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/ | head -20\necho \"---\"\necho \"create-issue-result.md content:\"\ncat .wheel/outputs/create-issue-result.md",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:00:53.000Z"
+        },
+        {
+          "command": "ls -la .wheel/outputs/parse-create-issue-output.json\necho \"---\"\nfind /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.658/scripts/ -name \"parse-create-issue-output.sh\" 2>/dev/null\necho \"---script body---\"\ncat /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.658/scripts/parse-create-issue-output.sh 2>/dev/null | head -60",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:01:02.000Z"
+        },
+        {
+          "command": "bash /Users/ryansuematsu/.claude/plugins/cache/yoshisada-speckit/shelf/000.001.009.658/scripts/parse-create-issue-output.sh > .wheel/outputs/parse-create-issue-output.json\necho \"exit=$?\"\necho \"---\"\njq '{issue_file, basename, frontmatter}' .wheel/outputs/parse-create-issue-output.json",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:01:17.000Z"
+        },
+        {
+          "command": "jq -r '.body' .wheel/outputs/parse-create-issue-output.json | head -60",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:01:19.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0,
+      "resolved_inputs": {},
+      "awaiting_user_input": false,
+      "awaiting_user_input_since": null,
+      "awaiting_user_input_reason": null
+    },
+    {
+      "id": "finalize-result",
+      "type": "command",
+      "status": "done",
+      "started_at": "2026-04-26T00:02:04.000Z",
+      "completed_at": "2026-04-26T00:02:04.000Z",
+      "output": ".wheel/outputs/shelf-write-issue-note-finalize.txt",
+      "command_log": [
+        {
+          "command": "RESULT=\".wheel/outputs/shelf-write-issue-note-result.json\"; if [ ! -s \"$RESULT\" ] || ! jq -e . \"$RESULT\" >/dev/null 2>&1; then printf '{\"issue_file\":\"\",\"obsidian_path\":\"\",\"action\":\"failed\",\"path_source\":\"unknown\",\"errors\":[\"obsidian-write agent produced empty or invalid result JSON\"]}\\n' > \"$RESULT\"; fi; echo '## shelf-write-issue-note result'; jq . \"$RESULT\"",
+          "exit_code": 0,
+          "timestamp": "2026-04-26T00:02:04.000Z"
+        }
+      ],
+      "agents": {},
+      "loop_iteration": 0
+    }
+  ],
+  "parent_workflow": ".wheel/state_aadb0be3-5253-4155-9b9f-3a58f2643457_1777161530_28459.json"
+}

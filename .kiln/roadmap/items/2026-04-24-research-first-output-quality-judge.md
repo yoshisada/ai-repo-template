@@ -5,7 +5,8 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 09-research-first
-state: planned
+state: distilled
+prd: docs/features/2026-04-25-research-first-plan-time-agents/PRD.md
 blast_radius: feature
 review_cost: expert
 context_cost: 3 sessions

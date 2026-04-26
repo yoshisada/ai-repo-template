@@ -3,8 +3,9 @@ id: 2026-04-23-wheel-user-input
 title: Wheel user input
 kind: feature
 date: 2026-04-23
-status: in-progress
-state: distilled
+status: shipped
+state: shipped
+pr: 155
 phase: 08-in-flight
 blast_radius: cross-cutting
 review_cost: moderate
