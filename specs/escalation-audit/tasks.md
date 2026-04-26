@@ -80,7 +80,7 @@ description: "Task list for escalation-audit feature implementation"
 
 **Checkpoint**: Phase 4 ends with US2 fully shippable.
 
-- [ ] T027 [impl-themes-ab] Commit Phase 4 with message `feat(roadmap): --check merged-PR cross-reference (FR-005)`.
+- [X] T027 [impl-themes-ab] Commit Phase 4 with message `feat(roadmap): --check merged-PR cross-reference (FR-005)`.
 
 ---
 
