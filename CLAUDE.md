@@ -4,13 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-This is the **kiln** Claude Code plugin (`@yoshisada/kiln`). It provides a spec-first development workflow with 4-gate enforcement, PRD-driven pipelines, integrated QA/debugging agents, and UI/UX evaluation — all as a Claude Code plugin that gets installed into consumer projects.
+This repo is a **mostly-autonomous build system for a solo builder** built as five Claude Code plugins — `kiln` (spec-first pipeline), `clay` (idea → repo), `shelf` (Obsidian mirror), `trim` (design↔code sync), `wheel` (workflow engine). The thesis: **the loop is the product** — captured ideas, feedback, AI mistakes, and roadmap items become PRDs via `/kiln:kiln-distill`, become code via `/kiln:kiln-build-prd`, become precedent for the next loop. The unfair shortcut is **context-informed autonomy** — the system deliberates over accumulated precedent (prior feedback, approved manifest proposals, captured mistakes) to decide when to act vs when to escalate.
+
+Two load-bearing invariants:
+- **Propose-don't-apply** — kiln never auto-merges its own self-improvements; every change routes through a human apply step. Hooks block untraced `src/` edits and `.env` commits.
+- **Senior-engineer-merge bar** — simple code, FR-traced tests, sparse load-bearing comments, useful PR descriptions, retros with actual insight. Hooks are the floor; this bar is the target.
 
 **This is the plugin source repo, not a consumer project.** The `src/` and `tests/` directories don't exist here — they're scaffolded in consumer projects by `plugin-kiln/bin/init.mjs`.
 
 ## Quick Start
 
-New session? Run `/kiln:kiln-resume` to auto-detect where you left off and get your next steps.
+This is a capture → distill → ship → improve loop:
+
+1. **Capture** — `/kiln:kiln-report-issue` (bugs/friction), `/kiln:kiln-feedback` (strategic notes), `/kiln:kiln-roadmap` (typed product-direction items: feature / goal / research / constraint / non-goal / milestone / critique), `/kiln:kiln-mistake` (AI failures).
+2. **Distill** — `/kiln:kiln-distill` bundles open captures into a feature PRD under `docs/features/<date>-<slug>/PRD.md`.
+3. **Ship** — `/kiln:kiln-build-prd <slug>` runs specify → plan → tasks → implement → audit → PR end-to-end via an agent team. Hooks block any `src/` edit until spec + plan + tasks + ≥1 `[X]` task exist.
+4. **Improve** — retros emit `insight_score`-rated PI proposals; `/kiln:kiln-pi-apply` surfaces actionable diffs from accumulated retros; manifest-improvement proposals route through shelf for human apply; AI mistakes captured via `/kiln:kiln-mistake` feed shelf's manifest-improvement proposals.
+
+New session? Run `/kiln:kiln-next` to auto-detect where you left off and get prioritized next steps.
 
 First time? Run `/kiln:kiln-init` to set up kiln in an existing repo, or `/clay:clay-create-repo` for a brand new repo.
 
@@ -35,6 +46,20 @@ cat VERSION                            # check current version
 There is no test suite for the plugin itself. Testing is done by running the pipeline on consumer projects via `/kiln:kiln-build-prd`.
 
 ## Architecture
+
+This repo houses **five plugins** that cooperate via the wheel runtime + shelf MCP mirror:
+
+| Plugin | Role | Entry skill |
+|--------|------|-------------|
+| `kiln` | Spec-first pipeline (specify → plan → tasks → implement → audit) + capture surfaces (issues / feedback / roadmap / mistakes / fixes) + audit / hygiene / PI tooling | `/kiln:kiln-build-prd`, `/kiln:kiln-next` |
+| `clay` | Idea-to-repo flow (research → naming → PRD → repo scaffold) | `/clay:clay-idea` |
+| `shelf` | Obsidian mirror (issues / PRDs / progress sync via MCP); manifest-improvement proposals | `/shelf:shelf-sync` |
+| `trim` | Penpot ↔ code design sync | `/trim:trim-pull` |
+| `wheel` | Workflow engine (hooks, state machines, agent resolver, per-step model selection) | `/wheel:wheel-run` |
+
+Wheel is **plugin-agnostic infrastructure** (vision constraint): it must NOT hold any registry, manifest, or hardcoded path that requires knowledge of another plugin's contents. New agents, skills, hooks, or workflows ship inside their owning plugin without requiring a wheel release. Plugin-prefixed names (`<plugin>:<role>`) plus filesystem-backed harness discovery are the canonical way agents are found — bare names that depend on a central registry are a coupling violation.
+
+Inside `plugin-kiln/`:
 
 ```
 plugin-kiln/
@@ -161,47 +186,13 @@ If a hook blocks you, either:
 
 ## Available Commands
 
-### Project Setup
-- `/kiln:kiln-init` — Add kiln to an existing repo
-- `/kiln:kiln-next` — Pick up where you left off (run at start of every session)
-- `/clay:clay-create-repo` — Create a brand new GitHub repo with kiln
+Run `/kiln:kiln-next` at session start — it surfaces the right command for current state. The full skill catalog is delivered to Claude via runtime context; for a human-readable list, see each plugin's README.
 
-### Kiln Workflow (run in this order)
-1. `/specify` — Create a feature spec (pipeline-internal — stays bare)
-2. `/plan` — Create implementation plan + interface contracts (pipeline-internal — stays bare)
-3. `/tasks` — Generate task breakdown (pipeline-internal — stays bare)
-4. `/implement` — Execute tasks incrementally + PRD audit (pipeline-internal — stays bare)
-5. `/audit` — PRD compliance audit (pipeline-internal — stays bare; also runs inside implement)
+### Plugin behavior conventions
 
-### Debugging (no spec required)
-- `/kiln:kiln-fix [issue]` — Fix a bug without creating a new PRD or spec. Describe the issue or pass a GitHub issue number. Diagnose and fix logic are now inline in `/kiln:kiln-fix`.
+These are non-obvious behaviors that aren't derivable from the skill list itself.
 
-### QA (two workflows — same 4-agent team, different reporter mode)
-- `/kiln:kiln-qa-pass` — **Standalone**. 4-agent team (e2e + chrome + ux + reporter). Findings filed as GitHub issues. Use outside the pipeline.
-- `/kiln:kiln-qa-pipeline` — **Pipeline**. Same 4 agents but reporter routes findings to implementers, waits for fixes, re-tests, then files remaining issues. Used by `/kiln:kiln-build-prd`.
-- `/kiln:kiln-qa-final` — Quick E2E gate. Just runs `npx playwright test` — green/red, no evaluation.
-- `/kiln:kiln-qa-setup` — Install Playwright and scaffold QA test infrastructure
-- `/kiln:kiln-qa-checkpoint` — Quick targeted QA on recently completed flows (feedback loop during implementation)
-- `/kiln:kiln-ux-evaluate` — Standalone UI/UX design review using /chrome
-
-### Other
-- `/kiln:kiln-constitution` — View/update project principles
-- `/kiln:kiln-analyze` — Cross-artifact consistency check
-- `/kiln:kiln-coverage` — Check test coverage gate
-- `/kiln:kiln-build-prd` — Full pipeline via agent teams (specify → plan → tasks → implement → audit → PR)
-- `/kiln:kiln-analyze-issues` — Triage open GitHub issues: categorize, label, flag actionable, suggest closures, create backlog items
-- `/issue [#N]` — Analyze a GitHub issue and propose improvements
-- `/kiln:kiln-report-issue` — Quick capture bugs/friction to `.kiln/issues/`. The foreground path is now lean (4 steps, Apr 2026): `check-existing-issues` → `create-issue` → `write-issue-note` (single Obsidian note via `shelf:shelf-write-issue-note`) → `dispatch-background-sync` (fire-and-forget bg sub-agent). Heavy reconciliation (`shelf-sync` + `shelf-propose-manifest-improvement`) runs only once every `shelf_full_sync_threshold` invocations on the background path.
-- `/kiln:kiln-feedback` — Log strategic product feedback (mission, scope, ergonomics, architecture, direction) to `.kiln/feedback/`. Distinct from `/kiln:kiln-report-issue` (tactical bugs/friction). No wheel workflow, no Obsidian write — just writes the local file and exits. `/kiln:kiln-distill` picks it up on the next run and leads PRD narratives with it.
-- `/kiln:kiln-roadmap` — Capture a product-direction idea as a structured, typed item under `.kiln/roadmap/items/` (replaces the old one-liner scratchpad). Kinds: `feature | goal | research | constraint | non-goal | milestone | critique`. Runs an adversarial interview (≤5 questions, skippable), classifies kind, routes cross-surface (issue / feedback / roadmap) with confirm-never-silent hand-off via the Skill tool, and mirrors to Obsidian via `shelf:shelf-write-roadmap-note`. AI-native sizing only (`blast_radius`, `review_cost`, `context_cost`) — `human_time` / `t_shirt_size` / `effort_days` are schema-forbidden (FR-008). Flags: `--quick` (skip interview, land in `phase: unsorted`), `--vision` (update `.kiln/vision.md`), `--phase start|complete|create <name>` (FR-020 — only one phase in-progress at a time; `--cascade-items` flips planned items to in-phase on start), `--check` (report `state` inconsistencies), `--reclassify` (promote unsorted items to real phases), `--promote <source-path-or-issue-number>` (promote a raw `.kiln/issues/*.md` or `.kiln/feedback/*.md` source into a structured roadmap item with `promoted_from:` back-reference; flips the source to `status: promoted` + `roadmap_item:` with body byte-preservation — FR-006 of workflow-governance). First run auto-migrates legacy `.kiln/roadmap.md` → `.kiln/roadmap.legacy.md` and seeds three named critiques (FR-028, FR-029).
-- `/kiln:kiln-distill` — Bundle open items from `.kiln/feedback/`, `.kiln/roadmap/items/`, AND `.kiln/issues/` into a feature PRD. Feedback + current-phase roadmap items shape the narrative (Background para 2 cites items concretely; `## Implementation Hints` section renders item `implementation_hints:` verbatim per FR-027 of structured-roadmap); issues form the tactical FR layer. Flags: `--phase <name>` (default: current — the phase with `status: in-progress`), `--addresses <critique-id>` (bundle items whose `addresses[]` references the critique), `--kind <kind>` (filter roadmap items by kind — feature / goal / research / constraint / non-goal / milestone / critique), plus legacy `<category>` free-text for issue/feedback filtering. Item state flips `in-phase → distilled` on promotion with a `prd:` back-reference; rolls back if the patch fails. **Step 0.5 un-promoted gate (FR-004/FR-005 of workflow-governance)**: raw `.kiln/issues/*.md` / `.kiln/feedback/*.md` sources that have not been promoted to roadmap items are refused; distill surfaces a confirm-never-silent per-entry accept/skip prompt and invokes `/kiln:kiln-roadmap --promote` for each accepted entry before continuing. Pre-existing PRDs with raw-issue `derived_from:` are grandfathered by construction (FR-008).
-- `/kiln:kiln-mistake` — Capture an AI mistake (wrong assumption, bad tool call, missed context) to `.kiln/mistakes/`. Shelf files a review proposal in `@inbox/open/` on the next sync.
-- `/kiln:kiln-claude-audit` — Audit CLAUDE.md against `plugin-kiln/rubrics/claude-md-usefulness.md` and propose a git-diff-shaped drift report at `.kiln/logs/claude-md-audit-<timestamp>.md`. Never applies edits; human reviews and applies manually. Complements the cheap subcheck in `/kiln:kiln-doctor`.
-- `/kiln:kiln-hygiene` — Full structural-hygiene audit against `plugin-kiln/rubrics/structural-hygiene.md`. Walks the repo for merged-PRD-not-archived items, orphaned top-level folders, and unreferenced `.kiln/` artifacts, then writes a review preview at `.kiln/logs/structural-hygiene-<timestamp>.md`. Never applies edits. `/kiln:kiln-doctor` subcheck `3h` is the cheap-signals tripwire that points at this skill.
-- `/kiln:kiln-hygiene backfill` — One-shot propose-don't-apply backfill of PRD `derived_from:` frontmatter. Writes preview at `.kiln/logs/prd-derived-from-backfill-<timestamp>.md`. Idempotent — safe to re-run.
-- `/kiln:kiln-test [plugin] [test]` — Executable skill-test harness. Invokes real `claude --print --verbose --input-format=stream-json ... --plugin-dir` subprocesses against `/tmp/kiln-test-<uuid>/` fixtures, watched by a classifier agent (no hard timeouts — FR-008). Three forms: `/kiln:kiln-test` (auto-detect plugin from CWD), `/kiln:kiln-test <plugin>` (all tests for that plugin), `/kiln:kiln-test <plugin> <test>` (single test). Tests live under `plugin-<name>/tests/`. Verdict reports at `.kiln/logs/kiln-test-<uuid>.md`; retained scratch dirs at `/tmp/kiln-test-<uuid>/` on failure. V1 ships only the `plugin-skill` substrate; web/CLI/API/mobile substrates are follow-on PRDs. Seed tests: `plugin-kiln/tests/kiln-distill-basic/` + `plugin-kiln/tests/kiln-hygiene-backfill-idempotent/`.
-
-### `.shelf-config` keys (shelf plugin)
+#### `.shelf-config` keys (shelf plugin)
 
 Two counter-gating keys control how often `/kiln:kiln-report-issue`'s background sub-agent runs a full reconciliation. Defaults appended to `.shelf-config` on first read via `plugin-shelf/scripts/shelf-counter.sh ensure-defaults`.
 
@@ -214,7 +205,7 @@ A transient sibling lockfile at `.shelf-config.lock` (gitignored) serializes the
 
 Per-day background logs are written to `.kiln/logs/report-issue-bg-<YYYY-MM-DD>.md` with pipe-delimited lines: `<ISO-8601> | counter_before=N | counter_after=N | threshold=N | action=increment|full-sync|error | notes=<string>`.
 
-### `shelf-sync` no longer nests reflection
+#### `shelf-sync` no longer nests reflection
 
 `shelf:shelf-sync` previously invoked `shelf:shelf-propose-manifest-improvement` as an inline workflow step. That step has been removed (Apr 2026). Reflection is now a separate concern: it's invoked by the `/kiln:kiln-report-issue` background sub-agent when the counter rolls over, or manually via `/shelf:shelf-propose-manifest-improvement`. Direct invocations of `/shelf:shelf-sync` no longer automatically propose manifest improvements.
 
@@ -237,16 +228,6 @@ Stored in `VERSION` file (project root) and synced to `plugin-kiln/package.json`
 - Validate input at system boundaries
 - Hooks will block .env commits automatically
 - QA credentials go in `.kiln/qa/.env.test` (gitignored)
-
-## Active Technologies
-
-Trimmed to the 5 most recent feature branches per `plugin-kiln/rubrics/claude-md-usefulness.md` (`active_technologies_keep_last_n`, default 5). Older entries remain in git history via `git log CLAUDE.md`.
-
-- Bash 5.x (command step scripts); Markdown + JSON (workflow + skill definitions). + wheel engine (`plugin-wheel/`), Obsidian MCP (`mcp__claude_ai_obsidian-manifest__*` for `@inbox/`), `jq` for JSON parsing, standard POSIX utilities (`grep -F` for verbatim match, `date` for ISO dates, `sed`/`tr` for slug derivation). (build/manifest-improvement-subroutine-20260416)
-- Shared project-context reader under `plugin-kiln/scripts/context/` (`read-project-context.sh` + `read-prds.sh` + `read-plugins.sh`) — Bash 5.x + `jq` + POSIX awk; emits deterministic JSON (`LC_ALL=C` + path/name sort) consumed by `/kiln:kiln-roadmap`, `/kiln:kiln-claude-audit`, and `/kiln:kiln-distill`. Multi-theme distill helpers under `plugin-kiln/scripts/distill/` (`select-themes.sh`, `disambiguate-slug.sh`, `emit-run-plan.sh`). No new runtime dependency. (build/coach-driven-capture-ergonomics-20260424)
-- Bash 5.x + `jq` + `awk` + `shasum -a 256` (macOS) / `sha256sum` (Linux) — distill gate helpers (`plugin-kiln/scripts/distill/detect-un-promoted.sh`, `invoke-promote-handoff.sh`) classify raw `.kiln/issues/` and `.kiln/feedback/` candidates via frontmatter reciprocal-link checks; `plugin-kiln/scripts/roadmap/promote-source.sh` writes a new roadmap item with `promoted_from:` back-reference and flips the source to `status: promoted` with SHA-256-validated body byte-preservation (NFR-003). `require-feature-branch-build-prefix` fixture invokes the hook in a disposable `mktemp -d` git repo (no new runtime deps). (build/workflow-governance-20260424)
-- Bash 5.x + `jq` + `python3` (stdlib `json` for hook fallback) — agent resolver (`plugin-wheel/scripts/agents/resolve.sh` + `registry.json`), per-step model resolver (`plugin-wheel/scripts/dispatch/resolve-model.sh` + `model-defaults.json`), agent-step dispatch helpers (`dispatch-agent-step.sh::dispatch_agent_step_path` + `dispatch_agent_step_model`), Option-B `WORKFLOW_PLUGIN_DIR` templating in `plugin-wheel/lib/context.sh::context_build`, hook newline-preserving extraction (`plugin-wheel/hooks/post-tool-use.sh::_extract_command`), batched-step wrapper convention (`plugin-shelf/scripts/step-dispatch-background-sync.sh`). No new runtime dependency. (build/wheel-as-runtime-20260424)
-- Bash 5.x + `jq` + `python3` (stdlib `re`/`json` for YAML frontmatter override parsing) — runtime context-injection composer (`plugin-wheel/scripts/agents/compose-context.sh`) sibling to `resolve.sh` per OQ-4, emits `{subagent_type, prompt_prefix, model_default}` JSON; manifest verb validator (`plugin-wheel/scripts/agents/validate-bindings.sh`); closed verb namespace v1 (`plugin-wheel/scripts/agents/verbs/_index.json`, 6 verbs); closed task-shape vocabulary v1 (`plugin-kiln/lib/task-shapes/_index.json`, 8 shapes) with per-shape stanzas under the same dir; compile-time include resolver for agent boilerplate de-dup (`plugin-kiln/scripts/agent-includes/resolve.sh`, directive `<!-- @include _shared/<name>.md -->` on its own line, hybrid compile-and-commit, fenced-code-block exclusion). No new runtime dependency. (build/agent-prompt-composition-20260425)
 
 ## Architectural Rules — Agent Spawning + Prompt Composition
 
@@ -296,10 +277,11 @@ PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
 
 The composer NEVER calls `Agent` itself — the calling skill is responsible for the spawn. The composer is a pure function: inputs → JSON. Determinism is guaranteed (NFR-6): identical inputs produce byte-identical output, so cache-friendly re-invocation in test fixtures works.
 
-## Recent Changes
-- 2026-04-25: **Wheel agent registry deleted** (sibling cleanup to FR-A1 reversal — see `.kiln/feedback/2026-04-25-fr-a1-wheel-agent-centralization-shipped-2026-04-24.md` and `.kiln/vision.md` "Plugins ship independently — wheel is plugin-agnostic infrastructure" constraint). `plugin-wheel/scripts/agents/registry.json` was a central manifest of every plugin's agents that, by design, required every plugin release to also coordinate with wheel — defeating the independent-shipping principle. With agents living in `plugin-<name>/agents/<role>.md` and registering as `<plugin>:<role>` via the harness's filesystem scan at session start, the registry was vestigial: only resolve.sh's form-c (bare-name lookup) branch consumed it, and no kiln-skill or wheel-workflow caller actually needed bare-name resolution. The simplified resolver (`plugin-wheel/scripts/agents/resolve.sh`, ~60 lines vs prior 172) handles four input forms: absolute path, repo-relative path, plugin-prefixed name (`<plugin>:<role>` → source=passthrough), bare name (legacy back-compat → source=unknown). FR-A3 (resolver primitive), FR-A4 (`agent_path:` workflow JSON field), FR-A5 (resolver-spawn alternative in `/kiln:kiln-fix`) all preserved. `/kiln:kiln-fix` SKILL.md updated to call resolver with `kiln:debugger` (plugin-prefixed) instead of bare `debugger`. Tests adapted: agent-resolver (9→10 assertions), agent-path-dispatch (T042 now uses kiln:debugger), kiln-fix-resolver-spawn (registry-tampering inversion test retired — there's no central registry to tamper with). All 17/17 resolver-suite assertions pass.
-- 2026-04-25: **FR-A1 / FR-A2 reversed** (see `.kiln/feedback/2026-04-25-fr-a1-wheel-agent-centralization-shipped-2026-04-24.md`). The wheel-agent-centralization shipped in build/wheel-as-runtime-20260424 was empirically wrong-headed — wheel is dispatch infrastructure and owned no agents that any wheel workflow consumed. All 10 centralized agents migrated back to `plugin-kiln/agents/<name>.md` (their actual consumer); `plugin-wheel/agents/` directory removed; `plugin-wheel/scripts/agents/registry.json` paths updated; `plugin-wheel/scripts/agents/resolve.sh` canonical-path derivation switched to use registry's `path` field instead of constructing under PLUGIN_ROOT (which was wheel-rooted). The resolver primitive (FR-A3), `agent_path:` workflow JSON field (FR-A4), and resolver-spawn alternative (FR-A5) are PRESERVED — they work whether agents live in wheel or in their consumer plugins. Resolver tests (`plugin-wheel/tests/agent-resolver/`, `agent-path-dispatch/`, `agent-reference-walker/`, `plugin-kiln/tests/kiln-fix-resolver-spawn/`) updated to expect `plugin-kiln/agents/` paths and pass (16/16).
-- build/wheel-as-runtime-20260424: Five themes land under one PRD bundling wheel's runtime contracts. (A) **Agent centralization** (FR-A1..A5) — atomic migration of 10 agents to `plugin-wheel/agents/<name>.md` with symlinks at old paths (NFR-7); shared resolver (`plugin-wheel/scripts/agents/resolve.sh` + `registry.json`) emits a JSON spec given path-or-name; workflow JSON gains optional `agent_path:`; `/kiln:kiln-fix` gains a resolver-spawn alternative (FR-A5, SC-005 anchor `plugin-kiln/tests/kiln-fix-resolver-spawn/`). (B) **Per-step model selection** (FR-B1..B3) — workflow JSON gains optional `model: haiku|sonnet|opus|<id>`; loud-failure on unrecognized tier/id (NFR-2); README + `/plan` SKILL document the rule of thumb (haiku=classify, sonnet=synthesize, opus=hard-reasoning). (C) **Hook newline preservation** (FR-C1..C4) — `post-tool-use.sh` rewritten with jq-first + python3 fallback (`_extract_command`), no pre-flatten; multi-line activation is now first-class; `block-state-write.sh` silent-jq-swallow R-004 sibling fix shipped. (D) **`WORKFLOW_PLUGIN_DIR` env parity** (FR-D1..D4) — Option B shipped after R-001 verdict (Option A infeasible: hook process dies before harness spawn); `plugin-wheel/lib/context.sh::context_build` prepends a `## Runtime Environment` block with the absolute path; consumer-install smoke test at `plugin-wheel/tests/workflow-plugin-dir-bg/` plus NFR-2 tripwire and CI wiring at `.github/workflows/wheel-tests.yml`. (E) **Step-internal command batching** (FR-E1..E4) — 35-step audit at `.kiln/research/wheel-step-batching-audit-2026-04-24.md`; prototype wrapper `plugin-shelf/scripts/step-dispatch-background-sync.sh` with structured JSON + per-action log lines; **honest negative result** (~7ms slower at bash-orchestration layer, within noise) per R-005 — FR-E re-narrowed to audit + wrapper + convention + portability + debuggability. Two architectural seams flagged in `specs/wheel-as-runtime/blockers.md` as documented follow-ons (orchestrator-integration full `type: teammate` threading; cross-plugin script resolution).
-- build/workflow-governance-20260424: Three governance tightenings land in one pipeline run. (1) **Hook verification** (FR-001/FR-002/FR-003) — `plugin-kiln/tests/require-feature-branch-build-prefix/` locks the already-shipped `build/*` accept-list entry in `require-feature-branch.sh`; five cases (positive `build/*`, `main` short-circuit, negative `feature/foo`, negative random, performance within baseline+50ms per NFR-001). (2) **Roadmap-first PRD intake** — `/kiln:kiln-roadmap --promote <source>` (FR-006) promotes a raw `.kiln/issues/` or `.kiln/feedback/` file into a structured roadmap item with `promoted_from:` back-reference; source body is byte-preserved (NFR-003); coached interview pre-fills from source when body ≥ 200 chars (Clarification 5). `/kiln:kiln-distill` gains Step 0.5 un-promoted gate (FR-004/FR-005) that refuses raw sources and surfaces a confirm-never-silent per-entry accept/skip prompt. Three-group `derived_from:` shape (FR-007) preserved on item-only bundles; pre-existing PRDs grandfathered by construction (FR-008). (3) **Retro → source feedback loop** — new `/kiln:kiln-pi-apply` skill consumes GitHub `label:retrospective` issues and emits a propose-don't-apply diff report at `.kiln/logs/pi-apply-<ts>.md` with stable `pi-hash` dedup (FR-009..FR-013). All three sub-initiatives are independently releasable (NFR-004) and ship with dedicated `plugin-kiln/tests/` fixtures. Three governance tightenings land in one pipeline run. (1) **Hook verification** (FR-001/FR-002/FR-003) — `plugin-kiln/tests/require-feature-branch-build-prefix/` locks the already-shipped `build/*` accept-list entry in `require-feature-branch.sh`; five cases (positive `build/*`, `main` short-circuit, negative `feature/foo`, negative random, performance within baseline+50ms per NFR-001). (2) **Roadmap-first PRD intake** — `/kiln:kiln-roadmap --promote <source>` (FR-006) promotes a raw `.kiln/issues/` or `.kiln/feedback/` file into a structured roadmap item with `promoted_from:` back-reference; source body is byte-preserved (NFR-003); coached interview pre-fills from source when body ≥ 200 chars (Clarification 5). `/kiln:kiln-distill` gains Step 0.5 un-promoted gate (FR-004/FR-005) that refuses raw sources and surfaces a confirm-never-silent per-entry accept/skip prompt. Three-group `derived_from:` shape (FR-007) preserved on item-only bundles; pre-existing PRDs grandfathered by construction (FR-008). (3) **Retro → source feedback loop** — new `/kiln:kiln-pi-apply` skill consumes GitHub `label:retrospective` issues and emits a propose-don't-apply diff report at `.kiln/logs/pi-apply-<ts>.md` with stable `pi-hash` dedup (FR-009..FR-013). All three sub-initiatives are independently releasable (NFR-004) and ship with dedicated `plugin-kiln/tests/` fixtures.
-- build/coach-driven-capture-ergonomics-20260424: Shared project-context reader (`plugin-kiln/scripts/context/read-project-context.sh` + `read-prds.sh` + `read-plugins.sh`) emits a deterministic JSON snapshot (schema_version, prds, roadmap_items, roadmap_phases, vision, claude_md, readme, plugins). `/kiln:kiln-roadmap` interview gained a coached layer (per-question suggestion + rationale + accept-all / tweak-then-accept) and an orientation block before Q1; `--vision` now self-drafts from repo evidence with per-section diff on re-run; `/kiln:kiln-claude-audit` grounds findings in project-context and surfaces Anthropic best-practices deltas; `/kiln:kiln-distill` supports multi-theme N-PRD emission with per-PRD `derived_from:` three-group sort, slug disambiguation, run-plan block (N≥2), and per-PRD state-flip partition isolation. NFRs: reader <2s on 50-PRD fixture, byte-identical output on unchanged inputs, byte-identical multi-theme emission on unchanged inputs. Backward compat preserved via `--quick` short-circuit and single-theme no-regression path.
-- build/fix-skill-with-recording-teams-20260420: `/kiln:kiln-fix` gained Step 7 "Record the Fix" — writes a local fix record to `.kiln/fixes/<date>-<slug>.md` and spawns two short-lived teams (`fix-record` for the Obsidian note, `fix-reflect` for an optional manifest-improvement proposal). Debug loop (Steps 2b–5) stays in main chat. New helpers under `plugin-kiln/scripts/fix-recording/`; new manifest type `@manifest/types/fix.md` (staged at `specs/.../assets/manifest-types/fix.md`).
+## Looking up recent changes
+
+Recent changes are tracked authoritatively in three places:
+- `git log` — commit-level granularity
+- `.kiln/roadmap/phases/<active-phase>.md` — current phase's `## Items` list
+- `ls docs/features/` — date-prefixed PRD directories (most recent first)
+
+Run `/kiln:kiln-next` for a synthesis of recent activity + suggested next steps.
