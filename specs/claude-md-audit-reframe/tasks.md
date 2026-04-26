@@ -180,7 +180,7 @@ Each fixture directory under `plugin-kiln/tests/` follows the existing `claude-a
 - [X] T201 [auditor] Run `/kiln:kiln-test plugin-kiln` end-to-end. Verify all 19 new fixtures pass + 0 regressions in pre-existing fixtures (SC-010)
 - [X] T202 [auditor] Run `/kiln:kiln-claude-audit` against the source kiln repo's actual CLAUDE.md and review the produced log under `.kiln/logs/`. Sanity-check: ≥3 plugins now ship guidance (SC-004); the proposed `## Plugins` section is non-empty and alphabetical; no signals fire on a section the auditor judges to be valid product/feedback-loop content
 - [X] T203 [auditor] Smoke-test idempotence — run the audit twice on the source kiln repo and `diff -u` the two log files (header timestamp excepted). Verify byte-identical bodies (SC-006)
-- [ ] T204 [auditor] Create PR via `gh pr create` with title `CLAUDE.md audit reframe — content classification + plugin-guidance sync + vision sync`, body cites this PRD + spec, label `build-prd`. Notify `retrospective` once PR is open
+- [X] T204 [auditor] Create PR via `gh pr create` with title `CLAUDE.md audit reframe — content classification + plugin-guidance sync + vision sync`, body cites this PRD + spec, label `build-prd`. Notify `retrospective` once PR is open
 
 **Checkpoint 3**: PR open and ready for human review. Auditor signs off.
 
