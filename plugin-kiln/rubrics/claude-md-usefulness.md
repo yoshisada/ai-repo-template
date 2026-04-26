@@ -131,3 +131,184 @@ cached: false
 The editorial LLM receives each section body plus a small inventory of the current repo (plugin directories that exist, skill directories under each plugin, workflow file names) and is asked whether the section's claims still match the repo. Mismatch = signal fires with `removal-candidate` action; the diff proposes removal and includes the LLM's one-line justification as a diff comment. On LLM failure, mark `inconclusive`.
 
 Known false-positive shape: aspirational sections ("Planned: X") that describe work-in-progress. The LLM prompt instructs the model to only flag sections that describe features claimed to exist NOW; aspirational wording is left alone.
+
+---
+
+## Reframe rules — content classification + sync (claude-md-audit-reframe, FR-001..FR-008, FR-022..FR-029)
+
+The seven rules above are the **drift-reducer** axis (content that aged badly). The rules below are the **coverage** axis — they classify what each section is FOR and flag content that is fundamentally not pulling its weight regardless of age.
+
+The classification call (FR-001) runs ONCE per audited file, before any rule-firing. It returns one of `product | feedback-loop | convention-rationale | plugin-surface | preference | unclassified` per `## ` heading. Classification-driven rules below carry a `classification_input:` field naming which class triggers them.
+
+Three new schema fields appear on rules in this section:
+
+- `classification_input: <class>` — rule fires only on sections classified as that class. Multiple classes joined with ` | `.
+- `sort_priority: top` — Signal Summary table places this rule's rows at row 1 regardless of default sort order (FR-025). Currently only `product-undefined` uses it.
+- `target_file: <path>` — rule runs against this file instead of the audited CLAUDE.md (FR-026). `render_section: <name>` steers the rule's findings into a dedicated subsection of the audit output.
+
+Three new `action` enum values appear on rules in this section:
+
+- `expand-candidate` — proposed diff inserts a placeholder for the user to fill (e.g., a `Why:` line, a `## Product` scaffold).
+- `sync-candidate` — proposed diff replaces a section with content sourced from a managed file (e.g., `## Plugins` from per-plugin guidance, `## Product` from `vision.md`).
+- `correction-candidate` — proposed diff strikes content asserted to be enforced but not actually present (e.g., a hook claim with no enforcing hook).
+
+### enumeration-bloat
+
+```yaml
+rule_id: enumeration-bloat
+signal_type: editorial
+cost: editorial
+classification_input: plugin-surface
+match_rule: section classification (FR-001) returned `plugin-surface` AND no exclude_section_from_classification override matched
+action: removal-candidate
+rationale: Claude receives the available skills / agents / commands list at runtime; re-enumerating it duplicates context and drifts on rename.
+cached: false
+```
+
+Fires on every section the classifier returns as `plugin-surface` (e.g., a `## Available Commands` section enumerating slash commands, a `## Agents` list, an explicit hook inventory). The diff proposes removing the section in full. The rationale citation is verbatim: "Claude receives available skills / agents / commands via runtime context."
+
+This is the ONE carve-out from `load-bearing-section`'s precedence (FR-031). When `enumeration-bloat` and `load-bearing-section` both fire on the same section, `enumeration-bloat` WINS — re-enumerating runtime-provided context is bloat even if a skill happens to cite the section by name. All other rules continue to lose to `load-bearing-section`.
+
+Known false-positive shape: a section the maintainer wants to keep enumerated despite the runtime overlap (a one-of preference, not drift). Override via `.kiln/claude-md-audit.config`'s `exclude_section_from_classification = <regex> # reason: ...` — matched sections are reclassified as `preference` and never fire `enumeration-bloat`.
+
+### benefit-missing
+
+```yaml
+rule_id: benefit-missing
+signal_type: editorial
+cost: editorial
+classification_input: convention-rationale | feedback-loop
+match_rule: editorial LLM evaluation — section body lacks any sentence answering "why does this matter" (rationale phrasing: "because", "without this", "prevents", "so that", or a `Why:` line)
+action: expand-candidate
+rationale: Plain rules without rationale drift; Claude follows a rule with a "why" but skips one without.
+cached: false
+```
+
+Fires on `convention-rationale` or `feedback-loop` sections whose body contains no rationale phrasing. The diff proposes inserting a placeholder `Why:` line at the end of the section for the user to fill.
+
+The cheap pre-filter (regex for the keywords listed in `match_rule`) runs first; only sections that lack the keywords are passed to the LLM for the final benefit-missing judgment. Sections containing `Why:` or any of the keywords short-circuit to "rule does not fire" without an LLM call.
+
+Known false-positive shape: a section whose rationale lives in the immediately-following section header (e.g., a heading that IS the rationale). Override via per-section disable in the config or by adding a one-line `Why:` summary to the body.
+
+### loop-incomplete
+
+```yaml
+rule_id: loop-incomplete
+signal_type: editorial
+cost: editorial
+match_rule: at least one of `.kiln/issues/`, `.kiln/feedback/`, `.kiln/roadmap/`, `.kiln/mistakes/`, `.kiln/fixes/` is non-empty AND CLAUDE.md does not name `/kiln:kiln-distill` (or the canonical consumer of capture surfaces)
+action: expand-candidate
+rationale: Capture surfaces without a named consumer become isolated tools; the loop is the product per `.kiln/vision.md`.
+cached: false
+```
+
+Fires once per file (not per section) when the repo has populated capture surfaces but CLAUDE.md never names the canonical consumer (`/kiln:kiln-distill`) or the expected output (PRD → spec → code). The proposed diff inserts a linkage paragraph naming `/kiln:kiln-distill` and the PRD chain.
+
+A cheap pre-check first verifies capture-surface presence (`find .kiln/issues -mindepth 1 -name '*.md'` etc.) and CLAUDE.md non-mention of `/kiln:kiln-distill` (`grep -F`). Only when both pre-checks pass does the LLM judge whether the existing CLAUDE.md content already names an equivalent consumer — false positives cluster here, so the LLM gets the final call.
+
+Known false-positive shape: CLAUDE.md uses a different (custom) consumer surface and the maintainer prefers it. Override by disabling the rule.
+
+### hook-claim-mismatch
+
+```yaml
+rule_id: hook-claim-mismatch
+signal_type: editorial
+cost: editorial
+match_rule: extract claims about hook behavior from CLAUDE.md; for each claim, grep `plugin-*/hooks/*.sh` for the named hook + claim keywords; fire when grep returns 0 hits
+action: correction-candidate
+rationale: Claims about hook behavior that no hook enforces actively mislead Claude; worse than missing content.
+cached: false
+```
+
+Two-pass: (1) cheap pre-pass extracts hook-claim sentences from CLAUDE.md (sentences containing the word `hook` plus an enforcement verb like `block`, `bump`, `enforce`, `prevent`, or naming a `*-hook` / `<name>.sh` token). (2) for each candidate claim, grep `plugin-*/hooks/*.sh` for the named hook and the enforcement keywords; if grep returns 0 hits, fire with `correction-candidate`.
+
+Per FR-008, this rule is **scoped to static text presence only**. Semantic verification (does the hook actually block X at runtime? does a `jq` filter inside the hook silently bypass the claim?) is out of scope. False positives from grep-missing-jq-filtered-logic are accepted; the output is human-reviewed.
+
+Known false-positive shape: a claim about a hook that lives in a different plugin (e.g., a wheel hook referenced from kiln docs). The grep across `plugin-*/hooks/*.sh` is repo-wide, but only matches files matching `*.sh` — claims about wheel hooks compiled differently can produce false positives. Override per-claim by editing the wording or disabling the rule.
+
+### product-undefined
+
+```yaml
+rule_id: product-undefined
+signal_type: freshness
+cost: cheap
+match_rule: CLAUDE.md has no `## Product` section AND `.kiln/vision.md` does not exist
+action: expand-candidate
+rationale: CLAUDE.md without a Product section never tells Claude what the product IS — only how to operate the build pipeline.
+cached: false
+sort_priority: top
+```
+
+Fires once per audit when both `## Product` is absent from CLAUDE.md AND `.kiln/vision.md` does not exist in the repo. The proposed diff is combined: it creates `.kiln/vision.md` from the template at `plugin-kiln/templates/vision-template.md` AND adds a `## Product` placeholder section to CLAUDE.md.
+
+The `sort_priority: top` field places this signal at row 1 of the Signal Summary table whenever it fires (FR-025, SC-007). This signal is the highest-leverage finding — a CLAUDE.md without a product narrative leaves Claude operating the pipeline without knowing what the pipeline is FOR.
+
+Known false-positive shape: a repo that genuinely has no product (e.g., a meta-tooling plugin used standalone). Override via `.kiln/claude-md-audit.config`'s `product_sync = false  # reason: ...` — when set, all `product-*` rules are suppressed.
+
+### product-slot-missing
+
+```yaml
+rule_id: product-slot-missing
+signal_type: editorial
+cost: editorial
+match_rule: editorial LLM evaluation against `.kiln/vision.md` — fires once per slot of the 7-slot schema (FR-024) that is empty or contains template placeholder text
+action: expand-candidate
+rationale: Vision slots without content silently propagate template placeholders into CLAUDE.md via FR-022 sync.
+cached: false
+target_file: .kiln/vision.md
+render_section: Vision.md Coverage
+```
+
+Runs against `.kiln/vision.md`, NOT CLAUDE.md (`target_file` override). Evaluates each of the 7 slots from FR-024 (one-line summary, primary user, top-3 jobs, non-goals, current phase, north-star metric, key differentiator). Fires one signal per empty / placeholder-filled slot.
+
+Findings render under a dedicated `### Vision.md Coverage` sub-section (`render_section` override) so they don't intermix with CLAUDE.md findings. The 7 slots are enumerated in fixed order in the table — slots that DID NOT fire render as ✅ filled rows, so the maintainer sees the full coverage shape every run.
+
+Known false-positive shape: a slot the maintainer intentionally left as a non-applicable placeholder (e.g., "non-goals" empty for a product still pre-launch). The rule cannot distinguish "intentionally empty" from "forgot to fill"; override the slot's signal via per-rule disable, or add a single sentence noting the omission is intentional.
+
+### product-section-stale
+
+```yaml
+rule_id: product-section-stale
+signal_type: freshness
+cost: cheap
+match_rule: byte-compare current `## Product` section against the synced-from-vision composition (per FR-023 + FR-028); fire when bodies differ. Sub-signal fires when vision.md is >40 lines AND has no fenced markers.
+action: sync-candidate
+rationale: Drift between CLAUDE.md's Product section and vision.md silently misrepresents the product narrative.
+cached: false
+```
+
+Composes the synced `## Product` section from `vision.md` per FR-023 (whole file ≤40 lines, OR fenced region delimited by `<!-- claude-md-sync:start --> ... <!-- claude-md-sync:end -->`) with header demotion per FR-028 (`#` → `## Product`, `##` → `###`). Byte-compares against the current `## Product` section in CLAUDE.md. Differing bodies fire with `sync-candidate`; the diff replaces the section in full (one hunk).
+
+**Sub-signal** (per spec.md Edge Cases): when `vision.md` is >40 lines AND has no `claude-md-sync:start/end` markers, fire under `product-section-stale` with action `expand-candidate` proposing the user add markers around a summary region. Do NOT mirror the long file — that would bloat CLAUDE.md and undo the reframe.
+
+Known false-positive shape: not applicable — `## Product` is machine-managed (FR-022), so any divergence is by definition stale. Override via `product_sync = false`.
+
+## Signal reconciliation (FR-031, extends existing precedence)
+
+The existing precedence rule still applies: any signal on a section that also carries `load-bearing-section` is demoted to `keep (load-bearing)` in the Signal Summary table — no diff proposed. The seven pre-existing rules are unchanged on this axis.
+
+The new rules add ONE carve-out:
+
+```text
+For each signal S on section X:
+  if any signal exists on X with rule_id == load-bearing-section
+     AND S.rule_id != enumeration-bloat:
+       demote S to keep (load-bearing); no diff proposed
+  if S.rule_id == enumeration-bloat
+     AND S.classification_input == plugin-surface:
+       S WINS over load-bearing-section; diff proposed
+  if S.rule_id starts with "product-":
+       no conflict with load-bearing-section possible (## Product is machine-managed)
+```
+
+The rationale: `plugin-surface` content is bloat by definition (Claude already receives the runtime context); a load-bearing reference to a bloated section is itself a smell that should be fixed at the citation site, not preserved in CLAUDE.md.
+
+The `product-*` rules don't conflict with `load-bearing-section` because `## Product` is machine-managed — its content is replaced wholesale on each sync. Skills citing the section by name continue to work; only the content underneath changes.
+
+## Convention Notes
+
+`.claude-plugin/claude-guidance.md` is a **kiln-specific convention** — not an Anthropic Claude Code primitive. The file is read by `/kiln:kiln-claude-audit` (FR-009..FR-016 of `specs/claude-md-audit-reframe/`) to build a managed `## Plugins` section in CLAUDE.md.
+
+**Migration path**: if Anthropic ships an official field for Claude-facing plugin guidance (e.g., `plugin.json:claudeGuidance` or equivalent), migrate to the official field and deprecate this convention within one release cycle. Mark this section deprecated, update `kiln-claude-audit` to read the official field as the primary source with `claude-guidance.md` as fallback, then remove the fallback after one release.
+
+**External anchor**: <https://code.claude.com/docs/en/best-practices#write-an-effective-claude-md> is the rubric's external alignment target (FR-018).

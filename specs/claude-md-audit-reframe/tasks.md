@@ -47,15 +47,15 @@ description: "Task list for CLAUDE.md Audit Reframe — content classification +
 
 ### Phase 2A.1 — Rubric extension (FR-001..FR-008, FR-019, FR-022..FR-029, FR-030, FR-031)
 
-- [ ] T010 [impl-audit-logic] Append rule entry `enumeration-bloat` to `plugin-kiln/rubrics/claude-md-usefulness.md` per contracts §1.1 (FR-002)
-- [ ] T011 [impl-audit-logic] Append rule entry `benefit-missing` per contracts §1.1 (FR-005)
-- [ ] T012 [impl-audit-logic] Append rule entry `loop-incomplete` per contracts §1.1 (FR-006)
-- [ ] T013 [impl-audit-logic] Append rule entry `hook-claim-mismatch` per contracts §1.1 (FR-007, FR-008)
-- [ ] T014 [impl-audit-logic] Append rule entry `product-undefined` with `sort_priority: top` per contracts §1.1 (FR-025)
-- [ ] T015 [impl-audit-logic] Append rule entry `product-slot-missing` with `target_file` + `render_section` per contracts §1.1 (FR-026)
-- [ ] T016 [impl-audit-logic] Append rule entry `product-section-stale` per contracts §1.1 (FR-027)
-- [ ] T017 [impl-audit-logic] Add `## Convention Notes` section per contracts §1.2 (FR-019)
-- [ ] T018 [impl-audit-logic] Add Signal Reconciliation section codifying FR-031 precedence (`enumeration-bloat` > `load-bearing-section` for `plugin-surface`) per contracts §1.4
+- [X] T010 [impl-audit-logic] Append rule entry `enumeration-bloat` to `plugin-kiln/rubrics/claude-md-usefulness.md` per contracts §1.1 (FR-002)
+- [X] T011 [impl-audit-logic] Append rule entry `benefit-missing` per contracts §1.1 (FR-005)
+- [X] T012 [impl-audit-logic] Append rule entry `loop-incomplete` per contracts §1.1 (FR-006)
+- [X] T013 [impl-audit-logic] Append rule entry `hook-claim-mismatch` per contracts §1.1 (FR-007, FR-008)
+- [X] T014 [impl-audit-logic] Append rule entry `product-undefined` with `sort_priority: top` per contracts §1.1 (FR-025)
+- [X] T015 [impl-audit-logic] Append rule entry `product-slot-missing` with `target_file` + `render_section` per contracts §1.1 (FR-026)
+- [X] T016 [impl-audit-logic] Append rule entry `product-section-stale` per contracts §1.1 (FR-027)
+- [X] T017 [impl-audit-logic] Add `## Convention Notes` section per contracts §1.2 (FR-019)
+- [X] T018 [impl-audit-logic] Add Signal Reconciliation section codifying FR-031 precedence (`enumeration-bloat` > `load-bearing-section` for `plugin-surface`) per contracts §1.4
 
 **Checkpoint 2A.1**: Rubric parses successfully (run existing skill against any CLAUDE.md and verify it still loads). Commit.
 
