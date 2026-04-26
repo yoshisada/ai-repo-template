@@ -43,7 +43,7 @@
 
 **Purpose**: Land the FR-005..FR-008 distill propagation logic and the FR-009..FR-012 build-prd Phase 2.5 stanza. Both edit SKILL.md files; sequential within phase to avoid edit conflicts.
 
-- [ ] **T006** [B] [FR-005 / FR-006 / FR-007 / FR-008 / NFR-003 / NFR-005 / Decision 5 / §5 / §6] Extend `plugin-kiln/skills/kiln-distill/SKILL.md` with the propagation step run BEFORE the existing PRD-emission step. The step:
+- [X] **T006** [B] [FR-005 / FR-006 / FR-007 / FR-008 / NFR-003 / NFR-005 / Decision 5 / §5 / §6] Extend `plugin-kiln/skills/kiln-distill/SKILL.md` with the propagation step run BEFORE the existing PRD-emission step. The step:
     1. Loads frontmatter JSON projections for every selected source (using the appropriate parser per artifact type — `parse-item-frontmatter.sh` for items, `parse-prd-frontmatter.sh` for PRDs, the new sibling parser from T003 if created for issues + feedback).
     2. Detects conflicts via the §5 conflict-detection jq expression. If conflicts exist, surface the §6 prompt and resolve via stdin input. On `abandon` / EOF, exit 2 without writing the PRD.
     3. Computes the union-merged `empirical_quality[]` via the §5 canonical jq expression (sorted ASC by metric, ties on direction; priority promotion `primary > secondary`).
@@ -52,7 +52,7 @@
     6. If ANY source declares `needs_research: true`, sets the propagated `needs_research: true` AND emits the research-block keys in the PRD frontmatter per the §1 authoritative key order (FR-004).
     7. If NO source declares `needs_research: true`, OMITS the research-block keys entirely — PRD frontmatter is byte-identical to pre-PR (NFR-005 / FR-008).
 
-- [ ] **T007** [B] [FR-009 / FR-010 / FR-011 / FR-012 / NFR-002 / Decision 2 / Decision 4 / Decision 7 / §7] Extend `plugin-kiln/skills/kiln-build-prd/SKILL.md` with the new "Phase 2.5: research-first variant" stanza inserted between the existing `/tasks` step and the existing `/implement` step. The stanza:
+- [X] **T007** [B] [FR-009 / FR-010 / FR-011 / FR-012 / NFR-002 / Decision 2 / Decision 4 / Decision 7 / §7] Extend `plugin-kiln/skills/kiln-build-prd/SKILL.md` with the new "Phase 2.5: research-first variant" stanza inserted between the existing `/tasks` step and the existing `/implement` step. **DONE**: shipped as Step 2.5 in build-prd SKILL.md (between Step 2 "Create Team and Tasks" and Step 3 "Spawn Teammates" — that team-orchestrated structure is the moral equivalent of "between /tasks and /implement"). Skip-path is structural no-op (single jq lookup, no stdout); variant path orchestrates baseline → worktree-implement → measure → gate inline; gate-pass routes to existing audit + PR; gate-fail halts before audit/PR with verbatim per-axis report and `Bail out! research-first-gate-failed:` banner. The stanza:
     1. Probes the projected PRD frontmatter JSON for `needs_research: true` via single jq lookup (already-parsed JSON; NO new subprocess fork on skip path per NFR-002).
     2. SKIP-PATH (NFR-002 byte-identity, Decision 7): if `needs_research: true` is absent or false, return immediately. NO stdout, NO log line, NO observable side-effect. Add a comment in SKILL.md prose: "skip-path: structural no-op — single jq lookup on already-parsed JSON; NEVER emit stdout on skip path".
     3. VARIANT PATH (`needs_research: true`):

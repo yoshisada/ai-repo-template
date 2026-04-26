@@ -297,6 +297,159 @@ N_SELECTED=$(echo "$SELECTION_JSON" | jq '.selected_slugs | length')
 
 `select-themes.sh` preserves input order (contract: "Selection MUST preserve input order") so downstream emission stays deterministic.
 
+## Step 3.5: Research-Block Propagation (FR-005 — FR-008 of research-first-completion)
+
+<!-- T006 / FR-005 / FR-006 / FR-007 / FR-008 / NFR-003 / NFR-005 /
+     contracts/interfaces.md §5 + §6 (research-first-completion).
+     Propagate optional research-block fields (needs_research,
+     empirical_quality, fixture_corpus, fixture_corpus_path,
+     promote_synthesized, excluded_fixtures) from selected source artifacts
+     into the generated PRD frontmatter. Skip path is byte-identical (FR-008
+     / NFR-005). -->
+
+Before emitting per-theme PRDs in Step 4, project research-block fields
+from every selected source artifact, detect conflicts, and union-merge into
+a per-theme research-block JSON that the frontmatter writer will inline
+between the `theme:` key and any future schema extension. **Skip when no
+selected source declares `needs_research: true`** — this preserves byte-
+identity (NFR-005) for backlogs without research-block intent.
+
+### §3.5.1 — Per-theme research-block JSON
+
+Per theme, walk the bundled entries (`BUNDLED_ENTRIES_JSON` from Step 4's
+loop preview) and extract research-block fields from each via
+`plugin-kiln/scripts/research/parse-research-block.sh`:
+
+```bash
+# RESEARCH_PARSER is the universal frontmatter→research-block extractor
+# (handles items / issues / feedback uniformly via flow-style YAML parse).
+RESEARCH_PARSER="plugin-kiln/scripts/research/parse-research-block.sh"
+
+per_theme_research_jsons=()  # one JSON projection per source path
+for path in $FEEDBACK_PATHS $ITEM_PATHS $ISSUE_PATHS; do
+  proj=$(bash "$RESEARCH_PARSER" "$path" 2>/dev/null) || continue
+  per_theme_research_jsons+=("$proj")
+done
+
+# Collapse to a single JSON array (one entry per source).
+SOURCES_JSON=$(printf '%s\n' "${per_theme_research_jsons[@]}" | jq -s -c '.')
+```
+
+### §3.5.2 — Detect conflicts (FR-006 / NFR-004)
+
+Conflicts arise when two or more sources declare the **same** `metric` with
+**different** `direction` values, or different scalar values for any of
+`fixture_corpus | fixture_corpus_path | promote_synthesized`, or different
+`reason` for the same `excluded_fixtures[].path`.
+
+```bash
+# Axis-direction conflicts (per metric).
+AXIS_CONFLICTS=$(jq -c '
+  [.[] | (.empirical_quality // []) | .[]]
+  | group_by(.metric)
+  | map(select((map(.direction) | unique | length) > 1))
+' <<<"$SOURCES_JSON")
+
+# Scalar-value conflicts (per scalar key).
+SCALAR_CONFLICTS=$(jq -c '
+  reduce .[] as $s ({};
+    (.fixture_corpus // []) += ([$s.fixture_corpus] | map(select(. != null))) |
+    (.fixture_corpus_path // []) += ([$s.fixture_corpus_path] | map(select(. != null))) |
+    (.promote_synthesized // []) += ([$s.promote_synthesized] | map(select(. != null)))
+  )
+  | to_entries
+  | map(select((.value | unique | length) > 1))
+' <<<"$SOURCES_JSON")
+```
+
+If `AXIS_CONFLICTS` or `SCALAR_CONFLICTS` are non-empty, surface the
+**FR-006 conflict prompt** (verbatim shape from contracts §6):
+
+```
+Conflict on <key>: <metric-or-scalar-key>
+  <source-path-A> declares <key>: <value-A>
+  <source-path-B> declares <key>: <value-B>
+  ...
+Pick one <key> or specify a third.
+> _
+```
+
+The user picks one of the listed values OR types a fresh value (validated
+against the relevant ALLOWED enum). Typing `abandon` or sending EOF →
+distill **exits 2 without writing the PRD**. Empty input → re-prompts. NO
+cap on N (OQ-1 — confirmed no cap in v1).
+
+This is a **confirm-never-silent** prompt — distill MUST NOT silently merge
+or pick a winner. NFR-004 verbatim contract: bad shape "axes conflict,
+please resolve"; good shape names both source paths and both
+`(metric, direction)` pairs.
+
+### §3.5.3 — Union-merge axes (FR-005 — canonical jq expression)
+
+After conflicts are resolved (or absent), compute the merged research-block
+per theme. The canonical jq expression is the single source of truth for
+axis ordering (NFR-003 determinism hook):
+
+```bash
+MERGED_AXES=$(jq -c '
+  [.[] | (.empirical_quality // []) | .[]]
+  | group_by(.metric + ":" + .direction)
+  | map({
+      metric: .[0].metric,
+      direction: .[0].direction,
+      priority: (
+        if any(.priority == "primary") then "primary" else "secondary" end
+      )
+    } + (
+      if .[0].metric == "output_quality" then {rubric: .[0].rubric} else {} end
+    ))
+  | sort_by(.metric, .direction)
+' <<<"$SOURCES_JSON")
+```
+
+Scalar-key propagation (FR-007 verbatim — no synthesis, no normalization):
+
+```bash
+NEEDS_RESEARCH=$(jq -r 'any(.needs_research == true)' <<<"$SOURCES_JSON")
+FIXTURE_CORPUS=$(jq -r 'map(.fixture_corpus) | map(select(. != null)) | unique | first // empty' <<<"$SOURCES_JSON")
+FIXTURE_CORPUS_PATH=$(jq -r 'map(.fixture_corpus_path) | map(select(. != null)) | unique | first // empty' <<<"$SOURCES_JSON")
+PROMOTE_SYNTHESIZED=$(jq -r 'map(.promote_synthesized) | map(select(. != null)) | unique | first // empty' <<<"$SOURCES_JSON")
+EXCLUDED_FIXTURES=$(jq -c '
+  [.[] | (.excluded_fixtures // []) | .[]]
+  | group_by(.path)
+  | map(.[0])
+  | sort_by(.path)
+' <<<"$SOURCES_JSON")
+```
+
+### §3.5.4 — Skip path (FR-008 byte-identity)
+
+When `NEEDS_RESEARCH` is `false` (no source declared `needs_research: true`),
+distill **OMITS all research-block keys** from the generated PRD frontmatter
+and emits the existing three-key skeleton (`derived_from`, `distilled_date`,
+`theme`) byte-identically to pre-research-first behavior (NFR-005). No
+"needs_research: false" key is written; structural absence is the byte-
+identity reference path (matches the classifier NFR-006 pattern).
+
+### §3.5.5 — Emit research-block keys (FR-005 / FR-007 / contracts §1)
+
+When `NEEDS_RESEARCH == true`, the frontmatter emitter inlines the
+research-block keys **after** `theme:` in this exact order (contracts §1
+PRD frontmatter authoritative key order):
+
+```yaml
+theme: <theme-slug>
+needs_research: true
+empirical_quality: <merged_axes_inline_flow>
+fixture_corpus: <value>            # only when set
+fixture_corpus_path: <value>       # only when set
+promote_synthesized: <bool>        # only when set
+excluded_fixtures: <list>          # only when non-empty
+```
+
+Empty / null scalar keys are OMITTED entirely (NOT emitted as `null`) —
+absence is the structural-default per the schema contract.
+
 ## Step 4: Generate the Feature PRD(s)
 
 Using the selected themes, generate **one PRD per selected theme** — loop over `SELECTED_SLUGS` and emit N distinct PRDs (FR-017 of `coach-driven-capture-ergonomics`). Each PRD follows the same structure as `/kiln:kiln-create-prd` Mode B (feature addition), and each PRD independently satisfies the `derived_from:` three-group determinism invariant (FR-020 / NFR-003).
