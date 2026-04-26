@@ -140,11 +140,11 @@
 
 **Purpose**: Per team-lead's launch directive (PI-2 from issue #181) — write friction notes, commit final state, smoke-pass at least one E2E fixture.
 
-- [ ] **T024** [E] [FR-009-PRD] Write `specs/research-first-completion/agent-notes/implementer.md` with: friction encountered during the four phases, decisions deviated from plan.md (with rationale), gaps documented in blockers.md (if any), handoff notes for the auditor.
+- [X] **T024** [E] [FR-009-PRD] Write `specs/research-first-completion/agent-notes/implementer.md` with: friction encountered during the four phases, decisions deviated from plan.md (with rationale), gaps documented in blockers.md (if any), handoff notes for the auditor.
 
-- [ ] **T025** [E] Run `bash plugin-kiln/tests/research-first-e2e/run.sh` standalone (per FR-019 PASS-cite fallback). Assert exit 0 + `PASS` on last line. Capture stdout to `specs/research-first-completion/agent-notes/e2e-smoke-output.txt` for auditor evidence.
+- [X] **T025** [E] Run `bash plugin-kiln/tests/research-first-e2e/run.sh` standalone (per FR-019 PASS-cite fallback). Assert exit 0 + `PASS` on last line. Capture stdout to `specs/research-first-completion/agent-notes/e2e-smoke-output.txt` for auditor evidence.
 
-- [ ] **T026** [E] Mark Task #2 in team task list as `completed`. Notify auditor via SendMessage to start Task #3.
+- [X] **T026** [E] Mark Task #2 in team task list as `completed`. Notify auditor via SendMessage to start Task #3.
 
 ---
 
