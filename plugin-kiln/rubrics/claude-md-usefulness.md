@@ -40,15 +40,21 @@ These live under rule entries that reference them. Overridable from `.kiln/claud
 rule_id: load-bearing-section
 signal_type: load-bearing
 cost: cheap
-match_rule: grep -F "CLAUDE.md" across plugin-*/skills plugin-*/agents plugin-*/hooks plugin-*/workflows templates/; cross-reference the cited section header
+match_rule: grep -F "CLAUDE.md" across plugin-*/skills plugin-*/agents plugin-*/hooks plugin-*/workflows templates/; cross-reference the cited section header; PROSE-only — citations from inside a rule's `match_rule:` field do NOT count (claude-audit-quality FR-018)
 action: keep
-rationale: Sections cited by name from a skill/agent/hook must never be removed — doing so silently breaks those references.
+rationale: Sections cited by name from a skill/agent/hook/workflow PROSE must never be removed — doing so silently breaks those references at runtime.
 cached: false
 ```
 
-A section is "load-bearing" if any file under `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, or `templates/` cites it by phrase-match ("per CLAUDE.md", "see the X section of CLAUDE.md", or cites the section-header text verbatim). The inventory under `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` is the authoritative starting list. When fired, the diff contains NO change for that section — the rule only ever emits a `keep` action so downstream rules know not to touch it.
+A section is "load-bearing" if any file under `plugin-*/skills/`, `plugin-*/agents/`, `plugin-*/hooks/`, `plugin-*/workflows/`, or `templates/` cites it **from prose** — i.e., from instructions, descriptions, error messages, or any narrative text — by phrase-match ("per CLAUDE.md", "see the X section of CLAUDE.md", or cites the section-header text verbatim). The inventory under `specs/kiln-self-maintenance/agent-notes/phase-r-inventory.md` is the authoritative starting list. When fired, the diff contains NO change for that section — the rule only ever emits a `keep` action so downstream rules know not to touch it.
 
-Known false-positive shape: a plugin that greps the literal string `CLAUDE.md` as part of a file-glob allow-list (e.g. `version-increment.sh`, `require-spec.sh`) does NOT make any section load-bearing — it's treating the filename as a pattern, not a content citation. Filter those out during grep.
+**FR-018 wording change** (claude-audit-quality): a section is load-bearing only when cited from **PROSE** — instructions, descriptions, error messages, narrative text. A citation from inside a rule's `match_rule:` field (e.g., this rubric's own `match_rule:` lines that mention `## Recent Changes` or `## Active Technologies`) does NOT make the cited section load-bearing. The reasoning: rule `match_rule:` fields are SELF-references — the rubric cites a section because the rule fires on it; that's not the same as a downstream skill/agent/hook needing the section to exist for its own runtime correctness.
+
+The same FR-018 wording applies to **`## Active Technologies`** — cited by `active-technologies-overflow`'s `match_rule:` but not by any skill/agent/hook prose. `## Active Technologies` is therefore NOT load-bearing under the new wording, regardless of how many rules name it in their match logic.
+
+This wording aligns with `claude-md-audit-reframe` FR-031 (where `enumeration-bloat` already wins over `load-bearing-section` for `plugin-surface` sections) — both rules say "rule-level citation alone is not enough; the load-bearing relationship must originate in the runtime-effective surface (prose instructions, runtime context)".
+
+Known false-positive shape: a plugin that greps the literal string `CLAUDE.md` as part of a file-glob allow-list (e.g. `version-increment.sh`, `require-spec.sh`) does NOT make any section load-bearing — it's treating the filename as a pattern, not a content citation. Filter those out during grep. Equally, this rubric's own `match_rule:` lines mentioning section names do NOT count as prose citations.
 
 ### stale-migration-notice
 
@@ -81,6 +87,39 @@ cached: false
 Fires when the file has a `## Recent Changes` heading and the immediately-following bulleted list exceeds the threshold. Entries are assumed to be ordered newest-first; the proposed diff keeps the top `N` (default 5) and removes the rest. The audit does NOT try to archive the removed entries to another file — that's a maintainer call. The diff annotation cites the git log entries they came from so the maintainer can reconstitute them if needed.
 
 Known false-positive shape: the section is used for long-form release notes rather than a changelog tail. In that case, override the threshold or disable this rule in `.kiln/claude-md-audit.config`.
+
+### recent-changes-anti-pattern
+
+```yaml
+rule_id: recent-changes-anti-pattern
+signal_type: substance
+cost: cheap
+match_rule: presence of literal "## Recent Changes" heading in the audited file
+action: removal-candidate
+ctx_json_paths: []
+rationale: A ## Recent Changes section becomes a churn surface and circular-load-bearing protection (rules cite it because it exists; it exists because rules cite it). git log + roadmap phases + ls docs/features/ + /kiln:kiln-next collectively cover the same need without churn.
+cached: false
+```
+
+Fires whenever the literal string `## Recent Changes` appears as a heading in the audited file. **`signal_type: substance`** — co-located with `recent-changes-overflow` for topical grouping but evaluated under the substance rules' precedence (sorts to top of Signal Summary alongside other substance findings per FR-010).
+
+When fired, the proposed diff replaces the ENTIRE `## Recent Changes` section (heading through end-of-section, i.e. up to the next `^## ` heading or EOF) with this exact block (claude-audit-quality FR-016 + OQ-4 reconciliation — generic `<active-phase>` placeholder preserves byte-identity across re-runs):
+
+```markdown
+## Looking up recent changes
+
+This file does not maintain a running changelog. To find recent changes:
+- `git log --oneline -n 20` — commit-level history.
+- `.kiln/roadmap/phases/<active-phase>.md` — phase-level status (in-progress, complete, planned items).
+- `ls docs/features/` — shipped feature PRDs.
+- `/kiln:kiln-next` — current session-pickup recommendations.
+```
+
+The audit log's Notes section MAY include a one-line companion comment naming the current phase (e.g. `current phase: 10-self-optimization`) for apply-time interpretation; this companion comment lives in Notes, NOT in the diff body, so byte-identity holds.
+
+**Reconciliation with `recent-changes-overflow`** (claude-audit-quality FR-017): when `recent-changes-anti-pattern` fires in the same audit, `recent-changes-overflow` is demoted to `keep` — the anti-pattern's removal proposal supersedes the overflow flag. When `## Recent Changes` is absent from the audited file, `recent-changes-overflow` emits no signal at all (absence is not drift, not a missing-section coverage failure).
+
+Known false-positive shape: a project that genuinely uses `## Recent Changes` as a long-form release-notes destination, where readers expect to find the changelog directly in CLAUDE.md. Override via `.kiln/claude-md-audit.config`'s `recent-changes-anti-pattern.enabled = false`.
 
 ### active-technologies-overflow
 

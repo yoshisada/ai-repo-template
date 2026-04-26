@@ -223,6 +223,11 @@ If `(now - commit_time)` exceeds `migration_notice_max_age_days` (default 60), f
 
 **`recent-changes-overflow`** — count bullets under `## Recent Changes`. If count > `recent_changes_keep_last_n` (default 5), fire with action `archive-candidate`. Proposed diff keeps the top N bullets (entries are assumed newest-first), removes the rest. Include the git ref each removed bullet cites as a comment in the diff so the maintainer can reconstitute.
 
+**Reconciliation with `recent-changes-anti-pattern`** (claude-audit-quality FR-017): two bookkeeping rules apply to this rule's signal emission:
+
+1. **Absent section → no signal.** When `## Recent Changes` is absent from the audited file, `recent-changes-overflow` emits no signal at all (absence is not drift; it does not constitute a missing-section coverage failure). Previously this rule may have been read as "fires only when present and over threshold"; the new wording is explicit — absence = no fire, full stop.
+2. **Anti-pattern fired in same audit → demote to keep.** When `recent-changes-anti-pattern` (the new substance rule added in claude-audit-quality FR-016) fires for the same `## Recent Changes` section in the same audit run, `recent-changes-overflow` is demoted to `keep` in the Signal Summary table — no diff is proposed for it. Rationale: the anti-pattern's removal proposal supersedes the overflow flag; proposing both would conflict (overflow trims to N, anti-pattern removes the section entirely).
+
 **`active-technologies-overflow`** — same mechanic as `recent-changes-overflow`, scoped to `## Active Technologies`. Threshold: `active_technologies_keep_last_n` (default 5).
 
 ### Editorial rules (executed in the model's own context — claude-audit-quality FR-003)
