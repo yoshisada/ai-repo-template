@@ -89,7 +89,7 @@ watcher_stall_window_seconds=300
 watcher_poll_interval_seconds=30
 ```
 
-- **`discovery_path`** — where the harness looks for tests. The literal string `<name>` is substituted with the plugin name. Default: `plugin-<name>/tests`.
+- **`discovery_path`** — where the harness looks for tests. The literal string `<name>` is substituted with the plugin name. Default: `plugin-<name>/tests`. The harness recognizes two fixture shapes: (a) the canonical `test.yaml` + `inputs/` + `assertions.sh` shape (drives a live `claude --print --plugin-dir` subprocess against the fixture mktemp dir); (b) `run.sh`-only directories (a structural-invariant tripwire — harness invokes `bash run.sh` and parses the trailing `PASS:` / `FAIL:` line as the verdict). The `run.sh`-only shape is the right substrate for skill-shape regression checks where assertions pin exact contract text in source files; the `test.yaml` shape is the right substrate for live-skill behavior verification. Both ship side-by-side in the harness report.
 - **`watcher_stall_window_seconds`** — seconds with zero scratch-write or transcript advance before the watcher classifies `stalled` and sends SIGTERM. Default: `300` (5 min).
 - **`watcher_poll_interval_seconds`** — watcher poll cadence. Default: `30`.
 

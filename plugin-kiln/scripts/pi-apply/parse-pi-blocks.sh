@@ -132,8 +132,14 @@ for ((i = 0; i < NUM_HEADERS; i++)); do
     continue
   fi
 
-  # Trim leading whitespace on FILE_VAL (path), leave text fields as-is.
+  # Trim leading whitespace on FILE_VAL (path) AND strip wrapping markdown
+  # code-span backticks (`**File**: \`path\``) — retros render paths inside
+  # backticks for code-formatting. Without this strip, `[ -f "$FILE" ]` in the
+  # classifier returns false and every PI is marked stale.
   FILE_VAL=$(printf '%s' "$FILE_VAL" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  if [[ "${FILE_VAL:0:1}" == '`' && "${FILE_VAL: -1}" == '`' ]]; then
+    FILE_VAL="${FILE_VAL:1:${#FILE_VAL}-2}"
+  fi
 
   # Retro templates wrap Current/Proposed prose in matched outer double-quotes
   # (`**Current**: "..."`). Strip them so verbatim-substring matching against
