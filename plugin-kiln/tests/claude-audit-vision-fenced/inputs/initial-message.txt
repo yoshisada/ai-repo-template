@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. `.kiln/vision.md` contains `<!-- claude-md-sync:start -->` ... `<!-- claude-md-sync:end -->` markers. Only the fenced region is mirrored; content outside is ignored. Reply empty to prompts.

@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-027 — current ## Product differs from synced composition → product-section-stale with sync-candidate."
+timeout-override: 900

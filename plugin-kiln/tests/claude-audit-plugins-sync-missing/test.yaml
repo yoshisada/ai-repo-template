@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-013 — plugin without guidance file silently skipped (no signal, no warning). Validates US1 AC#4 + SC-005."
+timeout-override: 900

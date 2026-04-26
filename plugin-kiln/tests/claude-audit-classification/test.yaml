@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-001..FR-004 — single classification LLM call returns one classification per `## ` heading; failure → all sections unclassified with action=keep. Validates: User Story 3."
+timeout-override: 900

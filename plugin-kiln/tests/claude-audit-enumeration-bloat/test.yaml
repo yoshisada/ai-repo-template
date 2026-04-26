@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-002 — plugin-surface section flagged removal-candidate; rationale text matches verbatim. Validates: User Story 3 Scenario 1."
+timeout-override: 900

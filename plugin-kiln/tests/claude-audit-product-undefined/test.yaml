@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-025 / SC-007 — product-undefined fires AND appears at row 1 of Signal Summary table when both ## Product and .kiln/vision.md are absent. Validates US2 AC#3."
+timeout-override: 900

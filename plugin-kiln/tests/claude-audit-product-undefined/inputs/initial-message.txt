@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. CLAUDE.md has no `## Product` section AND `.kiln/vision.md` does not exist. The audit MUST fire `product-undefined` AND its row MUST appear at the TOP of the Signal Summary table per `sort_priority: top` (SC-007). Reply empty to prompts.

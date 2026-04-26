@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit` against the fixtures. The CLAUDE.md contains a `## Available Commands` enumeration. The audit MUST fire `enumeration-bloat` with action `removal-candidate` and cite the verbatim rationale "Claude receives available skills / agents / commands via runtime context." Reply empty to any prompts.

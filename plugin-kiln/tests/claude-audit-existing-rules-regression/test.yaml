@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "SC-010 — pre-existing 7 rules continue to fire correctly post-reframe. Validates zero regressions on the drift-reducer axis."
+timeout-override: 900

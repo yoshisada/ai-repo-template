@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-007 — orphaned hook claim (no hook source matches) → hook-claim-mismatch fires; matched claim → silent. Validates: US4 AC#1 + AC#2."
+timeout-override: 900

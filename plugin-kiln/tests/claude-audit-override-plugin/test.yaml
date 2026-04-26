@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-017 — exclude_plugin_from_sync skips listed plugin during enumeration. Validates US1."
+timeout-override: 900

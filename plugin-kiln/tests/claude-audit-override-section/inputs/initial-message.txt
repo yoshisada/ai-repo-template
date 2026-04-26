@@ -1,0 +1,1 @@
+Run `/kiln:kiln-claude-audit`. The fixture has `.kiln/claude-md-audit.config` containing `exclude_section_from_classification = ^## Available Commands$`. CLAUDE.md has a `## Available Commands` enumeration. The audit MUST NOT fire `enumeration-bloat` on that section because it's classified as preference. Reply empty to prompts.

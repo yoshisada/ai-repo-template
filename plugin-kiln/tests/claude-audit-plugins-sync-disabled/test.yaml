@@ -1,0 +1,5 @@
+harness-type: plugin-skill
+skill-under-test: kiln:kiln-claude-audit
+expected-exit: 0
+description: "FR-015 — disabled plugin's subsection removed only. Validates US1 AC#2."
+timeout-override: 900
