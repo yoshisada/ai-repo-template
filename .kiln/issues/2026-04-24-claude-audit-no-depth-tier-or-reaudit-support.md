@@ -3,13 +3,14 @@ id: 2026-04-24-claude-audit-no-depth-tier-or-reaudit-support
 title: "claude-audit has no concept of 'first pass was thin, do a deeper pass' — substance findings only emerged after three explicit user challenges"
 type: improvement
 date: 2026-04-24
-status: open
 severity: medium
 area: kiln
 category: ergonomics
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-deeper-pass-on-thin.md
 ---
 
 ## Summary

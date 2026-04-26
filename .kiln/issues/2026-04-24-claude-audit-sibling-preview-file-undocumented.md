@@ -3,13 +3,14 @@ id: 2026-04-24-claude-audit-sibling-preview-file-undocumented
 title: "claude-audit has no convention for 'show me the proposed final file' — sibling preview pattern emerged ad-hoc but isn't codified"
 type: improvement
 date: 2026-04-24
-status: open
 severity: low
 area: kiln
 category: ergonomics
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-sibling-preview-codified.md
 ---
 
 ## Summary

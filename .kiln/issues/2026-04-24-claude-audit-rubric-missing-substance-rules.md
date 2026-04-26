@@ -3,7 +3,6 @@ id: 2026-04-24-claude-audit-rubric-missing-substance-rules
 title: "claude-audit rubric has no rules for 'does this file teach what the project is?' — substance findings have to be invented ad-hoc"
 type: improvement
 date: 2026-04-24
-status: open
 severity: high
 area: kiln
 category: design
@@ -12,6 +11,8 @@ files:
   - plugin-kiln/rubrics/claude-md-usefulness.md
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
   - plugin-kiln/rubrics/claude-md-best-practices.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-substance-rules.md
 ---
 
 ## Summary

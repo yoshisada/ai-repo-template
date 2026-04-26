@@ -5,7 +5,6 @@ severity: medium
 category: workflow
 source: manual
 github_issue: null
-status: open
 date: 2026-04-25
 repo: https://github.com/yoshisada/ai-repo-template
 files:
@@ -13,6 +12,8 @@ files:
   - plugin-kiln/scripts/roadmap/update-item-state.sh
   - plugin-kiln/skills/kiln-build-prd/SKILL.md
   - plugin-kiln/skills/kiln-roadmap/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-25-build-prd-auto-flip-item-state.md
 ---
 
 ## Description

@@ -3,13 +3,14 @@ id: 2026-04-24-claude-audit-defaults-to-no-diff-proposed
 title: "claude-audit findings default to 'no diff proposed pending maintainer call' instead of producing actual unified diffs"
 type: improvement
 date: 2026-04-24
-status: open
 severity: high
 area: kiln
 category: design
 repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-emit-real-diffs.md
 ---
 
 ## Summary

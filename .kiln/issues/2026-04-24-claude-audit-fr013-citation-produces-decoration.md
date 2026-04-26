@@ -3,7 +3,6 @@ id: 2026-04-24-claude-audit-fr013-citation-produces-decoration
 title: "claude-audit FR-013 project-context citation requirement encourages vacuous decoration, not real grounding"
 type: improvement
 date: 2026-04-24
-status: open
 severity: medium
 area: kiln
 category: design
@@ -11,6 +10,8 @@ repo: https://github.com/yoshisada/ai-repo-template
 files:
   - plugin-kiln/skills/kiln-claude-audit/SKILL.md
   - specs/coach-driven-capture-ergonomics/contracts/interfaces.md
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-claude-audit-grounded-citations.md
 ---
 
 ## Summary

@@ -1,10 +1,11 @@
 ---
-status: open
 source: retrospective
 prd: cross-plugin-resolver-and-preflight-registry
 priority: low
 suggested_command: /kiln:kiln-fix
 tags: [retro, wheel, preprocess, docs]
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-sc-grep-doc-references-carve-out.md
 ---
 
 # Documentary references to `${WHEEL_PLUGIN_<name>}` / `${WORKFLOW_PLUGIN_DIR}` inside agent instructions trip both the runtime tripwire and the SC grep

@@ -1,10 +1,11 @@
 ---
-status: open
 source: retrospective
 prd: cross-plugin-resolver-and-preflight-registry
 priority: medium
 suggested_command: /kiln:kiln-fix
 tags: [retro, prompt-template, success-criteria]
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-sc-grep-date-bound-qualifier.md
 ---
 
 # Spec-template grep-style success criteria need a date-bound qualifier or they auto-flag historical noise

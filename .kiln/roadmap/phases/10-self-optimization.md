@@ -23,4 +23,21 @@ The system audits its own output and steers itself. Promoted from `89-brainstorm
 
 ## Items
 
-<!-- Auto-maintained by update-phase-status.sh — do not hand-edit. -->
+- 2026-04-24-claude-audit-deeper-pass-on-thin
+- 2026-04-24-claude-audit-emit-real-diffs
+- 2026-04-24-claude-audit-execute-editorial-rules
+- 2026-04-24-claude-audit-grounded-citations
+- 2026-04-24-claude-audit-rethink-recent-changes-rule
+- 2026-04-24-claude-audit-sibling-preview-codified
+- 2026-04-24-claude-audit-substance-rules
+- 2026-04-24-escalation-audit
+- 2026-04-24-manifest-evolution-ledger
+- 2026-04-24-retro-quality-auditor
+- 2026-04-24-sc-grep-date-bound-qualifier
+- 2026-04-24-sc-grep-doc-references-carve-out
+- 2026-04-24-vision-alignment-check
+- 2026-04-24-vision-proactive-system-coaching
+- 2026-04-24-win-condition-scorecard
+- 2026-04-25-build-prd-auto-flip-item-state
+- 2026-04-25-escalation-shutdown-detection
+- 2026-04-25-vision-simple-params-cli

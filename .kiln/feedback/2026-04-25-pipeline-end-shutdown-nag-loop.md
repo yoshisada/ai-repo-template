@@ -3,10 +3,11 @@ id: 2026-04-25-pipeline-end-shutdown-nag-loop
 title: Pipeline-end shutdown-nag loop — team-lead enters /loop after teammate pipeline finishes (verified 2026-04-25)
 type: feedback
 date: 2026-04-25
-status: open
 severity: high
 area: architecture
 repo: https://github.com/yoshisada/ai-repo-template
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-25-escalation-shutdown-detection.md
 ---
 
 At the end of teammate pipelines (notably `/kiln:kiln-build-prd`) when shutdown_requests have been sent to all teammates, the team-lead should transition into a `/loop` dynamic-mode session that ticks every ~60s (60s minimum per ScheduleWakeup clamps, but cache-friendly) and re-checks each agent's shutdown progress, re-sending `shutdown_request` to any straggler that hasn't actually shut down. The loop self-bounds: when the team is empty, no ScheduleWakeup is called → loop exits cleanly.
