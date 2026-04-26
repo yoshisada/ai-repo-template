@@ -284,10 +284,16 @@ if [[ -f "$VISION_FILE" ]]; then
     FM_OBJ="$TMP_JQ"
   fi
 
+  # NOTE: jq 1.7.1-apple's `--arg` and `-Rs` encoders have a bug — multi-byte
+  # UTF-8 strings exceeding ~6.7KB emit raw newlines inside JSON string output
+  # instead of escaped `\n`, producing unparseable JSON. Workaround: encode the
+  # body to a JSON string via python3 first, then hand the pre-encoded value
+  # to jq via `--argjson`. jq's `--argjson` re-emits already-valid JSON cleanly.
+  V_BODY_JSON="$(printf '%s' "$v_body" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
   VISION_JSON="$(jq -n \
     --arg path "$(echo "$VISION_FILE" | sed "s|^$REPO_ROOT/||")" \
     --argjson frontmatter "$FM_OBJ" \
-    --arg body "$v_body" \
+    --argjson body "$V_BODY_JSON" \
     '{ path: $path, frontmatter: $frontmatter, body: $body }')"
 else
   VISION_JSON="null"
@@ -300,9 +306,11 @@ read_full_md() {
     echo "null"
     return
   fi
-  local body
-  body="$(cat "$abs")"
-  jq -n --arg path "$rel" --arg body "$body" '{ path: $path, body: $body }'
+  # Encode body via python3 json.dumps to sidestep the jq 1.7.1-apple
+  # `--arg`/`-Rs` UTF-8 + size encoder bug — see vision-emit comment above.
+  local body_json
+  body_json="$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' < "$abs")"
+  jq -n --arg path "$rel" --argjson body "$body_json" '{ path: $path, body: $body }'
 }
 
 CLAUDE_MD_JSON="$(read_full_md "$REPO_ROOT/CLAUDE.md"  "CLAUDE.md")"
