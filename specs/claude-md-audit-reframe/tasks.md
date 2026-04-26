@@ -159,16 +159,16 @@ Each fixture directory under `plugin-kiln/tests/` follows the existing `claude-a
 
 ### Phase 2B.1 — Author guidance files
 
-- [ ] T100 [impl-plugin-guidance] [P] Author `plugin-kiln/.claude-plugin/claude-guidance.md` per contracts §4 — `## When to use` (required) describes the spec-first / 4-gate / capture-loop philosophy; `## Key feedback loop` (recommended) cites `/kiln:kiln-report-issue` → `/kiln:kiln-distill` → PRD chain; `## Non-obvious behavior` (recommended) covers the 4-gate hooks
-- [ ] T101 [impl-plugin-guidance] [P] Author `plugin-shelf/.claude-plugin/claude-guidance.md` — `## When to use` describes Obsidian mirror / project-context bridge; `## Key feedback loop` cites the `@inbox/open/` proposal flow; `## Non-obvious behavior` covers `.shelf-config` and the `shelf_full_sync_threshold` counter
-- [ ] T102 [impl-plugin-guidance] [P] Author `plugin-wheel/.claude-plugin/claude-guidance.md` — `## When to use` describes wheel as plugin-agnostic dispatch infrastructure (per `.kiln/vision.md` constraint); `## Non-obvious behavior` covers `WORKFLOW_PLUGIN_DIR` and the agent resolver primitive
-- [ ] T103 [impl-plugin-guidance] [P] Author `plugin-clay/.claude-plugin/claude-guidance.md` — `## When to use` describes idea → repo scaffolding pipeline; `## Key feedback loop` cites the `/clay:clay-idea` → `/clay:clay-create-repo` chain
-- [ ] T104 [impl-plugin-guidance] [P] Author `plugin-trim/.claude-plugin/claude-guidance.md` — `## When to use` describes Penpot ↔ code design sync; `## Key feedback loop` cites `trim-pull` / `trim-push` mirror behavior
+- [X] T100 [impl-plugin-guidance] [P] Author `plugin-kiln/.claude-plugin/claude-guidance.md` per contracts §4 — `## When to use` (required) describes the spec-first / 4-gate / capture-loop philosophy; `## Key feedback loop` (recommended) cites `/kiln:kiln-report-issue` → `/kiln:kiln-distill` → PRD chain; `## Non-obvious behavior` (recommended) covers the 4-gate hooks
+- [X] T101 [impl-plugin-guidance] [P] Author `plugin-shelf/.claude-plugin/claude-guidance.md` — `## When to use` describes Obsidian mirror / project-context bridge; `## Key feedback loop` cites the `@inbox/open/` proposal flow; `## Non-obvious behavior` covers `.shelf-config` and the `shelf_full_sync_threshold` counter
+- [X] T102 [impl-plugin-guidance] [P] Author `plugin-wheel/.claude-plugin/claude-guidance.md` — `## When to use` describes wheel as plugin-agnostic dispatch infrastructure (per `.kiln/vision.md` constraint); `## Non-obvious behavior` covers `WORKFLOW_PLUGIN_DIR` and the agent resolver primitive
+- [X] T103 [impl-plugin-guidance] [P] Author `plugin-clay/.claude-plugin/claude-guidance.md` — `## When to use` describes idea → repo scaffolding pipeline; `## Key feedback loop` cites the `/clay:clay-idea` → `/clay:clay-create-repo` chain
+- [X] T104 [impl-plugin-guidance] [P] Author `plugin-trim/.claude-plugin/claude-guidance.md` — `## When to use` describes Penpot ↔ code design sync; `## Key feedback loop` cites `trim-pull` / `trim-push` mirror behavior
 
 ### Phase 2B.2 — Self-verify against §4.4 checklist
 
-- [ ] T110 [impl-plugin-guidance] Run the §4.4 manual checklist against each authored file (path correct, `## When to use` first + 1–3 sentences, no enumerations / commands / agents / hooks / workflow paths, 10–30 lines, single trailing newline). Document deviations in friction note.
-- [ ] T111 [impl-plugin-guidance] Write `specs/claude-md-audit-reframe/agent-notes/impl-plugin-guidance.md` friction note. Commit all five files + the note in one commit.
+- [X] T110 [impl-plugin-guidance] Run the §4.4 manual checklist against each authored file (path correct, `## When to use` first + 1–3 sentences, no enumerations / commands / agents / hooks / workflow paths, 10–30 lines, single trailing newline). Document deviations in friction note.
+- [X] T111 [impl-plugin-guidance] Write `specs/claude-md-audit-reframe/agent-notes/impl-plugin-guidance.md` friction note. Commit all five files + the note in one commit.
 
 **Checkpoint 2B**: Five guidance files committed. Notify `impl-audit-logic` so they can run T082/T088 (which depend on these files existing). Notify `auditor` once self-verification is complete.
 
@@ -176,10 +176,10 @@ Each fixture directory under `plugin-kiln/tests/` follows the existing `claude-a
 
 ## Phase 3: Audit + smoke test + create PR (Owner: `auditor`)
 
-- [ ] T200 [auditor] Run `/kiln:audit` against the merged tree of Phase 2A + Phase 2B work. Verify every PRD FR has spec coverage, code (skill/rubric body or guidance file), and ≥1 fixture. Document any gaps in `specs/claude-md-audit-reframe/blockers.md`
-- [ ] T201 [auditor] Run `/kiln:kiln-test plugin-kiln` end-to-end. Verify all 19 new fixtures pass + 0 regressions in pre-existing fixtures (SC-010)
-- [ ] T202 [auditor] Run `/kiln:kiln-claude-audit` against the source kiln repo's actual CLAUDE.md and review the produced log under `.kiln/logs/`. Sanity-check: ≥3 plugins now ship guidance (SC-004); the proposed `## Plugins` section is non-empty and alphabetical; no signals fire on a section the auditor judges to be valid product/feedback-loop content
-- [ ] T203 [auditor] Smoke-test idempotence — run the audit twice on the source kiln repo and `diff -u` the two log files (header timestamp excepted). Verify byte-identical bodies (SC-006)
+- [X] T200 [auditor] Run `/kiln:audit` against the merged tree of Phase 2A + Phase 2B work. Verify every PRD FR has spec coverage, code (skill/rubric body or guidance file), and ≥1 fixture. Document any gaps in `specs/claude-md-audit-reframe/blockers.md`
+- [X] T201 [auditor] Run `/kiln:kiln-test plugin-kiln` end-to-end. Verify all 19 new fixtures pass + 0 regressions in pre-existing fixtures (SC-010)
+- [X] T202 [auditor] Run `/kiln:kiln-claude-audit` against the source kiln repo's actual CLAUDE.md and review the produced log under `.kiln/logs/`. Sanity-check: ≥3 plugins now ship guidance (SC-004); the proposed `## Plugins` section is non-empty and alphabetical; no signals fire on a section the auditor judges to be valid product/feedback-loop content
+- [X] T203 [auditor] Smoke-test idempotence — run the audit twice on the source kiln repo and `diff -u` the two log files (header timestamp excepted). Verify byte-identical bodies (SC-006)
 - [ ] T204 [auditor] Create PR via `gh pr create` with title `CLAUDE.md audit reframe — content classification + plugin-guidance sync + vision sync`, body cites this PRD + spec, label `build-prd`. Notify `retrospective` once PR is open
 
 **Checkpoint 3**: PR open and ready for human review. Auditor signs off.
