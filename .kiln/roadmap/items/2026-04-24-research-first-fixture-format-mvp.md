@@ -3,9 +3,10 @@ id: 2026-04-24-research-first-fixture-format-mvp
 title: "Research-first step 1 — fixture corpus format + baseline-vs-candidate runner MVP"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 09-research-first
-state: distilled
+state: shipped
+pr: 176
 blast_radius: feature
 review_cost: careful
 context_cost: 3 sessions

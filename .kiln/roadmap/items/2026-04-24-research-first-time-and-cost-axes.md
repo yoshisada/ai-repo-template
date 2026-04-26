@@ -3,9 +3,10 @@ id: 2026-04-24-research-first-time-and-cost-axes
 title: "Research-first step 3 — time and cost axes with maintained pricing table"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 09-research-first
-state: distilled
+state: shipped
+pr: 178
 blast_radius: feature
 review_cost: moderate
 context_cost: 2 sessions

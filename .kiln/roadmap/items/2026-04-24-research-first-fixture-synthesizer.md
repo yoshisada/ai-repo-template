@@ -3,9 +3,10 @@ id: 2026-04-24-research-first-fixture-synthesizer
 title: "Research-first step 4 — fixture-synthesizer agent at plan-time with human review gate"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 09-research-first
-state: distilled
+state: shipped
+pr: 182
 prd: docs/features/2026-04-25-research-first-plan-time-agents/PRD.md
 blast_radius: feature
 review_cost: careful

@@ -3,9 +3,10 @@ id: 2026-04-24-research-first-per-axis-gate-and-rigor
 title: "Research-first step 2 — per-axis direction gate + blast-radius-dynamic rigor"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 09-research-first
-state: distilled
+state: shipped
+pr: 178
 blast_radius: feature
 review_cost: careful
 context_cost: 2 sessions
