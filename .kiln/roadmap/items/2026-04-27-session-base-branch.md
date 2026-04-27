@@ -4,7 +4,7 @@ title: "Session base-branch model — agent runs branch off a 'session base', no
 kind: research
 date: 2026-04-27
 status: open
-phase: 89-brainstorming
+phase: 90-queued
 state: planned
 blast_radius: cross-cutting
 review_cost: careful
@@ -36,34 +36,113 @@ The current model conflates "the agent's working trunk for this session" with "t
 
 Also: easier to test. Today, if I want to verify that PR #189 + PR #186 + a third just-shipped PR all play nicely together at runtime, I have to merge them all to `main` and pray. Session base branch lets me run the integrated suite against the session branch first.
 
-## Open design questions
+---
 
-These need answers before this can be a feature PRD — capturing here so the brainstorm has structure.
+## Brainstorm resolution (2026-04-27)
 
-1. **How is the session base branch declared?** Auto on first `/kiln:kiln-build-prd` of a session (heuristic: branch from `main` if currently on `main`, else assume current branch is the session base)? Explicit `/kiln:kiln-session-start <slug>` skill? Implicit when running `/kiln:kiln-next` in a fresh session?
-2. **How does build-prd know what the session base is?** Reads from `.kiln/session.config` (gitignored)? From a sentinel branch-name pattern? From the current branch at invocation time?
-3. **How do PR merges land on the session branch instead of `main`?** GitHub PR `base` parameter when audit-pr creates the PR (`gh pr create --base session/<slug>-...`). This is mostly mechanical but needs the session base branch to be pushed to origin first.
-4. **What about Theme A auto-flip?** If the PR's base is the session branch, does the auto-flip still run on session-branch-merge? Probably yes — the lifecycle event is "PR merged" regardless of target branch. But `/kiln:kiln-roadmap --check`'s merged-PR cross-reference needs to look at session-branch merges too, not just `main` merges.
-5. **What about the session-end "promote to main" step?** Is it a single fast-forward / squash-merge? Does it run the full test suite first? Does it produce a single super-PR for the cumulative session diff, or just merge directly?
-6. **Conflict with branch-naming hooks?** `kiln-build-prd` Step 5 derives `BRANCH_NAME="build/${FEATURE_SLUG}-$(date +%Y%m%d)"` from the PRD path. The session-base-branch model needs the build-prd branch to be `build/<feature>` off the session base, not off `main`. Sequence matters: session-start FIRST, then build-prd off the session base.
-7. **Multi-session concurrency?** Two parallel sessions on different machines branching off `main` at different commits — do they need to coordinate? Probably no for V1 (sessions are scoped to one machine), but worth flagging.
-8. **Plugin update mid-session?** If the user updates the kiln plugin mid-session, the cached SKILL.md changes but the session base branch contains the old code. Does this matter for reproducibility? (Probably yes — the session base branch should snapshot the plugin version too.)
+The original 8 open design questions resolved through a focused brainstorm session. The shape is now PRD-ready.
 
-## Suggested cheapest version (V0)
+### Mode is the architectural primitive (not just session-base)
 
-Before designing the full feature, prototype manually:
-- User runs `git checkout -b session/foo-20260427` from `main`
-- Inside the session, runs `/kiln:kiln-build-prd <feature1>` — uses normal `build/` branch off the session
-- audit-pr creates PR with `--base session/foo-20260427` instead of `--base main`
-- Repeat for `<feature2>`, `<feature3>`
-- At session end, run cumulative tests, then `git checkout main && git merge --ff-only session/foo-20260427`
+The session-base-branch model is one behaviour inside a broader **mode** primitive that distinguishes user-driven from AI-driven sessions:
 
-If the manual flow is ergonomic and useful, formalize it. If it's friction, the design questions above need rethinking.
+- `mode: user-driven` (default) — no auto-session-start; ship-class commands behave as today; `/kiln:kiln-session-start` available as opt-in
+- `mode: autonomous` — session-start fires automatically on first ship-class command; ship cycles target the session base; punctuated by review gates; ends only when user runs `/kiln:kiln-session-end`
 
-## Addresses
+Mode lives in `.kiln/kiln.state` (gitignored). Detection: state-file value if set; TTY heuristic + `KILN_MODE` env var as fallback. Wheel-runtime context is intentionally NOT a signal — keeps mode portable across consumer projects regardless of wheel adoption.
 
-- Tangentially related to `2026-04-27-auto-flip-on-async-merge.md` — both are "what happens after the agent finishes" lifecycle gaps. Keep them as separate items though; this one is broader scope.
+### Review gate — mid-session human checkpoint
+
+Distinct from per-PR audit. The gate is a *pause* mechanism inside a session, not a *terminator*. Loop: agent ships N cycles → gate fires → human evaluates + provides input (captures, fixes, feedback) → user runs `/kiln:kiln-resume` → gate clears, counters reset → agent picks up new captures and continues → eventually user runs `/kiln:kiln-session-end` to promote.
+
+While `awaiting: true`, all ship-class commands refuse to run (pre-flight check on `kiln.state.review_gate.awaiting`).
+
+State schema:
+
+```yaml
+mode: autonomous
+session:
+  slug: foo-bar
+  base_branch: session/foo-bar-20260427
+  started_at: <iso>
+  plugin_version: 000.001.009.519
+review_gate:
+  awaiting: false
+  set_at: null
+  reason: null              # "cycle-threshold" | "prd-flag" | "queue-empty" | "manual"
+  cycles_since_clear: 0
+  cycle_threshold: 5
+```
+
+### Cycle definition — one merge to session base
+
+Cycle counter increments on every merge to the session base, regardless of which skill produced it (`build-prd`, `merge-pr`, hotfix). Countable via `gh pr list --base session/<slug> --state merged --search "merged:>=<set_at>"`. Anything finer (tasks, commits) over-fires; anything coarser (PRDs) requires kiln to track PRD-shipped state across skill boundaries.
+
+### V1 trigger set
+
+| # | Trigger | Default | Notes |
+|---|---|---|---|
+| T1 | Cycle count — N merges to session base since last clear | 5, configurable | within-session count fallback |
+| T3 | Explicit PRD flag — `requires_human_review: true` in PRD frontmatter | off, opt-in | user-set at distill time only; never auto-derived from blast_radius or any other signal |
+| T-empty | Queue empty — no captures, no open PRDs, no roadmap items without PRD | always-on | fires gate with `reason: queue-empty`; user provides input or runs session-end |
+
+Explicitly NOT triggering the gate: blast_radius, session-end, post-PR-audit completeness. Auto-triggering on blast_radius defeats the value prop ("I built this so AI can ship cross-cutting fixes"); session-end is a separate user-initiated event; per-PR audit is its own gate at finer grain.
+
+### Resume flow (`/kiln:kiln-resume`)
+
+After clearing the gate, the agent walks this in order:
+
+1. New captures since `set_at` (in `.kiln/issues/`, `--feedback`, `--roadmap`)? → run `/kiln:kiln-distill` on them → ship resulting PRD via build-prd
+2. Else open PRDs in `docs/features/` queue? → pick next, run build-prd
+3. Else open roadmap items with no PRD? → bundle into distill candidate set, distill, ship
+4. Else (truly empty) → fire gate with `reason: queue-empty`; halt awaiting human input
+
+V2 amends step 4 with a vision-deliberation sub-agent that reasons over vision + recent activity and proposes new items as the gate's payload (see V2 backlog #2).
+
+### Session-end (`/kiln:kiln-session-end`) — user-initiated only
+
+Never auto-fires. Workflow:
+
+1. Run cumulative tests against session base
+2. Show diff vs main
+3. Prompt: promote (ff/squash-merge to main) or stay (keep session branch around for further review)
+4. On promote: merge to main, retire session branch, reset `kiln.state.session` block
+
+### Build-prd integration (S1 → B1, B2)
+
+- Step 5 (branch creation) — branch from `session.base_branch` if `kiln.state.session` set; else current behaviour. Back-compat preserved.
+- Step 7 (audit-pr / `gh pr create`) — `--base <session-branch>` if in session; else default. Read base from state file.
+- Step 4b.5 auto-flip — fires on merge regardless of target; works as-is. Diagnostic line should record target branch for traceability.
+
+### Hooks
+
+- `require-feature-branch.sh` — add `session/` to allowlist so capture skills can run from session base without bouncing.
+- `require-spec.sh`, `block-env-commit.sh`, `version-increment.sh` — no changes.
+
+### V1 scope (locked)
+
+1. Mode primitive in `.kiln/kiln.state` (gitignored)
+2. Session lifecycle: auto-start in autonomous mode → ship cycles → review gates → user-initiated `/kiln:kiln-session-end` → promote to main
+3. Review gate with T1 + T3 + T-empty
+4. `/kiln:kiln-resume` 4-step flow
+5. `/kiln:kiln-session-end`
+6. Pre-flight gate check on all ship-class commands
+7. `/kiln:kiln-next` mode-aware + gate-aware
+8. `require-feature-branch.sh` allowlist update for `session/`
+
+### V2 backlog (separate items to spawn)
+
+1. **T-AI evaluator** — sub-agent fires gate on quality/uncertainty signals (audit compliance, smoke depth, retro insight_score, decision-divergence-from-precedent). Reads precedent corpus generated by V1's gate history.
+2. **Vision-deliberation sub-agent** — extends `/kiln:kiln-next` or `/kiln:kiln-distill`. Reads vision + recent activity + current state, returns proposed items with reasoning at `queue-empty`. Role-as-noun naming convention (`vision-deliberator` or `next-action-proposer`). Sub-agent returns via SendMessage; calling skill renders to user.
+3. **Plugin-version snapshot at session-start** — answers original Q8. Records plugin version at session-start; warns at session-end if changed.
+4. **Multi-session concurrency** — answers original Q7. V1 assumes single-machine sessions with distinct slugs; V2 handles parallel sessions.
+
+---
 
 ## Why this is `kind: research` and not `kind: feature`
 
-The eight open design questions above need answers before any code. That's the textbook "research" shape per `kiln-roadmap` §6.3 — what's the decision this unblocks (yes/no on session-base-branch model), what's the time-box (one session of design + V0 prototype), what's done look like (a feature PRD with acceptance criteria, OR a "rejected — too costly" ADR).
+The research output IS the resolution above. The V1 *implementation* should be spawned as a separate `kind: feature` item via `/kiln:kiln-distill --addresses 2026-04-27-session-base-branch` — that PRD is sizeable (new state file, two new skills, build-prd integration, hook update) and deserves its own focused distill session, not stacked on this brainstorm's tail.
+
+## Addresses
+
+- Tangentially related to `2026-04-27-auto-flip-on-async-merge.md` — both are "what happens after the agent finishes" lifecycle gaps. The merge-pr skill being distilled there will need to learn the session-base target when V1 of this lands. Keep them as separate items though; this one is broader scope.
