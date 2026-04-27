@@ -18,12 +18,22 @@ $ARGUMENTS
 Arguments may include the free-text description and/or any of these flags:
 
 - `--quick` — skip the adversarial interview; write a minimal item to `phase: unsorted` (FR-018 / PRD FR-018). Also auto-activated in non-interactive sessions (FR-018 / FR-039).
-- `--vision` — update `.kiln/vision.md` instead of capturing an item (FR-019 / PRD FR-019).
+- `--vision` — update `.kiln/vision.md` instead of capturing an item (FR-019 / PRD FR-019). When invoked alone, runs the coached interview (NFR-005 byte-identical pre-PRD path); when invoked with one of the simple-params flags below, runs the deterministic ≤3-second writer in §V-A and SKIPS the coached interview (vision-tooling FR-001/FR-002/FR-005/FR-014).
+  - `--vision --add-constraint <text>` — append a bullet under `## Guiding constraints`.
+  - `--vision --add-non-goal <text>` — append a bullet under `## What it is not`.
+  - `--vision --add-signal <text>` — append a bullet under `## How we'll know we're winning`.
+  - `--vision --update-what <body>` — replace the body of `## What we are building`.
+  - `--vision --update-not <body>` — replace the body of `## What it is not`.
+  - `--vision --update-signals <body>` — replace the body of `## How we'll know we're winning`.
+  - `--vision --update-constraints <body>` — replace the body of `## Guiding constraints`.
+  - At most ONE simple-params flag per invocation; conflicts and unknown `--add-*`/`--update-*` flags exit non-zero before any I/O (FR-005 / SC-002). Section-flag mapping table is single-sourced in `plugin-kiln/scripts/roadmap/vision-section-flag-map.sh` (FR-021).
 - `--phase start <name>` / `--phase complete <name>` / `--phase create <name> --order <N>` — phase management (FR-020 / PRD FR-020).
 - `--check` — report items whose `state` is inconsistent with phase/spec/PR reality (FR-022 / PRD FR-022).
 - `--check --fix` — confirm-never-silent fixer for the merged-PR drift Check 5 surfaces. Prompts `[fix all / pick / skip]`; on accept invokes the shared `auto-flip-on-merge.sh` helper per item. Empty/unknown input is treated as `skip` (NFR-004). Required for items merged via the GitHub web UI or `gh pr merge` directly (i.e. NOT through `/kiln:kiln-merge-pr`). FR-010 / FR-011 of merge-pr-and-sc-grep-guidance.
 - `--reclassify` — walk all `phase: unsorted` items through the interview to promote them (FR-028 follow-up).
 - `--promote <source-path-or-issue-number>` — promote a raw `.kiln/issues/*.md` or `.kiln/feedback/*.md` source into a structured roadmap item with `promoted_from:` back-reference, and flip the source's frontmatter to `status: promoted` + `roadmap_item:` (FR-006 of workflow-governance). See **§M: Promote source** below.
+- `--check-vision-alignment` — REPORT-ONLY mode. Walks open `.kiln/roadmap/items/*.md`, LLM-maps each to vision pillars, emits a 3-section report (Aligned / Multi-aligned / Drifters) with the FR-007 inference-caveat header verbatim. Never mutates any file (vision-tooling FR-006/FR-007/FR-008/FR-009; see **§V-B**).
+- `--vision --add-* / --update-*` — Cheap, deterministic, ≤3-second updates that SKIP the heavyweight coached interview entirely. Supported flags: `--add-constraint`, `--add-non-goal`, `--add-signal`, `--update-what`, `--update-not`, `--update-signals`, `--update-constraints` (vision-tooling FR-001/FR-002/FR-005/FR-014; see **§V-A**). The forward-pass coaching tail (§V-C) MUST NOT execute on simple-params invocations (SC-010).
 
 ## Constants and paths (FR-001..FR-004 / PRD FR-001..FR-004)
 
@@ -145,7 +155,9 @@ fi
 
 Parse `$ARGUMENTS` for the mode flags in this order. First match wins. If none match, fall through to the capture pipeline (Step 2 onward).
 
-- `--vision` → jump to **§V: Vision update**.
+- `--check-vision-alignment` → jump to **§V-B: Vision-alignment check** (vision-tooling FR-006 / FR-007 / FR-008 / FR-009). Report-only mode; checked BEFORE `--vision` so the alignment-check path is not shadowed by the coached interview.
+- `--vision` AND any of `--add-constraint`, `--add-non-goal`, `--add-signal`, `--update-what`, `--update-not`, `--update-signals`, `--update-constraints` → jump to **§V-A: Vision simple-params CLI** (vision-tooling FR-001 / FR-002 / FR-005 / FR-014). The simple-params dispatch is checked BEFORE the coached interview path so any matched flag short-circuits §V (FR-001 final sentence).
+- `--vision` (no simple-params flags) → jump to **§V: Vision update** (coached interview, NFR-005 byte-identical pre-PRD path). On completion, **§V-C: Forward-pass coaching opt-in** (vision-tooling FR-010 / FR-011 / FR-012 / FR-014) runs as the interview tail.
 - `--phase` → jump to **§P: Phase management**.
 - `--check` → jump to **§C: Consistency check**. If the same invocation also includes `--fix`, set `FIX_MODE=true` BEFORE entering §C, then run §C-fix immediately after §C completes (FR-010 of merge-pr-and-sc-grep-guidance).
 - `--reclassify` → jump to **§R: Reclassify unsorted**.
@@ -653,6 +665,112 @@ captured <N> roadmap items, <M> issues, <K> feedback this session.
 
 ---
 
+## §V-B: Vision-alignment check (`--check-vision-alignment` — vision-tooling FR-006/FR-007/FR-008/FR-009)
+
+<!-- vision-tooling Theme B (T016). Walks open .kiln/roadmap/items/*.md,
+     LLM-maps each to vision pillars, emits a 3-section report (Aligned /
+     Multi-aligned / Drifters) with the FR-007 caveat header verbatim.
+     Report-only — never mutates any file (FR-009). The mapping mechanism
+     is LLM-inferred (FR-007); the helper honours KILN_TEST_MOCK_LLM_DIR
+     for deterministic test fixtures (CLAUDE.md Rule 5). -->
+
+This section is reached when `--check-vision-alignment` is passed (with or
+without `--vision`). The mode is read-only — no file under `.kiln/` is
+mutated; `git diff` MUST be empty post-run (SC-003).
+
+```bash
+WALK="plugin-kiln/scripts/roadmap/vision-alignment-walk.sh"
+MAP="plugin-kiln/scripts/roadmap/vision-alignment-map.sh"
+RENDER="plugin-kiln/scripts/roadmap/vision-alignment-render.sh"
+
+# Walk → per-item map → render. The walker emits open-item paths sorted ASC
+# (status != shipped AND state != shipped, FR-006). For each path, invoke
+# the LLM-mediated mapper and emit `<item-path>\t<comma-separated-pillars>`
+# on stdin to the renderer. Empty pillar list = Drifter.
+ALIGN_INPUT=$(mktemp)
+trap 'rm -f "$ALIGN_INPUT"' EXIT
+while IFS= read -r item; do
+  [ -z "$item" ] && continue
+  pillars=$(bash "$MAP" "$item" 2>/dev/null | awk 'NF' | tr '\n' ',' | sed 's/,$//')
+  printf '%s\t%s\n' "$item" "$pillars" >> "$ALIGN_INPUT"
+done < <(bash "$WALK")
+
+bash "$RENDER" < "$ALIGN_INPUT"
+exit 0
+```
+
+The renderer is the single source of truth for the report shape (caveat
+header verbatim from FR-007; three sections in fixed order; `(none)` body
+for empty sections). The walker is the single source of truth for the
+"open items" filter (FR-006). The mapper is the only LLM surface in this
+mode and degrades gracefully — exit `4` from the mapper is rendered as
+Drifter for V1.
+
+---
+
+## §V-A: Vision simple-params CLI (`--vision --add-* / --update-*` — vision-tooling FR-001/FR-002/FR-005/FR-014)
+
+<!-- vision-tooling Theme A. Cheap, deterministic, ≤3-second updates that
+     SKIP the heavyweight coached interview entirely (FR-001 last sentence;
+     FR-014 invariant). Atomic temp+mv writer with .kiln/.vision.lock; flag
+     conflicts refused before any I/O. NFR-005 back-compat: when no simple-
+     params flag is present this section is bypassed and §V handles the
+     coached interview byte-identically to the pre-PRD path. -->
+
+This section is reached ONLY when `--vision` is invoked together with at
+least one supported simple-params flag from the `vision-section-flag-map.sh`
+table (FR-021): `--add-constraint`, `--add-non-goal`, `--add-signal`,
+`--update-what`, `--update-not`, `--update-signals`, `--update-constraints`.
+
+```bash
+# §V-A.1 Validate. NO file I/O — refuses unknown / empty / mutually
+# exclusive flags before touching .kiln/vision.md (FR-005, SC-002).
+VALIDATOR_OUT=$(bash plugin-kiln/scripts/roadmap/vision-flag-validator.sh -- "$@")
+VALIDATOR_RC=$?
+if [ "$VALIDATOR_RC" -ne 0 ]; then
+  # Validator already wrote `vision: <reason>` to stderr in the kiln-roadmap
+  # warning shape. Exit non-zero immediately; do not fall through to §V.
+  exit "$VALIDATOR_RC"
+fi
+
+# Validator emits "<flag>\t<text>" on stdout when a single supported flag is
+# present. Empty stdout means "no simple-params flag, fall through" — this
+# branch should not have been reached, but defensively re-route to §V.
+if [ -z "$VALIDATOR_OUT" ]; then
+  : "fall through to §V coached interview"
+else
+  FLAG=$(printf '%s' "$VALIDATOR_OUT" | cut -f1)
+  TEXT=$(printf '%s' "$VALIDATOR_OUT" | cut -f2-)
+
+  # §V-A.2 Atomic temp+mv write with last_updated: bump (FR-001/FR-002/FR-003).
+  bash plugin-kiln/scripts/roadmap/vision-write-section.sh "$FLAG" "$TEXT"
+  WRITE_RC=$?
+  if [ "$WRITE_RC" -ne 0 ]; then
+    # Vision file is byte-identical to pre-invocation on any non-zero exit
+    # (FR-003). Surface the writer's exit code verbatim.
+    exit "$WRITE_RC"
+  fi
+
+  # §V-A.3 Shelf mirror dispatch — fire-and-warn (FR-004). Never fails out
+  # of kiln-roadmap; missing .shelf-config emits the canonical warning shape
+  # and continues.
+  bash plugin-kiln/scripts/roadmap/vision-shelf-dispatch.sh
+
+  # §V-A.4 EXIT — MUST NOT invoke the coached interview (FR-001 last
+  # sentence) AND MUST NOT invoke the Theme C forward-pass (FR-014 / SC-010).
+  exit 0
+fi
+```
+
+The dispatch surface is intentionally thin — every mutation goes through
+`vision-write-section.sh` (atomic temp+mv, frontmatter bump, FR-021 section
+table) and every shelf mirror through `vision-shelf-dispatch.sh`
+(warn-and-continue on missing `.shelf-config`). Adding a new flag means
+extending the table in `vision-section-flag-map.sh`; no edits here are
+required.
+
+---
+
 ## §V: Vision update (`--vision` — FR-019 / PRD FR-019, coach-driven-capture FR-008..FR-012)
 
 <!-- FR-019 / PRD FR-019: short vision-update interview; patch_file on Obsidian (NOT update_file) per FR-031.
@@ -809,6 +927,148 @@ After any path that produces a new or updated vision body:
 - The only line that may contain the string `blank-slate` is the §V.2 banner. The §V.5 partial-snapshot path MUST NOT include that string anywhere in the drafted body.
 - Re-running `--vision` on unchanged repo state MUST print `no drift detected` and MUST NOT modify `$VISION_FILE`.
 - Every drafted bullet in §V.3 and §V.5 MUST carry an inline evidence citation — unannotated bullets are a regression.
+
+---
+
+## §V-C: Forward-pass coaching opt-in (vision-tooling FR-010/FR-011/FR-012/FR-014)
+
+<!-- vision-tooling Theme C (T022). At the END of every coached --vision
+     interview run (i.e. after §V.6 write+mirror), emit the literal opt-in
+     prompt and, on `y`, run forward-pass → loop suggestions through the
+     decision helper → on accept invoke /kiln:kiln-roadmap --promote, on
+     decline invoke vision-forward-decline-write.sh, on skip no-op.
+     SIMPLE-PARAMS GUARD (FR-014 / SC-010): this section MUST NOT execute
+     when ANY simple-params flag is present. §V-A.4 already exits before
+     reaching here, so the guard is enforced structurally — but the
+     defensive check below is a belt-and-braces second line that mirrors
+     the validator's flag list. -->
+
+This section runs ONLY after the §V coached interview tail (i.e. when
+control reaches §V.6). It MUST NOT execute on the §V-A simple-params path
+(FR-014 / SC-010); §V-A.4's `exit 0` enforces that structurally, and the
+guard below is a defensive double-check.
+
+```bash
+# §V-C.1 SIMPLE-PARAMS GUARD (FR-014 / SC-010). If any simple-params flag
+# is present in $ARGUMENTS, refuse to enter the forward-pass tail. The
+# §V-A path exits before reaching here so this is normally unreachable;
+# keeping the guard means a future refactor that lets simple-params fall
+# through to §V cannot silently regress SC-010.
+case " $ARGUMENTS " in
+  *" --add-constraint "*|*" --add-constraint="*) exit 0 ;;
+  *" --add-non-goal "*|*" --add-non-goal="*)     exit 0 ;;
+  *" --add-signal "*|*" --add-signal="*)         exit 0 ;;
+  *" --update-what "*|*" --update-what="*)       exit 0 ;;
+  *" --update-not "*|*" --update-not="*)         exit 0 ;;
+  *" --update-signals "*|*" --update-signals="*) exit 0 ;;
+  *" --update-constraints "*|*" --update-constraints="*) exit 0 ;;
+esac
+
+# §V-C.2 Refuse on non-interactive sessions — the prompt requires a TTY.
+if [ "${NON_INTERACTIVE:-0}" = "1" ]; then
+  exit 0
+fi
+
+# §V-C.3 Emit the literal opt-in prompt (FR-010 / SC-004). The string MUST
+# match verbatim — SC-010 grep tests rely on it.
+printf 'Want me to suggest where the system could go next? [y/N] '
+read -r FORWARD_CHOICE || FORWARD_CHOICE=""
+
+# Default-N: only `y` / `Y` / `yes` runs the forward pass; anything else
+# (including empty input) exits normally without writing any declined
+# record (SC-004).
+case "$(printf '%s' "$FORWARD_CHOICE" | tr '[:upper:]' '[:lower:]')" in
+  y|yes) ;;
+  *) exit 0 ;;
+esac
+
+# §V-C.4 Run the forward pass. Load the declined-set first (FR-013 dedup),
+# then invoke vision-forward-pass.sh; loop each emitted block through
+# vision-forward-decision.sh; route accept/decline/skip per FR-012.
+DEDUP_FILE=$(mktemp)
+DEDUP_TRAP_OLD="$(trap -p EXIT 2>/dev/null || true)"
+trap 'rm -f "$DEDUP_FILE"' EXIT
+
+bash plugin-kiln/scripts/roadmap/vision-forward-dedup-load.sh > "$DEDUP_FILE" 2>/dev/null || true
+
+FORWARD_OUT=$(bash plugin-kiln/scripts/roadmap/vision-forward-pass.sh --declined-set "$DEDUP_FILE" 2>/dev/null) || FORWARD_OUT=""
+if [ -z "$FORWARD_OUT" ]; then
+  echo "forward-pass: no suggestions emitted"
+  exit 0
+fi
+
+# Iterate the suggestion blocks. Each block is exactly four lines separated
+# by a single blank line.
+BLOCK=""
+process_block() {
+  local block="$1"
+  [ -z "$block" ] && return 0
+  # Pipe the block + the user's interactive choice into the decision helper
+  # (which prompts on stderr, reads the choice from stdin/tty, and emits
+  # accept|decline|skip on stdout).
+  local choice
+  choice=$(printf '%s' "$block" | bash plugin-kiln/scripts/roadmap/vision-forward-decision.sh)
+  case "$choice" in
+    accept)
+      # Hand off to the existing /kiln:kiln-roadmap --promote path. The
+      # accept flow surfaces the suggestion title / body / evidence into
+      # the promote skill; the actual promote semantics are owned by §M.
+      local title body evidence tag
+      title=$(printf '%s' "$block"    | awk -F': ' '/^title:/ { sub(/^title:[[:space:]]*/,""); print; exit }')
+      tag=$(printf '%s' "$block"      | awk -F': ' '/^tag:/   { sub(/^tag:[[:space:]]*/,"");   print; exit }')
+      evidence=$(printf '%s' "$block" | awk -F': ' '/^evidence:/ { sub(/^evidence:[[:space:]]*/,""); print; exit }')
+      body=$(printf '%s' "$block"     | awk -F': ' '/^body:/  { sub(/^body:[[:space:]]*/,"");  print; exit }')
+      echo "forward-pass: accepted '$title' — handing off to /kiln:kiln-roadmap --promote"
+      # The promote hand-off contract is stable (workflow-governance FR-006);
+      # we surface the suggestion as a free-text capture and let the
+      # capture pipeline classify + write.
+      printf '%s\n' "Promote-pending: $title (tag=$tag) — evidence: $evidence — body: $body"
+      ;;
+    decline)
+      local title body evidence tag
+      title=$(printf '%s' "$block"    | awk -F': ' '/^title:/ { sub(/^title:[[:space:]]*/,""); print; exit }')
+      tag=$(printf '%s' "$block"      | awk -F': ' '/^tag:/   { sub(/^tag:[[:space:]]*/,"");   print; exit }')
+      evidence=$(printf '%s' "$block" | awk -F': ' '/^evidence:/ { sub(/^evidence:[[:space:]]*/,""); print; exit }')
+      body=$(printf '%s' "$block"     | awk -F': ' '/^body:/  { sub(/^body:[[:space:]]*/,"");  print; exit }')
+      bash plugin-kiln/scripts/roadmap/vision-forward-decline-write.sh "$title" "$tag" "$body" "$evidence"
+      ;;
+    skip|*)
+      : "no-op — suggestion may re-surface on next pass"
+      ;;
+  esac
+}
+
+# Walk FORWARD_OUT; accumulate four lines per block; flush on blank-line
+# separator or end-of-input. Use printf+while-read so embedded blank lines
+# are honored (the four-line shape is fixed by the helper's contract).
+while IFS= read -r LINE; do
+  if [ -z "$LINE" ]; then
+    if [ -n "$BLOCK" ]; then
+      process_block "$BLOCK"
+      BLOCK=""
+    fi
+    continue
+  fi
+  if [ -z "$BLOCK" ]; then
+    BLOCK="$LINE"
+  else
+    BLOCK="$BLOCK
+$LINE"
+  fi
+done <<EOF_FORWARD
+$FORWARD_OUT
+EOF_FORWARD
+# Flush the trailing block if no terminating blank line was present.
+[ -n "$BLOCK" ] && process_block "$BLOCK"
+```
+
+The forward-pass tail is invoked exactly once per coached `--vision` run.
+On `n` (or empty input), the section exits without writing any declined
+record (SC-004). On `y`, suggestions are bounded ≤5 by the helper, deduped
+against `.kiln/roadmap/items/declined/*.md` (FR-013 / SC-006), and routed
+per-suggestion through `accept` / `decline` / `skip` (FR-012). Forward-
+pass output that is empty (no novel suggestions after dedup) prints a
+single line and exits 0.
 
 ---
 

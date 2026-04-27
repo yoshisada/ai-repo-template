@@ -1,0 +1,50 @@
+# Pre-PRD coached-interview baseline — vision-tooling NFR-005 / SC-009
+
+# This file captures the DETERMINISTIC anchors of the pre-PRD
+# `/kiln:kiln-roadmap --vision` coached-interview flow as it exists in
+# plugin-kiln/skills/kiln-roadmap/SKILL.md immediately BEFORE any vision-tooling
+# Theme-A edits land. Per NFR-001, LLM-mediated stdout is explicitly NOT
+# deterministic; "byte-identity" in NFR-005 / SC-009 therefore refers to the
+# deterministic skeleton: literal banner strings, no-drift detection rule,
+# frontmatter-preservation rule, and the §V dispatch routing.
+#
+# The post-PRD back-compat assertion (T008) checks that when
+# `/kiln:kiln-roadmap --vision` is invoked with NO new simple-params flags,
+# these anchors are still present in SKILL.md AND the fixture vision.md
+# would be byte-identical post-no-drift exit.
+
+## §V dispatch anchor — must be reachable from the unchanged dispatch tree
+
+DISPATCH_ANCHOR=--vision → jump to **§V: Vision update**.
+
+## §V.1 reader-warn anchor (from current SKILL.md)
+
+WARN_READER_UNAVAILABLE=warn: project-context reader unavailable; --vision will treat repo as empty
+
+## §V.2 blank-slate banner verbatim (FR-011)
+
+BLANK_SLATE_BANNER=ℹ  blank-slate fallback: the project-context snapshot is empty — no PRDs, items, README, or CLAUDE.md to draw from. Running the legacy open-ended interview. (FR-011)
+
+## §V.3 first-run draft banner verbatim
+
+FIRST_RUN_BANNER=Here's a first-draft vision drawn from your repo. Each bullet cites its evidence. Accept / edit / reject the whole draft, or say `step-through` to go section-by-section.
+
+## §V.4 / §V.6 no-drift exit anchor (FR-010 negative path)
+
+NO_DRIFT_EXIT=no drift detected
+
+## §V.7 / Rules — string that must appear EXACTLY ONCE in §V.2 only
+
+UNIQUE_BLANK_SLATE_TOKEN=blank-slate
+
+## Frontmatter-preservation rule (no-drift path MUST NOT bump last_updated)
+
+FROZEN_LAST_UPDATED=2026-04-25
+
+## SKILL.md region anchors (T011/T016/T022 must preserve these literal lines
+## in the unchanged dispatch tree so the no-new-flags coached path is byte-
+## identical to the pre-PRD version)
+
+SKILL_ANCHOR_DISPATCH=## Step 1: Dispatch on flag (routing gate)
+SKILL_ANCHOR_VISION_HEADER=## §V: Vision update (`--vision` — FR-019 / PRD FR-019, coach-driven-capture FR-008..FR-012)
+SKILL_ANCHOR_VISION_RULES=### Rules (FR-008..FR-012 test harness relies on these)

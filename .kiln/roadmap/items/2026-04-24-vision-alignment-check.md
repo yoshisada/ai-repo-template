@@ -5,10 +5,12 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: in-phase
+state: specced
 blast_radius: feature
 review_cost: moderate
 context_cost: 1-2 sessions
+prd: docs/features/2026-04-27-vision-tooling/PRD.md
+spec: specs/vision-tooling/spec.md
 ---
 
 # Vision-alignment check — flag roadmap drift against the stated vision

@@ -40,6 +40,13 @@ npm-debug.log*
 # Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
 .shelf-config.lock
 
+# Transient lockfile used by plugin-kiln/scripts/roadmap/vision-write-section.sh
+# (vision-tooling NFR-003) — never commit
+.kiln/.vision.lock
+
+# Vision-scorecard run logs (vision-tooling FR-019) — generated, never commit
+.kiln/logs/metrics-*
+
 # Workflow outputs — generated, never commit
 reports/
 .wheel/outputs/
@@ -55,3 +62,7 @@ reports/
 # Research-first runner reports (NFR-S-004) — per-run ephemeral comparative
 # reports. Maintainers may copy into PR descriptions manually.
 .kiln/logs/research-*
+
+# Theme D win-condition scorecard reports (FR-019) — per-run ephemeral; the
+# canonical log lives in this dir, not committed. /kiln:kiln-metrics.
+.kiln/logs/metrics-*
