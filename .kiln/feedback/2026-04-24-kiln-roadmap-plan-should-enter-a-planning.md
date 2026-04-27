@@ -3,10 +3,11 @@ id: 2026-04-24-kiln-roadmap-plan-should-enter-a-planning
 title: "/kiln:kiln-roadmap --plan should enter a planning mode to structure open items into logical phases and surface missing items"
 type: feedback
 date: 2026-04-24
-status: open
 severity: medium
 area: ergonomics
 repo: https://github.com/yoshisada/ai-repo-template
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-24-roadmap-planning-mode.md
 ---
 
 kiln-roadmap --plan should enter a planning phase to plan out the open items in roadmap so we can build in logical stages, also keeps in mind if something is missing.

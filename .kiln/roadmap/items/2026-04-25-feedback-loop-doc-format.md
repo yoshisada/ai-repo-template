@@ -4,7 +4,7 @@ title: "Feedback-loop documentation format — wheel-workflow-JSON-shaped, conce
 kind: feature
 date: 2026-04-25
 status: open
-phase: 90-queued
+phase: 12-loop-and-workflow-design
 state: planned
 blast_radius: feature
 review_cost: moderate

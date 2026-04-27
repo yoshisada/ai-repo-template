@@ -8,6 +8,7 @@ severity: medium
 area: ergonomics
 repo: null
 prd: docs/features/2026-04-24-coach-driven-capture-ergonomics/PRD.md
+roadmap_item: .kiln/roadmap/items/2026-04-24-roadmap-coaching-with-insight.md
 ---
 
 roadmap agent should be more incuraging and insightful as to how this could help or how it could be architected to best help.  right now it feels dull
