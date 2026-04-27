@@ -202,17 +202,17 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T096 [impl-docs] [US5] Open `plugin-wheel/README.md`. Add a new top-level heading `## Writing agent instructions` after the `## Workflow Format` section's field-table + step-types subsection (READMe currently 293 lines; placement near the end is acceptable per plan §2). Body is the canonical block from `contracts/interfaces.md` §F.2 verbatim (or with light prose framing — the literal `documentary` sentinel and the bulleted ✅/❌ examples MUST be present).
-- [ ] T097 [impl-docs] [US5] Verify the new heading is reachable from the README's heading hierarchy (any reasonable markdown reader will find it). If the README has a TOC at the top, add the new heading to it.
+- [X] T096 [impl-docs] [US5] Open `plugin-wheel/README.md`. Add a new top-level heading `## Writing agent instructions` after the `## Workflow Format` section's field-table + step-types subsection (READMe currently 293 lines; placement near the end is acceptable per plan §2). Body is the canonical block from `contracts/interfaces.md` §F.2 verbatim (or with light prose framing — the literal `documentary` sentinel and the bulleted ✅/❌ examples MUST be present).
+- [X] T097 [impl-docs] [US5] Verify the new heading is reachable from the README's heading hierarchy (any reasonable markdown reader will find it). If the README has a TOC at the top, add the new heading to it.
 
 ### Test for User Story 5 (README)
 
-- [ ] T098 [impl-docs] [US5] Run `grep -F 'documentary' plugin-wheel/README.md` — expect ≥ 1 match. Run `grep -F 'Writing agent instructions' plugin-wheel/README.md` — expect ≥ 1 match (the heading itself).
-- [ ] T099 [impl-docs] [US5] Run the cumulative SC-006 assertion: `grep -lF 'documentary' plugin-wheel/lib/preprocess.sh plugin-wheel/README.md` — expect BOTH paths in output.
+- [X] T098 [impl-docs] [US5] Run `grep -F 'documentary' plugin-wheel/README.md` — expect ≥ 1 match. Run `grep -F 'Writing agent instructions' plugin-wheel/README.md` — expect ≥ 1 match (the heading itself).
+- [X] T099 [impl-docs] [US5] Run the cumulative SC-006 assertion: `grep -lF 'documentary' plugin-wheel/lib/preprocess.sh plugin-wheel/README.md` — expect BOTH paths in output.
 
 ### Checkpoint — Commit Phase 10
 
-- [ ] T100 [impl-docs] [US5] Stage by exact path: `git add plugin-wheel/README.md`. Commit: `docs(wheel/README): Writing agent instructions section — documentary references rule (FR-015)`.
+- [X] T100 [impl-docs] [US5] Stage by exact path: `git add plugin-wheel/README.md`. Commit: `docs(wheel/README): Writing agent instructions section — documentary references rule (FR-015)`.
 
 ---
 
