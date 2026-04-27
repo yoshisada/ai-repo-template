@@ -180,18 +180,18 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T090 [impl-docs] [US5] Open `plugin-wheel/lib/preprocess.sh`. Append the module-level comment block from `contracts/interfaces.md` §E.1 verbatim, IMMEDIATELY AFTER the existing module header (around line ~62 — after the substitution-stages narrative, before the function definitions). The literal word `documentary` MUST appear.
-- [ ] T091 [impl-docs] [US5] Locate the FR-F4-5 tripwire emit (around line ~177; the `printf` that emits the residual-token report immediately before `exit 1`). Extend its rendered output by APPENDING a new line containing the canonical sentence from `contracts/interfaces.md` §E.2: `If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with $$ escaping.`. Preferred form is the longer sentence; if a concrete consumer requires shorter, use the §E.3 condensed form (the literal "documentary" sentinel survives both).
-- [ ] T092 [impl-docs] [US5] Trace a small synthetic input through the tripwire mentally to confirm the new line is part of the rendered stderr (NOT swallowed by a missing newline or shell-quoting bug).
+- [X] T090 [impl-docs] [US5] Open `plugin-wheel/lib/preprocess.sh`. Append the module-level comment block from `contracts/interfaces.md` §E.1 verbatim, IMMEDIATELY AFTER the existing module header (around line ~62 — after the substitution-stages narrative, before the function definitions). The literal word `documentary` MUST appear.
+- [X] T091 [impl-docs] [US5] Locate the FR-F4-5 tripwire emit (around line ~177; the `printf` that emits the residual-token report immediately before `exit 1`). Extend its rendered output by APPENDING a new line containing the canonical sentence from `contracts/interfaces.md` §E.2: `If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with $$ escaping.`. Preferred form is the longer sentence; if a concrete consumer requires shorter, use the §E.3 condensed form (the literal "documentary" sentinel survives both).
+- [X] T092 [impl-docs] [US5] Trace a small synthetic input through the tripwire mentally to confirm the new line is part of the rendered stderr (NOT swallowed by a missing newline or shell-quoting bug).
 
 ### Test for User Story 5 (preprocess)
 
-- [ ] T093 [impl-docs] [US5] Run `grep -F 'documentary' plugin-wheel/lib/preprocess.sh` — expect ≥ 1 match. Run `grep -F 'rewrite as plain prose' plugin-wheel/lib/preprocess.sh` — expect ≥ 1 match (the FR-016 tripwire-error sentinel).
-- [ ] T094 [impl-docs] [US5] If a unit-style test for the tripwire output exists or can easily be written, add a one-line assertion that the tripwire's stderr contains `If you intended this as documentary text` for a synthesized residual-token input. Acceptable to defer — note the deferral in friction note T100 if so.
+- [X] T093 [impl-docs] [US5] Run `grep -F 'documentary' plugin-wheel/lib/preprocess.sh` — expect ≥ 1 match. Run `grep -F 'rewrite as plain prose' plugin-wheel/lib/preprocess.sh` — expect ≥ 1 match (the FR-016 tripwire-error sentinel).
+- [X] T094 [impl-docs] [US5] If a unit-style test for the tripwire output exists or can easily be written, add a one-line assertion that the tripwire's stderr contains `If you intended this as documentary text` for a synthesized residual-token input. Acceptable to defer — note the deferral in friction note T100 if so.
 
 ### Checkpoint — Commit Phase 9 (partial)
 
-- [ ] T095 [impl-docs] [US5] Stage by exact path: `git add plugin-wheel/lib/preprocess.sh`. Commit: `docs(wheel/preprocess): module comment + tripwire error documentary-references rule (FR-014, FR-016)`.
+- [X] T095 [impl-docs] [US5] Stage by exact path: `git add plugin-wheel/lib/preprocess.sh`. Commit: `docs(wheel/preprocess): module comment + tripwire error documentary-references rule (FR-014, FR-016)`.
 
 ---
 
