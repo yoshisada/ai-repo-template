@@ -41,3 +41,4 @@ The system audits its own output and steers itself. Promoted from `89-brainstorm
 - 2026-04-25-build-prd-auto-flip-item-state
 - 2026-04-25-escalation-shutdown-detection
 - 2026-04-25-vision-simple-params-cli
+- 2026-04-27-build-prd-model-cost-calibration

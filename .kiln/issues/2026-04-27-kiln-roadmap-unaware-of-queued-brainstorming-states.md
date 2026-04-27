@@ -1,7 +1,6 @@
 ---
 title: kiln-roadmap doesn't know about queued or brainstorming states
 date: 2026-04-27
-status: open
 kind: improvement
 priority: medium
 repo: https://github.com/yoshisada/ai-repo-template
@@ -11,6 +10,8 @@ tags:
   - triage
   - capture-pipeline
 source: kiln-report-issue
+status: promoted
+roadmap_item: .kiln/roadmap/items/2026-04-27-kiln-roadmap-queued-brainstorm-states.md
 ---
 
 # kiln-roadmap doesn't know about queued or brainstorming states
