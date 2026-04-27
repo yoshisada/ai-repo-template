@@ -1029,84 +1029,11 @@ After the audit-pr agent creates the PR, and before spawning the retrospective, 
 **Bash block (verbatim from contract §A.2)**:
 
 ```bash
-# FR-003 — gate on PR merge state (cached once per pipeline run; see R-1 mitigation).
-PR_STATE_JSON="$(gh pr view "$PR_NUMBER" --json state,mergedAt 2>/dev/null || echo '{}')"
-PR_STATE="$(echo "$PR_STATE_JSON" | jq -r '.state // "unknown"')"
-if [ "$PR_STATE" != "MERGED" ]; then
-  # Edge case: gh unavailable → PR_STATE="unknown" → still emits skipped, never aborts the pipeline.
-  REASON="pr-not-merged"
-  if [ "$PR_STATE" = "unknown" ]; then REASON="gh-unavailable"; fi
-  echo "step4b-auto-flip: pr-state=${PR_STATE} auto-flip=skipped items=0 patched=0 already_shipped=0 reason=${REASON}"
-  return 0 2>/dev/null || exit 0
-fi
-
-# FR-001 — read derived_from list (reuse Step 4b's read_derived_from helper; see Module E in contracts).
-ITEMS=()
-MISSING_ENTRIES=()
-while IFS= read -r entry; do
-  case "$entry" in
-    .kiln/roadmap/items/*.md)
-      if [ -f "$entry" ]; then
-        ITEMS+=("$entry")
-      else
-        MISSING_ENTRIES+=("$entry")
-      fi
-      ;;
-  esac
-done < <(read_derived_from "$PRD_PATH")
-
-# Edge case: no derived_from entries at all → diagnostic with reason=no-derived-from, no-op.
-if [ "${#ITEMS[@]}" -eq 0 ] && [ "${#MISSING_ENTRIES[@]}" -eq 0 ]; then
-  echo "step4b-auto-flip: pr-state=MERGED auto-flip=skipped items=0 patched=0 already_shipped=0 reason=no-derived-from"
-  return 0 2>/dev/null || exit 0
-fi
-
-PATCHED=0
-ALREADY_SHIPPED=0
-TODAY="$(date -u +%Y-%m-%d)"
-
-# FR-001/FR-002/FR-004 — per-item atomic flip with idempotency guard.
-for item in "${ITEMS[@]}"; do
-  # FR-004 — idempotency: skip if `pr: <PR_NUMBER>` already present (with optional leading '#').
-  if grep -qE "^pr:[[:space:]]*#?${PR_NUMBER}\b" "$item"; then
-    ALREADY_SHIPPED=$((ALREADY_SHIPPED + 1))
-    continue
-  fi
-
-  # FR-002 — atomic state+status rewrite via the extended --status flag.
-  bash plugin-kiln/scripts/roadmap/update-item-state.sh "$item" shipped --status shipped >/dev/null
-
-  # FR-001 — patch frontmatter: insert pr: + shipped_date: if absent. ONE awk pass + mv (atomic).
-  patch_pr_and_date() {
-    local _item="$1" _pr="$2" _today="$3"
-    local _tmp
-    _tmp="$(mktemp "${_item}.XXXXXX.tmp")"
-    awk -v pr="$_pr" -v today="$_today" '
-      BEGIN { fm = 0; saw_pr = 0; saw_date = 0; closed = 0 }
-      /^---[[:space:]]*$/ {
-        fm++
-        # FR-004 — on closing fence: insert pr: + shipped_date: if not seen, BEFORE printing the fence.
-        if (fm == 2 && closed == 0) {
-          if (saw_pr == 0)   { print "pr: " pr }
-          if (saw_date == 0) { print "shipped_date: " today }
-          closed = 1
-        }
-        print
-        next
-      }
-      fm == 1 && /^pr:[[:space:]]*/         { saw_pr = 1;   print; next }
-      fm == 1 && /^shipped_date:[[:space:]]*/ { saw_date = 1; print; next }
-      { print }
-    ' "$_item" > "$_tmp"
-    mv "$_tmp" "$_item"
-  }
-  patch_pr_and_date "$item" "$PR_NUMBER" "$TODAY"
-
-  PATCHED=$((PATCHED + 1))
-done
-
-# FR-001 — diagnostic line, byte-exact per contract §A.2.
-echo "step4b-auto-flip: pr-state=MERGED auto-flip=success items=${#ITEMS[@]} patched=${PATCHED} already_shipped=${ALREADY_SHIPPED} reason="
+# FR-001..FR-004 — extracted to shared helper (specs/merge-pr-and-sc-grep-guidance FR-009).
+# Helper is a verbatim extraction of the previous inline block; diagnostic line, exit
+# codes, and frontmatter mutations are byte-identical (NFR-002). Reused by
+# /kiln:kiln-merge-pr (FR-005) and /kiln:kiln-roadmap --check --fix (FR-010).
+bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh "$PR_NUMBER" "$PRD_PATH"
 ```
 
 **Diagnostic line literal** (one line, no embedded newlines, exit-safe):
