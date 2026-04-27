@@ -10,8 +10,4 @@ Pre-queued holding pen for ideas that have a real shape but need more design wor
 
 ## Items
 
-- 2026-04-24-escalation-audit
-- 2026-04-24-manifest-evolution-ledger
-- 2026-04-24-retro-quality-auditor
-- 2026-04-24-vision-alignment-check
-- 2026-04-24-win-condition-scorecard
+- 2026-04-27-session-base-branch

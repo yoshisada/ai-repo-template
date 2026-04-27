@@ -21,13 +21,36 @@ But in actual usage, Step 4b.5 only fires INSIDE an active build-prd pipeline ru
 
 This was the original drift PR #186 captured (8 items needing manual flip), and ironically PR #189 itself hit the same gap — I had to manually run the just-shipped Step 4b.5 logic to verify SC-006.
 
-## Suggested fixes (pick one)
+## Decided direction — ship (b) + (c)
 
-- **(a) merge-watcher hook** — git/gh hook that detects merged PRs whose head branch matches `build/<slug>-<YYYYMMDD>`, finds the matching PRD by frontmatter, runs the Step 4b.5 logic. Most automatic but most invasive.
-- **(b) standalone `/kiln:kiln-flip-on-merge <pr>` skill** — user invokes after async merge; the skill runs the Step 4b.5 logic. Cheapest to build (extract the existing bash block to a shared script + thin SKILL.md wrapper). Requires user discipline.
-- **(c) `/kiln:kiln-roadmap --check` tripwire fix-mode** — FR-005 of escalation-audit already detects this drift; extend `--check` with `--fix` that offers to flip detected drift one-shot. Most aligned with existing tripwire pattern. Also covers historical drift, not just future.
+User confirmed 2026-04-27: ship **(b) + (c)** together. Specifically, (b) should be a **"merge-and-flip"** skill — the skill DOES the merge itself (not just react after-the-fact). User invokes `/kiln:kiln-merge-pr <pr>` (working name); the skill calls `gh pr merge`, waits for merge confirmation, then runs the Step 4b.5 auto-flip logic atomically. This collapses two manual steps (merge + flip) into one command and eliminates the async-merge gap by construction — the moment the merge succeeds, the flip runs.
 
-Recommendation: ship **(b) + (c)** together — (b) for the immediate post-merge case, (c) for catch-up on historical drift. Both consume a shared `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` helper extracted from the current Step 4b.5 inline block.
+### (b) `/kiln:kiln-merge-pr <pr>` — merge + auto-flip combined skill (PRIMARY)
+
+- Inputs: `<pr>` (number) — required.
+- Flags: `--squash | --merge | --rebase` (default: `--squash` matching team convention); `--no-flip` escape hatch (merge only, skip auto-flip)
+- Steps:
+  1. `gh pr view <pr> --json state,mergeable,mergeStateStatus` — gate on CLEAN/MERGEABLE
+  2. `gh pr merge <pr> --squash --delete-branch` (or whatever flag the user passed)
+  3. Wait for merge confirmation via `gh pr view <pr> --json state,mergedAt --jq '.state'`
+  4. Locate the PRD via `gh pr view <pr> --json files` → find `docs/features/*/PRD.md` touched
+  5. Run the shared `auto-flip-on-merge.sh` helper against that PRD's `derived_from:` list
+  6. Emit the canonical `step4b-auto-flip:` diagnostic line
+  7. Commit + push the roadmap-item flips
+
+### (c) `/kiln:kiln-roadmap --check --fix` — tripwire catch-up (SECONDARY)
+
+- FR-005 of escalation-audit already detects drift; extend `--check` with `--fix` that one-shot flips detected drift after user confirmation
+- Catches historical drift (items that drifted before this skill shipped, or PRs merged via the GitHub web UI / another flow that bypassed `/kiln:kiln-merge-pr`)
+- Confirm-never-silent: list the drifted items, ask `[fix all / pick / skip]`, fire `auto-flip-on-merge.sh` for accepted entries
+
+### Shared helper extraction
+
+Both (b) and (c) consume `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh`, extracted verbatim from the existing Step 4b.5 inline block. Step 4b.5 in `kiln-build-prd/SKILL.md` should be refactored to also call this helper — pure extraction, no behavior change. This means the same logic is reachable from three call sites: in-pipeline (Step 4b.5), out-of-pipeline-merge (b), historical-drift catch-up (c).
+
+### Rejected alternative
+
+- **(a) merge-watcher hook** — git/gh hook that detects merged PRs out-of-band. Rejected: too invasive (cross-cutting hook surface), and (b)+(c) cover the same ground with less infrastructure.
 
 ## Why this matters
 
