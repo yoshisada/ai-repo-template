@@ -3,9 +3,11 @@ id: 2026-04-25-escalation-shutdown-detection
 title: "Pipeline-end shutdown-nag loop — team-lead enters /loop after teammate pipeline finishes (verified 2026-04-25)"
 kind: feature
 date: 2026-04-25
-status: open
+status: shipped
+pr: #189
+shipped_date: 2026-04-27
 phase: 10-self-optimization
-state: distilled
+state: shipped
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"

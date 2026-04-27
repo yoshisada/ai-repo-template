@@ -3,9 +3,11 @@ id: 2026-04-24-escalation-audit
 title: "Escalation audit — calibrate context-informed autonomy with evidence"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
+pr: #189
+shipped_date: 2026-04-27
 phase: 10-self-optimization
-state: distilled
+state: shipped
 blast_radius: feature
 review_cost: moderate
 context_cost: 2 sessions

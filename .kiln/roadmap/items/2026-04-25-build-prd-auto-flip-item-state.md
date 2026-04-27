@@ -3,9 +3,11 @@ id: 2026-04-25-build-prd-auto-flip-item-state
 title: "no `pr:` field, no shipped_date, nothing"
 kind: feature
 date: 2026-04-25
-status: open
+status: shipped
+pr: #189
+shipped_date: 2026-04-27
 phase: 10-self-optimization
-state: distilled
+state: shipped
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
