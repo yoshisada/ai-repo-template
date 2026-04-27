@@ -18,7 +18,15 @@ $ARGUMENTS
 Arguments may include the free-text description and/or any of these flags:
 
 - `--quick` — skip the adversarial interview; write a minimal item to `phase: unsorted` (FR-018 / PRD FR-018). Also auto-activated in non-interactive sessions (FR-018 / FR-039).
-- `--vision` — update `.kiln/vision.md` instead of capturing an item (FR-019 / PRD FR-019).
+- `--vision` — update `.kiln/vision.md` instead of capturing an item (FR-019 / PRD FR-019). When invoked alone, runs the coached interview (NFR-005 byte-identical pre-PRD path); when invoked with one of the simple-params flags below, runs the deterministic ≤3-second writer in §V-A and SKIPS the coached interview (vision-tooling FR-001/FR-002/FR-005/FR-014).
+  - `--vision --add-constraint <text>` — append a bullet under `## Guiding constraints`.
+  - `--vision --add-non-goal <text>` — append a bullet under `## What it is not`.
+  - `--vision --add-signal <text>` — append a bullet under `## How we'll know we're winning`.
+  - `--vision --update-what <body>` — replace the body of `## What we are building`.
+  - `--vision --update-not <body>` — replace the body of `## What it is not`.
+  - `--vision --update-signals <body>` — replace the body of `## How we'll know we're winning`.
+  - `--vision --update-constraints <body>` — replace the body of `## Guiding constraints`.
+  - At most ONE simple-params flag per invocation; conflicts and unknown `--add-*`/`--update-*` flags exit non-zero before any I/O (FR-005 / SC-002). Section-flag mapping table is single-sourced in `plugin-kiln/scripts/roadmap/vision-section-flag-map.sh` (FR-021).
 - `--phase start <name>` / `--phase complete <name>` / `--phase create <name> --order <N>` — phase management (FR-020 / PRD FR-020).
 - `--check` — report items whose `state` is inconsistent with phase/spec/PR reality (FR-022 / PRD FR-022).
 - `--check --fix` — confirm-never-silent fixer for the merged-PR drift Check 5 surfaces. Prompts `[fix all / pick / skip]`; on accept invokes the shared `auto-flip-on-merge.sh` helper per item. Empty/unknown input is treated as `skip` (NFR-004). Required for items merged via the GitHub web UI or `gh pr merge` directly (i.e. NOT through `/kiln:kiln-merge-pr`). FR-010 / FR-011 of merge-pr-and-sc-grep-guidance.
@@ -145,7 +153,8 @@ fi
 
 Parse `$ARGUMENTS` for the mode flags in this order. First match wins. If none match, fall through to the capture pipeline (Step 2 onward).
 
-- `--vision` → jump to **§V: Vision update**.
+- `--vision` AND any of `--add-constraint`, `--add-non-goal`, `--add-signal`, `--update-what`, `--update-not`, `--update-signals`, `--update-constraints` → jump to **§V-A: Vision simple-params CLI** (vision-tooling FR-001 / FR-002 / FR-005 / FR-014). The simple-params dispatch is checked BEFORE the coached interview path so any matched flag short-circuits §V (FR-001 final sentence).
+- `--vision` (no simple-params flags) → jump to **§V: Vision update** (coached interview, NFR-005 byte-identical pre-PRD path).
 - `--phase` → jump to **§P: Phase management**.
 - `--check` → jump to **§C: Consistency check**. If the same invocation also includes `--fix`, set `FIX_MODE=true` BEFORE entering §C, then run §C-fix immediately after §C completes (FR-010 of merge-pr-and-sc-grep-guidance).
 - `--reclassify` → jump to **§R: Reclassify unsorted**.
@@ -650,6 +659,69 @@ captured <N> roadmap items, <M> issues, <K> feedback this session.
   - issue:   .kiln/issues/<path>, ...       (if any)
   - feedback: .kiln/feedback/<path>, ...    (if any)
 ```
+
+---
+
+## §V-A: Vision simple-params CLI (`--vision --add-* / --update-*` — vision-tooling FR-001/FR-002/FR-005/FR-014)
+
+<!-- vision-tooling Theme A. Cheap, deterministic, ≤3-second updates that
+     SKIP the heavyweight coached interview entirely (FR-001 last sentence;
+     FR-014 invariant). Atomic temp+mv writer with .kiln/.vision.lock; flag
+     conflicts refused before any I/O. NFR-005 back-compat: when no simple-
+     params flag is present this section is bypassed and §V handles the
+     coached interview byte-identically to the pre-PRD path. -->
+
+This section is reached ONLY when `--vision` is invoked together with at
+least one supported simple-params flag from the `vision-section-flag-map.sh`
+table (FR-021): `--add-constraint`, `--add-non-goal`, `--add-signal`,
+`--update-what`, `--update-not`, `--update-signals`, `--update-constraints`.
+
+```bash
+# §V-A.1 Validate. NO file I/O — refuses unknown / empty / mutually
+# exclusive flags before touching .kiln/vision.md (FR-005, SC-002).
+VALIDATOR_OUT=$(bash plugin-kiln/scripts/roadmap/vision-flag-validator.sh -- "$@")
+VALIDATOR_RC=$?
+if [ "$VALIDATOR_RC" -ne 0 ]; then
+  # Validator already wrote `vision: <reason>` to stderr in the kiln-roadmap
+  # warning shape. Exit non-zero immediately; do not fall through to §V.
+  exit "$VALIDATOR_RC"
+fi
+
+# Validator emits "<flag>\t<text>" on stdout when a single supported flag is
+# present. Empty stdout means "no simple-params flag, fall through" — this
+# branch should not have been reached, but defensively re-route to §V.
+if [ -z "$VALIDATOR_OUT" ]; then
+  : "fall through to §V coached interview"
+else
+  FLAG=$(printf '%s' "$VALIDATOR_OUT" | cut -f1)
+  TEXT=$(printf '%s' "$VALIDATOR_OUT" | cut -f2-)
+
+  # §V-A.2 Atomic temp+mv write with last_updated: bump (FR-001/FR-002/FR-003).
+  bash plugin-kiln/scripts/roadmap/vision-write-section.sh "$FLAG" "$TEXT"
+  WRITE_RC=$?
+  if [ "$WRITE_RC" -ne 0 ]; then
+    # Vision file is byte-identical to pre-invocation on any non-zero exit
+    # (FR-003). Surface the writer's exit code verbatim.
+    exit "$WRITE_RC"
+  fi
+
+  # §V-A.3 Shelf mirror dispatch — fire-and-warn (FR-004). Never fails out
+  # of kiln-roadmap; missing .shelf-config emits the canonical warning shape
+  # and continues.
+  bash plugin-kiln/scripts/roadmap/vision-shelf-dispatch.sh
+
+  # §V-A.4 EXIT — MUST NOT invoke the coached interview (FR-001 last
+  # sentence) AND MUST NOT invoke the Theme C forward-pass (FR-014 / SC-010).
+  exit 0
+fi
+```
+
+The dispatch surface is intentionally thin — every mutation goes through
+`vision-write-section.sh` (atomic temp+mv, frontmatter bump, FR-021 section
+table) and every shelf mirror through `vision-shelf-dispatch.sh`
+(warn-and-continue on missing `.shelf-config`). Adding a new flag means
+extending the table in `vision-section-flag-map.sh`; no edits here are
+required.
 
 ---
 
