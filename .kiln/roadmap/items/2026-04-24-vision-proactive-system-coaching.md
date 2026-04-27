@@ -5,12 +5,13 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: distilled
+state: specced
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 promoted_from: .kiln/issues/2026-04-24-kiln-vision-proactive-feature-suggestions.md
 prd: docs/features/2026-04-27-vision-tooling/PRD.md
+spec: specs/vision-tooling/spec.md
 ---
 
 # /kiln:kiln-roadmap --vision should proactively suggest system improvements and new features (long-term vision coaching)
