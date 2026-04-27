@@ -5,10 +5,11 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: in-phase
+state: distilled
 blast_radius: feature
 review_cost: careful
 context_cost: 2-3 sessions
+prd: docs/features/2026-04-27-vision-tooling/PRD.md
 ---
 
 # Win-condition scorecard — make the vision falsifiable
