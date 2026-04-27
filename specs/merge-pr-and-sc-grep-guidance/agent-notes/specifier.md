@@ -58,6 +58,32 @@ The team-lead sent two corrections AFTER the initial spec/plan/tasks commit (`38
 
 Both corrections are mid-pass — the implementers had already started Phase 1 setup when the corrections arrived. The follow-on commit ensures their first edit reads the corrected spec.
 
+## Staging-collision lesson (commit `81eca4c3`) — for retrospective
+
+When I ran `git add <exact-spec-paths>` to stage the corrections, the git index already held pre-staged changes from parallel work. The commit therefore included MORE than the 5 spec files I named:
+
+- **Hook-bumped collateral (DESIRED pattern per retro #187 PI-2)**: `VERSION`, `plugin-{clay,kiln,shelf,trim,wheel}/.claude-plugin/plugin.json`, `plugin-{clay,kiln,shelf,trim,wheel}/package.json` — 11 files. The version-increment hook auto-stages these on Edit/Write tool use; sweeping them into the next commit is the intended behavior. No corrective action.
+- **NOTEWORTHY collision**: `plugin-kiln/templates/spec-template.md` — impl-docs's completed Theme B work (FR-012/FR-013 authoring note + recipe). They had run `git add plugin-kiln/templates/spec-template.md` before I ran my own `git add` for the corrections. My commit therefore ran with their work pre-staged in the index. The diff content matches contracts §D.2 verbatim — semantically correct — but it shipped under MY commit message ("specify+plan+tasks: corrections...") instead of theirs ("docs(spec-template): SC-grep date-bound authoring note + recipe (FR-012, FR-013)"). The labeling error is now a permanent part of git history.
+
+### Why this happened
+
+`git add <path>` adds the named path to the index. It does NOT clear OR reject other already-staged paths. When two parallel agents both work toward `git add` + `git commit` cycles, whoever calls `git commit` first sweeps everything currently in the index — including the other agent's pre-staged-but-not-yet-committed work — into their commit. This is git's documented behavior, but it surprised me because I conflated "stage by exact path" with "commit by exact path." Those are distinct guarantees: you control what enters the index, not what's already there.
+
+### What would have prevented it
+
+A `git status --porcelain` check immediately before `git commit` (after the targeted `git add`) would have shown impl-docs's spec-template.md sitting in the index alongside my 5 spec files. I'd have spotted the collision and either:
+
+1. Unstaged the collision (`git restore --staged plugin-kiln/templates/spec-template.md`) so impl-docs's commit could land cleanly under their own message, OR
+2. Coordinated with team-lead to allow the absorption (which is what team-lead actually approved retroactively).
+
+The fix is procedural, not technical: in concurrent-implementer pipelines, treat `git status --porcelain` BEFORE `git commit` as mandatory, even when you've staged by exact path. Especially when other agents are actively working on disjoint files — their staged but uncommitted index entries are invisible from your `git add` perspective but very visible to your `git commit`.
+
+### Recommended PI for next-iteration build-prd skill
+
+Add a pre-commit teammate-coordination check: when an agent is about to `git commit`, if `git diff --cached --name-only` includes ANY path NOT in the agent's declared file-ownership list (per spec NFR-005), the agent MUST either (a) message team-lead before proceeding, or (b) `git restore --staged` the foreign paths first. Both options preserve the labeling integrity of every commit. The cost is one extra `git diff --cached` call per commit; the benefit is no more commit-message-vs-content drift in concurrent runs.
+
+The hook-bumped collateral (VERSION/manifests) is exempted because retro #187 PI-2 explicitly endorses that sweep pattern.
+
 ## Confidence
 
 High on Theme A's helper extraction + skill body (mechanical, well-pinned by escalation-audit's contracts).
