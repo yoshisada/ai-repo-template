@@ -42,8 +42,8 @@ This is the plugin source repo. All code lives under `plugin-kiln/`. Tests live 
 
 **Purpose**: Section-flag mapping table (FR-021) + flag validator (FR-005) are shared by Theme A and the prompt-emission guard for Theme C (which checks "is any simple-params flag present? → no forward-pass"). Both must exist before Theme A's writer is wired up and before Theme C's guard test can pass.
 
-- [ ] T005 [P] Implement `plugin-kiln/scripts/roadmap/vision-section-flag-map.sh` per `contracts/interfaces.md` §"Theme A — vision-section-flag-map.sh". Sourceable + CLI-mode `--list`. Exports `VISION_FLAG_TO_SECTION` and `VISION_FLAG_OP` arrays. *(FR-021)*
-- [ ] T006 [P] Implement `plugin-kiln/scripts/roadmap/vision-flag-validator.sh` per `contracts/interfaces.md` §"Theme A — vision-flag-validator.sh". Stdout = canonical flag + tab + value; exit 2 on conflict / unknown / empty value; exit 0 with empty stdout when no simple-params flags present (caller dispatches coached interview). *(FR-005)*
+- [X] T005 [P] Implement `plugin-kiln/scripts/roadmap/vision-section-flag-map.sh` per `contracts/interfaces.md` §"Theme A — vision-section-flag-map.sh". Sourceable + CLI-mode `--list`. Exports `VISION_FLAG_TO_SECTION` and `VISION_FLAG_OP` arrays. *(FR-021)*
+- [X] T006 [P] Implement `plugin-kiln/scripts/roadmap/vision-flag-validator.sh` per `contracts/interfaces.md` §"Theme A — vision-flag-validator.sh". Stdout = canonical flag + tab + value; exit 2 on conflict / unknown / empty value; exit 0 with empty stdout when no simple-params flags present (caller dispatches coached interview). *(FR-005)*
 
 **Checkpoint**: Mapping table + validator are deterministic, independently unit-testable, and unblock all four user stories.
 
