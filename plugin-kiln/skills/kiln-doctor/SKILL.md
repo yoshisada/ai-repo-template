@@ -309,6 +309,41 @@ Append ONE row to the diagnosis table (Step 3e):
 
 Doctor does NOT render the full hygiene preview. That is exclusively the `/kiln:kiln-hygiene` skill's job; 3h is a tripwire pointing at it. Performance contract: the 3h block alone MUST run <2 s on a real-repo fixture (SC-004 of `specs/kiln-structural-hygiene/`). Enforced by: no `gh` call here, grep surface capped at `plugin-*/` + `templates/` + `.kiln/` artifact dirs, no recursion into `node_modules/` or `.git/`.
 
+### 4: Escalation-frequency tripwire (FR-016)
+
+Cheap signal: when `.wheel/history/` accumulates more than 20 `awaiting_user_input == true` events in the last 7 days, suggest the maintainer run `/kiln:kiln-escalation-audit` for a full inventory. Tripwire only — this subcheck MUST NOT auto-invoke the escalation-audit skill (parity with 3g/3h's "tripwire pointing at the dedicated skill" pattern).
+
+Threshold: `> 20` events in a rolling 7-day window. Source: `.wheel/history/*.json` files modified within the last 7 days where the JSON's `awaiting_user_input` field is `true`. Window-start floor uses `started_at` if present (preferred); file mtime is the implicit `find -mtime -7` filter.
+
+```bash
+# FR-016 — escalation-frequency tripwire (suggest /kiln:kiln-escalation-audit when pauses spike)
+WINDOW_START="$(date -u -v-7d +%FT%TZ 2>/dev/null || date -u -d '7 days ago' +%FT%TZ)"
+COUNT=0
+if [ -d ".wheel/history" ]; then
+  COUNT="$(find .wheel/history -name '*.json' -mtime -7 -print0 \
+    | xargs -0 -r jq -r 'select(.awaiting_user_input == true) | .started_at' 2>/dev/null \
+    | awk -v w="$WINDOW_START" '$0 >= w' | wc -l | tr -d ' ')"
+fi
+
+if [ "$COUNT" -gt 20 ]; then
+  echo "4-escalation-frequency: WARN — ${COUNT} awaiting_user_input events in last 7 days"
+  echo "  consider running /kiln:kiln-escalation-audit"
+else
+  echo "4-escalation-frequency: OK — ${COUNT} awaiting_user_input events in last 7 days"
+fi
+```
+
+Append ONE row to the diagnosis table (Step 3e):
+
+- `COUNT > 20`: `| 4-escalation-frequency | WARN | <N> awaiting_user_input events in last 7 days; consider running /kiln:kiln-escalation-audit |`
+- `COUNT <= 20`: `| 4-escalation-frequency | OK   | <N> awaiting_user_input events in last 7 days |`
+- `.wheel/history/` missing: `| 4-escalation-frequency | OK   | 0 awaiting_user_input events in last 7 days |` (treat absent dir as zero events; consistent with the escalation-audit skill's empty-corpus path)
+
+**Constraints (FR-016)**:
+- MUST NOT auto-invoke `/kiln:kiln-escalation-audit` — suggestion text only.
+- MUST NOT mutate `.wheel/history/` or any other source.
+- Performance budget: cheap (`find -mtime -7` + `jq` on at most 7 days of history files; well under 2 s on any realistic corpus). No `gh` calls; no LLM.
+
 ### 3f: Stale prd-created Issue Detection — FR-010
 
 Scan `.kiln/issues/` for issues that were bundled into a PRD but never built:
@@ -357,6 +392,8 @@ Display results as a table:
 | Structural hygiene drift | OK    | No cheap signals triggered |
 | Structural hygiene drift | DRIFT | 2 cheap signals; run /kiln:kiln-hygiene |
 | Structural hygiene drift | N/A   | rubric or .kiln/ not found — skipped |
+| 4-escalation-frequency | OK   | 7 awaiting_user_input events in last 7 days |
+| 4-escalation-frequency | WARN | 25 awaiting_user_input events in last 7 days; consider running /kiln:kiln-escalation-audit |
 
 Summary: N issues found
 ```
