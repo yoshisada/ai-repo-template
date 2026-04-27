@@ -62,3 +62,7 @@ reports/
 # Research-first runner reports (NFR-S-004) — per-run ephemeral comparative
 # reports. Maintainers may copy into PR descriptions manually.
 .kiln/logs/research-*
+
+# Theme D win-condition scorecard reports (FR-019) — per-run ephemeral; the
+# canonical log lives in this dir, not committed. /kiln:kiln-metrics.
+.kiln/logs/metrics-*

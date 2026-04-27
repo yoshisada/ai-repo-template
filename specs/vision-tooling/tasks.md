@@ -121,22 +121,22 @@ This is the plugin source repo. All code lives under `plugin-kiln/`. Tests live 
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Author `plugin-kiln/tests/kiln-metrics/run.sh` with `KILN_METRICS_NOW` set for timestamp determinism. Assertion blocks for: SC-007 8 rows + column shape + stdout==log; SC-008 missing-extractor → `unmeasurable` + exit 0; FR-019 log filename matches `metrics-<timestamp>.md` and second run with different `KILN_METRICS_NOW` does not overwrite first; FR-018 each `extract-signal-<x>.sh` runs standalone and emits the contract-shaped row line. Target ≥16 assertion blocks (≥2 per signal × 8 + global shape checks). *(NFR-004)*
+- [X] T023 [P] [US4] Author `plugin-kiln/tests/kiln-metrics/run.sh` with `KILN_METRICS_NOW` set for timestamp determinism. Assertion blocks for: SC-007 8 rows + column shape + stdout==log; SC-008 missing-extractor → `unmeasurable` + exit 0; FR-019 log filename matches `metrics-<timestamp>.md` and second run with different `KILN_METRICS_NOW` does not overwrite first; FR-018 each `extract-signal-<x>.sh` runs standalone and emits the contract-shaped row line. Target ≥16 assertion blocks (≥2 per signal × 8 + global shape checks). *(NFR-004)*
 
 ### Implementation for User Story 4
 
-- [ ] T024 [P] [US4] Implement `plugin-kiln/scripts/metrics/render-row.sh` per `contracts/interfaces.md` §"Theme D — render-row.sh". Pipe-delimited row; escapes embedded `|`; rejects unknown `<status>` values with exit 2. *(FR-016)*
-- [ ] T025 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-a.sh` per per-signal evidence-source table in contracts. Emits one tab-separated success line OR `unmeasurable` line. Exit 0 on success, 4 on unmeasurable. *(FR-018, signal a)*
-- [ ] T026 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-b.sh` (escalations from `.wheel/history/`, 90-day window). *(FR-018, signal b)*
-- [ ] T027 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-c.sh` (capture surfaces → PRDs via `derived_from:`). *(FR-018, signal c)*
-- [ ] T028 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-d.sh` (mistake → manifest-improvement-landed via Obsidian `@inbox/closed/` read-only). *(FR-018, signal d)*
-- [ ] T029 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-e.sh` (`hook-*.log` blocked-edit + .env-commit count, 30-day window). *(FR-018, signal e)*
-- [ ] T030 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-f.sh` (shelf + trim sync drift count from latest audit logs). *(FR-018, signal f)*
-- [ ] T031 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-g.sh` (smoke-test pass rate from `plugin-kiln/tests/` records, 30-day window). *(FR-018, signal g)*
-- [ ] T032 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-h.sh` (declined-records cross-referenced with `.kiln/feedback/` external sources). *(FR-018, signal h)*
-- [ ] T033 [US4] Implement `plugin-kiln/scripts/metrics/orchestrator.sh` per `contracts/interfaces.md` §"Theme D — orchestrator.sh". Walks each `extract-signal-{a..h}.sh`, catches non-zero exits and substitutes `unmeasurable`, calls `render-row.sh` per row, writes to stdout AND `.kiln/logs/metrics-<UTC-timestamp>.md`. Honours `KILN_METRICS_NOW` env var. Creates `.kiln/logs/` if missing. *(FR-015, FR-017, FR-019)*
-- [ ] T034 [US4] Create `plugin-kiln/skills/kiln-metrics/SKILL.md` per `contracts/interfaces.md` §"plugin-kiln/skills/kiln-metrics/SKILL.md (NEW)". Thin wrapper that invokes `orchestrator.sh`. `--help` describes the eight signals + column shape + log location + graceful-degrade. *(FR-015, FR-019)*
-- [ ] T035 [US4] Patch `plugin-kiln/.claude-plugin/plugin.json` to register the new `kiln-metrics` skill. Do NOT touch existing skill entries. *(plugin manifest registration; plan §Source Code structure)*
+- [X] T024 [P] [US4] Implement `plugin-kiln/scripts/metrics/render-row.sh` per `contracts/interfaces.md` §"Theme D — render-row.sh". Pipe-delimited row; escapes embedded `|`; rejects unknown `<status>` values with exit 2. *(FR-016)*
+- [X] T025 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-a.sh` per per-signal evidence-source table in contracts. Emits one tab-separated success line OR `unmeasurable` line. Exit 0 on success, 4 on unmeasurable. *(FR-018, signal a)*
+- [X] T026 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-b.sh` (escalations from `.wheel/history/`, 90-day window). *(FR-018, signal b)*
+- [X] T027 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-c.sh` (capture surfaces → PRDs via `derived_from:`). *(FR-018, signal c)*
+- [X] T028 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-d.sh` (mistake → manifest-improvement-landed via Obsidian `@inbox/closed/` read-only). *(FR-018, signal d)*
+- [X] T029 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-e.sh` (`hook-*.log` blocked-edit + .env-commit count, 30-day window). *(FR-018, signal e)*
+- [X] T030 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-f.sh` (shelf + trim sync drift count from latest audit logs). *(FR-018, signal f)*
+- [X] T031 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-g.sh` (smoke-test pass rate from `plugin-kiln/tests/` records, 30-day window). *(FR-018, signal g)*
+- [X] T032 [P] [US4] Implement `plugin-kiln/scripts/metrics/extract-signal-h.sh` (declined-records cross-referenced with `.kiln/feedback/` external sources). *(FR-018, signal h)*
+- [X] T033 [US4] Implement `plugin-kiln/scripts/metrics/orchestrator.sh` per `contracts/interfaces.md` §"Theme D — orchestrator.sh". Walks each `extract-signal-{a..h}.sh`, catches non-zero exits and substitutes `unmeasurable`, calls `render-row.sh` per row, writes to stdout AND `.kiln/logs/metrics-<UTC-timestamp>.md`. Honours `KILN_METRICS_NOW` env var. Creates `.kiln/logs/` if missing. *(FR-015, FR-017, FR-019)*
+- [X] T034 [US4] Create `plugin-kiln/skills/kiln-metrics/SKILL.md` per `contracts/interfaces.md` §"plugin-kiln/skills/kiln-metrics/SKILL.md (NEW)". Thin wrapper that invokes `orchestrator.sh`. `--help` describes the eight signals + column shape + log location + graceful-degrade. *(FR-015, FR-019)*
+- [X] T035 [US4] Patch `plugin-kiln/.claude-plugin/plugin.json` to register the new `kiln-metrics` skill. Do NOT touch existing skill entries. *(plugin manifest registration; plan §Source Code structure)*
 
 **Checkpoint**: All four themes shipped. SC-007, SC-008 verifiable.
 
