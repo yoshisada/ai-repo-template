@@ -34,6 +34,27 @@
 #   - The function is idempotent: a second call on already-templated output
 #     finds no tokens, makes no replacements, and emits byte-identical JSON.
 
+# Documentary references gotcha (FR-014, specs/merge-pr-and-sc-grep-guidance/spec.md):
+#
+# Authors who include documentary references to ${WHEEL_PLUGIN_<name>} or
+# ${WORKFLOW_PLUGIN_DIR} inside agent `instruction:` text — even purely as prose
+# describing legacy behavior — trip two failure modes:
+#
+#   1. The FR-F4-5 prefix-pattern tripwire fires on grammar variants that the
+#      substitution regex skips (e.g., bracketed names containing characters the
+#      substitution doesn't recognize), because the tripwire's prefix gate is
+#      strictly `${WHEEL_PLUGIN_` or `${WORKFLOW_PLUGIN_DIR`.
+#   2. `$$` escaping (`$${WHEEL_PLUGIN_<name>}`) survives the tripwire by design
+#      (round-trips to a literal `${WHEEL_PLUGIN_<name>}` in the rendered output),
+#      but that literal then lands in `.wheel/history/success/*.json` archives
+#      where the SC-F-6 archive-grep tripwire trips it from the OTHER direction.
+#
+# The durable rule for documentation prose is: do NOT reproduce the token grammar
+# verbatim. Substitute plain prose (e.g., "the workflow's plugin directory" or
+# "the calling plugin's WHEEL_PLUGIN_<name> entry") that does not contain the
+# `${...}` shape at all. This is the rule consumers see in
+# plugin-wheel/README.md §Writing agent instructions.
+
 if [[ -n "${WHEEL_PREPROCESS_SH_LOADED:-}" ]]; then
   return 0 2>/dev/null || true
 fi
@@ -175,7 +196,7 @@ template_workflow_json() {
     # this grep (it shows up as the sentinel followed by the rest of the
     # token, not as a residual `${WHEEL_PLUGIN_`).
     if printf '%s' "$templated" | grep -qE '\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)'; then
-      printf "Wheel preprocessor failed: instruction text for step '%s' still contains '\${...}'. This is a wheel runtime bug; please file an issue.\n" "$step_id" >&2
+      printf "Wheel preprocessor failed: instruction text for step '%s' still contains '\${...}'. This is a wheel runtime bug; please file an issue.\nIf you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with \$\$ escaping.\n" "$step_id" >&2
       return 1
     fi
 

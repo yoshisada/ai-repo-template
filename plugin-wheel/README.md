@@ -270,6 +270,21 @@ echo "${LOG_PREFIX}: done | $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 Worked example: `plugin-shelf/scripts/step-dispatch-background-sync.sh` consolidates the counter-increment + log-append chain the `kiln:kiln-report-issue` background sub-agent previously ran as two separate Bash tool calls.
 
+## Writing agent instructions
+
+When authoring `instruction:` text for an `agent`-type step, do **not** reproduce the wheel's token grammar verbatim — even as documentary prose describing legacy behavior. The two reserved prefixes — `${WHEEL_PLUGIN_<name>}` and `${WORKFLOW_PLUGIN_DIR}` — are policed by two tripwires that fire from different directions:
+
+- The FR-F4-5 prefix-pattern tripwire in `lib/preprocess.sh` fires on any post-substitution residual token. Grammar variants the substitution regex skips still trip the tripwire on the next workflow run.
+- The `$$` escape (`$${WHEEL_PLUGIN_<name>}`) survives the tripwire intentionally — it round-trips to a literal `${WHEEL_PLUGIN_<name>}` in the rendered output. That literal then lands in `.wheel/history/success/*.json` archives where the SC-F-6 archive-grep tripwire trips it.
+
+The durable rule for **documentary** references in `instruction:` text is: rewrite as plain prose that does not reproduce the token grammar at all. Examples:
+
+- ✅ "the workflow's plugin directory"
+- ✅ "the calling plugin's plugin-dir registry entry"
+- ❌ `${WORKFLOW_PLUGIN_DIR}` (even with `$$` escaping)
+
+If you genuinely need the token to be substituted at workflow-run time, leave it unescaped; the substitution stage will replace it before the tripwire scans. The rule above applies only to prose that DESCRIBES the token without wanting it substituted.
+
 ## Test Runner
 
 `plugin-wheel/scripts/harness/wheel-test-runner.sh` is the plugin-agnostic test harness. It runs executable fixtures against a real Claude subprocess (`claude --print --plugin-dir <local>`) in a scratch directory, watched by a classifier that replaces hard timeouts.

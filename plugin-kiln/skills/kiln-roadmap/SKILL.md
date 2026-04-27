@@ -1,6 +1,6 @@
 ---
 name: kiln-roadmap
-description: Capture a product-direction idea (feature / goal / research / constraint / non-goal / milestone / critique) as a structured item under `.kiln/roadmap/items/`. Runs an adversarial interview, classifies kind, routes cross-surface (issue / feedback / roadmap) with confirm-never-silent hand-off, migrates legacy `.kiln/roadmap.md` on first run, and mirrors to Obsidian via `shelf:shelf-write-roadmap-note`. Flags — `--quick` (no interview), `--vision` (vision update), `--phase start|complete|create <name>`, `--check` (lifecycle audit), `--reclassify` (promote unsorted), `--promote <path>` (promote a raw issue/feedback file into a roadmap item; FR-006 of workflow-governance). Use as `/kiln:kiln-roadmap <description>`.
+description: Capture a product-direction idea (feature / goal / research / constraint / non-goal / milestone / critique) as a structured item under `.kiln/roadmap/items/`. Runs an adversarial interview, classifies kind, routes cross-surface (issue / feedback / roadmap) with confirm-never-silent hand-off, migrates legacy `.kiln/roadmap.md` on first run, and mirrors to Obsidian via `shelf:shelf-write-roadmap-note`. Flags — `--quick` (no interview), `--vision` (vision update), `--phase start|complete|create <name>`, `--check` (lifecycle audit), `--check --fix` (confirm-never-silent fixer for merged-PR drift; FR-010 of merge-pr-and-sc-grep-guidance), `--reclassify` (promote unsorted), `--promote <path>` (promote a raw issue/feedback file into a roadmap item; FR-006 of workflow-governance). Use as `/kiln:kiln-roadmap <description>`.
 ---
 
 # Kiln Roadmap — Structured Product-Direction Capture
@@ -21,6 +21,7 @@ Arguments may include the free-text description and/or any of these flags:
 - `--vision` — update `.kiln/vision.md` instead of capturing an item (FR-019 / PRD FR-019).
 - `--phase start <name>` / `--phase complete <name>` / `--phase create <name> --order <N>` — phase management (FR-020 / PRD FR-020).
 - `--check` — report items whose `state` is inconsistent with phase/spec/PR reality (FR-022 / PRD FR-022).
+- `--check --fix` — confirm-never-silent fixer for the merged-PR drift Check 5 surfaces. Prompts `[fix all / pick / skip]`; on accept invokes the shared `auto-flip-on-merge.sh` helper per item. Empty/unknown input is treated as `skip` (NFR-004). Required for items merged via the GitHub web UI or `gh pr merge` directly (i.e. NOT through `/kiln:kiln-merge-pr`). FR-010 / FR-011 of merge-pr-and-sc-grep-guidance.
 - `--reclassify` — walk all `phase: unsorted` items through the interview to promote them (FR-028 follow-up).
 - `--promote <source-path-or-issue-number>` — promote a raw `.kiln/issues/*.md` or `.kiln/feedback/*.md` source into a structured roadmap item with `promoted_from:` back-reference, and flip the source's frontmatter to `status: promoted` + `roadmap_item:` (FR-006 of workflow-governance). See **§M: Promote source** below.
 
@@ -146,7 +147,7 @@ Parse `$ARGUMENTS` for the mode flags in this order. First match wins. If none m
 
 - `--vision` → jump to **§V: Vision update**.
 - `--phase` → jump to **§P: Phase management**.
-- `--check` → jump to **§C: Consistency check**.
+- `--check` → jump to **§C: Consistency check**. If the same invocation also includes `--fix`, set `FIX_MODE=true` BEFORE entering §C, then run §C-fix immediately after §C completes (FR-010 of merge-pr-and-sc-grep-guidance).
 - `--reclassify` → jump to **§R: Reclassify unsorted**.
 - `--promote <source>` → jump to **§M: Promote source** (FR-006 of workflow-governance).
 - `--quick` → set `QUICK_MODE=1`, strip the flag, continue to capture pipeline.
@@ -910,6 +911,113 @@ done
 **NFR-004 invariant**: items WITHOUT a populated `prd:` field skip Check 5 entirely. The pre-existing Checks 1–4 emit unchanged, byte-identical to behavior before FR-005 landed.
 
 Print a tidy report with actionable suggestions per finding. Exit 0 if consistent, non-zero if any inconsistency is found (so CI can gate on it).
+
+---
+
+## §C-fix: Confirm-never-silent drift fixer (`--check --fix` — FR-010, FR-011, NFR-004)
+
+<!-- Spec: specs/merge-pr-and-sc-grep-guidance/spec.md FR-010, FR-011, NFR-004.
+     Contract: specs/merge-pr-and-sc-grep-guidance/contracts/interfaces.md §C. -->
+
+Activated ONLY when both `--check` AND `--fix` are passed. Without `--fix`, `--check` behavior is byte-identical to the pre-FR-010 version (NFR-004 backward-compat).
+
+Catches drift that escapes `/kiln:kiln-merge-pr` — items merged via the GitHub web UI or `gh pr merge` directly, before this fixer existed. Same shared helper (`auto-flip-on-merge.sh`) every other call site uses, so the post-fix frontmatter is byte-identical to what auto-flip-on-merge would have produced at merge time.
+
+```bash
+# §C-fix runs AFTER Check 5's report assembly. The report's [drift] lines are the
+# input to this stage — captured into DRIFT_LINES below.
+if [ "${FIX_MODE:-false}" != "true" ]; then
+  # NFR-004 backward-compat: --check alone never enters this block. Exit unchanged.
+  return 0 2>/dev/null || true
+fi
+
+# Parse the [drift] rows from the Check 5 report (one row per drifted item).
+# Each row has the canonical form pinned in §A.3:
+#   [drift] <item-id> state=<state> prd=<path> branch=<branch> pr=#<N> resolution=<ref-walk|heuristic>
+DRIFT_COUNT="$(printf '%s\n' "$DRIFT_LINES" | grep -c '^\[drift\]' || true)"
+
+if [ "$DRIFT_COUNT" -eq 0 ]; then
+  echo "No drift detected."
+  return 0 2>/dev/null || exit 0
+fi
+
+# Confirm-never-silent prompt (NFR-004): empty input is treated as `skip`, never auto-fix.
+printf '\nDrift detected: %s items. Choose action: [fix all / pick / skip] ' "$DRIFT_COUNT"
+read -r CHOICE
+case "${CHOICE:-skip}" in
+  "fix all"|"fix-all"|"all"|"a") ACTION="fix-all" ;;
+  "pick"|"p")                    ACTION="pick"    ;;
+  "skip"|"s"|"")                 ACTION="skip"    ;;
+  *)                             ACTION="skip"    ;;  # unknown → skip (NFR-004)
+esac
+
+if [ "$ACTION" = "skip" ]; then
+  echo "fix=skipped items=0 patched=0 already_shipped=0 ambiguous=0"
+  return 0 2>/dev/null || exit 0
+fi
+
+PATCHED=0
+ALREADY_SHIPPED=0
+AMBIGUOUS=0
+ACCEPTED=0
+
+# Iterate the drift rows; per-row PR resolution + helper invocation.
+H_AUTO_FLIP="plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh"
+
+while IFS= read -r ROW; do
+  case "$ROW" in
+    \[drift\]\ *) ;;
+    *) continue ;;
+  esac
+
+  # Extract id, prd, branch from the row.
+  DRIFT_ID="$(echo "$ROW" | awk '{print $2}')"
+  DRIFT_PRD="$(echo "$ROW" | sed -E 's/.* prd=([^ ]+) .*/\1/')"
+  DRIFT_BRANCH="$(echo "$ROW" | sed -E 's/.* branch=([^ ]+) .*/\1/')"
+
+  # FR-011 — re-resolve PR by branch via gh; require unambiguous match.
+  PR_MATCHES_JSON="$(gh pr list --state merged --head "$DRIFT_BRANCH" --json number 2>/dev/null || echo '[]')"
+  PR_COUNT="$(echo "$PR_MATCHES_JSON" | jq 'length // 0')"
+
+  if [ "$PR_COUNT" != "1" ]; then
+    # FR-011 — zero or multiple matches: surface ambiguity, skip THIS item, never guess.
+    AMBIGUOUS=$((AMBIGUOUS + 1))
+    echo "[ambiguous] ${DRIFT_ID} branch=${DRIFT_BRANCH} pr-matches=${PR_COUNT} (skipped — implementer must NOT guess per FR-011)"
+    continue
+  fi
+  PR_NUM="$(echo "$PR_MATCHES_JSON" | jq -r '.[0].number')"
+
+  # `pick` mode: per-item confirm.
+  if [ "$ACTION" = "pick" ]; then
+    printf 'Fix %s (PR #%s)? [accept / skip] ' "$DRIFT_ID" "$PR_NUM"
+    read -r PER_ITEM
+    case "${PER_ITEM:-skip}" in
+      "accept"|"a"|"y"|"yes") ;;
+      *) continue ;;
+    esac
+  fi
+
+  ACCEPTED=$((ACCEPTED + 1))
+  # Per-entry helper output is emitted by the helper itself (Module A.2 line).
+  HELPER_OUT="$(bash "$H_AUTO_FLIP" "$PR_NUM" "$DRIFT_PRD" 2>&1)"
+  echo "$HELPER_OUT"
+
+  # Aggregate counters from the helper's diagnostic line.
+  case "$HELPER_OUT" in
+    *"already_shipped=0"*"patched=1"*) PATCHED=$((PATCHED + 1)) ;;
+    *"already_shipped=1"*"patched=0"*) ALREADY_SHIPPED=$((ALREADY_SHIPPED + 1)) ;;
+  esac
+done <<< "$DRIFT_LINES"
+
+# §C.3 — final summary line (one line, one summary).
+echo "fix=success items=${ACCEPTED} patched=${PATCHED} already_shipped=${ALREADY_SHIPPED} ambiguous=${AMBIGUOUS}"
+```
+
+**Why same-helper matters (FR-010)**: drift caught here flips through the SAME `auto-flip-on-merge.sh` helper that Step 4b.5 and `/kiln:kiln-merge-pr` call — three call sites, one implementation, byte-identical output.
+
+**FR-011 ambiguity rule**: if `gh pr list --state merged --head <branch>` returns zero or multiple PRs, the entry is surfaced as `[ambiguous]` and skipped. The skill MUST NOT guess via heuristics for the actual flip — the maintainer resolves ambiguity manually. (Check 5's heuristic resolution is allowed for *reporting*; auto-fixing requires unambiguous evidence.)
+
+**NFR-004 confirm-never-silent**: empty input → `skip`. Unknown input → `skip`. Auto-fix only on explicit `fix all` or per-item `accept`.
 
 ---
 

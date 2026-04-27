@@ -27,9 +27,12 @@ setup() {
   REG_SHELF=$(jq -nc '{schema_version:1,plugins:{shelf:"/abs/shelf"}}')
 }
 
-# Per FR-F4-5 / contracts §3 the error text is verbatim:
+# Per FR-F4-5 / contracts §3 the error text is the FR-F4-5 line PLUS the
+# FR-016 documentary-references line (specs/merge-pr-and-sc-grep-guidance):
 #   Wheel preprocessor failed: instruction text for step '<id>' still contains '${...}'. This is a wheel runtime bug; please file an issue.
-EXPECTED_ERROR_TEMPLATE="Wheel preprocessor failed: instruction text for step '%s' still contains '\${...}'. This is a wheel runtime bug; please file an issue."
+#   If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with $$ escaping.
+EXPECTED_ERROR_TEMPLATE="Wheel preprocessor failed: instruction text for step '%s' still contains '\${...}'. This is a wheel runtime bug; please file an issue.
+If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with \$\$ escaping."
 
 # ---- Case 1: unknown plugin name (resolver bypass scenario) ------------------
 
@@ -87,12 +90,25 @@ EXPECTED_ERROR_TEMPLATE="Wheel preprocessor failed: instruction text for step '%
 
 # ---- Case 4: error text exact match ------------------------------------------
 
-@test "Tripwire error text matches the FR-F4-5 documented string verbatim" {
+@test "Tripwire error text matches the FR-F4-5 + FR-016 documented string verbatim" {
   wf=$(jq -nc '{name:"t",steps:[{id:"exact",type:"agent",instruction:"${WHEEL_PLUGIN_missing}"}]}')
   run template_workflow_json "$wf" "$REG_EMPTY" "/abs/caller"
   [ "$status" -eq 1 ]
-  # exact, full, byte-for-byte:
-  [ "$output" = "Wheel preprocessor failed: instruction text for step 'exact' still contains '\${...}'. This is a wheel runtime bug; please file an issue." ]
+  # exact, full, byte-for-byte — both the FR-F4-5 line and the FR-016 documentary-references line:
+  expected="Wheel preprocessor failed: instruction text for step 'exact' still contains '\${...}'. This is a wheel runtime bug; please file an issue.
+If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with \$\$ escaping."
+  [ "$output" = "$expected" ]
+}
+
+# ---- FR-016 documentary-references rule (specs/merge-pr-and-sc-grep-guidance) ----
+
+@test "Tripwire error text contains the FR-016 documentary-references line" {
+  wf=$(jq -nc '{name:"t",steps:[{id:"doc",type:"agent",instruction:"${WHEEL_PLUGIN_missing}"}]}')
+  run template_workflow_json "$wf" "$REG_EMPTY" "/abs/caller"
+  [ "$status" -eq 1 ]
+  # SC-006 sentinel: the documentary-references rule MUST be in the rendered stderr
+  # so authors hit the explanation on first violation rather than rediscovering it.
+  echo "$output" | grep -qF "If you intended this as documentary text, rewrite as plain prose; the tripwire fires on the prefix pattern even with \$\$ escaping."
 }
 
 @test "Tripwire firing on first offending step short-circuits — error text names that step" {
