@@ -5,11 +5,12 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 promoted_from: .kiln/issues/2026-04-24-cross-plugin-resolver-retro-sc-grep-needs-date-bound.md
+prd: docs/features/2026-04-27-merge-pr-and-sc-grep-guidance/PRD.md
 ---
 
 # Spec-template grep-style success criteria need a date-bound qualifier or they auto-flag historical noise

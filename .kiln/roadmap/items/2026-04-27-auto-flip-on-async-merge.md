@@ -5,10 +5,11 @@ kind: feature
 date: 2026-04-27
 status: open
 phase: 90-queued
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
+prd: docs/features/2026-04-27-merge-pr-and-sc-grep-guidance/PRD.md
 ---
 
 # Auto-flip on async merge — Step 4b.5 doesn't fire when user merges PR after team-lead shutdown

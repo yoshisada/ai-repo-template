@@ -5,11 +5,12 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: planned
+state: distilled
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 promoted_from: .kiln/issues/2026-04-24-cross-plugin-resolver-retro-token-grammar-references-in-instructions.md
+prd: docs/features/2026-04-27-merge-pr-and-sc-grep-guidance/PRD.md
 ---
 
 # Documentary references to `${WHEEL_PLUGIN_<name>}` / `${WORKFLOW_PLUGIN_DIR}` inside agent instructions trip both the runtime tripwire and the SC grep
