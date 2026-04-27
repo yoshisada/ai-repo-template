@@ -118,6 +118,18 @@
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
+### Authoring grep-style success criteria against historical state
+
+Grep-style SCs that scan directories with historical state (`.wheel/history/`, `archive/`, `migrations/`, etc.) auto-flag pre-PRD matches every time. The substantive assertion is "new artifacts produced post-PRD have zero matches" — but the bare formulation `git grep -E '<pattern>' .wheel/history/` returns historical noise indistinguishable from a real failure.
+
+Use a **date-bound qualifier** so the SC asserts only on artifacts created since the PRD shipped:
+
+```bash
+git log --name-only --pretty='' --since='YYYY-MM-DD' -- '<glob>' | sort -u | xargs -I{} git grep -lE '<pattern>' -- {}
+```
+
+Or — preferred when feasible — express the SC against a fresh artifact produced by a consumer-install simulation (the substantive assertion) rather than a directory-wide scan of historical state. A consumer-install fixture under `plugin-<name>/tests/<scenario>/run.sh` is the canonical place to assert "new outputs match this contract" without relying on historical-state filtering.
+
 ## Assumptions
 
 <!--

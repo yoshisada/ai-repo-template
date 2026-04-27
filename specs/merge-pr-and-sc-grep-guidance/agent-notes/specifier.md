@@ -48,6 +48,16 @@ Per the team-lead directive: this PRD has NO quantitative perf thresholds. NFRs 
 - A worked example of "exact-path staging when the file list is dynamically discovered post-helper" would be useful — there's a class of skill where the file list isn't statically known until the helper runs, and the staging-precision rule needs a canonical pattern. I picked one (re-walk + git-diff filter) but the substrate could ship a one-liner helper.
 - Whether `kiln-test` harness auto-discovers `plugin-kiln/tests/<name>/` directories or requires explicit registration is something I assumed (auto-discovery, matches the existing convention). If wrong, the regression fixture won't run in CI and SC-002 won't actually gate.
 
+## Mid-pass corrections from team-lead (applied 2026-04-27)
+
+The team-lead sent two corrections AFTER the initial spec/plan/tasks commit (`38f7abdb`); applied as a follow-on commit in this same `/specify+/plan+/tasks` pass:
+
+1. **`plugin.json` registration is NOT required**. Kiln plugin uses filesystem auto-discovery from `skills/`. The manifest at `plugin-kiln/.claude-plugin/plugin.json` has only `workflows` + `agent_bindings` arrays — no `skills` array. Creating `plugin-kiln/skills/kiln-merge-pr/SKILL.md` is sufficient registration. Removed the manifest from impl-roadmap-and-merge's file ownership list (spec.md NFR-005, plan.md, tasks.md owner header + T037 + T041 + DO-NOT-TOUCH list of impl-docs section).
+
+2. **SC-002 fixture date-stability**: the helper inherits Step 4b.5's `TODAY="$(date -u +%Y-%m-%d)"` line. Freezing it would violate NFR-002 (zero behavior change). Strategy: golden post-snapshots embed a literal `<TODAY>` placeholder in the `shipped_date:` field; the fixture's `run.sh` materializes the comparison snapshot by `sed`-substituting the placeholder with `date -u +%Y-%m-%d` before the byte-for-byte diff. Updated SC-002 acceptance scenario, added T013a, expanded T014's contract, and updated contracts §G.1 + §G.2 to reflect the substitution step.
+
+Both corrections are mid-pass — the implementers had already started Phase 1 setup when the corrections arrived. The follow-on commit ensures their first edit reads the corrected spec.
+
 ## Confidence
 
 High on Theme A's helper extraction + skill body (mechanical, well-pinned by escalation-audit's contracts).

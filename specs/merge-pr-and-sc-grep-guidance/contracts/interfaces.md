@@ -302,6 +302,21 @@ plugin-kiln/tests/auto-flip-on-merge-fixture/
 
 The three items captured are the three `derived_from:` items from `docs/features/2026-04-26-escalation-audit/PRD.md`. Implementer captures pre/post snapshots via `git show 22a91b10^:.kiln/roadmap/items/<item>.md` (pre) and `git show 22a91b10:.kiln/roadmap/items/<item>.md` (post).
 
+**Date-stability substitution (SC-002 / NFR-002 — team-lead correction)**: the helper inherits Step 4b.5's `TODAY="$(date -u +%Y-%m-%d)"` line; freezing it would violate NFR-002 (zero behavior change). The captured `golden/post/<item>.md` files therefore have their `shipped_date:` line edited to use the literal placeholder `<TODAY>`:
+
+```text
+shipped_date: <TODAY>
+```
+
+The `pr:` line stays frozen (`pr: 189`). At test time, `run.sh` materializes the comparison snapshot by substituting the placeholder with the same UTC date the helper would produce:
+
+```bash
+sed "s/<TODAY>/$(date -u +%Y-%m-%d)/g" "$HERE/golden/post/<item>.md" > "$TMP/expected/<item>.md"
+diff -u "$TMP/.kiln/roadmap/items/<item>.md" "$TMP/expected/<item>.md"
+```
+
+This isolates the date-dependence to the fixture's expected-snapshot materialization step; the helper itself is byte-identical to Step 4b.5 across all runs.
+
 ### G.2 — Fixture run.sh contract
 
 ```bash
@@ -321,6 +336,13 @@ cp "$HERE/golden/pre/"*.md "$TMP/.kiln/roadmap/items/"
 mkdir -p "$TMP/docs/features/2026-04-26-escalation-audit"
 cp "$HERE/golden/prd.md" "$TMP/docs/features/2026-04-26-escalation-audit/PRD.md"
 
+# 1a. Materialize today-substituted expected snapshots from golden/post/*.md (SC-002 date-stability).
+mkdir -p "$TMP/expected"
+TODAY="$(date -u +%Y-%m-%d)"
+for f in "$HERE/golden/post/"*.md; do
+  sed "s/<TODAY>/$TODAY/g" "$f" > "$TMP/expected/$(basename "$f")"
+done
+
 # 2. Stub `gh` to return MERGED for the pinned PR number (189)
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/gh" <<'STUB'
@@ -337,10 +359,10 @@ chmod +x "$TMP/bin/gh"
   bash "$REPO_ROOT/plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh" 189 \
        "docs/features/2026-04-26-escalation-audit/PRD.md" )
 
-# 4. Diff each item against golden post snapshot — MUST be byte-identical
-for item in "$HERE/golden/post/"*.md; do
+# 4. Diff each item against today-substituted expected snapshot — MUST be byte-identical
+for item in "$TMP/expected/"*.md; do
   diff -u "$TMP/.kiln/roadmap/items/$(basename "$item")" "$item" \
-    || { echo "FAIL: $(basename "$item") byte-diff vs golden/post"; exit 1; }
+    || { echo "FAIL: $(basename "$item") byte-diff vs expected (post + <TODAY> substitution)"; exit 1; }
 done
 
 # 5. Re-run the helper; assert idempotency (no further mutation)

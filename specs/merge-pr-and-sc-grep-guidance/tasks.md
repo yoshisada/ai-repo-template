@@ -25,8 +25,8 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 # [A: roadmap-and-merge]
 
 > **Owner**: `impl-roadmap-and-merge` (Theme A — `/kiln:kiln-merge-pr` skill, shared helper, Step 4b.5 refactor, `--check --fix`).
-> **Files**: `plugin-kiln/skills/kiln-merge-pr/SKILL.md` (NEW), `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` (NEW), `plugin-kiln/skills/kiln-build-prd/SKILL.md` (Step 4b.5 refactor), `plugin-kiln/skills/kiln-roadmap/SKILL.md` (`--check --fix` extension), `plugin-kiln/.claude-plugin/plugin.json` (skill registration if needed), `plugin-kiln/tests/auto-flip-on-merge-fixture/` (NEW fixture + golden files).
-> **DO NOT TOUCH**: `plugin-kiln/templates/spec-template.md`, `plugin-wheel/lib/preprocess.sh`, `plugin-wheel/README.md`. Those belong to `impl-docs`.
+> **Files**: `plugin-kiln/skills/kiln-merge-pr/SKILL.md` (NEW), `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` (NEW), `plugin-kiln/skills/kiln-build-prd/SKILL.md` (Step 4b.5 refactor), `plugin-kiln/skills/kiln-roadmap/SKILL.md` (`--check --fix` extension), `plugin-kiln/tests/auto-flip-on-merge-fixture/` (NEW fixture + golden files).
+> **DO NOT TOUCH**: `plugin-kiln/templates/spec-template.md`, `plugin-wheel/lib/preprocess.sh`, `plugin-wheel/README.md` (impl-docs scope), AND `plugin-kiln/.claude-plugin/plugin.json` (kiln auto-discovers skills from `skills/` — manifest has no `skills` array; team-lead confirmed no edit needed).
 
 ## Phase 1: Setup — impl-roadmap-and-merge
 
@@ -52,8 +52,9 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 ### Test for User Story 2
 
 - [ ] T013 [impl-roadmap-and-merge] [US2] Capture pre/post-merge snapshots from commit `22a91b10`: for each of the three `derived_from:` items in `docs/features/2026-04-26-escalation-audit/PRD.md`, run `git show 22a91b10^:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/pre/<item>.md` and `git show 22a91b10:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/post/<item>.md`. Capture `git show 22a91b10:docs/features/2026-04-26-escalation-audit/PRD.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/prd.md`.
-- [ ] T014 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh` per `contracts/interfaces.md` §G.2. Cite SC-002 in header. Make executable.
-- [ ] T015 [impl-roadmap-and-merge] [US2] Run the fixture from repo root: `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert it prints `PASS`. If it fails, fix the helper until both the post-flip diff AND the idempotent-re-run diff pass.
+- [ ] T013a [impl-roadmap-and-merge] [US2] **Date-stability substitution (SC-002 / NFR-002)**: in each captured `golden/post/<item>.md`, replace the literal date string in the `shipped_date:` line (likely `shipped_date: 2026-04-26`) with the placeholder `shipped_date: <TODAY>`. Do NOT modify the `pr:` field. The placeholder is the test-time substitution target; the helper still emits today's actual UTC date and the fixture's `run.sh` substitutes the placeholder with `date -u +%Y-%m-%d` before the byte-for-byte `diff`. This keeps the helper a verbatim extraction (NFR-002) AND keeps the fixture stable across days.
+- [ ] T014 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh` per `contracts/interfaces.md` §G.2. Cite SC-002 in header. Make executable. **Per T013a**: before each `diff`, materialize a comparison file by running `sed "s/<TODAY>/$(date -u +%Y-%m-%d)/g" "$HERE/golden/post/<item>.md" > "$TMP/expected/<item>.md"` and diff against that materialized file (NOT the raw golden). The `<TODAY>` placeholder MUST be substituted in the expected snapshot, never written into the helper-mutated item.
+- [ ] T015 [impl-roadmap-and-merge] [US2] Run the fixture from repo root: `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert it prints `PASS`. If it fails, fix the helper until both the post-flip diff AND the idempotent-re-run diff pass. Confirm PASS on a second invocation later in the day (or by stubbing `date` differently) to verify the `<TODAY>` substitution works.
 
 ### Checkpoint — Commit Phase 3
 
@@ -93,7 +94,7 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 - [ ] T034 [impl-roadmap-and-merge] [US1] In Stage 4 (PRD location), `gh pr view <pr> --json files`, lex-sort, take `[0]` matching `docs/features/*/PRD.md` (FR-004). On zero matches, emit `kiln-merge-pr: pr=<n> auto-flip=skipped reason=no-prd-in-changeset` and exit 0.
 - [ ] T035 [impl-roadmap-and-merge] [US1] In Stage 5 (auto-flip), invoke `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh <pr> <prd-path>` (FR-005). Under `--no-flip`, skip Stage 5 entirely with diagnostic `kiln-merge-pr: pr=<n> auto-flip=skipped reason=--no-flip` (FR-007).
 - [ ] T036 [impl-roadmap-and-merge] [US1] In Stage 6 (commit + push), use the FR-006/§B.3 staging contract: derive flipped paths from the helper (Approach 1: re-walk derived_from + `git diff --name-only` filter; or Approach 2: helper emits `flipped-path:` lines on stderr). Stage by exact path; NEVER `git add -A`. Commit with `chore(roadmap): auto-flip on merge of PR #<n>`. Push to `origin`. If zero files mutated, emit `result=skipped-no-changes` and don't commit.
-- [ ] T037 [impl-roadmap-and-merge] [US1] If `plugin-kiln/.claude-plugin/plugin.json` requires explicit registration of `kiln-merge-pr` (verify by inspecting how `kiln-roadmap` is registered or auto-discovered), add the entry. Default assumption: skills auto-discover and the file is unchanged. Note the resolution in `agent-notes/impl-roadmap-and-merge.md`.
+- [ ] T037 [impl-roadmap-and-merge] [US1] **REMOVED per team-lead correction** — kiln plugin uses filesystem auto-discovery from `skills/`. `plugin-kiln/.claude-plugin/plugin.json` has only `workflows` + `agent_bindings` arrays — no `skills` array. Creating `plugin-kiln/skills/kiln-merge-pr/SKILL.md` is sufficient registration. **Do NOT touch the manifest.** Mark this task completed as a no-op confirmation only.
 
 ### Test for User Story 1 (structural)
 
@@ -103,7 +104,7 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Checkpoint — Commit Phase 5
 
-- [ ] T041 [impl-roadmap-and-merge] [US1] Stage by exact path: `git add plugin-kiln/skills/kiln-merge-pr/SKILL.md` (+ `plugin-kiln/.claude-plugin/plugin.json` if T037 required edits). Commit: `feat(merge-pr): add /kiln:kiln-merge-pr skill — atomic merge + auto-flip (FR-001..FR-007, NFR-001)`.
+- [ ] T041 [impl-roadmap-and-merge] [US1] Stage by exact path: `git add plugin-kiln/skills/kiln-merge-pr/SKILL.md`. (Per T037: do NOT add `plugin-kiln/.claude-plugin/plugin.json` — manifest is not edited.) Commit: `feat(merge-pr): add /kiln:kiln-merge-pr skill — atomic merge + auto-flip (FR-001..FR-007, NFR-001)`.
 
 ---
 
@@ -143,7 +144,7 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 > **Owner**: `impl-docs` (Themes B + C — spec-template SC-grep recipe, wheel preprocess + README documentary-references rule).
 > **Files**: `plugin-kiln/templates/spec-template.md`, `plugin-wheel/lib/preprocess.sh`, `plugin-wheel/README.md`.
-> **DO NOT TOUCH**: any file under `plugin-kiln/skills/`, `plugin-kiln/scripts/`, `plugin-kiln/tests/`, `plugin-kiln/.claude-plugin/`. Those belong to `impl-roadmap-and-merge`.
+> **DO NOT TOUCH**: any file under `plugin-kiln/skills/`, `plugin-kiln/scripts/`, `plugin-kiln/tests/`, `plugin-kiln/.claude-plugin/`. Those belong to `impl-roadmap-and-merge` (and the manifest is not edited at all per team-lead confirmation).
 
 ## Phase 2: Setup — impl-docs [P with Phase 1]
 
@@ -159,16 +160,16 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T080 [impl-docs] [US4] Open `plugin-kiln/templates/spec-template.md`. Locate the `## Success Criteria *(mandatory)*` section. Append after the existing `### Measurable Outcomes` subsection (and its example bullets) the canonical authoring-note block from `contracts/interfaces.md` §D.2 verbatim.
-- [ ] T081 [impl-docs] [US4] Verify the literal string `date-bound qualifier` appears in the new block. Verify the recipe code-fence contains `--since='YYYY-MM-DD'`. Verify the substantive-alternative paragraph (FR-013) is present.
+- [X] T080 [impl-docs] [US4] Open `plugin-kiln/templates/spec-template.md`. Locate the `## Success Criteria *(mandatory)*` section. Append after the existing `### Measurable Outcomes` subsection (and its example bullets) the canonical authoring-note block from `contracts/interfaces.md` §D.2 verbatim.
+- [X] T081 [impl-docs] [US4] Verify the literal string `date-bound qualifier` appears in the new block. Verify the recipe code-fence contains `--since='YYYY-MM-DD'`. Verify the substantive-alternative paragraph (FR-013) is present.
 
 ### Test for User Story 4
 
-- [ ] T082 [impl-docs] [US4] Run `grep -F 'date-bound qualifier' plugin-kiln/templates/spec-template.md` — expect ≥ 1 match. Run `grep -F "--since='YYYY-MM-DD'" plugin-kiln/templates/spec-template.md` — expect ≥ 1 match. SC-005 sentinels.
+- [X] T082 [impl-docs] [US4] Run `grep -F 'date-bound qualifier' plugin-kiln/templates/spec-template.md` — expect ≥ 1 match. Run `grep -F "--since='YYYY-MM-DD'" plugin-kiln/templates/spec-template.md` — expect ≥ 1 match. SC-005 sentinels.
 
 ### Checkpoint — Commit Phase 8
 
-- [ ] T083 [impl-docs] [US4] Stage by exact path: `git add plugin-kiln/templates/spec-template.md`. Commit: `docs(spec-template): SC-grep date-bound authoring note + recipe (FR-012, FR-013)`.
+- [X] T083 [impl-docs] [US4] Stage by exact path: `git add plugin-kiln/templates/spec-template.md`. Commit: `docs(spec-template): SC-grep date-bound authoring note + recipe (FR-012, FR-013)`.
 
 ---
 

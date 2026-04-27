@@ -13,7 +13,7 @@ Three themes converge on closing rediscovery cycles in the build-prd substrate:
 
 File ownership is split per NFR-005:
 
-- `impl-roadmap-and-merge` owns Theme A → all `plugin-kiln/skills/kiln-merge-pr/`, `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh`, `plugin-kiln/skills/kiln-build-prd/SKILL.md` (Step 4b.5 refactor), `plugin-kiln/skills/kiln-roadmap/SKILL.md` (`--check --fix`), `plugin-kiln/.claude-plugin/plugin.json`, and `plugin-kiln/tests/auto-flip-on-merge-fixture/`.
+- `impl-roadmap-and-merge` owns Theme A → all `plugin-kiln/skills/kiln-merge-pr/`, `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh`, `plugin-kiln/skills/kiln-build-prd/SKILL.md` (Step 4b.5 refactor), `plugin-kiln/skills/kiln-roadmap/SKILL.md` (`--check --fix`), and `plugin-kiln/tests/auto-flip-on-merge-fixture/`. **`plugin-kiln/.claude-plugin/plugin.json` is NOT touched** — kiln plugin uses filesystem auto-discovery; the manifest has no `skills` array.
 - `impl-docs` owns Themes B + C → `plugin-kiln/templates/spec-template.md`, `plugin-wheel/lib/preprocess.sh`, `plugin-wheel/README.md`.
 
 The two implementers run in parallel; their file sets are disjoint. No file is touched by both.
@@ -69,9 +69,10 @@ plugin-kiln/skills/kiln-merge-pr/SKILL.md             # NEW skill
 plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh     # NEW shared helper
 plugin-kiln/skills/kiln-build-prd/SKILL.md            # Step 4b.5 refactor (inline → helper call)
 plugin-kiln/skills/kiln-roadmap/SKILL.md              # +--fix mode (extends existing --check Check 5)
-plugin-kiln/.claude-plugin/plugin.json                # Register kiln-merge-pr (if explicit registration needed)
 plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh   # NEW regression fixture
 plugin-kiln/tests/auto-flip-on-merge-fixture/golden/  # Snapshot pre/post commit 22a91b10
+                                                       # NOTE: plugin-kiln/.claude-plugin/plugin.json is NOT edited.
+                                                       # Kiln uses filesystem auto-discovery; manifest has no skills array.
 
 # Theme B — impl-docs
 plugin-kiln/templates/spec-template.md                # +SC-grep date-bound authoring note + recipe
@@ -115,7 +116,7 @@ Implementation is split into two parallel implementer streams. Each implementer 
 1. **Phase A1 — Extract helper (FR-008, FR-009, NFR-002)**: Create `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` with the verbatim Step 4b.5 logic, accepting `<pr-number> <prd-path>` as positional args. Write the regression fixture under `plugin-kiln/tests/auto-flip-on-merge-fixture/` with golden files captured from commit `22a91b10`. Run the fixture, assert PASS.
 2. **Phase A2 — Refactor Step 4b.5 (FR-009, SC-003)**: Replace the inline Bash block in `plugin-kiln/skills/kiln-build-prd/SKILL.md` Step 4b.5 with a single-line `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh "$PR_NUMBER" "$PRD_PATH"` invocation. Preserve the surrounding markdown (purpose, when-this-runs, invariants). Re-run the fixture against the refactored skill body extraction (or re-run the existing `build-prd-auto-flip-on-merge` fixture if its extract pattern still parses); assert PASS.
 3. **Phase A3 — Ship `/kiln:kiln-merge-pr` (FR-001..FR-007, NFR-001, NFR-005)**: Author `plugin-kiln/skills/kiln-merge-pr/SKILL.md`. Stages: pre-flight gate → working-tree clean check → conditional `gh pr merge` → wait for `MERGED` → locate PRD via `gh pr view --json files` → invoke helper → commit by exact path with canonical message → push. Surface every diagnostic line per spec.
-4. **Phase A4 — Register skill (FR-001 surface)**: Skills directories are auto-discovered via the Claude Code plugin substrate; explicit registration in `plugin.json` is required only if the substrate convention demands it. Inspect existing skills (e.g., `plugin-kiln/skills/kiln-roadmap/`) — they are auto-discovered without an entry in `plugin.json`'s `workflows`/`agent_bindings` blocks. Add an entry only if needed for discoverability; otherwise this phase is a no-op confirmation.
+4. **Phase A4 — Skill registration (CONFIRMED no-op per team-lead)**: Kiln plugin uses filesystem auto-discovery from `skills/`. The manifest at `plugin-kiln/.claude-plugin/plugin.json` has only `workflows` + `agent_bindings` arrays — no `skills` array. Creating `plugin-kiln/skills/kiln-merge-pr/SKILL.md` is sufficient registration. **Do NOT edit `plugin.json`.** This phase is removed from the implementer's worklist; impl-roadmap-and-merge MUST NOT touch the manifest.
 5. **Phase A5 — Extend `/kiln:kiln-roadmap --check --fix` (FR-010, FR-011, NFR-004)**: In `plugin-kiln/skills/kiln-roadmap/SKILL.md` §C, after the existing Check 5 output, add a `--fix` mode block that parses Check 5's `[drift]` rows, prompts confirm-never-silent (`[fix all / pick / skip]`), resolves the PR via `gh pr list --state merged --search "head:<branch>"`, and invokes the shared helper for accepted entries. Document ambiguity-skip behavior. Backward-compat (`--check` without `--fix`) is byte-identical.
 6. **Phase A6 — Commit + handoff**: After all phases pass, commit each phase by exact path; after the final phase, message audit-traceability + audit-tests with paths and SC mapping.
 
@@ -145,5 +146,6 @@ The Acceptance Test (live-fire) closes the loop: the maintainer merges THIS PRD'
 ## Open Items
 
 - **OQ-2 propagation**: if FR-016's added error text exceeds any consumer's truncation budget, condense to a one-line `see plugin-wheel/README.md §Writing agent instructions` pointer. Decision deferred to impl-docs at edit time; revert by inspection during audit-traceability.
-- **plugin.json registration**: confirm at edit time whether `kiln-merge-pr` requires an explicit entry. Default assumption: skills are auto-discovered and the entry is unnecessary.
+- **plugin.json registration**: RESOLVED by team-lead correction — kiln uses filesystem auto-discovery; manifest is NOT edited. Removed from impl-roadmap-and-merge's worklist.
+- **SC-002 fixture date-stability**: golden post-snapshot files embed a literal `<TODAY>` placeholder for the `shipped_date:` field; the fixture's `run.sh` substitutes it at test time via `date -u +%Y-%m-%d` before the byte-for-byte diff. Preserves NFR-002 zero-behavior-change while keeping the fixture stable across days.
 - **R-3 (FR-006 git-state preflight)**: skill exits non-zero on dirty working tree. PRD §"Risks & Open Questions" closes this with "NO `--stash-and-restore` for V1 — surface the WIP, exit, let the user handle it." Implementer follows the spec; no follow-on work in this PRD.
