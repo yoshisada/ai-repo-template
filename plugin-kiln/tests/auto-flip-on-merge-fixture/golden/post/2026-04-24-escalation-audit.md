@@ -11,7 +11,7 @@ review_cost: moderate
 context_cost: 2 sessions
 prd: docs/features/2026-04-26-escalation-audit/PRD.md
 pr: 189
-shipped_date: 2026-04-27
+shipped_date: <TODAY>
 ---
 
 # Escalation audit — calibrate context-informed autonomy with evidence

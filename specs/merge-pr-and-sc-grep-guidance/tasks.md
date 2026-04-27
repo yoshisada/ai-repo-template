@@ -32,9 +32,9 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 **Purpose**: Read spec + plan + contracts before any edit. No code edits yet.
 
-- [ ] T001 [impl-roadmap-and-merge] Read `.specify/memory/constitution.md`, `specs/merge-pr-and-sc-grep-guidance/spec.md`, `specs/merge-pr-and-sc-grep-guidance/plan.md`, `specs/merge-pr-and-sc-grep-guidance/contracts/interfaces.md` end-to-end before any edit.
-- [ ] T002 [impl-roadmap-and-merge] Verify `git status` is clean on `build/merge-pr-and-sc-grep-guidance-20260427`. If dirty, stop and message team-lead.
-- [ ] T003 [impl-roadmap-and-merge] Read `plugin-kiln/skills/kiln-build-prd/SKILL.md` lines ~1019–1132 (the Step 4b.5 inline block + invariants) to internalize the verbatim semantics required for FR-008/FR-009/NFR-002.
+- [X] T001 [impl-roadmap-and-merge] Read `.specify/memory/constitution.md`, `specs/merge-pr-and-sc-grep-guidance/spec.md`, `specs/merge-pr-and-sc-grep-guidance/plan.md`, `specs/merge-pr-and-sc-grep-guidance/contracts/interfaces.md` end-to-end before any edit.
+- [X] T002 [impl-roadmap-and-merge] Verify `git status` is clean on `build/merge-pr-and-sc-grep-guidance-20260427`. If dirty, stop and message team-lead.
+- [X] T003 [impl-roadmap-and-merge] Read `plugin-kiln/skills/kiln-build-prd/SKILL.md` lines ~1019–1132 (the Step 4b.5 inline block + invariants) to internalize the verbatim semantics required for FR-008/FR-009/NFR-002.
 
 ---
 
@@ -45,20 +45,20 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T010 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` per `contracts/interfaces.md` §A.1. Body is a verbatim transcription of Step 4b.5's Bash block, modulo positional argument parsing (`PR_NUMBER="${1:-}"`, `PRD_PATH="${2:-}"` with usage-error handling) and a `read_derived_from()` helper inlined or sourced. Add header comment citing FR-008/FR-009/NFR-002.
-- [ ] T011 [impl-roadmap-and-merge] [US2] Run `chmod +x plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh`. Confirm shebang line is `#!/usr/bin/env bash` (matches `update-item-state.sh`).
-- [ ] T012 [impl-roadmap-and-merge] [US2] Spot-test the helper manually: invoke with `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh 999 /nonexistent/path` → expect non-zero exit with usage error. Invoke with valid args but `gh` returning non-MERGED → expect `auto-flip=skipped reason=pr-not-merged`.
+- [X] T010 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh` per `contracts/interfaces.md` §A.1. Body is a verbatim transcription of Step 4b.5's Bash block, modulo positional argument parsing (`PR_NUMBER="${1:-}"`, `PRD_PATH="${2:-}"` with usage-error handling) and a `read_derived_from()` helper inlined or sourced. Add header comment citing FR-008/FR-009/NFR-002.
+- [X] T011 [impl-roadmap-and-merge] [US2] Run `chmod +x plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh`. Confirm shebang line is `#!/usr/bin/env bash` (matches `update-item-state.sh`).
+- [X] T012 [impl-roadmap-and-merge] [US2] Spot-test the helper manually: invoke with `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh 999 /nonexistent/path` → expect non-zero exit with usage error. Invoke with valid args but `gh` returning non-MERGED → expect `auto-flip=skipped reason=pr-not-merged`.
 
 ### Test for User Story 2
 
-- [ ] T013 [impl-roadmap-and-merge] [US2] Capture pre/post-merge snapshots from commit `22a91b10`: for each of the three `derived_from:` items in `docs/features/2026-04-26-escalation-audit/PRD.md`, run `git show 22a91b10^:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/pre/<item>.md` and `git show 22a91b10:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/post/<item>.md`. Capture `git show 22a91b10:docs/features/2026-04-26-escalation-audit/PRD.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/prd.md`.
-- [ ] T013a [impl-roadmap-and-merge] [US2] **Date-stability substitution (SC-002 / NFR-002)**: in each captured `golden/post/<item>.md`, replace the literal date string in the `shipped_date:` line (likely `shipped_date: 2026-04-26`) with the placeholder `shipped_date: <TODAY>`. Do NOT modify the `pr:` field. The placeholder is the test-time substitution target; the helper still emits today's actual UTC date and the fixture's `run.sh` substitutes the placeholder with `date -u +%Y-%m-%d` before the byte-for-byte `diff`. This keeps the helper a verbatim extraction (NFR-002) AND keeps the fixture stable across days.
-- [ ] T014 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh` per `contracts/interfaces.md` §G.2. Cite SC-002 in header. Make executable. **Per T013a**: before each `diff`, materialize a comparison file by running `sed "s/<TODAY>/$(date -u +%Y-%m-%d)/g" "$HERE/golden/post/<item>.md" > "$TMP/expected/<item>.md"` and diff against that materialized file (NOT the raw golden). The `<TODAY>` placeholder MUST be substituted in the expected snapshot, never written into the helper-mutated item.
-- [ ] T015 [impl-roadmap-and-merge] [US2] Run the fixture from repo root: `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert it prints `PASS`. If it fails, fix the helper until both the post-flip diff AND the idempotent-re-run diff pass. Confirm PASS on a second invocation later in the day (or by stubbing `date` differently) to verify the `<TODAY>` substitution works.
+- [X] T013 [impl-roadmap-and-merge] [US2] Capture pre/post-merge snapshots from commit `22a91b10`: for each of the three `derived_from:` items in `docs/features/2026-04-26-escalation-audit/PRD.md`, run `git show 22a91b10^:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/pre/<item>.md` and `git show 22a91b10:.kiln/roadmap/items/<item>.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/post/<item>.md`. Capture `git show 22a91b10:docs/features/2026-04-26-escalation-audit/PRD.md > plugin-kiln/tests/auto-flip-on-merge-fixture/golden/prd.md`.
+- [X] T013a [impl-roadmap-and-merge] [US2] **Date-stability substitution (SC-002 / NFR-002)**: in each captured `golden/post/<item>.md`, replace the literal date string in the `shipped_date:` line (likely `shipped_date: 2026-04-26`) with the placeholder `shipped_date: <TODAY>`. Do NOT modify the `pr:` field. The placeholder is the test-time substitution target; the helper still emits today's actual UTC date and the fixture's `run.sh` substitutes the placeholder with `date -u +%Y-%m-%d` before the byte-for-byte `diff`. This keeps the helper a verbatim extraction (NFR-002) AND keeps the fixture stable across days.
+- [X] T014 [impl-roadmap-and-merge] [US2] Create `plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh` per `contracts/interfaces.md` §G.2. Cite SC-002 in header. Make executable. **Per T013a**: before each `diff`, materialize a comparison file by running `sed "s/<TODAY>/$(date -u +%Y-%m-%d)/g" "$HERE/golden/post/<item>.md" > "$TMP/expected/<item>.md"` and diff against that materialized file (NOT the raw golden). The `<TODAY>` placeholder MUST be substituted in the expected snapshot, never written into the helper-mutated item.
+- [X] T015 [impl-roadmap-and-merge] [US2] Run the fixture from repo root: `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert it prints `PASS`. If it fails, fix the helper until both the post-flip diff AND the idempotent-re-run diff pass. Confirm PASS on a second invocation later in the day (or by stubbing `date` differently) to verify the `<TODAY>` substitution works.
 
 ### Checkpoint — Commit Phase 3
 
-- [ ] T016 [impl-roadmap-and-merge] [US2] Stage by exact path: `git add plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh plugin-kiln/tests/auto-flip-on-merge-fixture/golden/`. Commit: `feat(roadmap): extract Step 4b.5 auto-flip block to shared helper (FR-008, NFR-002)`.
+- [X] T016 [impl-roadmap-and-merge] [US2] Stage by exact path: `git add plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh plugin-kiln/tests/auto-flip-on-merge-fixture/golden/`. Commit: `feat(roadmap): extract Step 4b.5 auto-flip block to shared helper (FR-008, NFR-002)`.
 
 ---
 
@@ -69,14 +69,14 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T020 [impl-roadmap-and-merge] [US2] In `plugin-kiln/skills/kiln-build-prd/SKILL.md`, locate Step 4b.5 (heading at line ~1019). Replace ONLY the bash code-fence body (the ~80-line block from `# FR-003 — gate on PR merge state` to the closing `echo "step4b-auto-flip: ..."` line) with the two-line replacement from `contracts/interfaces.md` §A.3 (one comment + one helper invocation). Preserve the `### Step 4b.5: ...` heading, **Purpose**/**When this runs**/**Inputs** prose, **Diagnostic line literal**/**Verification regex** code-fences, and **Step 4b.5 invariants** list verbatim.
-- [ ] T021 [impl-roadmap-and-merge] [US2] Verify `wc -l plugin-kiln/skills/kiln-build-prd/SKILL.md` strictly decreased compared to pre-edit baseline (SC-003).
-- [ ] T022 [impl-roadmap-and-merge] [US2] Re-run `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert PASS (helper is the unit under test; this confirms no regression from the refactor's accompanying edits).
-- [ ] T023 [impl-roadmap-and-merge] [US2] Re-run the existing `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` (escalation-audit's fixture). If its extract pattern still parses against the refactored SKILL.md, it MUST still pass. If the extract pattern broke because the inline block is gone, document the substitution in the test fixture or update its assertion to source the helper directly. Note any update in `agent-notes/impl-roadmap-and-merge.md`.
+- [X] T020 [impl-roadmap-and-merge] [US2] In `plugin-kiln/skills/kiln-build-prd/SKILL.md`, locate Step 4b.5 (heading at line ~1019). Replace ONLY the bash code-fence body (the ~80-line block from `# FR-003 — gate on PR merge state` to the closing `echo "step4b-auto-flip: ..."` line) with the two-line replacement from `contracts/interfaces.md` §A.3 (one comment + one helper invocation). Preserve the `### Step 4b.5: ...` heading, **Purpose**/**When this runs**/**Inputs** prose, **Diagnostic line literal**/**Verification regex** code-fences, and **Step 4b.5 invariants** list verbatim.
+- [X] T021 [impl-roadmap-and-merge] [US2] Verify `wc -l plugin-kiln/skills/kiln-build-prd/SKILL.md` strictly decreased compared to pre-edit baseline (SC-003).
+- [X] T022 [impl-roadmap-and-merge] [US2] Re-run `bash plugin-kiln/tests/auto-flip-on-merge-fixture/run.sh`. Assert PASS (helper is the unit under test; this confirms no regression from the refactor's accompanying edits).
+- [X] T023 [impl-roadmap-and-merge] [US2] Re-run the existing `plugin-kiln/tests/build-prd-auto-flip-on-merge/run.sh` (escalation-audit's fixture). If its extract pattern still parses against the refactored SKILL.md, it MUST still pass. If the extract pattern broke because the inline block is gone, document the substitution in the test fixture or update its assertion to source the helper directly. Note any update in `agent-notes/impl-roadmap-and-merge.md`.
 
 ### Checkpoint — Commit Phase 4
 
-- [ ] T024 [impl-roadmap-and-merge] [US2] Stage by exact path: `git add plugin-kiln/skills/kiln-build-prd/SKILL.md` (and any updated existing fixture file from T023). Commit: `refactor(build-prd): step 4b.5 calls shared auto-flip-on-merge.sh helper (FR-009, SC-003)`.
+- [X] T024 [impl-roadmap-and-merge] [US2] Stage by exact path: `git add plugin-kiln/skills/kiln-build-prd/SKILL.md` (and any updated existing fixture file from T023). Commit: `refactor(build-prd): step 4b.5 calls shared auto-flip-on-merge.sh helper (FR-009, SC-003)`.
 
 ---
 
@@ -87,24 +87,24 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T030 [impl-roadmap-and-merge] [US1] Create `plugin-kiln/skills/kiln-merge-pr/SKILL.md` per `contracts/interfaces.md` §B.1, §B.2. Frontmatter (name + description) per §B.1. Body sections: Purpose, Inputs, Stages 1–6 with the diagnostic-line literals, Idempotency notes, Working-tree-dirty rule, Helper invocation contract.
-- [ ] T031 [impl-roadmap-and-merge] [US1] In Stage 1 (preflight), use `git status --porcelain` to detect dirty tree; refuse with the canonical exit-2 diagnostic line. NEVER `git stash` automatically (PRD R-3, V1).
-- [ ] T032 [impl-roadmap-and-merge] [US1] In Stage 2 (mergeability gate), accept either `state=OPEN` AND `mergeStateStatus ∈ {CLEAN, MERGEABLE}`, OR `state=MERGED` (idempotent skip path per FR-002a, NFR-001). Refuse all other combinations.
-- [ ] T033 [impl-roadmap-and-merge] [US1] In Stage 3 (merge), `gh pr merge <pr> --<method> --delete-branch`. Method default `--squash` per FR-001. Wait for `gh pr view <pr> --json state` to return `MERGED` before proceeding (FR-003).
-- [ ] T034 [impl-roadmap-and-merge] [US1] In Stage 4 (PRD location), `gh pr view <pr> --json files`, lex-sort, take `[0]` matching `docs/features/*/PRD.md` (FR-004). On zero matches, emit `kiln-merge-pr: pr=<n> auto-flip=skipped reason=no-prd-in-changeset` and exit 0.
-- [ ] T035 [impl-roadmap-and-merge] [US1] In Stage 5 (auto-flip), invoke `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh <pr> <prd-path>` (FR-005). Under `--no-flip`, skip Stage 5 entirely with diagnostic `kiln-merge-pr: pr=<n> auto-flip=skipped reason=--no-flip` (FR-007).
-- [ ] T036 [impl-roadmap-and-merge] [US1] In Stage 6 (commit + push), use the FR-006/§B.3 staging contract: derive flipped paths from the helper (Approach 1: re-walk derived_from + `git diff --name-only` filter; or Approach 2: helper emits `flipped-path:` lines on stderr). Stage by exact path; NEVER `git add -A`. Commit with `chore(roadmap): auto-flip on merge of PR #<n>`. Push to `origin`. If zero files mutated, emit `result=skipped-no-changes` and don't commit.
-- [ ] T037 [impl-roadmap-and-merge] [US1] **REMOVED per team-lead correction** — kiln plugin uses filesystem auto-discovery from `skills/`. `plugin-kiln/.claude-plugin/plugin.json` has only `workflows` + `agent_bindings` arrays — no `skills` array. Creating `plugin-kiln/skills/kiln-merge-pr/SKILL.md` is sufficient registration. **Do NOT touch the manifest.** Mark this task completed as a no-op confirmation only.
+- [X] T030 [impl-roadmap-and-merge] [US1] Create `plugin-kiln/skills/kiln-merge-pr/SKILL.md` per `contracts/interfaces.md` §B.1, §B.2. Frontmatter (name + description) per §B.1. Body sections: Purpose, Inputs, Stages 1–6 with the diagnostic-line literals, Idempotency notes, Working-tree-dirty rule, Helper invocation contract.
+- [X] T031 [impl-roadmap-and-merge] [US1] In Stage 1 (preflight), use `git status --porcelain` to detect dirty tree; refuse with the canonical exit-2 diagnostic line. NEVER `git stash` automatically (PRD R-3, V1).
+- [X] T032 [impl-roadmap-and-merge] [US1] In Stage 2 (mergeability gate), accept either `state=OPEN` AND `mergeStateStatus ∈ {CLEAN, MERGEABLE}`, OR `state=MERGED` (idempotent skip path per FR-002a, NFR-001). Refuse all other combinations.
+- [X] T033 [impl-roadmap-and-merge] [US1] In Stage 3 (merge), `gh pr merge <pr> --<method> --delete-branch`. Method default `--squash` per FR-001. Wait for `gh pr view <pr> --json state` to return `MERGED` before proceeding (FR-003).
+- [X] T034 [impl-roadmap-and-merge] [US1] In Stage 4 (PRD location), `gh pr view <pr> --json files`, lex-sort, take `[0]` matching `docs/features/*/PRD.md` (FR-004). On zero matches, emit `kiln-merge-pr: pr=<n> auto-flip=skipped reason=no-prd-in-changeset` and exit 0.
+- [X] T035 [impl-roadmap-and-merge] [US1] In Stage 5 (auto-flip), invoke `bash plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh <pr> <prd-path>` (FR-005). Under `--no-flip`, skip Stage 5 entirely with diagnostic `kiln-merge-pr: pr=<n> auto-flip=skipped reason=--no-flip` (FR-007).
+- [X] T036 [impl-roadmap-and-merge] [US1] In Stage 6 (commit + push), use the FR-006/§B.3 staging contract: derive flipped paths from the helper (Approach 1: re-walk derived_from + `git diff --name-only` filter; or Approach 2: helper emits `flipped-path:` lines on stderr). Stage by exact path; NEVER `git add -A`. Commit with `chore(roadmap): auto-flip on merge of PR #<n>`. Push to `origin`. If zero files mutated, emit `result=skipped-no-changes` and don't commit.
+- [X] T037 [impl-roadmap-and-merge] [US1] **REMOVED per team-lead correction** — kiln plugin uses filesystem auto-discovery from `skills/`. `plugin-kiln/.claude-plugin/plugin.json` has only `workflows` + `agent_bindings` arrays — no `skills` array. Creating `plugin-kiln/skills/kiln-merge-pr/SKILL.md` is sufficient registration. **Do NOT touch the manifest.** Mark this task completed as a no-op confirmation only.
 
 ### Test for User Story 1 (structural)
 
-- [ ] T038 [impl-roadmap-and-merge] [US1] Run `grep -c '^### Stage' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 6 (one per stage). Run `grep -F 'kiln-merge-pr: pr=' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 5 hits (one per stage diagnostic).
-- [ ] T039 [impl-roadmap-and-merge] [US1] Run `grep -F '--no-flip' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 2 hits (flag declaration + skip-stage logic). Run `grep -F 'auto-flip-on-merge.sh' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 1 hit (helper invocation).
-- [ ] T040 [impl-roadmap-and-merge] [US1] Run `grep -F 'git add -A' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — MUST return zero hits (NFR-005 invariant).
+- [X] T038 [impl-roadmap-and-merge] [US1] Run `grep -c '^### Stage' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 6 (one per stage). Run `grep -F 'kiln-merge-pr: pr=' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 5 hits (one per stage diagnostic).
+- [X] T039 [impl-roadmap-and-merge] [US1] Run `grep -F '--no-flip' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 2 hits (flag declaration + skip-stage logic). Run `grep -F 'auto-flip-on-merge.sh' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — expect ≥ 1 hit (helper invocation).
+- [X] T040 [impl-roadmap-and-merge] [US1] Run `grep -F 'git add -A' plugin-kiln/skills/kiln-merge-pr/SKILL.md` — MUST return zero hits (NFR-005 invariant).
 
 ### Checkpoint — Commit Phase 5
 
-- [ ] T041 [impl-roadmap-and-merge] [US1] Stage by exact path: `git add plugin-kiln/skills/kiln-merge-pr/SKILL.md`. (Per T037: do NOT add `plugin-kiln/.claude-plugin/plugin.json` — manifest is not edited.) Commit: `feat(merge-pr): add /kiln:kiln-merge-pr skill — atomic merge + auto-flip (FR-001..FR-007, NFR-001)`.
+- [X] T041 [impl-roadmap-and-merge] [US1] Stage by exact path: `git add plugin-kiln/skills/kiln-merge-pr/SKILL.md`. (Per T037: do NOT add `plugin-kiln/.claude-plugin/plugin.json` — manifest is not edited.) Commit: `feat(merge-pr): add /kiln:kiln-merge-pr skill — atomic merge + auto-flip (FR-001..FR-007, NFR-001)`.
 
 ---
 
@@ -115,20 +115,20 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ### Implementation
 
-- [ ] T050 [impl-roadmap-and-merge] [US3] In `plugin-kiln/skills/kiln-roadmap/SKILL.md` §C, after the existing Check 5 report assembly, add a `--fix` mode block per `contracts/interfaces.md` §C.2. Gate the entire block behind a `--fix` flag check; without `--fix`, behavior MUST be byte-identical (NFR-004 backward-compat).
-- [ ] T051 [impl-roadmap-and-merge] [US3] In the `--fix` block, prompt `[fix all / pick / skip]` confirm-never-silent. Treat empty input as `skip` (NFR-004). Print the per-entry helper output as it runs.
-- [ ] T052 [impl-roadmap-and-merge] [US3] Resolve PR per drifted item via `gh pr list --state merged --search "head:<feature-branch>"` (FR-011). On zero or multiple matches, mark `[ambiguous]` and skip THAT item; never guess.
-- [ ] T053 [impl-roadmap-and-merge] [US3] Emit final summary line `fix=success items=<N> patched=<K> already_shipped=<S> ambiguous=<A>` per §C.3.
-- [ ] T054 [impl-roadmap-and-merge] [US3] Document the new flag in the skill's frontmatter description AND in the existing `--check` synopsis at the top of the SKILL.md.
+- [X] T050 [impl-roadmap-and-merge] [US3] In `plugin-kiln/skills/kiln-roadmap/SKILL.md` §C, after the existing Check 5 report assembly, add a `--fix` mode block per `contracts/interfaces.md` §C.2. Gate the entire block behind a `--fix` flag check; without `--fix`, behavior MUST be byte-identical (NFR-004 backward-compat).
+- [X] T051 [impl-roadmap-and-merge] [US3] In the `--fix` block, prompt `[fix all / pick / skip]` confirm-never-silent. Treat empty input as `skip` (NFR-004). Print the per-entry helper output as it runs.
+- [X] T052 [impl-roadmap-and-merge] [US3] Resolve PR per drifted item via `gh pr list --state merged --search "head:<feature-branch>"` (FR-011). On zero or multiple matches, mark `[ambiguous]` and skip THAT item; never guess.
+- [X] T053 [impl-roadmap-and-merge] [US3] Emit final summary line `fix=success items=<N> patched=<K> already_shipped=<S> ambiguous=<A>` per §C.3.
+- [X] T054 [impl-roadmap-and-merge] [US3] Document the new flag in the skill's frontmatter description AND in the existing `--check` synopsis at the top of the SKILL.md.
 
 ### Test for User Story 3 (structural)
 
-- [ ] T055 [impl-roadmap-and-merge] [US3] Run `grep -F 'fix all / pick / skip' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit. Run `grep -F 'auto-flip-on-merge.sh' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit. Run `grep -F 'ambiguous' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit.
-- [ ] T056 [impl-roadmap-and-merge] [US3] Manually walk the scenario: pick a known-shipped item, revert its `state` field to `distilled` and strip `pr:` + `shipped_date:` (in a scratch branch or via `git restore`). Run `/kiln:kiln-roadmap --check --fix`, respond `skip`, assert `git diff` empty. Run again, respond `accept`, assert the item flipped back. Restore the original state via `git checkout`.
+- [X] T055 [impl-roadmap-and-merge] [US3] Run `grep -F 'fix all / pick / skip' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit. Run `grep -F 'auto-flip-on-merge.sh' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit. Run `grep -F 'ambiguous' plugin-kiln/skills/kiln-roadmap/SKILL.md` — expect ≥ 1 hit.
+- [X] T056 [impl-roadmap-and-merge] [US3] Manually walk the scenario: pick a known-shipped item, revert its `state` field to `distilled` and strip `pr:` + `shipped_date:` (in a scratch branch or via `git restore`). Run `/kiln:kiln-roadmap --check --fix`, respond `skip`, assert `git diff` empty. Run again, respond `accept`, assert the item flipped back. Restore the original state via `git checkout`.
 
 ### Checkpoint — Commit Phase 6
 
-- [ ] T057 [impl-roadmap-and-merge] [US3] Stage by exact path: `git add plugin-kiln/skills/kiln-roadmap/SKILL.md`. Commit: `feat(roadmap): --check --fix confirm-never-silent drift fixer (FR-010, FR-011)`.
+- [X] T057 [impl-roadmap-and-merge] [US3] Stage by exact path: `git add plugin-kiln/skills/kiln-roadmap/SKILL.md`. Commit: `feat(roadmap): --check --fix confirm-never-silent drift fixer (FR-010, FR-011)`.
 
 ---
 

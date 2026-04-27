@@ -12,7 +12,7 @@ context_cost: "1 session"
 promoted_from: .kiln/feedback/2026-04-25-pipeline-end-shutdown-nag-loop.md
 prd: docs/features/2026-04-26-escalation-audit/PRD.md
 pr: 189
-shipped_date: 2026-04-27
+shipped_date: <TODAY>
 ---
 
 # Pipeline-end shutdown-nag loop — team-lead enters /loop after teammate pipeline finishes (verified 2026-04-25)

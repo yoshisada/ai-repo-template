@@ -12,7 +12,7 @@ context_cost: "1 session"
 promoted_from: .kiln/issues/2026-04-25-build-prd-no-auto-flip-item-state-on-merge.md
 prd: docs/features/2026-04-26-escalation-audit/PRD.md
 pr: 189
-shipped_date: 2026-04-27
+shipped_date: <TODAY>
 ---
 
 # no `pr:` field, no shipped_date, nothing

@@ -21,9 +21,12 @@
 # `state: shipped`, `pr: 189` at end of frontmatter, `shipped_date: 2026-04-27`
 # at end of frontmatter). This is the byte-identity target.
 #
-# Date stability: the helper uses `date -u +%Y-%m-%d` to stamp `shipped_date:`.
-# The fixture stubs `date` via PATH to return 2026-04-27 so the test passes on
-# any day, not just today.
+# Date stability (T013a / NFR-002): the helper uses `date -u +%Y-%m-%d` to stamp
+# `shipped_date:`. To keep the fixture stable across days WITHOUT modifying the
+# verbatim helper (NFR-002), each `golden/post/<item>.md` carries the placeholder
+# `shipped_date: <TODAY>`. At test time, run.sh materializes the expected file by
+# substituting `<TODAY>` with the actual `date -u +%Y-%m-%d` value, then byte-
+# diffs the helper-mutated item against the materialized expected file.
 set -euo pipefail
 
 TMP="$(mktemp -d)"
@@ -50,32 +53,27 @@ esac
 STUB
 chmod +x "$TMP/bin/gh"
 
-# 3. Stub `date` to pin TODAY=2026-04-27 (the canonical post-merge shipped_date
-#    in commit 22a91b10). Falls through to system /bin/date for any other
-#    invocation. Required because the helper uses
-#    `TODAY="$(date -u +%Y-%m-%d)"` verbatim from Step 4b.5.
-cat > "$TMP/bin/date" <<'STUB'
-#!/usr/bin/env bash
-# Fixture stub: pin TODAY for byte-identity vs commit 22a91b10.
-if [ "$*" = "-u +%Y-%m-%d" ]; then
-  echo "2026-04-27"
-else
-  exec /bin/date "$@"
-fi
-STUB
-chmod +x "$TMP/bin/date"
+# 3. Materialize expected golden/post snapshots with today's actual UTC date
+#    substituted for the `<TODAY>` placeholder (T013a / NFR-002). The helper
+#    emits today's real date; the expected file is rendered to match at test
+#    time, preserving the helper as a verbatim extraction.
+TODAY="$(date -u +%Y-%m-%d)"
+mkdir -p "$TMP/expected"
+for item in "$HERE/golden/post/"*.md; do
+  base="$(basename "$item")"
+  sed "s/<TODAY>/${TODAY}/g" "$item" > "$TMP/expected/$base"
+done
 
-# 4. Run the helper from $TMP, with stubbed gh + date on PATH.
+# 4. Run the helper from $TMP, with stubbed gh on PATH.
 echo "--- First run (expect: items=3 patched=3 already_shipped=0) ---"
 ( cd "$TMP" && PATH="$TMP/bin:$PATH" \
   bash "$REPO_ROOT/plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh" 189 \
        "docs/features/2026-04-26-escalation-audit/PRD.md" )
 
-# 5. Diff each item against golden post snapshot — MUST be byte-identical.
-for item in "$HERE/golden/post/"*.md; do
-  base="$(basename "$item")"
-  if ! diff -u "$TMP/.kiln/roadmap/items/$base" "$item"; then
-    echo "FAIL: $base byte-diff vs golden/post (first run)"
+# 5. Diff each item against materialized expected snapshot — MUST be byte-identical.
+for base in $(ls "$TMP/expected/"); do
+  if ! diff -u "$TMP/.kiln/roadmap/items/$base" "$TMP/expected/$base"; then
+    echo "FAIL: $base byte-diff vs materialized expected (first run)"
     exit 1
   fi
 done
@@ -86,9 +84,8 @@ echo "--- Second run (expect: items=3 patched=0 already_shipped=3) ---"
   bash "$REPO_ROOT/plugin-kiln/scripts/roadmap/auto-flip-on-merge.sh" 189 \
        "docs/features/2026-04-26-escalation-audit/PRD.md" )
 
-for item in "$HERE/golden/post/"*.md; do
-  base="$(basename "$item")"
-  if ! diff -u "$TMP/.kiln/roadmap/items/$base" "$item"; then
+for base in $(ls "$TMP/expected/"); do
+  if ! diff -u "$TMP/.kiln/roadmap/items/$base" "$TMP/expected/$base"; then
     echo "FAIL: $base byte-diff after idempotent re-run"
     exit 1
   fi
