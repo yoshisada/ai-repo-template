@@ -3,14 +3,16 @@ id: 2026-04-24-sc-grep-date-bound-qualifier
 title: "Spec-template grep-style success criteria need a date-bound qualifier or they auto-flag historical noise"
 kind: feature
 date: 2026-04-24
-status: open
+status: shipped
 phase: 10-self-optimization
-state: distilled
+state: shipped
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 promoted_from: .kiln/issues/2026-04-24-cross-plugin-resolver-retro-sc-grep-needs-date-bound.md
 prd: docs/features/2026-04-27-merge-pr-and-sc-grep-guidance/PRD.md
+pr: 191
+shipped_date: 2026-04-27
 ---
 
 # Spec-template grep-style success criteria need a date-bound qualifier or they auto-flag historical noise

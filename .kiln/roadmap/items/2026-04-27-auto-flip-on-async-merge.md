@@ -3,13 +3,15 @@ id: 2026-04-27-auto-flip-on-async-merge
 title: "Auto-flip on async merge — Step 4b.5 doesn't fire when user merges PR after team-lead shutdown"
 kind: feature
 date: 2026-04-27
-status: open
+status: shipped
 phase: 90-queued
-state: distilled
+state: shipped
 blast_radius: feature
 review_cost: moderate
 context_cost: "1 session"
 prd: docs/features/2026-04-27-merge-pr-and-sc-grep-guidance/PRD.md
+pr: 191
+shipped_date: 2026-04-27
 ---
 
 # Auto-flip on async merge — Step 4b.5 doesn't fire when user merges PR after team-lead shutdown
