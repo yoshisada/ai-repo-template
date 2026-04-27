@@ -29,3 +29,4 @@ Reusable bucket for items that are clearly not-now but explicitly committed ("la
 - 2026-04-25-team-orchestration-primitive
 - 2026-04-25-wheel-test-runner-extraction
 - 2026-04-27-auto-flip-on-async-merge
+- 2026-04-27-session-base-branch
