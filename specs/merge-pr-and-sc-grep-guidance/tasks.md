@@ -218,9 +218,9 @@ description: "Task list for merge-pr-and-sc-grep-guidance feature implementation
 
 ## Phase 10b: Friction note + handoff — impl-docs
 
-- [ ] T101 [impl-docs] Write `specs/merge-pr-and-sc-grep-guidance/agent-notes/impl-docs.md` with: ambiguities encountered, deviations from contract (with justifications), prompt-clarity issues, anything that surprised you mid-implementation. Required for retrospective.
-- [ ] T102 [impl-docs] Stage by exact path: `git add specs/merge-pr-and-sc-grep-guidance/agent-notes/impl-docs.md`. Commit: `chore(specs): impl-docs friction note`.
-- [ ] T103 [impl-docs] SendMessage to `team-lead` and to `audit-traceability` + `audit-tests`: "Themes B + C complete — 4 commits, files: spec-template.md, preprocess.sh, README.md. SC-005 + SC-006 sentinels asserted via grep. Ready for audit." Mark task #3 completed.
+- [X] T101 [impl-docs] Write `specs/merge-pr-and-sc-grep-guidance/agent-notes/impl-docs.md` with: ambiguities encountered, deviations from contract (with justifications), prompt-clarity issues, anything that surprised you mid-implementation. Required for retrospective.
+- [X] T102 [impl-docs] Stage by exact path: `git add specs/merge-pr-and-sc-grep-guidance/agent-notes/impl-docs.md`. Commit: `chore(specs): impl-docs friction note`.
+- [X] T103 [impl-docs] SendMessage to `team-lead` and to `audit-traceability` + `audit-tests`: "Themes B + C complete — 4 commits, files: spec-template.md, preprocess.sh, README.md. SC-005 + SC-006 sentinels asserted via grep. Ready for audit." Mark task #3 completed.
 
 ---
 
