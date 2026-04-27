@@ -40,6 +40,13 @@ npm-debug.log*
 # Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
 .shelf-config.lock
 
+# Transient lockfile used by plugin-kiln/scripts/roadmap/vision-write-section.sh
+# (vision-tooling NFR-003) — never commit
+.kiln/.vision.lock
+
+# Vision-scorecard run logs (vision-tooling FR-019) — generated, never commit
+.kiln/logs/metrics-*
+
 # Workflow outputs — generated, never commit
 reports/
 .wheel/outputs/

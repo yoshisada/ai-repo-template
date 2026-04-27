@@ -30,9 +30,9 @@ This is the plugin source repo. All code lives under `plugin-kiln/`. Tests live 
 **⚠️ CRITICAL**: T001 MUST complete before ANY edits to `plugin-kiln/skills/kiln-roadmap/SKILL.md`. If T001 is skipped, Theme A's back-compat assertion is unauthorable and SC-009 cannot pass.
 
 - [X] T001 Capture pre-PRD coached-interview baseline at `plugin-kiln/tests/vision-coached-back-compat/fixtures/pre-prd-coached-output.txt` by running the current (unedited) `/kiln:kiln-roadmap --vision` against a frozen fixture vision file under `plugin-kiln/tests/vision-coached-back-compat/fixtures/vision.md`; commit both fixture inputs and the captured output. *(NFR-005, SC-009; risk R-4 mitigation)*
-- [ ] T002 [P] Add `.kiln/.vision.lock` to `.gitignore` (verify `.kiln/logs/` already ignored; if not, add it). *(NFR-003 lockfile gitignore; FR-019 log dir gitignore)*
-- [ ] T003 [P] Create empty directory marker `plugin-kiln/scripts/metrics/.gitkeep` so the new metrics dir lands cleanly when Theme D ships.
-- [ ] T004 [P] Create empty directory marker `.kiln/roadmap/items/declined/.gitkeep` so Theme C's first decline lands without dir-creation race. *(FR-022)*
+- [X] T002 [P] Add `.kiln/.vision.lock` to `.gitignore` (verify `.kiln/logs/` already ignored; if not, add it). *(NFR-003 lockfile gitignore; FR-019 log dir gitignore)*
+- [X] T003 [P] Create empty directory marker `plugin-kiln/scripts/metrics/.gitkeep` so the new metrics dir lands cleanly when Theme D ships.
+- [X] T004 [P] Create empty directory marker `.kiln/roadmap/items/declined/.gitkeep` so Theme C's first decline lands without dir-creation race. *(FR-022)*
 
 **Checkpoint**: Baseline captured. Lock + log gitignore in place. Sub-directories pre-created. Code edits to `kiln-roadmap/SKILL.md` are now safe.
 
