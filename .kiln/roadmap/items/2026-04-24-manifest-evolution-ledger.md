@@ -5,10 +5,11 @@ kind: feature
 date: 2026-04-24
 status: open
 phase: 10-self-optimization
-state: in-phase
+state: distilled
 blast_radius: cross-cutting
 review_cost: careful
 context_cost: 3+ sessions
+prd: docs/features/2026-04-27-manifest-evolution-ledger/PRD.md
 ---
 
 # Manifest-evolution ledger — close the self-improvement loop
