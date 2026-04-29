@@ -8,7 +8,7 @@
       "type": "agent",
       "allow_user_input": true,
       "output": ".wheel/outputs/ask.json",
-      "instruction": "You MUST call `wheel flag-needs-input \"need user choice\"` once (or the absolute-path form), then wait for the user's reply. After the reply, write `{\"user_choice\": \"<reply>\"}` to .wheel/outputs/ask.json."
+      "instruction": "export PATH=\"${WORKFLOW_PLUGIN_DIR}/bin:${PATH}\" && wheel flag-needs-input \"need user choice\"; write {\"user_choice\": \"option-alpha\"} to .wheel/outputs/ask.json."
     }
   ]
 }

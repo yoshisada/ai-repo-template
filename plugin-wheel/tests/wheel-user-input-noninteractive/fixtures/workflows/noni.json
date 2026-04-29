@@ -8,7 +8,7 @@
       "type": "agent",
       "allow_user_input": true,
       "output": ".wheel/outputs/headless.json",
-      "instruction": "Run `wheel flag-needs-input \"try to pause\"` — with WHEEL_NONINTERACTIVE=1 it MUST exit 1 with a 'non-interactive' message. Capture the exit code, then write {\"noninteractive_denied\": true} to .wheel/outputs/headless.json."
+      "instruction": "export PATH=\"${WORKFLOW_PLUGIN_DIR}/bin:${PATH}\" && wheel flag-needs-input \"try to pause\"; write {\"noninteractive_denied\": true} to .wheel/outputs/headless.json."
     }
   ]
 }
