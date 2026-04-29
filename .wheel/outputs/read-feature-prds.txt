@@ -1,1 +1,79 @@
-
+SLUG=continuance-agent TITLE=Feature PRD: Continuance Agent (/next) FRs=7 NFRs=0
+0 STATUS= PATH=docs/features/2026-03-31-continuance-agent/PRD.md
+SLUG=kiln-rebrand-and-qa TITLE=Feature PRD: Kiln Rebrand, Infrastructure & QA Reliability FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-03-31-kiln-rebrand-and-qa/PRD.md
+SLUG=analyze-issues TITLE=Feature PRD: Analyze Issues Skill FRs=10 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-analyze-issues/PRD.md
+SLUG=kiln-polish TITLE=Feature PRD: Kiln Polish — Next Command Suggestion & QA Directory Structure FRs=8 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-kiln-polish/PRD.md
+SLUG=pipeline-reliability TITLE=Feature PRD: Pipeline Reliability & Health FRs=10 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-reliability/PRD.md
+SLUG=pipeline-workflow-polish TITLE=Feature PRD: Pipeline Workflow Polish FRs=24 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-pipeline-workflow-polish/PRD.md
+SLUG=qa-tooling-templates TITLE=Feature PRD: QA Agent Optimization, Kiln Doctor Enhancements & Template Improvements FRs=32 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-01-qa-tooling-templates/PRD.md
+SLUG=shelf-config-artifact TITLE=Feature PRD: Shelf Config Artifact FRs=11 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-03-shelf-config-artifact/PRD.md
+SLUG=shelf-sync-v2 TITLE=Feature PRD: Shelf Sync v2 — Templates, Tags, Docs & Lifecycle FRs=21 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-shelf-sync-v2/PRD.md
+SLUG=shelf TITLE=Feature PRD: Shelf — Obsidian Project Dashboard Plugin FRs=45 NFRs=5 STATUS= PATH=docs/features/2026-04-03-shelf/PRD.md
+SLUG=wheel TITLE=Feature PRD: Wheel — Hook-based Workflow Engine Plugin FRs=31 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-03-wheel/PRD.md
+SLUG=kiln-wheel-polish TITLE=Feature PRD: Kiln & Wheel Polish FRs=24 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-kiln-wheel-polish/PRD.md
+SLUG=wheel-skill-activation TITLE=Feature PRD: Wheel Skill-Based Activation FRs=10 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-04-wheel-skill-activation/PRD.md
+SLUG=wheel-session-guard TITLE=Feature PRD: Wheel Session Guard FRs=7 NFRs=2 STATUS=Draft PATH=docs/features/2026-04-05-wheel-session-guard/PRD.md
+SLUG=wheel-create-workflow TITLE=Feature PRD: Wheel Create Workflow FRs=24 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-create-workflow/PRD.md
+SLUG=wheel-per-agent-state TITLE=Feature PRD: Wheel Per-Agent State Files FRs=11 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-06-wheel-per-agent-state/PRD.md
+SLUG=clay-idea-entrypoint TITLE=Feature PRD: Clay Idea Entrypoint FRs=14 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-07-clay-idea-entrypoint/PRD.md
+SLUG=developer-tooling-polish TITLE=Feature PRD: Developer Tooling Polish FRs=11 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-07-developer-tooling-polish/PRD.md
+SLUG=plugin-clay TITLE=Feature PRD: Plugin Clay FRs=37 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-07-plugin-clay/PRD.md
+SLUG=wheel-workflow-composition TITLE=Feature PRD: Wheel Workflow Composition FRs=18 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-07-wheel-workflow-composition/PRD.md
+SLUG=shelf-skills-polish TITLE=Feature PRD: Shelf Skills Polish FRs=20 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-08-shelf-skills-polish/PRD.md
+SLUG=plugin-polish-and-skill-ux TITLE=Feature PRD: Plugin Polish & Skill UX FRs=15 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-plugin-polish-and-skill-ux/PRD.md
+SLUG=trim-design-lifecycle TITLE=Feature PRD: Trim Design Lifecycle — Edit, Verify, Redesign, Flows FRs=33 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-trim-design-lifecycle/PRD.md
+SLUG=trim-penpot-layout TITLE=Feature PRD: Trim Penpot Layout & Auto-Flows FRs=18 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-09-trim-penpot-layout/PRD.md
+SLUG=trim-push-v2 TITLE=Feature PRD: Trim-Push v2 — Agent Team Design Sync Pipeline FRs=29 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-trim-push-v2/PRD.md
+SLUG=trim TITLE=Feature PRD: Trim — Bidirectional Design-Code Sync Plugin FRs=27 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-09-trim/PRD.md
+SLUG=wheel-team-primitives TITLE=Feature PRD: Wheel Team Primitives — Parallel Agent Execution in Workflows FRs=36 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-09-wheel-team-primitives/PRD.md
+SLUG=shelf-sync-efficiency TITLE=Feature PRD: Shelf Full Sync — Efficiency Pass FRs=12 NFRs=0
+0 STATUS=Draft PATH=docs/features/2026-04-10-shelf-sync-efficiency/PRD.md
+SLUG=wheel-test-skill TITLE=Feature PRD: Wheel Test Skill FRs=16 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-10-wheel-test-skill/PRD.md
+SLUG=manifest-improvement-subroutine TITLE=Feature PRD: Manifest Improvement Subroutine FRs=24 NFRs=1 STATUS= PATH=docs/features/2026-04-16-manifest-improvement-subroutine/PRD.md
+SLUG=mistake-capture TITLE=Feature PRD: Mistake Capture FRs=21 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-16-mistake-capture/PRD.md
+SLUG=fix-skill-with-recording-teams TITLE=Feature PRD: Fix Skill with Recording Teams FRs=33 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-20-fix-skill-with-recording-teams/PRD.md
+SLUG=first-class-skill-prefixes TITLE=Feature PRD: First-Class Skill Prefix Convention FRs=9 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-21-first-class-skill-prefixes/PRD.md
+SLUG=plugin-naming-consistency TITLE=Feature PRD: Plugin Naming Consistency FRs=14 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-21-plugin-naming-consistency/PRD.md
+SLUG=kiln-capture-fix-polish TITLE=Feature PRD: Kiln Capture-and-Fix Loop Polish FRs=23 NFRs=3 STATUS=Draft PATH=docs/features/2026-04-22-kiln-capture-fix-polish/PRD.md
+SLUG=report-issue-speedup TITLE=Feature PRD: Report-Issue Speedup FRs=12 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-22-report-issue-speedup/PRD.md
+SLUG=kiln-self-maintenance TITLE=Feature PRD: Kiln Self-Maintenance FRs=31 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-23-kiln-self-maintenance/PRD.md
+SLUG=kiln-structural-hygiene TITLE=Feature PRD: Kiln Structural Hygiene FRs=22 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-23-kiln-structural-hygiene/PRD.md
+SLUG=pipeline-input-completeness TITLE=Feature PRD: Pipeline Input Completeness FRs=19 NFRs=4 STATUS=Draft PATH=docs/features/2026-04-23-pipeline-input-completeness/PRD.md
+SLUG=structured-roadmap TITLE=Feature PRD: Structured Roadmap Planning Layer FRs=39 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-23-structured-roadmap/PRD.md
+SLUG=wheel-user-input TITLE=Feature PRD: Wheel User-Input Primitive FRs=21 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-23-wheel-user-input/PRD.md
+SLUG=claude-md-audit-reframe TITLE=Feature PRD: CLAUDE.md Audit Reframe — Product-Focused Content + Plugin Guidance Sync FRs=40 NFRs=0
+0 STATUS= PATH=docs/features/2026-04-24-claude-md-audit-reframe/PRD.md
+SLUG=coach-driven-capture-ergonomics TITLE=Feature PRD: Coach-Driven Capture Ergonomics FRs=25 NFRs=6 STATUS=Draft PATH=docs/features/2026-04-24-coach-driven-capture-ergonomics/PRD.md
+SLUG=cross-plugin-resolver-and-preflight-registry TITLE=Feature PRD: Cross-Plugin Resolver + Pre-Flight Plugin Registry FRs=40 NFRs=18 STATUS=Draft (v2 — revised after architectural exploration) PATH=docs/features/2026-04-24-cross-plugin-resolver-and-preflight-registry/PRD.md
+SLUG=plugin-skill-test-harness TITLE=Feature PRD: Plugin Skill Test Harness FRs=26 NFRs=7 STATUS=Draft PATH=docs/features/2026-04-24-plugin-skill-test-harness/PRD.md
+SLUG=prd-derived-from-frontmatter TITLE=Feature PRD: PRD `derived_from:` Frontmatter FRs=18 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-24-prd-derived-from-frontmatter/PRD.md
+SLUG=wheel-as-runtime TITLE=Feature PRD: Wheel as Runtime — Centralize Agents, Per-Step Models, and Close Silent-Failure Holes FRs=49 NFRs=9 STATUS=Draft (Theme A FR-A1/FR-A2 partially reversed 2026-04-25 — see below) PATH=docs/features/2026-04-24-wheel-as-runtime/PRD.md
+SLUG=workflow-governance TITLE=Feature PRD: Workflow Governance — Pipeline Integrity & Feedback Loop FRs=27 NFRs=7 STATUS=Draft PATH=docs/features/2026-04-24-workflow-governance/PRD.md
+SLUG=agent-prompt-composition TITLE=Feature PRD: Agent Prompt Composition — Two Layers, One Architecture FRs=34 NFRs=9 STATUS=Draft PATH=docs/features/2026-04-25-agent-prompt-composition/PRD.md
+SLUG=research-first-axis-enrichment TITLE=Feature PRD: Research-First Axis Enrichment — Per-Axis Direction Gate + Time/Cost Axes FRs=23 NFRs=8 STATUS=Draft PATH=docs/features/2026-04-25-research-first-axis-enrichment/PRD.md
+SLUG=research-first-foundation TITLE=Feature PRD: Research-First Foundation — Fixture Corpus + Baseline-vs-Candidate Runner MVP FRs=13 NFRs=6 STATUS=Draft PATH=docs/features/2026-04-25-research-first-foundation/PRD.md
+SLUG=research-first-plan-time-agents TITLE=Feature PRD: Research-first plan-time agents — fixture-synthesizer + output-quality judge FRs=23 NFRs=5 STATUS=Draft PATH=docs/features/2026-04-25-research-first-plan-time-agents/PRD.md
+SLUG=wheel-step-input-output-schema TITLE=Feature PRD: Wheel Step Input/Output Schema (`context_from` Rework) FRs=43 NFRs=21 STATUS=Draft PATH=docs/features/2026-04-25-wheel-step-input-output-schema/PRD.md
+SLUG=wheel-test-runner-extraction TITLE=Feature PRD: Wheel Test Runner Extraction (`kiln-test` → `wheel-test-runner`) FRs=25 NFRs=12 STATUS=Draft PATH=docs/features/2026-04-25-wheel-test-runner-extraction/PRD.md
+SLUG=wheel-typed-schema-locality TITLE=Feature PRD: Wheel Typed-Schema Locality (Fail-Fast + Surface-the-Contract) FRs=28 NFRs=17 STATUS=Draft PATH=docs/features/2026-04-25-wheel-typed-schema-locality/PRD.md
+SLUG=claude-audit-quality TITLE=Feature PRD: Claude-Audit Quality — Substance Over Mechanics FRs=42 NFRs=6 STATUS=Draft PATH=docs/features/2026-04-26-claude-audit-quality/PRD.md
+SLUG=escalation-audit TITLE=Feature PRD: Escalation Audit — Detect Stuck State + Auto-Flip Item Lifecycle FRs=32 NFRs=8 STATUS=Draft PATH=docs/features/2026-04-26-escalation-audit/PRD.md
+SLUG=research-first-completion TITLE=Feature PRD: Research-first completion — PRD-driven routing + classifier inference + E2E gate FRs=42 NFRs=10 STATUS=Draft PATH=docs/features/2026-04-26-research-first-completion/PRD.md
+SLUG=manifest-evolution-ledger TITLE=Feature PRD: Manifest-Evolution Ledger — V1 Pure-History View FRs=18 NFRs=6 STATUS=Draft PATH=docs/features/2026-... [truncated]

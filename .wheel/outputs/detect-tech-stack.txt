@@ -1,1 +1,4 @@
-package.json
+## Tech Stack Detection
+(no markers)
+---
+infra/github-actions

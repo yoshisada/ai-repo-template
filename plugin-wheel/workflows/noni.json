@@ -1,0 +1,14 @@
+{
+  "name": "noni",
+  "version": "1.0.0",
+  "description": "US5 — allow_user_input: true, but WHEEL_NONINTERACTIVE=1 must still block",
+  "steps": [
+    {
+      "id": "headless",
+      "type": "agent",
+      "allow_user_input": true,
+      "output": ".wheel/outputs/headless.json",
+      "instruction": "export PATH=\"${WORKFLOW_PLUGIN_DIR}/bin:${PATH}\" && wheel flag-needs-input \"try to pause\"; write {\"noninteractive_denied\": true} to .wheel/outputs/headless.json."
+    }
+  ]
+}

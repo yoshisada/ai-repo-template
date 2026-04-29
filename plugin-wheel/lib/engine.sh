@@ -166,14 +166,10 @@ engine_kickstart() {
 
   case "$step_type" in
     command|loop|branch)
-      # Command steps need to go through the hook dispatch so the hook can
-      # re-fire on the next turn. Don't dispatch inline — return a block
-      # instruction so the stop hook dispatches the step normally.
-      state_set_step_status "$state_file" "$cursor" "pending"
-      local _cmd_instr
-      _cmd_instr=$(printf '%s\n' "$first_step" | jq -r '.instruction // "Execute command step."')
-      jq -n --arg msg "$_cmd_instr" '{"decision": "block", "reason": $msg}'
-      return 0
+      # Execute inline — these don't need LLM interaction
+      export WHEEL_HOOK_SCRIPT=""
+      export WHEEL_HOOK_INPUT='{}'
+      dispatch_step "$first_step" "stop" '{}' "$state_file" "$cursor" >/dev/null 2>&1
       ;;
     agent)
       # Set step to pending so the Stop hook knows to inject the instruction
@@ -325,7 +321,7 @@ engine_handle_hook() {
       # Handle teammate going idle — route to appropriate step handler
       local step_type
       step_type=$(printf '%s\n' "$current_step" | jq -r '.type')
-      if [[ "$step_type" == "team-wait" || "$step_type" == "agent" || "$step_type" == "command" || "$step_type" == "loop" || "$step_type" == "branch" ]]; then
+      if [[ "$step_type" == "team-wait" || "$step_type" == "agent" ]]; then
         dispatch_step "$current_step" "teammate_idle" "$hook_input_json" "$STATE_FILE" "$cursor"
         return $?
       fi

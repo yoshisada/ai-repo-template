@@ -176,14 +176,17 @@ if [[ "$COMMAND" == *"deactivate.sh"* ]]; then
 fi
 
 # 2b. Check for activate.sh interception — create state file with full ownership
+# Detection matches two forms:
+#   1. Cache path: /<org>/wheel/<version>/bin/activate.sh  (installed plugin)
+#   2. Local dev:  plugin-wheel/bin/activate.sh  (source repo development)
+# Works regardless of bash -c wrapping and any installation depth.
 ACTIVATE_LINE=""
-if [[ "$COMMAND" == *"activate.sh"* ]]; then
-  # Extract the line containing activate.sh, but only if it looks like an
-  # actual invocation — not prose. Valid invocations start (after optional
-  # leading whitespace) with `bash /path/activate.sh`, `/path/activate.sh`,
-  # or `./activate.sh`. Prose like `(e.g. activate.sh tests/foo ...)` inside
-  # a git commit heredoc must NOT trigger activation.
-  ACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep -E '^[[:space:]]*(bash[[:space:]]+)?("|'"'"')?(\./|/)?[^[:space:]()"'"'"']*activate\.sh([[:space:]]|$)' | tail -1)
+if [[ "$COMMAND" == *"/wheel/"*"/bin/activate.sh"* ]] || \
+   [[ "$COMMAND" == *"plugin-wheel/bin/activate.sh"* ]]; then
+  # Extract the line containing activate.sh — take the last such line so chained
+  # commands don't misfire on an earlier reference. This works for bash -c
+  # wrapped invocations, absolute paths, and embedded in command chains.
+  ACTIVATE_LINE=$(printf '%s\n' "$COMMAND" | grep 'activate\.sh' | tail -1)
 fi
 if [[ -n "$ACTIVATE_LINE" ]]; then
   wheel_log "branch" "path=activate"
@@ -219,7 +222,12 @@ if [[ -n "$ACTIVATE_LINE" ]]; then
   source "${PLUGIN_DIR}/lib/engine.sh"
 
   # Read workflow file — check local workflows/ first, then scan plugin workflows/ dirs
-  WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
+  if [[ "$WORKFLOW_NAME" = /* ]]; then
+    # Absolute path — use directly
+    WORKFLOW_FILE="$WORKFLOW_NAME"
+  else
+    WORKFLOW_FILE="workflows/${WORKFLOW_NAME}.json"
+  fi
   if [[ -n "$WORKFLOW_NAME" && ! -f "$WORKFLOW_FILE" ]]; then
     # Not found locally — check if WORKFLOW_NAME is an absolute path (plugin workflow)
     if [[ -f "$WORKFLOW_NAME" ]]; then

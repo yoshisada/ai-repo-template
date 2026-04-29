@@ -53,14 +53,6 @@ resolve_state_file() {
       local alt_aid
       alt_aid=$(jq -r '.alternate_agent_id // empty' "$sf" 2>/dev/null) || true
       [[ -n "$alt_aid" && "$alt_aid" == "$hook_agent_id" ]] && id_match=true
-    elif [[ "$owner_sid" == "$hook_session_id" ]]; then
-      # Fallback: check alternate_agent_id even when hook_agent_id has no @.
-      # This catches teammate agents where the stop hook receives the raw UUID
-      # instead of the team-format ID — the second branch above would skip
-      # because it requires "@", but the state file still carries the match.
-      local alt_aid
-      alt_aid=$(jq -r '.alternate_agent_id // empty' "$sf" 2>/dev/null) || true
-      [[ -n "$alt_aid" && "$alt_aid" == "$hook_agent_id" ]] && id_match=true
     fi
 
     if [[ "$id_match" == true ]]; then

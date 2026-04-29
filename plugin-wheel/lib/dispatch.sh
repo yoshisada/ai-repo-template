@@ -648,16 +648,12 @@ dispatch_agent() {
             1)
               declare -f wheel_log >/dev/null 2>&1 && \
                 wheel_log "stop" "reason=output-schema-violation step=${_stop_step_id}"
-              # Keep step as 'pending' so agent can fix and retry.
-              # Only bump to 'failed' on validator error (rc=2).
               jq -n --arg msg "$_stop_validator_out" '{"decision": "block", "reason": $msg}'
               return 0
               ;;
             2)
               declare -f wheel_log >/dev/null 2>&1 && \
                 wheel_log "stop" "reason=output-schema-validator-error step=${_stop_step_id}"
-              # Validator error is unrecoverable — mark failed.
-              state_set_step_status "$state_file" "$step_index" "failed"
               jq -n --arg msg "$_stop_validator_out" '{"decision": "block", "reason": $msg}'
               return 0
               ;;
@@ -796,16 +792,12 @@ dispatch_agent() {
             1)
               declare -f wheel_log >/dev/null 2>&1 && \
                 wheel_log "teammate_idle" "reason=output-schema-violation step=${_ti_step_id}"
-              # Keep step as 'working' so agent can fix output and retry.
-              # Only bump to 'failed' on validator error (rc=2).
               jq -n --arg msg "$_ti_validator_out" '{"decision": "block", "reason": $msg}'
               return 0
               ;;
             2)
               declare -f wheel_log >/dev/null 2>&1 && \
                 wheel_log "teammate_idle" "reason=output-schema-validator-error step=${_ti_step_id}"
-              # Validator error is unrecoverable — mark failed.
-              state_set_step_status "$state_file" "$step_index" "failed"
               jq -n --arg msg "$_ti_validator_out" '{"decision": "block", "reason": $msg}'
               return 0
               ;;
@@ -828,13 +820,7 @@ dispatch_agent() {
           if [[ "$next_index" -lt "$total_steps" ]]; then
             local next_step_json
             next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
-            local next_type
-            next_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
-            if [[ "$next_type" == "command" ]]; then
-              dispatch_command "$next_step_json" "$state_file" "$next_index"
-            else
-              dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
-            fi
+            dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
           else
             jq -n '{"decision": "approve"}'
           fi
@@ -857,13 +843,7 @@ dispatch_agent() {
           if [[ "$next_index" -lt "$total_steps" ]]; then
             local next_step_json
             next_step_json=$(printf '%s\n' "$WORKFLOW" | jq --argjson idx "$next_index" '.steps[$idx]')
-            local next_type
-            next_type=$(printf '%s\n' "$next_step_json" | jq -r '.type')
-            if [[ "$next_type" == "command" ]]; then
-              dispatch_command "$next_step_json" "$state_file" "$next_index"
-            else
-              dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
-            fi
+            dispatch_step "$next_step_json" "teammate_idle" "$hook_input_json" "$state_file" "$next_index"
           else
             jq -n '{"decision": "approve"}'
           fi
@@ -984,16 +964,12 @@ dispatch_agent() {
         1)
           declare -f wheel_log >/dev/null 2>&1 && \
             wheel_log "post_tool_use" "reason=output-schema-violation step=${_ptu_step_id}"
-          # Keep step as 'working' so agent can fix output and retry.
-          # Only bump to 'failed' on validator error (rc=2).
           jq -n --arg msg "$_ptu_validator_out" '{"decision": "block", "reason": $msg}'
           return 0
           ;;
         2)
           declare -f wheel_log >/dev/null 2>&1 && \
             wheel_log "post_tool_use" "reason=output-schema-validator-error step=${_ptu_step_id}"
-          # Validator error is unrecoverable — mark failed.
-          state_set_step_status "$state_file" "$step_index" "failed"
           jq -n --arg msg "$_ptu_validator_out" '{"decision": "block", "reason": $msg}'
           return 0
           ;;
@@ -1653,11 +1629,11 @@ dispatch_team_create() {
         state_set_step_status "$state_file" "$step_index" "working"
         # Inject instruction for orchestrator to call TeamCreate
         jq -n --arg team "$team_name" \
-          '{"decision": "block", "reason": ("## ACTION REQUIRED\n\n1. Call TeamCreate:\n   team_name: " + $team + "\n   agent_type: wheel-runner\n   description: \"Team for workflow step\"\n   mode: auto\n\nAfter calling TeamCreate, proceed to the next tool call.")}'
+          '{"decision": "block", "reason": ("Create an agent team by calling TeamCreate with team_name: " + $team + ". After creating, proceed with the next tool call so I can detect completion.")}'
       elif [[ "$step_status" == "working" ]]; then
         # Waiting for TeamCreate — remind
         jq -n --arg team "$team_name" \
-          '{"decision": "block", "reason": ("## WAITING FOR TeamCreate\n\nTeamCreate not yet called. Call now:\n  team_name: " + $team)}'
+          '{"decision": "block", "reason": ("Still waiting for TeamCreate to be called for team: " + $team + ". Call TeamCreate now.")}'
       else
         jq -n '{"decision": "approve"}'
       fi
@@ -2013,17 +1989,9 @@ _teammate_flush_from_state() {
 - Agent '${agent_name}' on team '${team_name}': MUST run this exact Bash command to activate its sub-workflow: \`bash ${PLUGIN_DIR}/bin/activate.sh ${wf} --as ${agent_name}@${team_name}\`. Assignment: ${outdir}/assignment.json, Context: ${outdir}/context.json, Output to: ${outdir}/${model_clause}"
   done <<< "$names"
 
-  jq -n --arg msg "## ACTION REQUIRED: Spawn Teammates
+  jq -n --arg msg "Spawn ${count} teammate agent(s) with run_in_background: true and mode: bypassPermissions. Each agent MUST run the exact Bash command provided below to activate its sub-workflow — do NOT use /wheel:wheel-run, the --as flag is required so the hooks can map the agent back to the right teammate slot.${spawn_list}
 
-Call Agent tool (${count}x) in PARALLEL with these exact parameters:
-- mode: bypassPermissions
-- run_in_background: true
-- team_name: \"${team_name}\"
-${spawn_list}
-
-## AFTER SPAWNING:
-Send shutdown_request to each teammate when workflow completes, then call TeamDelete.
-" \
+Spawn ALL agents in parallel (single message with multiple Agent tool calls). Create a TaskCreate entry for each. After spawning all, proceed — the team-wait step will handle completion tracking." \
     '{"decision": "block", "reason": $msg}'
 }
 
@@ -2210,44 +2178,58 @@ dispatch_team_wait() {
       jq -n '{"decision": "approve"}'
       ;;
     teammate_idle)
-      # Teammate went idle. Mark them completed in the parent state if not already.
-      # We check their status directly rather than relying on state-file existence
-      # (the sub-workflow may not have been archived yet, or ever, for background agents).
+      # Teammate went idle. Check if their sub-workflow state file was archived
+      # (terminal step completed) — if so, mark them completed in the parent.
+      # TeammateIdle hook input has teammate_name (not agent_id).
       local idle_name
       idle_name=$(printf '%s\n' "$hook_input_json" | jq -r '.teammate_name // empty')
       local idle_agent_id
       idle_agent_id=$(printf '%s\n' "$hook_input_json" | jq -r '.agent_id // empty')
 
       if [[ -n "$idle_name" ]]; then
-        # Resolve team-format agent_id for matching
+        # Check if this teammate's sub-workflow state file still exists
+        # Construct team-format ID if not already in hook input
         if [[ -z "$idle_agent_id" || "$idle_agent_id" != *"@"* ]]; then
           local _tname
           _tname=$(printf '%s\n' "$hook_input_json" | jq -r '.team_name // empty')
           [[ -n "$_tname" ]] && idle_agent_id="${idle_name}@${_tname}"
         fi
 
-        # Mark teammate completed regardless of whether their state file exists.
-        # The state-file check was incorrectly gating completion for background agents
-        # that never archive their state (spawn-workers-2 in particular).
-        local tm_st
-        tm_st=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" --arg n "$idle_name" \
-          '.teams[$tid].teammates[$n].status // empty')
-        if [[ -n "$tm_st" && "$tm_st" != "completed" && "$tm_st" != "failed" ]]; then
-          state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
-          state=$(state_read "$state_file") || true
+        local _found_state=false
+        if [[ -n "$idle_agent_id" ]]; then
+          local _sf
+          for _sf in .wheel/state_*.json; do
+            [[ -f "$_sf" ]] || continue
+            local _alt
+            _alt=$(jq -r '.alternate_agent_id // empty' "$_sf" 2>/dev/null) || continue
+            if [[ "$_alt" == "$idle_agent_id" ]]; then
+              _found_state=true
+              break
+            fi
+          done
         fi
 
-        # Check if all teammates done
-        local teammates_json
-        teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
-        local total completed failed done_count
-        total=$(printf '%s\n' "$teammates_json" | jq 'length')
-        completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
-        failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
-        done_count=$((completed + failed))
-        if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
-          _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
-          return $?
+        if [[ "$_found_state" == false ]]; then
+          # Sub-workflow state archived — teammate is done
+          local tm_st
+          tm_st=$(printf '%s\n' "$state" | jq -r --arg tid "$team_ref" --arg n "$idle_name" \
+            '.teams[$tid].teammates[$n].status // empty')
+          if [[ -n "$tm_st" && "$tm_st" != "completed" && "$tm_st" != "failed" ]]; then
+            state_update_teammate_status "$state_file" "$team_ref" "$idle_name" "completed"
+          fi
+          # Check if all teammates done
+          state=$(state_read "$state_file") || return 1
+          local teammates_json
+          teammates_json=$(printf '%s\n' "$state" | jq -c --arg tid "$team_ref" '.teams[$tid].teammates // {}')
+          local total completed failed done_count
+          total=$(printf '%s\n' "$teammates_json" | jq 'length')
+          completed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "completed")] | length')
+          failed=$(printf '%s\n' "$teammates_json" | jq '[.[] | select(.status == "failed")] | length')
+          done_count=$((completed + failed))
+          if [[ "$total" -gt 0 && "$done_count" -ge "$total" ]]; then
+            _team_wait_complete "$step_json" "$state_file" "$step_index" "$team_ref" "$hook_input_json"
+            return $?
+          fi
         fi
       fi
       jq -n '{"decision": "approve"}'
@@ -2448,18 +2430,12 @@ dispatch_team_delete() {
         fi
 
         # FR-021: Inject instruction to shut down agents and delete team
-        local force_msg=""
-        if [[ -n "$running_agents" ]]; then
-          force_msg="\n\nWARNING: These teammates are still ACTIVE — must be terminated first:\n  ${running_agents}\n\n1. Send shutdown_request to each active teammate\n2. Wait for them to stop\n3. THEN call TeamDelete"
-        else
-          force_msg="\n\n## ACTION REQUIRED\n\n1. Send shutdown_request to all teammates (done from workflow completion)\n2. Call TeamDelete with no arguments"
-        fi
         jq -n --arg team "$team_name" --arg force "$force_msg" \
-          '{"decision": "block", "reason": ("## DELETE TEAM: " + $team + $force)}'
+          '{"decision": "block", "reason": ("Delete team '"'"'" + $team + "'"'"'. Send shutdown to all teammates, then call TeamDelete to remove the team." + $force)}'
       elif [[ "$step_status" == "working" ]]; then
         # Waiting for TeamDelete
         jq -n --arg team "$team_name" \
-          '{"decision": "block", "reason": ("## WAITING FOR TeamDelete\n\nCall TeamDelete (no arguments) to delete team: " + $team)}'
+          '{"decision": "block", "reason": ("Still waiting for TeamDelete to be called for team: " + $team + ". Complete the deletion.")}'
       else
         jq -n '{"decision": "approve"}'
       fi
