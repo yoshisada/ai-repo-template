@@ -74,20 +74,75 @@ async function dispatchAgent(
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
-  if (hookType !== 'post_tool_use') {
+  if (hookType !== 'stop' && hookType !== 'post_tool_use') {
     return { decision: 'approve' };
   }
 
-  await stateSetStepStatus(stateFile, stepIndex, 'working');
+  const state = await stateRead(stateFile);
+  const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
 
-  // Build context for agent
-  const resolvedInputs = step.inputs ? resolveInputs(step.inputs, {} as WheelState, {} as any, {}) : {};
-  const context = await contextBuild(step, {} as WheelState, resolvedInputs);
+  if (hookType === 'stop') {
+    if (stepStatus === 'pending') {
+      await stateSetStepStatus(stateFile, stepIndex, 'working');
 
-  return {
-    decision: 'approve',
-    additionalContext: context,
-  };
+      // Build context for agent
+      const resolvedInputs = step.inputs ? resolveInputs(step.inputs, {} as WheelState, {} as any, {}) : {};
+      const context = await contextBuild(step, {} as WheelState, resolvedInputs);
+
+      return {
+        decision: 'block',
+        additionalContext: context,
+      };
+    } else if (stepStatus === 'working') {
+      // Check if the agent completed its work (output file exists)
+      const outputKey = (step as any).output as string | undefined;
+      console.error('DEBUG dispatchAgent: stop hook, step working, outputKey=', outputKey);
+      if (outputKey) {
+        try {
+          const { access } = await import('fs/promises');
+          await access(outputKey);
+          console.error('DEBUG dispatchAgent: output file EXISTS, marking done');
+          // Output file exists — agent completed, mark done
+          const stateModule = await import('./state.js');
+          await stateSetStepOutput(stateFile, stepIndex, null);
+          await stateSetStepStatus(stateFile, stepIndex, 'done');
+          const newCursor = stepIndex + 1;
+          console.error('DEBUG dispatchAgent: calling stateSetCursor with', newCursor);
+          await (stateModule as any).stateSetCursor(stateFile, newCursor);
+          console.error('DEBUG dispatchAgent: done, returning approve');
+          return { decision: 'approve' };
+        } catch (e) {
+          console.error('DEBUG dispatchAgent: output file not yet present:', e);
+          // Output file not yet present, still waiting
+        }
+      }
+      return {
+        decision: 'block',
+        additionalContext: 'Still waiting for agent step to complete...',
+      };
+    }
+  }
+
+  if (hookType === 'post_tool_use') {
+    // On re-entry (step already working), just approve — stale output cleanup
+    // is handled by the stop hook (shell hook). Don't re-check output file here.
+    if (stepStatus === 'working') {
+      return { decision: 'approve' };
+    }
+
+    await stateSetStepStatus(stateFile, stepIndex, 'working');
+
+    // Build context for agent
+    const resolvedInputs = step.inputs ? resolveInputs(step.inputs, {} as WheelState, {} as any, {}) : {};
+    const context = await contextBuild(step, {} as WheelState, resolvedInputs);
+
+    return {
+      decision: 'approve',
+      additionalContext: context,
+    };
+  }
+
+  return { decision: 'approve' };
 }
 
 // FR-019: dispatchCommand - executes command steps inline
