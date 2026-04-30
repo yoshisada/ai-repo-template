@@ -146,14 +146,17 @@ async function dispatchAgent(
 }
 
 // FR-019: dispatchCommand - executes command steps inline
+// Note: hookType is accepted but ignored. dispatchCommand always executes (hook
+// type routing is done in dispatchStep/handleNormalPath). This differs from
+// dispatchAgent which gates on hookType because agent blocks need 'stop' hook.
 async function dispatchCommand(
   step: WorkflowStep,
-  hookType: HookType,
+  _hookType: HookType,
   _hookInput: HookInput,
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
-  if (hookType !== 'post_tool_use' || !step.command) {
+  if (!step.command) {
     return { decision: 'approve' };
   }
 
@@ -171,6 +174,14 @@ async function dispatchCommand(
 
     await stateSetStepOutput(stateFile, stepIndex, stdout || stderr);
     await stateSetStepStatus(stateFile, stepIndex, 'done');
+
+    // FR-008: Check for terminal step — set status to completed before archiving
+    if ((step as any).terminal === true) {
+      const state = await stateRead(stateFile);
+      const updated = { ...state, status: 'completed' as const };
+      await stateWrite(stateFile, updated);
+    }
+
     return { decision: 'approve' };
   } catch (err) {
     const exitCode = (err as NodeJS.ErrnoException).code ?? 1;

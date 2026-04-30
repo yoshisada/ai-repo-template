@@ -12,11 +12,12 @@ export interface StateInitParams {
   workflowFile?: string;
   parentWorkflow?: string;
   sessionRegistry?: Record<string, string>;
+  alternateAgentId?: string;
 }
 
 // FR-006: Initialize a new state file from workflow definition
 export async function stateInit(params: StateInitParams): Promise<void> {
-  const { stateFile, workflow, sessionId, agentId, workflowFile, parentWorkflow, sessionRegistry } = params;
+  const { stateFile, workflow, sessionId, agentId, workflowFile, parentWorkflow, sessionRegistry, alternateAgentId } = params;
 
   await mkdirp(path.dirname(stateFile));
 
@@ -30,6 +31,7 @@ export async function stateInit(params: StateInitParams): Promise<void> {
     cursor: 0,
     owner_session_id: sessionId,
     owner_agent_id: agentId,
+    alternate_agent_id: alternateAgentId,
     started_at: now,
     updated_at: now,
     steps: workflow.steps.map((step) => ({

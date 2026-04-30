@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { stateInit, stateGetCursor, stateSetCursor, stateGetStepStatus, stateSetStepStatus } from './state.js';
-import { stateRead } from '../shared/state.js';
+import { stateRead, stateWrite } from '../shared/state.js';
 
 const TEST_DIR = '/tmp/wheel-lib-state-test';
 
@@ -118,5 +118,35 @@ describe('stateSetStepStatus', () => {
     const state = await stateRead(statePath);
     expect(state.steps[0].status).toBe('done');
     expect(state.steps[0].completed_at).toBeTruthy();
+  });
+});
+
+describe('alternateAgentId support', () => {
+  it('should store alternateAgentId in state when provided', async () => { // FR-006
+    const statePath = path.join(TEST_DIR, 'alternate-agent-id.json');
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 't', version: '1.0', steps: [{ id: 's', type: 'c' }] },
+      sessionId: 's1',
+      agentId: '',
+      alternateAgentId: 'worker-1@test-team',
+    });
+    const state = await stateRead(statePath);
+    expect((state as any).alternate_agent_id).toBe('worker-1@test-team');
+  });
+
+  it('should allow later update of alternate_agent_id', async () => { // FR-006
+    const statePath = path.join(TEST_DIR, 'alternate-agent-id-update.json');
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 't', version: '1.0', steps: [{ id: 's', type: 'c' }] },
+      sessionId: 's1',
+      agentId: '',
+    });
+    const state = await stateRead(statePath);
+    (state as any).alternate_agent_id = 'worker-1@test-team';
+    await stateWrite(statePath, state);
+    const updated = await stateRead(statePath);
+    expect((updated as any).alternate_agent_id).toBe('worker-1@test-team');
   });
 });

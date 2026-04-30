@@ -12,6 +12,7 @@ export interface WheelState {
   cursor: number;
   owner_session_id: string;
   owner_agent_id: string;
+  alternate_agent_id?: string;
   started_at: string;
   updated_at: string;
   steps: Step[];
