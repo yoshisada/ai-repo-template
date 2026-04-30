@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-# post-tool-use.sh — PostToolUse(Bash) hook handler
-# FR-022/023: Logs every command the LLM executes during agent steps
-# Also intercepts activate.sh calls to create per-agent state files
+# Shell shim: delegates to TypeScript implementation
+# FR-007: PostToolUse hook entry point
+# T020: Phase 4 fallback - invokes native node binary
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+DIST_HOOK="$PLUGIN_ROOT/dist/hooks/post-tool-use.js"
+
+exec node --import tsx "$DIST_HOOK" "$@"
 
 # 1. Read hook input from stdin.
 #

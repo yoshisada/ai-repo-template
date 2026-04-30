@@ -36,7 +36,7 @@ export interface Step {
   contract_emitted: boolean;
 }
 
-export type StepStatus = 'pending' | 'working' | 'done' | 'failed';
+export type StepStatus = 'pending' | 'working' | 'done' | 'failed' | 'skipped';
 
 export interface Agent {
   status: AgentStatus;

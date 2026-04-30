@@ -78,7 +78,7 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 - [X] T017 [P] Write `plugin-wheel/src/hooks/subagent-stop.ts` — SubagentStop hook entry point (FR-007, FR-001)
 - [X] T018 [P] Write `plugin-wheel/src/hooks/session-start.ts` — SessionStart (resume) hook entry point (FR-007, FR-001)
 - [X] T019 Hook invocation test: invoke `node dist/hooks/post-tool-use.js` directly with valid stdin JSON — verify exits 0, produces valid `HookOutput` JSON (FR-009, SC-002)
-- [ ] T020 If native node invocation fails: write `plugin-wheel/hooks/*.sh` shell shims as Phase 1 fallback per `plan.md` (FR-009)
+- [X] T020 If native node invocation fails: write `plugin-wheel/hooks/*.sh` shell shims as Phase 1 fallback per `plan.md` (FR-009)
 
 **Checkpoint**: Phase 4 complete — all 6 hooks compile, run, and produce valid output.
 
