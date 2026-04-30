@@ -175,7 +175,7 @@ async function dispatchCommand(
     await stateSetStepOutput(stateFile, stepIndex, stdout || stderr);
     await stateSetStepStatus(stateFile, stepIndex, 'done');
 
-    // FR-008: Check for terminal step — set status to completed before archiving
+    // FR-008: Check for terminal step — set status to completed
     if ((step as any).terminal === true) {
       const state = await stateRead(stateFile);
       const updated = { ...state, status: 'completed' as const };
