@@ -1,15 +1,18 @@
 ## Repo Structure
 Top-level dirs:
 docs/
+plugin-clay/
 plugin-kiln/
 plugin-shelf/
+plugin-trim/
 plugin-wheel/
 reports/
 scripts/
 specs/
 src/
+test-results/
 tests/
 workflows/
 ---
-Total files: 543
-Total dirs: 194
+Total files: 13239
+Total dirs: 2085

@@ -1,170 +1,85 @@
 ---
 name: wheel-view
-description: Generate an HTML viewer for all available wheel workflows and (when kiln is installed) feedback loops.
+description: Inspect wheel workflows (local + plugin) and feedback loops via a browser UI backed by a local API.
 ---
 
-# Wheel View — HTML Workflow Viewer
+# Wheel View — Workflow Inspection UI
 
-Generate a self-contained HTML page showing all available wheel workflows (local + plugin) with expandable step details, and — when kiln is installed — feedback-loop docs with Mermaid diagrams.
+Open a browser-based workflow inspector backed by a Next.js API running in a Docker container.
 
-## Step 1: Discover Local Workflows (FR-001, FR-002)
+The only input to register a project is its path — the API reads the filesystem directly to discover local and plugin workflows.
 
-```bash
-WORKFLOW_FILES=($(find workflows/ -name "*.json" -type f 2>/dev/null | sort))
-if [[ ${#WORKFLOW_FILES[@]} -eq 0 ]]; then
-  echo "NO_LOCAL_WORKFLOWS"
-fi
-```
-
-If the output contains `NO_LOCAL_WORKFLOWS`, local workflows section will be empty-state.
-
-## Step 2: Discover Plugin Workflows (FR-002)
+## Step 1: Check if Container is Running
 
 ```bash
-PLUGIN_DIR="$SKILL_BASE_DIR/../.."
-WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
-source "${WHEEL_LIB_DIR}/workflow.sh"
-
-PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows)
-PLUGIN_WF_COUNT=$(echo "$PLUGIN_WORKFLOWS" | jq 'length')
-echo "PLUGIN_COUNT:$PLUGIN_WF_COUNT"
-```
-
-## Step 3: Check for Feedback Loops (FR-010)
-
-```bash
-FEEDBACK_LOOPS_DIR="docs/feedback-loop"
-if [[ -d "$FEEDBACK_LOOPS_DIR" && -n "$(find "$FEEDBACK_LOOPS_DIR" -name "*.json" -type f 2>/dev/null)" ]]; then
-  echo "KILN_INSTALLED=true"
-  FEEDBACK_FILES=($(find "$FEEDBACK_LOOPS_DIR" -name "*.json" -type f 2>/dev/null | sort))
-  echo "FEEDBACK_COUNT:${#FEEDBACK_FILES[@]}"
+CONTAINER_ID=$(docker ps --filter "ancestor=wheel-view" --format "{{.ID}}" 2>/dev/null | head -1)
+if [[ -n "$CONTAINER_ID" ]]; then
+  echo "CONTAINER_RUNNING:$CONTAINER_ID"
 else
-  echo "KILN_INSTALLED=false"
+  echo "CONTAINER_NOT_RUNNING"
 fi
 ```
 
-## Step 4: Build Data & Generate HTML (FR-003 – FR-022)
+## Step 2: Start Container (if not running)
 
 ```bash
-SKILL_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_DIR="$SKILL_BASE_DIR/../.."
-WHEEL_LIB_DIR="${PLUGIN_DIR}/lib"
-source "${WHEEL_LIB_DIR}/workflow.sh"
+VIEWER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../viewer"
+DOCKERFILE="$VIEWER_DIR/Dockerfile"
 
-WORKFLOW_FILES=($(find workflows/ -name "*.json" -type f 2>/dev/null | sort))
-PLUGIN_WORKFLOWS=$(workflow_discover_plugin_workflows)
-
-FEEDBACK_LOOPS_DIR="docs/feedback-loop"
-HAS_KILN=false
-if [[ -d "$FEEDBACK_LOOPS_DIR" && -n "$(find "$FEEDBACK_LOOPS_DIR" -name "*.json" -type f 2>/dev/null)" ]]; then
-  HAS_KILN=true
+if ! docker image inspect wheel-view >/dev/null 2>&1; then
+  echo "Building wheel-view image..."
+  docker build -t wheel-view "$VIEWER_DIR" || { echo "Docker build failed"; exit 1; }
 fi
 
-WHEEL_VERSION=$(cd "$PLUGIN_DIR" && cat package.json | jq -r '.version' 2>/dev/null || echo "unknown")
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-# Build local workflows JSON
-LOCAL_WF_JSON="[]"
-if [[ ${#WORKFLOW_FILES[@]} -gt 0 ]]; then
-  LOCAL_WF_JSON=$(for f in "${WORKFLOW_FILES[@]}"; do
-    JSON=$(cat "$f" 2>/dev/null)
-    if echo "$JSON" | jq empty 2>/dev/null; then
-      NAME=$(echo "$JSON" | jq -r '.name // empty')
-      if [[ -z "$NAME" ]]; then continue; fi
-      DESC=$(echo "$JSON" | jq -r '.description // empty')
-      STEPS=$(echo "$JSON" | jq -c '.steps // []')
-      echo "$JSON" | jq --arg name "$NAME" --arg desc "$DESC" --arg path "$f" --argjson steps "$STEPS" \
-        -c '{name: $name, description: $desc, path: $path, source: "local", steps: $steps, stepCount: ($steps | length), localOverride: false}'
-    fi
-  done | jq -s '.')
-fi
-
-# Build plugin workflows JSON
-PLUGIN_WF_JSON="[]"
-if [[ $(echo "$PLUGIN_WORKFLOWS" | jq 'length') -gt 0 ]]; then
-  PLUGIN_WF_JSON=$(echo "$PLUGIN_WORKFLOWS" | jq -c '.[]' | while read entry; do
-    WF_PATH=$(echo "$entry" | jq -r '.path')
-    WF_NAME=$(echo "$entry" | jq -r '.name')
-    PLUGIN_NAME=$(echo "$entry" | jq -r '.plugin')
-    JSON=$(cat "$WF_PATH" 2>/dev/null)
-    if echo "$JSON" | jq empty 2>/dev/null; then
-      DESC=$(echo "$JSON" | jq -r '.description // empty')
-      STEPS=$(echo "$JSON" | jq -c '.steps // []')
-      LOCAL_OVERRIDE=false
-      [[ -f "workflows/${WF_NAME}.json" ]] && LOCAL_OVERRIDE=true
-      echo "$entry" | jq --arg desc "$DESC" --argjson steps "$STEPS" --arg path "$WF_PATH" \
-        --argjson localOverride "$LOCAL_OVERRIDE" --argjson stepCount "$(echo $STEPS | jq 'length')" \
-        -c '. + {description: $desc, path: $path, steps: $steps, stepCount: $stepCount, localOverride: $localOverride}'
-    fi
-  done | jq -s '.')
-fi
-
-# Build feedback loops JSON if kiln installed
-FEEDBACK_JSON="[]"
-if [[ "$HAS_KILN" == "true" ]]; then
-  FEEDBACK_JSON=$(find "$FEEDBACK_LOOPS_DIR" -name "*.json" -type f -exec cat {} \; 2>/dev/null | jq -s 'flatten' 2>/dev/null || echo "[]")
-fi
-
-# Build meta object
-META_JSON=$(jq -n --arg version "$WHEEL_VERSION" --arg timestamp "$TIMESTAMP" \
-  '{version: $version, timestamp: $timestamp}')
-
-# Combine into full data object
-DATA_JSON=$(jq -n --argjson local "$LOCAL_WF_JSON" --argjson plugin "$PLUGIN_WF_JSON" \
-  --argjson feedback "$FEEDBACK_JSON" --argjson meta "$META_JSON" \
-  '{local: $local, plugin: $plugin, feedback: $feedback, meta: $meta}')
-
-# Escape for JS embedding
-ESCAPED_DATA=$(python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))" <<< "$DATA_JSON")
-
-# Read template and inject data
-VIEWER_HTML="$SKILL_BASE_DIR/viewer.html"
-HTML_CONTENT=$(cat "$VIEWER_HTML")
-FINAL_HTML=$(python3 -c "import sys
-content = sys.stdin.read()
-data = sys.argv[1]
-print(content.replace('WHEEL_VIEW_DATA_PLACEHOLDER', data))
-" "$ESCAPED_DATA" <<< "$HTML_CONTENT")
-
-# Write to temp file
-OUTPUT_FILE="/tmp/wheel-view-$$.html"
-echo "$FINAL_HTML" > "$OUTPUT_FILE"
-
-echo "HTML_GENERATED:$OUTPUT_FILE"
+CONTAINER_ID=$(docker run -d -p 3847:3000 --name wheel-view -v "$HOME/.claude:/host_home/.claude:ro" wheel-view)
+echo "CONTAINER_STARTED:$CONTAINER_ID"
+sleep 3
 ```
 
-Display the output from the bash block above.
+Display output from both blocks above.
 
-## Step 5: Open in Browser (FR-015, FR-016)
+## Step 3: Verify API Health
 
 ```bash
-HTML_FILE=$(ls -t /tmp/wheel-view-*.html 2>/dev/null | head -1)
-if [[ -z "$HTML_FILE" ]]; then
-  echo "ERROR: HTML file not found"
-  exit 1
-fi
+HEALTH=$(curl -s http://localhost:3847/api/health 2>/dev/null || echo '{"error":"unreachable"}')
+echo "API_HEALTH:$HEALTH"
+```
 
-echo "Generated: $HTML_FILE"
+## Step 4: Register Current Project (idempotent — only path required)
 
-# Try to open in browser
+```bash
+REPO_PATH="$(pwd)"
+REGISTER_RESULT=$(curl -s -X POST http://localhost:3847/api/projects \
+  -H "Content-Type: application/json" \
+  -d "{\"path\":\"$REPO_PATH\"}" 2>/dev/null)
+echo "REGISTER_RESULT:$REGISTER_RESULT"
+```
+
+Display the output.
+
+## Step 5: Open Browser
+
+```bash
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  open "$HTML_FILE" 2>/dev/null && echo "Opened in browser." || echo "Could not auto-open. Open manually: $HTML_FILE"
+  open http://localhost:3847 2>/dev/null && echo "Browser opened." || echo "Open manually: http://localhost:3847"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  xdg-open "$HTML_FILE" 2>/dev/null && echo "Opened in browser." || echo "Could not auto-open. Open manually: $HTML_FILE"
+  xdg-open http://localhost:3847 2>/dev/null && echo "Browser opened." || echo "Open manually: http://localhost:3847"
 else
-  echo "Open manually: $HTML_FILE"
+  echo "Open manually: http://localhost:3847"
 fi
 ```
 
-Display the output from the bash block above.
+## Step 6: One-line Status Summary
+
+```bash
+echo "wheel-view running at http://localhost:3847 — add any repo by entering its path in the sidebar"
+```
 
 ## Rules
 
-- This skill takes no arguments and is read-only (FR-012, FR-020).
-- Workflow discovery reuses `workflow_discover_plugin_workflows()` from `plugin-wheel/lib/workflow.sh` — no reimplementation (FR-002).
-- Local workflow discovery uses `find workflows/ -name "*.json"` — mirrors `wheel-list` FR-001 (FR-002).
-- The generated HTML is self-contained with inline CSS and vanilla JS only; Mermaid CDN is the only external resource (FR-003, FR-013, FR-014).
-- Feedback-loops section only renders when `docs/feedback-loop/` exists — absence is intentional (FR-010, SC-006).
-- Malformed workflow JSON appears as an error entry with parse error preview — never silently dropped (FR-017).
-- The HTML file is written to `/tmp/wheel-view-<pid>.html` (FR-016).
-- The skill never modifies `workflows/`, plugin install directories, or `docs/feedback-loop/` (FR-020).
+- Container name/tag `wheel-view` is used for singleton management — one container at a time (FR-016).
+- Port **3847** is fixed — no env var configuration in v1.
+- Project registration is idempotent by path — `POST /api/projects` returns existing project if path already registered (FR-007, FR-008).
+- No persistent storage — projects live in container memory only; restarting the container resets the registry.
+- `~/.claude/plugins/installed_plugins.json` is mounted read-only into the container so the API can discover plugin workflows without modify access.
+- Stop the container with `docker stop wheel-view && docker rm wheel-view` when done.
