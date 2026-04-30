@@ -1,6 +1,6 @@
 {
   "name": "@yoshisada/wheel",
-  "version": "000.001.009.1170",
+  "version": "000.001.009.1175",
   "description": "Hook-based workflow engine for Claude Code agent pipelines",
   "author": "yoshisada",
   "license": "MIT",
@@ -56,6 +56,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^1.6.1"
   }
