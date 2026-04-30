@@ -22,9 +22,9 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 
 **Purpose**: TypeScript project configuration and build tooling
 
-- [ ] T001 Create `plugin-wheel/tsconfig.json` with `"strict": true`, `"target": "ES2022"`, `"module": "NodeNext"`, `"outDir": "dist"`, `"rootDir": "src"`, `"declaration": true`, `"sourceMap": true` (FR-018)
-- [ ] T002 Create `plugin-wheel/package.json` with `"name": "@yoshisada/wheel"`, `"version": "1.0.0"`, scripts: `build`, `test`, `test:unit`, `test:harness` (FR-019)
-- [ ] T003 Create `plugin-wheel/src/index.ts` unified CLI router per `contracts/interfaces.md §16` (FR-008)
+- [X] T001 Create `plugin-wheel/tsconfig.json` with `"strict": true`, `"target": "ES2022"`, `"module": "NodeNext"`, `"outDir": "dist"`, `"rootDir": "src"`, `"declaration": true`, `"sourceMap": true` (FR-018)
+- [X] T002 Create `plugin-wheel/package.json` with `"name": "@yoshisada/wheel"`, `"version": "1.0.0"`, scripts: `build`, `test`, `test:unit`, `test:harness` (FR-019)
+- [X] T003 Create `plugin-wheel/src/index.ts` unified CLI router per `contracts/interfaces.md §16` (FR-008)
 
 ---
 
@@ -36,12 +36,12 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 
 ### Implementation
 
-- [ ] T004 [P] Write `plugin-wheel/src/shared/error.ts` — `WheelError`, `StateNotFoundError`, `ValidationError`, `LockError` classes per `contracts/interfaces.md §4` (FR-005)
-- [ ] T005 [P] Write `plugin-wheel/src/shared/fs.ts` — `atomicWrite`, `mkdirp`, `fileRead`, `fileExists` per `contracts/interfaces.md §2` (FR-005, FR-010)
-- [ ] T006 [P] Write `plugin-wheel/src/shared/jq.ts` — `jqQuery<T>`, `jqQueryRaw`, `jqUpdate` per `contracts/interfaces.md §1` (FR-005, FR-010)
-- [ ] T007 [P] Write `plugin-wheel/src/shared/state.ts` — `stateRead`, `stateWrite` per `contracts/interfaces.md §3` (FR-005, FR-002)
-- [ ] T008 [P] Write `plugin-wheel/src/shared/index.ts` — barrel export of all shared utilities (FR-015)
-- [ ] T009 [P] Write `plugin-wheel/src/shared/*.test.ts` — Vitest unit tests for jq, fs, state, error modules. Target >=80% line + branch coverage. Each test file MUST have a `// Scenario: <N>` comment referencing the acceptance scenario it validates (FR-013, FR-005)
+- [X] T004 [P] Write `plugin-wheel/src/shared/error.ts` — `WheelError`, `StateNotFoundError`, `ValidationError`, `LockError` classes per `contracts/interfaces.md §4` (FR-005)
+- [X] T005 [P] Write `plugin-wheel/src/shared/fs.ts` — `atomicWrite`, `mkdirp`, `fileRead`, `fileExists` per `contracts/interfaces.md §2` (FR-005, FR-010)
+- [X] T006 [P] Write `plugin-wheel/src/shared/jq.ts` — `jqQuery<T>`, `jqQueryRaw`, `jqUpdate` per `contracts/interfaces.md §1` (FR-005, FR-010)
+- [X] T007 [P] Write `plugin-wheel/src/shared/state.ts` — `stateRead`, `stateWrite` per `contracts/interfaces.md §3` (FR-005, FR-002)
+- [X] T008 [P] Write `plugin-wheel/src/shared/index.ts` — barrel export of all shared utilities (FR-015)
+- [X] T009 [P] Write `plugin-wheel/src/shared/*.test.ts` — Vitest unit tests for jq, fs, state, error modules. Target >=80% line + branch coverage. Each test file MUST have a `// Scenario: <N>` comment referencing the acceptance scenario it validates (FR-013, FR-005)
 
 **Checkpoint**: Phase 2 complete — `src/shared/` compiles and all unit tests pass.
 
@@ -55,8 +55,8 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 
 ### Implementation
 
-- [ ] T010 Write `plugin-wheel/src/lib/state.ts` — all exported functions matching `contracts/interfaces.md §5`: `stateInit`, `stateGetCursor`, `stateSetCursor`, `stateGetStepStatus`, `stateSetStepStatus`, `stateGetAgentStatus`, `stateSetAgentStatus`, `stateSetStepOutput`, `stateAppendCommandLog`, `stateGetCommandLog`, `stateSetTeam`, `stateGetTeam`, `stateAddTeammate`, `stateUpdateTeammateStatus`, `stateGetTeammates`, `stateRemoveTeam`, `stateSetAwaitingUserInput`, `stateClearAwaitingUserInput`, `stateSetResolvedInputs`, `stateSetContractEmitted`, `stateGetContractEmitted` (FR-006, FR-002, FR-009)
-- [ ] T011 Write `plugin-wheel/src/lib/state.test.ts` — Vitest unit tests for all state operations. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment referencing the acceptance scenario it validates (FR-014)
+- [X] T010 Write `plugin-wheel/src/lib/state.ts` — all exported functions matching `contracts/interfaces.md §5`: `stateInit`, `stateGetCursor`, `stateSetCursor`, `stateGetStepStatus`, `stateSetStepStatus`, `stateGetAgentStatus`, `stateSetAgentStatus`, `stateSetStepOutput`, `stateAppendCommandLog`, `stateGetCommandLog`, `stateSetTeam`, `stateGetTeam`, `stateAddTeammate`, `stateUpdateTeammateStatus`, `stateGetTeammates`, `stateRemoveTeam`, `stateSetAwaitingUserInput`, `stateClearAwaitingUserInput`, `stateSetResolvedInputs`, `stateSetContractEmitted`, `stateGetContractEmitted` (FR-006, FR-002, FR-009)
+- [X] T011 Write `plugin-wheel/src/lib/state.test.ts` — Vitest unit tests for all state operations. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment referencing the acceptance scenario it validates (FR-014)
 - [ ] T012 Verify state schema byte-for-byte identity: run a workflow against shell version, run same workflow against TypeScript version, diff both `.wheel/state_*.json` files — no differences (FR-002, SC-004)
 
 **Checkpoint**: Phase 3 complete — state layer tests pass and schema identity verified.
@@ -71,13 +71,13 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 
 ### Implementation
 
-- [ ] T013 [P] Write `plugin-wheel/src/hooks/post-tool-use.ts` — `type: "command"` entry point per `contracts/interfaces.md §15` (FR-007, FR-001)
-- [ ] T014 [P] Write `plugin-wheel/src/hooks/stop.ts` — Stop hook entry point (FR-007, FR-001)
-- [ ] T015 [P] Write `plugin-wheel/src/hooks/teammate-idle.ts` — TeammateIdle hook entry point (FR-007, FR-001)
-- [ ] T016 [P] Write `plugin-wheel/src/hooks/subagent-start.ts` — SubagentStart hook entry point (FR-007, FR-001)
-- [ ] T017 [P] Write `plugin-wheel/src/hooks/subagent-stop.ts` — SubagentStop hook entry point (FR-007, FR-001)
-- [ ] T018 [P] Write `plugin-wheel/src/hooks/session-start.ts` — SessionStart (resume) hook entry point (FR-007, FR-001)
-- [ ] T019 Hook invocation test: invoke `node dist/hooks/post-tool-use.js` directly with valid stdin JSON — verify exits 0, produces valid `HookOutput` JSON (FR-009, SC-002)
+- [X] T013 [P] Write `plugin-wheel/src/hooks/post-tool-use.ts` — `type: "command"` entry point per `contracts/interfaces.md §15` (FR-007, FR-001)
+- [X] T014 [P] Write `plugin-wheel/src/hooks/stop.ts` — Stop hook entry point (FR-007, FR-001)
+- [X] T015 [P] Write `plugin-wheel/src/hooks/teammate-idle.ts` — TeammateIdle hook entry point (FR-007, FR-001)
+- [X] T016 [P] Write `plugin-wheel/src/hooks/subagent-start.ts` — SubagentStart hook entry point (FR-007, FR-001)
+- [X] T017 [P] Write `plugin-wheel/src/hooks/subagent-stop.ts` — SubagentStop hook entry point (FR-007, FR-001)
+- [X] T018 [P] Write `plugin-wheel/src/hooks/session-start.ts` — SessionStart (resume) hook entry point (FR-007, FR-001)
+- [X] T019 Hook invocation test: invoke `node dist/hooks/post-tool-use.js` directly with valid stdin JSON — verify exits 0, produces valid `HookOutput` JSON (FR-009, SC-002)
 - [ ] T020 If native node invocation fails: write `plugin-wheel/hooks/*.sh` shell shims as Phase 1 fallback per `plan.md` (FR-009)
 
 **Checkpoint**: Phase 4 complete — all 6 hooks compile, run, and produce valid output.
@@ -92,18 +92,18 @@ description: "Task breakdown for Wheel TypeScript Rewrite"
 
 ### Implementation
 
-- [ ] T021 [P] Write `plugin-wheel/src/lib/workflow.ts` — `workflowLoad`, `workflowGetStep`, `workflowStepCount`, `workflowGetBranchTarget` per `contracts/interfaces.md §8` (FR-006)
-- [ ] T022 [P] Write `plugin-wheel/src/lib/lock.ts` — `acquireLock`, `releaseLock`, `withLock` using mkdir semantics per `contracts/interfaces.md §10` (FR-006)
-- [ ] T023 [P] Write `plugin-wheel/src/lib/preprocess.ts` — `preprocess` for `${WHEEL_PLUGIN_*}` and `${WORKFLOW_PLUGIN_DIR}` token substitution per `contracts/interfaces.md §12` (FR-006)
-- [ ] T024 [P] Write `plugin-wheel/src/lib/registry.ts` — `buildSessionRegistry`, `resolvePluginPath` per `contracts/interfaces.md §13` (FR-006)
-- [ ] T025 [P] Write `plugin-wheel/src/lib/log.ts` — hook event logging (FR-006)
-- [ ] T026 [P] Write `plugin-wheel/src/lib/engine.ts` — `engineInit`, `engineKickstart`, `engineCurrentStep`, `engineHandleHook` per `contracts/interfaces.md §6` (FR-006, FR-001)
-- [ ] T027 [P] Write `plugin-wheel/src/lib/context.ts` — `contextBuild` per `contracts/interfaces.md §9` (FR-006)
-- [ ] T028 [P] Write `plugin-wheel/src/lib/guard.ts` — `guardCheck` per `contracts/interfaces.md §11` (FR-006, FR-004/FR-005)
-- [ ] T029 Write `plugin-wheel/src/lib/resolve_inputs.ts` — `resolveInputs` per `contracts/interfaces.md §14` (FR-006)
-- [ ] T030 Write `plugin-wheel/src/lib/dispatch.ts` — all dispatch functions: `dispatchStep`, `dispatchAgent`, `dispatchCommand`, `dispatchWorkflow`, `dispatchTeamCreate`, `dispatchTeammate`, `dispatchTeamWait`, `dispatchTeamDelete`, `dispatchBranch`, `dispatchLoop`, `dispatchParallel`, `dispatchApproval`, `_hydrateAgentStep` per `contracts/interfaces.md §7` (FR-006, FR-003)
-- [ ] T031 [P] Write `plugin-wheel/src/lib/engine.test.ts` — Vitest unit tests for engine functions. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment (FR-014)
-- [ ] T032 [P] Write `plugin-wheel/src/lib/dispatch.test.ts` — Vitest unit tests for dispatch functions. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment (FR-014)
+- [X] T021 [P] Write `plugin-wheel/src/lib/workflow.ts` — `workflowLoad`, `workflowGetStep`, `workflowStepCount`, `workflowGetBranchTarget` per `contracts/interfaces.md §8` (FR-006)
+- [X] T022 [P] Write `plugin-wheel/src/lib/lock.ts` — `acquireLock`, `releaseLock`, `withLock` using mkdir semantics per `contracts/interfaces.md §10` (FR-006)
+- [X] T023 [P] Write `plugin-wheel/src/lib/preprocess.ts` — `preprocess` for `${WHEEL_PLUGIN_*}` and `${WORKFLOW_PLUGIN_DIR}` token substitution per `contracts/interfaces.md §12` (FR-006)
+- [X] T024 [P] Write `plugin-wheel/src/lib/registry.ts` — `buildSessionRegistry`, `resolvePluginPath` per `contracts/interfaces.md §13` (FR-006)
+- [X] T025 [P] Write `plugin-wheel/src/lib/log.ts` — hook event logging (FR-006)
+- [X] T026 [P] Write `plugin-wheel/src/lib/engine.ts` — `engineInit`, `engineKickstart`, `engineCurrentStep`, `engineHandleHook` per `contracts/interfaces.md §6` (FR-006, FR-001)
+- [X] T027 [P] Write `plugin-wheel/src/lib/context.ts` — `contextBuild` per `contracts/interfaces.md §9` (FR-006)
+- [X] T028 [P] Write `plugin-wheel/src/lib/guard.ts` — `guardCheck` per `contracts/interfaces.md §11` (FR-006, FR-004/FR-005)
+- [X] T029 Write `plugin-wheel/src/lib/resolve_inputs.ts` — `resolveInputs` per `contracts/interfaces.md §14` (FR-006)
+- [X] T030 Write `plugin-wheel/src/lib/dispatch.ts` — all dispatch functions: `dispatchStep`, `dispatchAgent`, `dispatchCommand`, `dispatchWorkflow`, `dispatchTeamCreate`, `dispatchTeammate`, `dispatchTeamWait`, `dispatchTeamDelete`, `dispatchBranch`, `dispatchLoop`, `dispatchParallel`, `dispatchApproval`, `_hydrateAgentStep` per `contracts/interfaces.md §7` (FR-006, FR-003)
+- [X] T031 [P] Write `plugin-wheel/src/lib/engine.test.ts` — Vitest unit tests for engine functions. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment (FR-014)
+- [X] T032 [P] Write `plugin-wheel/src/lib/dispatch.test.ts` — Vitest unit tests for dispatch functions. Target >=80% coverage. Each test MUST have a `// Scenario: <N>` comment (FR-014)
 - [ ] T033 Integration verify: 3-step linear agent workflow completes end-to-end via TypeScript engine, no errors (FR-003, SC-001)
 
 **Checkpoint**: Phase 5 complete — engine + dispatch compile and unit tests pass.
