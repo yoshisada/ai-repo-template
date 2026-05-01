@@ -356,6 +356,19 @@ async function handleActivation(
     sessionRegistry: registry,
   });
 
+  // Persist the templated workflow definition into the state so subsequent
+  // hooks (Stop, SubagentStop, TeammateIdle) can load it via stateRead's
+  // workflow_definition field — engineInit's first preference. Without this,
+  // those hooks fall through to workflowLoad(workflowFile) which throws
+  // "No workflow definition available" because workflowLoad expects a state
+  // file path, not a workflow file path. Caught during wheel-wait-all-redesign
+  // live verification (B-3-followup).
+  {
+    const persisted = await stateRead(stateFile);
+    persisted.workflow_definition = workflow;
+    await stateWrite(stateFile, persisted);
+  }
+
   // Add alternate_agent_id if present
   if (alternateAgentId) {
     const state = await stateRead(stateFile);
