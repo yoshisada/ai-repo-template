@@ -13,6 +13,9 @@ export interface WheelState {
   owner_session_id: string;
   owner_agent_id: string;
   alternate_agent_id?: string;
+  // FR-010 (wheel-wait-all-redesign): absolute path to parent state file when
+  // this state belongs to a teammate sub-workflow; null/undefined for top-level.
+  parent_workflow?: string | null;
   started_at: string;
   updated_at: string;
   steps: Step[];
@@ -67,6 +70,10 @@ export interface TeammateEntry {
   assign: unknown;
   started_at: string | null;
   completed_at: string | null;
+  // FR-010 (wheel-wait-all-redesign): set only by FR-004 polling backstop on
+  // the orphan path. Distinguishes "archive evidence said failed" from
+  // "child state file disappeared without an archive".
+  failure_reason?: string;
 }
 
 export type TeammateStatus = 'pending' | 'running' | 'completed' | 'failed';

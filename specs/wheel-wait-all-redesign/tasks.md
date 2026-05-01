@@ -10,7 +10,7 @@ Hooks block any `src/` edits until at least ONE task is `[X]`. The first task (T
 
 ## Phase 0 — Foundation read (NO src/ edits)
 
-- [ ] **T-001** [Foundation] Read CURRENT branch state of foundation files. Capture brief notes (≤200 words) at `specs/wheel-wait-all-redesign/agent-notes/implementer-foundation.md` summarizing:
+- [X] **T-001** [Foundation] Read CURRENT branch state of foundation files. Capture brief notes (≤200 words) at `specs/wheel-wait-all-redesign/agent-notes/implementer-foundation.md` summarizing:
   - Current `dispatchTeamWait` shape (line span, branches present)
   - Whether a TS `archiveWorkflow` already exists in `state.ts` or if it must be authored
   - Current `lock.ts` API surface (function names + signatures)
@@ -22,11 +22,11 @@ Hooks block any `src/` edits until at least ONE task is `[X]`. The first task (T
 
 ## Phase 1 — Archive helper extension (FR-001, FR-002, FR-006, FR-009)
 
-- [ ] **T-002** [P1] Implement (or extend) `archiveWorkflow(stateFile, bucket): Promise<string>` in `plugin-wheel/src/lib/state.ts` per `contracts/interfaces.md`. Body wires: read child state → if `parent_workflow` non-null, call `stateUpdateParentTeammateSlot` → call `maybeAdvanceParentTeamWaitCursor` → rename child to `history/<bucket>/`. Add `// FR-001, FR-009` comments.
-- [ ] **T-003** [P1] Implement `stateUpdateParentTeammateSlot(parentStateFile, childAlternateAgentId, newStatus): Promise<{teamId, teammateName} | null>` in `state.ts` per contract. Acquires parent flock; finds slot by `agent_id` match; sets `status` + `completed_at`. Emits `archive_parent_update` log (FR-008). Add `// FR-001, FR-006, FR-007, FR-008` comments.
-- [ ] **T-004** [P1] Implement `maybeAdvanceParentTeamWaitCursor(parentStateFile, teamId): Promise<boolean>` in `state.ts` per contract. Guards on parent step type AND team match AND all-teammates-done. Calls existing `advance_past_skipped` semantics. Acquires parent flock. Add `// FR-002` comment.
-- [ ] **T-005** [P1] Document FR-007 lock-ordering invariant as a comment block in `state.ts` adjacent to locking helpers. Reference grep target `// FR-007` per SC-006.
-- [ ] **T-006** [P1] Commit Phase 1 with message `feat(wheel-ts): archive helper updates parent teammate slot (FR-001, FR-002, FR-006, FR-007, FR-009)`. Mark T-002 through T-006 `[X]`.
+- [X] **T-002** [P1] Implement (or extend) `archiveWorkflow(stateFile, bucket): Promise<string>` in `plugin-wheel/src/lib/state.ts` per `contracts/interfaces.md`. Body wires: read child state → if `parent_workflow` non-null, call `stateUpdateParentTeammateSlot` → call `maybeAdvanceParentTeamWaitCursor` → rename child to `history/<bucket>/`. Add `// FR-001, FR-009` comments.
+- [X] **T-003** [P1] Implement `stateUpdateParentTeammateSlot(parentStateFile, childAlternateAgentId, newStatus): Promise<{teamId, teammateName} | null>` in `state.ts` per contract. Acquires parent flock; finds slot by `agent_id` match; sets `status` + `completed_at`. Emits `archive_parent_update` log (FR-008). Add `// FR-001, FR-006, FR-007, FR-008` comments.
+- [X] **T-004** [P1] Implement `maybeAdvanceParentTeamWaitCursor(parentStateFile, teamId): Promise<boolean>` in `state.ts` per contract. Guards on parent step type AND team match AND all-teammates-done. Calls existing `advance_past_skipped` semantics. Acquires parent flock. Add `// FR-002` comment.
+- [X] **T-005** [P1] Document FR-007 lock-ordering invariant as a comment block in `state.ts` adjacent to locking helpers. Reference grep target `// FR-007` per SC-006.
+- [X] **T-006** [P1] Commit Phase 1 with message `feat(wheel-ts): archive helper updates parent teammate slot (FR-001, FR-002, FR-006, FR-007, FR-009)`. Mark T-002 through T-006 `[X]`.
 
 ---
 
