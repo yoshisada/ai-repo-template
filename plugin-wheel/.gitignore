@@ -1,0 +1,9 @@
+
+.wheel/state.json
+.wheel/state_*.json
+.wheel/.locks/
+.wheel/history/
+.wheel/outputs/
+.wheel/logs/
+.wheel/HOOK_MARKER_POST
+.wheel/HOOK_MARKER_PRE

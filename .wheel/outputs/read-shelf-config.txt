@@ -1,2 +1,6 @@
-slug=ai-repo-template
-base_path=@second-brain/projects
+## SHELF_CONFIG_PARSED
+slug = ai-repo-template
+base_path = @second-brain/projects
+dashboard_path = @second-brain/projects/ai-repo-template/ai-repo-template.md
+shelf_config_present = true
+## END_SHELF_CONFIG_PARSED

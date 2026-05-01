@@ -30,12 +30,9 @@ On success it prints a JSON object like:
 
 ## Step 2: Activate
 
-Run activate.sh in a Bash call using the `activate_name` and `plugin_dir` from Step 1's output. Substitute the actual literal values — no shell variables — so the PostToolUse hook's regex can match the literal path.
-
-Since FR-C1 (specs/wheel-as-runtime) landed, the hook preserves newlines in `tool_input.command` and scans the *entire* command body for `activate.sh`, not just the last line. Multi-line Bash calls that invoke `activate.sh` from any line (middle line, last line, or inside a heredoc) activate successfully. You can bundle `mkdir -p .wheel` and the activation in the same Bash call if you prefer.
+Run activate.sh directly in its own Bash call. The hook intercepts it and creates the state file. Do not combine it with other commands (e.g., `mkdir -p .wheel && activate.sh`) — the hook's regex for detecting activate.sh expects the command to start with `activate.sh` or a path prefix, not with other commands chained before it.
 
 ```bash
-mkdir -p .wheel
 <plugin_dir>/bin/activate.sh <activate_name>
 ```
 
