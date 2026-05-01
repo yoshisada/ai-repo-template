@@ -144,13 +144,41 @@ async function cascadeNext(
     return { decision: 'approve' };
   }
 
-  const nextStep: any = state.steps[nextIndex];
+  // FR-004 — walk past 'skipped' steps (e.g., off-target branch arms)
+  // so cascade doesn't re-execute them. Mirrors maybeAdvanceParentTeamWaitCursor.
+  let resolvedIndex = nextIndex;
+  while (
+    resolvedIndex < state.steps.length &&
+    state.steps[resolvedIndex]?.status === 'skipped'
+  ) {
+    resolvedIndex++;
+  }
+  if (resolvedIndex >= state.steps.length) {
+    await stateModule.stateSetCursor(stateFile, resolvedIndex);
+    await wheelLog('cursor_advance', {
+      from_cursor: fromCursor, to_cursor: resolvedIndex, state_file: stateFile,
+    });
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: fromStepId, step_type: fromStepType,
+      reason: 'end_of_workflow', state_file: stateFile,
+    });
+    return { decision: 'approve' };
+  }
+
+  // Prefer workflow_definition.steps (full WorkflowStep with command,
+  // condition, substep, etc.) over state.steps (projection that strips
+  // command/condition fields). dispatchCommand short-circuits when
+  // step.command is missing — without this, cascade silently no-ops on
+  // every hop.
+  const wfDef = (state as any).workflow_definition;
+  const wfSteps: any[] = wfDef?.steps ?? state.steps;
+  const nextStep: any = wfSteps[resolvedIndex] ?? state.steps[resolvedIndex];
 
   // FR-008 — advance cursor BEFORE recursing (idempotency contract).
-  await stateModule.stateSetCursor(stateFile, nextIndex);
+  await stateModule.stateSetCursor(stateFile, resolvedIndex);
   await wheelLog('cursor_advance', {
     from_cursor: fromCursor,
-    to_cursor: nextIndex,
+    to_cursor: resolvedIndex,
     state_file: stateFile,
   });
 
@@ -187,7 +215,7 @@ async function cascadeNext(
   });
 
   // FR-007 — pass hookType through unchanged. FR-006 — depth + 1.
-  return dispatchStep(nextStep as WorkflowStep, hookType, hookInput, stateFile, nextIndex, depth + 1);
+  return dispatchStep(nextStep as WorkflowStep, hookType, hookInput, stateFile, resolvedIndex, depth + 1);
 }
 
 // FR-003: dispatchAgent - handles type: "agent" steps
@@ -323,7 +351,13 @@ async function dispatchCommand(
       timestamp,
     });
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    // FR-008 — cascade halts on failure.
+    // FR-008 — cascade halts on failure. Set state.status='failed' so the
+    // activation-path archive logic (maybeArchiveAfterActivation) detects
+    // terminal-on-failure and routes the workflow to history/failure/.
+    {
+      const fresh = await stateRead(stateFile);
+      await stateWrite(stateFile, { ...fresh, status: 'failed' as const });
+    }
     await wheelLog('dispatch_cascade_halt', {
       step_id: step.id, step_type: step.type,
       reason: 'failed', state_file: stateFile,
@@ -892,7 +926,11 @@ async function dispatchBranch(
   const condition = (step as any).condition;
   if (!condition) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    // FR-008 — cascade halts on failure.
+    // FR-008 — cascade halts on failure; mark workflow terminal-failed.
+    {
+      const fresh = await stateRead(stateFile);
+      await stateWrite(stateFile, { ...fresh, status: 'failed' as const });
+    }
     await wheelLog('dispatch_cascade_halt', {
       step_id: step.id, step_type: step.type,
       reason: 'failed', state_file: stateFile,
@@ -918,6 +956,11 @@ async function dispatchBranch(
   const targetIndex = state.steps.findIndex((s: any) => s.id === targetId);
   if (targetIndex === -1) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    // FR-008 — cascade halts on failure; mark workflow terminal-failed.
+    {
+      const fresh = await stateRead(stateFile);
+      await stateWrite(stateFile, { ...fresh, status: 'failed' as const });
+    }
     await wheelLog('dispatch_cascade_halt', {
       step_id: step.id, step_type: step.type,
       reason: 'failed', state_file: stateFile,
@@ -983,7 +1026,11 @@ async function dispatchLoop(
       return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
     }
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    // FR-008 — cascade halts on failure.
+    // FR-008 — cascade halts on failure; mark workflow terminal-failed.
+    {
+      const fresh = await stateRead(stateFile);
+      await stateWrite(stateFile, { ...fresh, status: 'failed' as const });
+    }
     await wheelLog('dispatch_cascade_halt', {
       step_id: step.id, step_type: step.type,
       reason: 'failed', state_file: stateFile,
