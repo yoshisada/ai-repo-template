@@ -333,10 +333,18 @@ async function dispatchCommand(
 }
 
 // FR-014: dispatchWorkflow - handles type: "workflow" steps (child workflow activation)
+// FR-001 Composite / US-5 (wheel-ts-dispatcher-cascade): the parent's
+// cascade pauses on this step type (cascadeNext halts at !isAutoExecutable).
+// When the parent later dispatches the workflow step itself, we activate
+// the child AND kick off the child's first step in the child's state so
+// its cascade runs back-to-back inside this same hook fire — matching the
+// shell wheel's dispatch_step recursion. Parent then returns block; child
+// resume is handled via the existing wait-all archive path (out of scope
+// for this PRD).
 async function dispatchWorkflow(
   step: WorkflowStep,
   hookType: HookType,
-  _hookInput: HookInput,
+  hookInput: HookInput,
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
@@ -381,11 +389,39 @@ async function dispatchWorkflow(
       agentId: state.owner_agent_id ?? '',
     });
 
+    // Persist child workflow_definition so subsequent hooks can resolve it
+    // via stateRead (matches handleActivation's pattern).
+    try {
+      const persistedChild = await stateRead(childStateFile);
+      (persistedChild as any).workflow_definition = childJson;
+      await stateWrite(childStateFile, persistedChild);
+    } catch {
+      // non-fatal
+    }
+
     const engineModule = await import('./engine.js');
     try {
       await engineModule.engineKickstart(childStateFile);
     } catch (e) {
       // Non-fatal
+    }
+
+    // FR-001 Composite / US-5 — child cascade kicked off in child state.
+    // dispatchStep recurses through the cascade tails (FR-002/003/004).
+    const childSteps = childJson.steps ?? [];
+    if (childSteps.length > 0 && isAutoExecutable(childSteps[0])) {
+      try {
+        await dispatchStep(childSteps[0] as WorkflowStep, 'post_tool_use', hookInput, childStateFile, 0, 0);
+      } catch (err) {
+        console.error('DEBUG: dispatchWorkflow child cascade error:', err);
+      }
+      // Mirror handleActivation: archive child if cascade drove it terminal.
+      try {
+        const engineMod = await import('./engine.js');
+        await engineMod.maybeArchiveAfterActivation(childStateFile);
+      } catch {
+        // non-fatal
+      }
     }
 
     return {

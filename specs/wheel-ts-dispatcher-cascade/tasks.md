@@ -77,11 +77,11 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 6 — Composition step cascade boundary (FR-001 Composite, US-5)
 
-- [ ] **T-060** — Read `dispatchWorkflow` lines ~199–270 in `dispatch.ts`. Identify whether the child workflow's first step gets dispatched after child stateInit.
-- [ ] **T-061** — If child cascade is NOT triggered: after child `stateInit` + `workflow_definition` persistence, add a `dispatchStep(childSteps[0], 'post_tool_use', hookInput, childStateFile, 0, 0)` call IFF `isAutoExecutable(childSteps[0])`. Comment: `// FR-001 Composite — child cascade kicked off in child state.`
-- [ ] **T-062** — Parent cascade behavior at composition step: `dispatchWorkflow` returns approve after activating the child. Parent's `cascadeNext` is NOT called from within `dispatchWorkflow` (the parent cascade has already paused before reaching this dispatcher). Document with comment.
-- [ ] **T-063** — Verify existing `dispatchWorkflow` tests still pass.
-- [ ] **T-064** — Commit: `feat(wheel-ts): composition cascade boundary (FR-001 Composite, US-5)`.
+- [X] **T-060** — Read confirmed: `dispatchWorkflow` calls `engineKickstart` (no-op for command steps — only sets status to working) but does NOT dispatch child step 0.
+- [X] **T-061** — Added `dispatchStep(childSteps[0], 'post_tool_use', hookInput, childStateFile, 0, 0)` call after child `stateInit` + `workflow_definition` persistence. Followed by `maybeArchiveAfterActivation(childStateFile)` mirror.
+- [X] **T-062** — Parent cascade halts at workflow step via `cascadeNext`'s blocking-step check (workflow not in `AUTO_EXECUTABLE_STEP_TYPES`). Documented in dispatchWorkflow header comment.
+- [X] **T-063** — All 92 tests still green.
+- [X] **T-064** — Commit pending.
 
 ## Phase 7 — Vitest fixtures (FR-010)
 
