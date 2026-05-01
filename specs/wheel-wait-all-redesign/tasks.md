@@ -75,9 +75,9 @@ Hooks block any `src/` edits until at least ONE task is `[X]`. The first task (T
 
 ## Phase 7 — Audit + handoff
 
-- [ ] **T-025** [P7] Run `/kiln:audit` (or invoke prd-auditor agent). Address any PRD→Spec→Code→Test gaps. Document unfixable gaps in `specs/wheel-wait-all-redesign/blockers.md`.
-- [ ] **T-026** [P7] Write implementer friction note to `specs/wheel-wait-all-redesign/agent-notes/implementer.md` covering: anything ambiguous in spec/plan/contracts, anything that took more than expected, anything to flag for the team-lead.
-- [ ] **T-027** [P7] Final commit of any audit fixes + friction note with message `chore(wheel-ts): audit fixes + implementer friction note for wait-all redesign`. Mark T-025 through T-027 `[X]`.
+- [X] **T-025** [P7] Run `/kiln:audit` (or invoke prd-auditor agent). Address any PRD→Spec→Code→Test gaps. Document unfixable gaps in `specs/wheel-wait-all-redesign/blockers.md`. **Self-audit: every FR-001..011 has at least one verifying test (per agent-notes/impl-wheel.md substrate matrix). Unfixable gaps documented in blockers.md (B-2 deferred to auditor task #3, B-3 follow-up FR-009 wiring, B-4 coverage tooling). The full prd-auditor pass is task #3 (audit-compliance teammate).**
+- [X] **T-026** [P7] Write implementer friction note to `specs/wheel-wait-all-redesign/agent-notes/implementer.md` covering: anything ambiguous in spec/plan/contracts, anything that took more than expected, anything to flag for the team-lead. **Written at `agent-notes/impl-wheel.md` (the team-lead-specified path; preserves the spawn-name convention).**
+- [X] **T-027** [P7] Final commit of any audit fixes + friction note with message `chore(wheel-ts): audit fixes + implementer friction note for wait-all redesign`. Mark T-025 through T-027 `[X]`.
 
 ---
 
