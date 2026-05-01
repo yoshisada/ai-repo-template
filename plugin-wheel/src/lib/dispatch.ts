@@ -4,10 +4,33 @@ import { stateRead, stateWrite } from '../shared/state.js';
 import { stateSetStepStatus, stateSetStepOutput, stateSetAwaitingUserInput, stateList } from './state.js';
 import { contextBuild } from './context.js';
 import { resolveInputs } from './resolve_inputs.js';
+import { wheelLog } from './log.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+
+// FR-001 — single source of truth for cascade-eligible step types.
+// Any per-dispatcher type duplication (e.g. `step.type === 'command'` style
+// guards) inside cascade tails is a violation of FR-001's invariant. Keep
+// this Set as the ONLY enumeration.
+const AUTO_EXECUTABLE_STEP_TYPES: ReadonlySet<string> = new Set([
+  'command',
+  'loop',
+  'branch',
+]);
+
+/**
+ * FR-001 — classifier for cascade participation. True iff the step type is
+ * in {'command','loop','branch'}. Cascade tails MUST call this rather than
+ * inline-comparing step.type.
+ */
+export function isAutoExecutable(step: WorkflowStep | { type?: string }): boolean {
+  return AUTO_EXECUTABLE_STEP_TYPES.has((step as any).type);
+}
+
+// FR-006 — hard cap on cascade recursion depth. Graceful halt at this depth.
+export const CASCADE_DEPTH_CAP = 1000;
 
 export type HookType = 'post_tool_use' | 'stop' | 'teammate_idle' | 'subagent_start' | 'subagent_stop' | 'session_start';
 
@@ -29,19 +52,22 @@ export interface HookOutput {
   [key: string]: unknown;
 }
 
-// FR-007: dispatchStep(step: WorkflowStep, hookType: HookType, hookInput: HookInput, stateFile: string, stepIndex: number): Promise<HookOutput>
+// FR-007: dispatchStep(step, hookType, hookInput, stateFile, stepIndex, depth?)
+// FR-006: depth tracks cascade recursion; external callers omit (defaults 0).
 export async function dispatchStep(
   step: WorkflowStep,
   _hookType: HookType,
   _hookInput: HookInput,
   stateFile: string,
-  stepIndex: number
+  stepIndex: number,
+  depth: number = 0
 ): Promise<HookOutput> {
   switch (step.type) {
     case 'agent':
       return dispatchAgent(step, _hookType, _hookInput, stateFile, stepIndex);
     case 'command':
-      return dispatchCommand(step, _hookType, _hookInput, stateFile, stepIndex);
+      // FR-002 — cascade-emitting dispatcher; depth threaded.
+      return dispatchCommand(step, _hookType, _hookInput, stateFile, stepIndex, depth);
     case 'workflow':
       return dispatchWorkflow(step, _hookType, _hookInput, stateFile, stepIndex);
     case 'team-create':
@@ -53,9 +79,11 @@ export async function dispatchStep(
     case 'team-delete':
       return dispatchTeamDelete(step, _hookType, _hookInput, stateFile, stepIndex);
     case 'branch':
-      return dispatchBranch(step, _hookType, _hookInput, stateFile, stepIndex);
+      // FR-004 — cascade-emitting dispatcher; depth threaded.
+      return dispatchBranch(step, _hookType, _hookInput, stateFile, stepIndex, depth);
     case 'loop':
-      return dispatchLoop(step, _hookType, _hookInput, stateFile, stepIndex);
+      // FR-003 — cascade-emitting dispatcher; depth threaded.
+      return dispatchLoop(step, _hookType, _hookInput, stateFile, stepIndex, depth);
     case 'parallel':
       return dispatchParallel(step, _hookType, _hookInput, stateFile, stepIndex);
     case 'approval':
@@ -63,6 +91,103 @@ export async function dispatchStep(
     default:
       return { decision: 'approve' };
   }
+}
+
+/**
+ * FR-002/FR-003/FR-004/FR-006/FR-008/FR-009 — shared cascade tail.
+ * Module-private; reachable only from cascade-emitting dispatchers.
+ *
+ * Contract:
+ *   1. Read fresh state.
+ *   2. nextIndex >= steps.length → advance cursor, log end_of_workflow halt.
+ *   3. Advance cursor to nextIndex FIRST (idempotency: a mid-dispatch crash
+ *      leaves state at the right cursor, next hook fire retries the right step).
+ *   4. depth >= cap → log depth_cap halt, return.
+ *   5. !isAutoExecutable(nextStep) → log blocking_step halt, return.
+ *   6. Log dispatch_cascade hop, recurse with depth+1.
+ */
+async function cascadeNext(
+  hookType: HookType,
+  hookInput: HookInput,
+  stateFile: string,
+  nextIndex: number,
+  depth: number
+): Promise<HookOutput> {
+  const stateModule = await import('./state.js');
+  let state;
+  try {
+    state = await stateRead(stateFile);
+  } catch {
+    // State file gone (race with archive) — bail.
+    return { decision: 'approve' };
+  }
+
+  const fromCursor = state.cursor;
+  const fromStep: any = state.steps[fromCursor] ?? {};
+  const fromStepId = fromStep.id ?? '';
+  const fromStepType = fromStep.type ?? '';
+
+  // FR-009 — end-of-workflow halt.
+  if (nextIndex >= state.steps.length) {
+    await stateModule.stateSetCursor(stateFile, nextIndex);
+    await wheelLog('cursor_advance', {
+      from_cursor: fromCursor,
+      to_cursor: nextIndex,
+      state_file: stateFile,
+    });
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: fromStepId,
+      step_type: fromStepType,
+      reason: 'end_of_workflow',
+      state_file: stateFile,
+    });
+    return { decision: 'approve' };
+  }
+
+  const nextStep: any = state.steps[nextIndex];
+
+  // FR-008 — advance cursor BEFORE recursing (idempotency contract).
+  await stateModule.stateSetCursor(stateFile, nextIndex);
+  await wheelLog('cursor_advance', {
+    from_cursor: fromCursor,
+    to_cursor: nextIndex,
+    state_file: stateFile,
+  });
+
+  // FR-006 — depth cap halt.
+  if (depth >= CASCADE_DEPTH_CAP) {
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: nextStep.id ?? '',
+      step_type: nextStep.type ?? '',
+      reason: 'depth_cap',
+      state_file: stateFile,
+    });
+    return { decision: 'approve' };
+  }
+
+  // FR-001 — single classifier; FR-009 — blocking-step halt log.
+  if (!isAutoExecutable(nextStep)) {
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: nextStep.id ?? '',
+      step_type: nextStep.type ?? '',
+      reason: 'blocking_step',
+      state_file: stateFile,
+    });
+    return { decision: 'approve' };
+  }
+
+  // FR-009 — cascade hop log.
+  await wheelLog('dispatch_cascade', {
+    from_step_id: fromStepId,
+    from_step_type: fromStepType,
+    to_step_id: nextStep.id ?? '',
+    to_step_type: nextStep.type ?? '',
+    hook_type: hookType,
+    state_file: stateFile,
+  });
+
+  // FR-007 — pass hookType through unchanged. FR-006 — depth + 1.
+  return dispatchStep(nextStep as WorkflowStep, hookType, hookInput, stateFile, nextIndex, depth + 1);
 }
 
 // FR-003: dispatchAgent - handles type: "agent" steps
@@ -150,10 +275,11 @@ async function dispatchAgent(
 // dispatchAgent which gates on hookType because agent blocks need 'stop' hook.
 async function dispatchCommand(
   step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
+  hookType: HookType,
+  hookInput: HookInput,
   stateFile: string,
-  stepIndex: number
+  stepIndex: number,
+  depth: number = 0  // FR-002 / FR-006 — cascade depth threaded.
 ): Promise<HookOutput> {
   if (!step.command) {
     return { decision: 'approve' };
@@ -174,14 +300,20 @@ async function dispatchCommand(
     await stateSetStepOutput(stateFile, stepIndex, stdout || stderr);
     await stateSetStepStatus(stateFile, stepIndex, 'done');
 
-    // FR-008: Check for terminal step — set status to completed
+    // FR-008: Check for terminal step — set status to completed (no cascade after terminal).
     if ((step as any).terminal === true) {
       const state = await stateRead(stateFile);
       const updated = { ...state, status: 'completed' as const };
       await stateWrite(stateFile, updated);
+      await wheelLog('dispatch_cascade_halt', {
+        step_id: step.id, step_type: step.type,
+        reason: 'terminal', state_file: stateFile,
+      });
+      return { decision: 'approve' };
     }
 
-    return { decision: 'approve' };
+    // FR-002 — cascade to next step after success.
+    return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
   } catch (err) {
     const exitCode = (err as NodeJS.ErrnoException).code ?? 1;
     const timestamp = new Date().toISOString();
@@ -191,6 +323,11 @@ async function dispatchCommand(
       timestamp,
     });
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    // FR-008 — cascade halts on failure.
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: step.id, step_type: step.type,
+      reason: 'failed', state_file: stateFile,
+    });
     return { decision: 'approve' };
   }
 }
@@ -705,10 +842,11 @@ async function dispatchTeamDelete(
 // FR-024: dispatchBranch - evaluates condition, jumps to target
 async function dispatchBranch(
   step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
+  hookType: HookType,
+  hookInput: HookInput,
   stateFile: string,
-  stepIndex: number
+  stepIndex: number,
+  depth: number = 0  // FR-004 / FR-006 — cascade depth threaded.
 ): Promise<HookOutput> {
   const stateModule = await import('./state.js');
   const state = await stateRead(stateFile);
@@ -718,6 +856,11 @@ async function dispatchBranch(
   const condition = (step as any).condition;
   if (!condition) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    // FR-008 — cascade halts on failure.
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: step.id, step_type: step.type,
+      reason: 'failed', state_file: stateFile,
+    });
     return { decision: 'approve' };
   }
 
@@ -732,13 +875,17 @@ async function dispatchBranch(
 
   if (!targetId || targetId === 'END') {
     await stateSetStepStatus(stateFile, stepIndex, 'done');
-    await stateModule.stateSetCursor(stateFile, stepIndex + 1);
-    return { decision: 'approve' };
+    // FR-004 — branch with no target falls through to next step.
+    return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
   }
 
   const targetIndex = state.steps.findIndex((s: any) => s.id === targetId);
   if (targetIndex === -1) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: step.id, step_type: step.type,
+      reason: 'failed', state_file: stateFile,
+    });
     return { decision: 'approve' };
   }
 
@@ -752,8 +899,6 @@ async function dispatchBranch(
     }
   }
 
-  await stateModule.stateSetCursor(stateFile, targetIndex);
-
   const timestamp = new Date().toISOString();
   await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
     command: `branch: condition='${condition}' exit=${condExit} target=${targetId}`,
@@ -761,16 +906,18 @@ async function dispatchBranch(
     timestamp,
   });
 
-  return { decision: 'approve' };
+  // FR-004 — cascade to branch target. cascadeNext sets cursor to targetIndex.
+  return cascadeNext(hookType, hookInput, stateFile, targetIndex, depth);
 }
 
 // FR-025: dispatchLoop - evaluates condition, repeats or advances
 async function dispatchLoop(
   step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
+  hookType: HookType,
+  hookInput: HookInput,
   stateFile: string,
-  stepIndex: number
+  stepIndex: number,
+  depth: number = 0  // FR-003 / FR-006 — cascade depth threaded.
 ): Promise<HookOutput> {
   const stateModule = await import('./state.js');
   const state = await stateRead(stateFile);
@@ -796,10 +943,15 @@ async function dispatchLoop(
 
     if (onExhaustion === 'continue') {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
-      await stateModule.stateSetCursor(stateFile, stepIndex + 1);
-    } else {
-      await stateSetStepStatus(stateFile, stepIndex, 'failed');
+      // FR-003 — cascade after loop exhausted.
+      return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
     }
+    await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    // FR-008 — cascade halts on failure.
+    await wheelLog('dispatch_cascade_halt', {
+      step_id: step.id, step_type: step.type,
+      reason: 'failed', state_file: stateFile,
+    });
     return { decision: 'approve' };
   }
 
@@ -819,8 +971,8 @@ async function dispatchLoop(
         timestamp,
       });
       await stateSetStepStatus(stateFile, stepIndex, 'done');
-      await stateModule.stateSetCursor(stateFile, stepIndex + 1);
-      return { decision: 'approve' };
+      // FR-003 — cascade after loop condition met early.
+      return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
     }
   }
 
@@ -867,7 +1019,8 @@ async function dispatchLoop(
 
     if (reIteration >= reMaxIter) {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
-      await stateModule.stateSetCursor(stateFile, stepIndex + 1);
+      // FR-003 — cascade after final loop iteration completes.
+      return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
     }
 
     return { decision: 'approve' };

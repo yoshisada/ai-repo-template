@@ -14,46 +14,46 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 0 — Read & survey (no commit)
 
-- [ ] **T-001** — Read `plugin-wheel/src/lib/dispatch.ts` end-to-end. Note where `dispatchCommand` / `dispatchLoop` / `dispatchBranch` mark `done` / `failed` — those are the cascade insertion points.
-- [ ] **T-002** — Read `plugin-wheel/src/hooks/post-tool-use.ts handleActivation` (lines ~290–425). Identify the `while`-loop kickstart that FR-005 replaces.
-- [ ] **T-003** — Read `plugin-wheel/src/lib/engine.ts engineHandleHook` + `maybeArchiveTerminalWorkflow`. Confirm post-dispatch advance + archive logic.
-- [ ] **T-004** — Read shell wheel `dispatch_step` at `~/.claude/plugins/cache/yoshisada-speckit/wheel/000.001.009.842/lib/dispatch.sh` for parity reference.
-- [ ] **T-005** — Confirm `wheelLog` exists in `plugin-wheel/src/lib/log.ts` and what phase types it accepts. If strict-typed, prepare to extend `WheelLogPhase` union.
+- [X] **T-001** — Read `plugin-wheel/src/lib/dispatch.ts` end-to-end. Note where `dispatchCommand` / `dispatchLoop` / `dispatchBranch` mark `done` / `failed` — those are the cascade insertion points.
+- [X] **T-002** — Read `plugin-wheel/src/hooks/post-tool-use.ts handleActivation` (lines ~290–425). Identify the `while`-loop kickstart that FR-005 replaces.
+- [X] **T-003** — Read `plugin-wheel/src/lib/engine.ts engineHandleHook` + `maybeArchiveTerminalWorkflow`. Confirm post-dispatch advance + archive logic.
+- [X] **T-004** — Read shell wheel `dispatch_step` at `~/.claude/plugins/cache/yoshisada-speckit/wheel/000.001.009.842/lib/dispatch.sh` for parity reference.
+- [X] **T-005** — Confirm `wheelLog` exists in `plugin-wheel/src/lib/log.ts` and what phase types it accepts. If strict-typed, prepare to extend `WheelLogPhase` union. **Result**: `wheelLog(phase: string, fields)` accepts arbitrary phase strings — no union type. T-015 is therefore a no-op.
 
 ## Phase 1 — Helpers, contracts, depth threading (FR-001, FR-006)
 
-- [ ] **T-010** — Add `AUTO_EXECUTABLE_STEP_TYPES` constant + `isAutoExecutable(step)` exported helper to `dispatch.ts`. Match contract §1 exactly. Add comment `// FR-001 — single source of truth for cascade-eligible step types.`
-- [ ] **T-011** — Add `CASCADE_DEPTH_CAP = 1000` constant to `dispatch.ts`. Comment `// FR-006`.
-- [ ] **T-012** — Add `cascadeNext` module-private function to `dispatch.ts` matching contract §4. Include the six numbered behaviors from the contract. FR-002/003/004/006/008/009 references in body comments.
-- [ ] **T-013** — Extend `dispatchStep` exported signature to accept `depth?: number = 0`. Match contract §3. Backwards-compat verified: existing callers omit `depth`.
-- [ ] **T-014** — Thread `depth` through to `dispatchCommand`, `dispatchLoop`, `dispatchBranch` calls inside `dispatchStep`'s switch. Other dispatchers do not need it (they don't cascade).
-- [ ] **T-015** — Extend `WheelLogPhase` union (or equivalent) in `log.ts` with `'dispatch_cascade'`, `'dispatch_cascade_halt'`, `'cursor_advance'` if not already permissive. FR-009.
-- [ ] **T-016** — `vitest run plugin-wheel/src/lib/dispatch.test.ts` — confirm no regressions from helper additions.
-- [ ] **T-017** — Commit: `feat(wheel-ts): isAutoExecutable + cascadeNext + depth threading (FR-001/006/009)`.
+- [X] **T-010** — Add `AUTO_EXECUTABLE_STEP_TYPES` constant + `isAutoExecutable(step)` exported helper to `dispatch.ts`. Match contract §1 exactly. Add comment `// FR-001 — single source of truth for cascade-eligible step types.`
+- [X] **T-011** — Add `CASCADE_DEPTH_CAP = 1000` constant to `dispatch.ts`. Comment `// FR-006`.
+- [X] **T-012** — Add `cascadeNext` module-private function to `dispatch.ts` matching contract §4. Include the six numbered behaviors from the contract. FR-002/003/004/006/008/009 references in body comments.
+- [X] **T-013** — Extend `dispatchStep` exported signature to accept `depth?: number = 0`. Match contract §3. Backwards-compat verified: existing callers omit `depth`.
+- [X] **T-014** — Thread `depth` through to `dispatchCommand`, `dispatchLoop`, `dispatchBranch` calls inside `dispatchStep`'s switch. Other dispatchers do not need it (they don't cascade).
+- [X] **T-015** — Extend `WheelLogPhase` union (or equivalent) in `log.ts` with `'dispatch_cascade'`, `'dispatch_cascade_halt'`, `'cursor_advance'` if not already permissive. FR-009. **No-op**: `wheelLog(phase: string, ...)` accepts arbitrary strings.
+- [X] **T-016** — `vitest run plugin-wheel/src/lib/dispatch.test.ts` — confirm no regressions from helper additions. (92/92 pass.)
+- [X] **T-017** — Commit: `feat(wheel-ts): isAutoExecutable + cascadeNext + depth threading (FR-001/006/009)`. **Folded into combined Phase 1–4 commit.**
 
 ## Phase 2 — `dispatchCommand` cascade tail (FR-002, FR-008)
 
-- [ ] **T-020** — In `dispatchCommand` success path: replace `return { decision: 'approve' };` after the `done` set with `return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);` UNLESS step is `terminal: true`. Comment: `// FR-002 — cascade to next step after success.`
-- [ ] **T-021** — In `dispatchCommand` failure path: emit `wheelLog({phase: 'dispatch_cascade_halt', step_id, step_type, reason: 'failed', state_file: stateFile})` BEFORE the `return { decision: 'approve' }`. Comment: `// FR-008 — cascade halts on failure.`
-- [ ] **T-022** — Verify `dispatchCommand` still passes existing tests (`vitest run plugin-wheel/src/lib/dispatch.test.ts`).
-- [ ] **T-023** — Verify `dispatchCommand` line count: `awk '/^async function dispatchCommand/,/^}/' plugin-wheel/src/lib/dispatch.ts | wc -l`. Target ≤ 76 lines (SC-004 soft cap).
-- [ ] **T-024** — Commit: `feat(wheel-ts): dispatchCommand cascade tail (FR-002, FR-008)`.
+- [X] **T-020** — In `dispatchCommand` success path: replace `return { decision: 'approve' };` after the `done` set with `return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);` UNLESS step is `terminal: true`. Comment: `// FR-002 — cascade to next step after success.`
+- [X] **T-021** — In `dispatchCommand` failure path: emit `wheelLog({phase: 'dispatch_cascade_halt', step_id, step_type, reason: 'failed', state_file: stateFile})` BEFORE the `return { decision: 'approve' }`. Comment: `// FR-008 — cascade halts on failure.`
+- [X] **T-022** — Verify `dispatchCommand` still passes existing tests (92/92 pass).
+- [X] **T-023** — `awk '/^async function dispatchCommand/,/^}/' plugin-wheel/src/lib/dispatch.ts | wc -l` → 58 lines (≤ 76 SC-004 cap).
+- [X] **T-024** — Commit: `feat(wheel-ts): dispatchCommand cascade tail (FR-002, FR-008)`. **Folded into combined Phase 1–4 commit.**
 
 ## Phase 3 — `dispatchLoop` cascade tail (FR-003)
 
-- [ ] **T-030** — In the `if (currentIteration >= maxIterations)` block, when `onExhaustion === 'continue'` and step set to `done`: replace `return { decision: 'approve' };` with `return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);`. Comment: `// FR-003 — cascade after loop exhausted.`
-- [ ] **T-031** — In the early-condition-met block (`condExit === 0`): replace `return { decision: 'approve' };` after `stateSetCursor(stateFile, stepIndex + 1)` with the cascade call. Comment: `// FR-003 — cascade after loop condition met.`
-- [ ] **T-032** — In the substep `command` iteration block, when `reIteration >= reMaxIter` and step is set `done`: also cascade. Comment: `// FR-003 — cascade after final loop iteration completes.`
-- [ ] **T-033** — Substep `agent` path: NO cascade (still returns `block`). Verify behavior unchanged.
-- [ ] **T-034** — Verify `vitest run plugin-wheel/src/lib/dispatch.test.ts` still green.
-- [ ] **T-035** — Commit: `feat(wheel-ts): dispatchLoop cascade tail (FR-003)`.
+- [X] **T-030** — Loop exhausted with `onExhaustion === 'continue'` → cascadeNext.
+- [X] **T-031** — Early condition-met path → cascadeNext.
+- [X] **T-032** — Substep `command` final iteration → cascadeNext.
+- [X] **T-033** — Substep `agent` path: NO cascade (returns block).
+- [X] **T-034** — Existing tests still green (92/92).
+- [X] **T-035** — Commit: folded into combined Phase 1–4 commit.
 
 ## Phase 4 — `dispatchBranch` cascade tail (FR-004)
 
-- [ ] **T-040** — After `stateModule.stateSetCursor(stateFile, targetIndex)`: read fresh state, fetch target step, replace `return { decision: 'approve' };` with `return cascadeNext(hookType, hookInput, stateFile, targetIndex, depth);`. Comment: `// FR-004 — cascade to branch target.`
-- [ ] **T-041** — In the `if (!targetId || targetId === 'END')` early-return path: cascadeNext from `stepIndex + 1`. Comment: `// FR-004 — branch with no target falls through.`
-- [ ] **T-042** — Verify `vitest run plugin-wheel/src/lib/dispatch.test.ts` still green.
-- [ ] **T-043** — Commit: `feat(wheel-ts): dispatchBranch cascade tail (FR-004)`.
+- [X] **T-040** — Cascade to target replaces final `return approve`. cascadeNext writes targetIndex cursor.
+- [X] **T-041** — END / no-target path → cascadeNext from stepIndex+1.
+- [X] **T-042** — Existing tests still green (92/92).
+- [X] **T-043** — Commit: folded into combined Phase 1–4 commit.
 
 ## Phase 5 — `handleActivation` cascade trigger + archive helper extract (FR-005)
 
