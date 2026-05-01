@@ -8,7 +8,8 @@ import path from 'path';
 import { fileExists } from '../shared/fs.js';
 import { stateRead, stateWrite } from '../shared/state.js';
 import { stateInit } from '../lib/state.js';
-import { dispatchStep, type HookInput, type HookOutput } from '../lib/dispatch.js';
+import { dispatchStep, isAutoExecutable, type HookInput, type HookOutput } from '../lib/dispatch.js';
+import { maybeArchiveAfterActivation } from '../lib/engine.js';
 import { buildSessionRegistry } from '../lib/registry.js';
 
 // Direct workflow JSON load (bypasses stateRead which misinterprets workflow JSON as state file)
@@ -378,47 +379,21 @@ async function handleActivation(
 
   console.error(`wheel post-tool-use: activate workflow=${workflowName} file=${workflowFile}`);
 
-  // Run kickstart for automatic first steps
-  console.error('DEBUG: running kickstart');
-  const state = await stateRead(stateFile);
-  let cursor = state.cursor;
-  console.error('DEBUG: kickstart initial cursor=', cursor, 'steps=', workflow.steps.length);
-
-  while (cursor < workflow.steps.length) {
-    const step = workflow.steps[cursor];
-    console.error('DEBUG: kickstart step', cursor, 'type=', step.type);
-    if (step.type !== 'command' && step.type !== 'loop' && step.type !== 'branch') {
-      console.error('DEBUG: kickstart stopping at non-inline step');
-      break;
-    }
-
-    // Dispatch the step with 'post_tool_use' hook so commands actually execute
+  // FR-005 — post-init cascade. Single dispatchStep call; the cascade tails
+  // in dispatchCommand/Loop/Branch (FR-002/003/004) drive the rest. The
+  // previous manual while-loop kickstart was inlining the cascade in the
+  // hook, duplicating responsibility and missing FR-009 cascade-event logs.
+  if (workflow.steps.length > 0 && isAutoExecutable(workflow.steps[0])) {
     try {
-      await dispatchStep(step as any, 'post_tool_use', {}, stateFile, cursor);
+      await dispatchStep(workflow.steps[0] as any, 'post_tool_use', hookInput, stateFile, 0, 0);
     } catch (err) {
-      console.error('DEBUG: kickstart dispatchStep error:', err);
-      break;
-    }
-
-    // Re-read state after dispatch to get updated step status
-    const newState = await stateRead(stateFile);
-    const stepStatus = newState.steps[cursor]?.status;
-    console.error('DEBUG: kickstart step status after dispatch:', stepStatus);
-
-    if (stepStatus === 'done' || stepStatus === 'failed') {
-      // Advance cursor manually
-      cursor++;
-      const updatedState = await stateRead(stateFile);
-      updatedState.cursor = cursor;
-      await stateWrite(stateFile, updatedState);
-      console.error('DEBUG: kickstart advanced cursor to', cursor);
-    } else {
-      // Step not completed, stop kickstart
-      console.error('DEBUG: kickstart stopping, step status:', stepStatus);
-      break;
+      console.error('DEBUG: handleActivation cascade error:', err);
     }
   }
-  console.error('DEBUG: kickstart done, final cursor=', cursor);
+  // FR-005 — terminal-cursor archive after cascade. cascadeNext can drive
+  // the workflow to terminal in a single hook fire; without this, activation
+  // would leave an orphaned state_*.json (SC-003 regression).
+  await maybeArchiveAfterActivation(stateFile);
 
   return { output: { hookEventName: 'PostToolUse' }, activated: true };
 }

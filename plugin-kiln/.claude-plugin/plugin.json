@@ -1,6 +1,6 @@
 {
   "name": "kiln",
-  "version": "000.001.009.1363",
+  "version": "000.001.009.1366",
   "description": "Spec-first development harness for Claude Code. Provides skills, agents, hooks, and templates for PRD-driven development with 4-gate enforcement.",
   "author": {
     "name": "yoshisada"

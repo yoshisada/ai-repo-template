@@ -57,8 +57,8 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 5 — `handleActivation` cascade trigger + archive helper extract (FR-005)
 
-- [ ] **T-050** — In `plugin-wheel/src/lib/engine.ts`: extract the body of `maybeArchiveTerminalWorkflow` into a new exported function `maybeArchiveAfterActivation(stateFile: string): Promise<void>` that takes `stateFile` as a parameter. Keep the module-scoped wrapper `maybeArchiveTerminalWorkflow()` that reads `STATE_FILE` and delegates — engine's existing call sites unchanged. Match contract §9.
-- [ ] **T-051** — In `plugin-wheel/src/hooks/post-tool-use.ts handleActivation`: REMOVE lines ~387–420 (the manual `while` loop kickstart). REPLACE with:
+- [X] **T-050** — In `plugin-wheel/src/lib/engine.ts`: extract the body of `maybeArchiveTerminalWorkflow` into a new exported function `maybeArchiveAfterActivation(stateFile: string): Promise<void>` that takes `stateFile` as a parameter. Keep the module-scoped wrapper `maybeArchiveTerminalWorkflow()` that reads `STATE_FILE` and delegates — engine's existing call sites unchanged. Match contract §9.
+- [X] **T-051** — In `plugin-wheel/src/hooks/post-tool-use.ts handleActivation`: REMOVE lines ~387–420 (the manual `while` loop kickstart). REPLACE with:
   ```typescript
   // FR-005 — post-init cascade. Single dispatchStep call; cascade tails handle the rest.
   if (workflow.steps.length > 0 && isAutoExecutable(workflow.steps[0] as any)) {
@@ -71,9 +71,9 @@ Execution rules (Constitution Articles VII + VIII):
   // FR-005 — terminal-cursor archive after cascade.
   await maybeArchiveAfterActivation(stateFile);
   ```
-- [ ] **T-052** — Add `import { isAutoExecutable } from '../lib/dispatch.js';` and `import { maybeArchiveAfterActivation } from '../lib/engine.js';` (or wherever T-050 placed it) at the top of `post-tool-use.ts`.
-- [ ] **T-053** — Verify the kickstart removal does not break `dispatch.test.ts` or any other vitest file.
-- [ ] **T-054** — Commit: `feat(wheel-ts): replace kickstart with FR-005 cascade trigger + maybeArchiveAfterActivation`.
+- [X] **T-052** — Imports added.
+- [X] **T-053** — All 92 vitest tests still pass.
+- [X] **T-054** — Commit pending below.
 
 ## Phase 6 — Composition step cascade boundary (FR-001 Composite, US-5)
 
