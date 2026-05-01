@@ -277,6 +277,24 @@ PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
 
 The composer NEVER calls `Agent` itself — the calling skill is responsible for the spawn. The composer is a pure function: inputs → JSON. Determinism is guaranteed (NFR-6): identical inputs produce byte-identical output, so cache-friendly re-invocation in test fixtures works.
 
+## Testing wheel workflows live (NON-NEGOTIABLE)
+
+When you need to run a wheel workflow end-to-end from inside an active Claude Code session — debugging a workflow JSON, reproducing a Phase 4 team-workflow bug, exploratory validation — **never run `claude --print` as a Bash subprocess without scrubbing the inherited Claude Code env vars first**. A naive `bash -c "claude --print ..."` from inside this session inherits `CLAUDECODE`, `AI_AGENT`, `CLAUDE_CODE_ENTRYPOINT`, and `CLAUDE_CODE_EXECPATH`, which silently override `--session-id` and pin the subprocess to the parent's session_id. The subprocess's `.wheel/` state then gets resolved by the parent's hooks and pollutes the parent's workflow state.
+
+The required isolation recipe is **env-wipe + unique session_id + separate cwd**, all three together:
+
+```bash
+TESTDIR=/tmp/wheel-test-$(uuidgen | head -c 8)
+mkdir -p "$TESTDIR/workflows/tests" && cp workflows/tests/<wf>.json "$TESTDIR/workflows/tests/"
+NEW_SID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH \
+  bash -c "cd $TESTDIR && claude --print --dangerously-skip-permissions \
+    --model sonnet --session-id $NEW_SID --max-budget-usd 3.00 \
+    --output-format text < /tmp/test-prompt.md"
+```
+
+Full recipe, prompt template, monitor pattern, cleanup, and "when to use this vs `wheel-test-runner.sh`" are in `plugin-wheel/docs/isolated-workflow-testing.md`. Read it before any live Phase 4 / multi-state-file workflow validation. The ad-hoc isolated pattern is for one-off live runs; promote stable workflows to fixtures under `plugin-<name>/tests/<test>/` so `wheel-test-runner.sh` covers them in CI.
+
 ## Looking up recent changes
 
 Recent changes are tracked authoritatively in three places:
@@ -285,3 +303,10 @@ Recent changes are tracked authoritatively in three places:
 - `ls docs/features/` — date-prefixed PRD directories (most recent first)
 
 Run `/kiln:kiln-next` for a synthesis of recent activity + suggested next steps.
+
+## Active Technologies
+- TypeScript (strict mode), Node.js 20+ + `fs/promises`, `child_process`, `path`, no external npm deps beyond TypeScrip (002-wheel-ts-rewrite)
+- Filesystem — `.wheel/state_*.json` (unchanged schema), workflow JSON files (002-wheel-ts-rewrite)
+
+## Recent Changes
+- 002-wheel-ts-rewrite: Added TypeScript (strict mode), Node.js 20+ + `fs/promises`, `child_process`, `path`, no external npm deps beyond TypeScrip
