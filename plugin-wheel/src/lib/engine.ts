@@ -70,6 +70,13 @@ export async function engineCurrentStep(): Promise<WorkflowStep | null> {
 }
 
 // FR-006: engineHandleHook(hookType: HookType, hookInput: HookInput): Promise<HookOutput>
+// FR-005 (wheel-wait-all-redesign): teammate_idle and subagent_stop hook
+// events are wake-up nudges only. When the parent's current step is
+// `team-wait`, they remap to 'post_tool_use' so dispatchTeamWait runs the
+// polling backstop + re-check. For any other step type they no-op
+// ({decision: 'approve'}). They MUST NOT contain team-wait-specific
+// status mutation logic — that responsibility now lives entirely with
+// FR-001 (archive helper) and FR-004 (polling backstop).
 export async function engineHandleHook(hookType: HookType, hookInput: HookInput): Promise<HookOutput> {
   try {
     if (!STATE_FILE) {
@@ -86,8 +93,21 @@ export async function engineHandleHook(hookType: HookType, hookInput: HookInput)
 
     const step = workflowGetStep(WORKFLOW, cursor);
 
+    // FR-005: remap teammate_idle / subagent_stop to post_tool_use ONLY
+    // when the current step is team-wait. For any other step, drop the
+    // event (the legacy code paths in dispatchParallel etc. that responded
+    // to teammate_idle still receive the original hookType because the
+    // remap is gated on step.type === 'team-wait'.)
+    let effectiveHookType: HookType = hookType;
+    if (
+      (hookType === 'teammate_idle' || hookType === 'subagent_stop') &&
+      step.type === 'team-wait'
+    ) {
+      effectiveHookType = 'post_tool_use';
+    }
+
     // Route through dispatch
-    const result = await dispatchStep(step, hookType, hookInput, STATE_FILE, cursor);
+    const result = await dispatchStep(step, effectiveHookType, hookInput, STATE_FILE, cursor);
 
     // Check if step is done and advance cursor
     const stepStatus = stateGetStepStatus(state, cursor);

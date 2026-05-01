@@ -49,8 +49,8 @@ Hooks block any `src/` edits until at least ONE task is `[X]`. The first task (T
 
 ## Phase 4 — Hook handler simplification (FR-005)
 
-- [ ] **T-014** [P4] Locate `teammate_idle` and `subagent_stop` hook routing entry points (per T-001 notes). Strip any `team-wait`-specific status update logic. Replace with: resolve parent state file → if parent's current step is `team-wait`, dispatch to `dispatchTeamWait(step, 'post_tool_use', hookInput, parentStateFile, parentStepIndex)`. Otherwise return `{decision: 'approve'}`. Add `// FR-005` comments.
-- [ ] **T-015** [P4] Commit Phase 4 with message `feat(wheel-ts): teammate_idle and subagent_stop become wake-up nudges (FR-005)`. Mark T-014, T-015 `[X]`.
+- [X] **T-014** [P4] Locate `teammate_idle` and `subagent_stop` hook routing entry points (per T-001 notes). Strip any `team-wait`-specific status update logic. Replace with: resolve parent state file → if parent's current step is `team-wait`, dispatch to `dispatchTeamWait(step, 'post_tool_use', hookInput, parentStateFile, parentStepIndex)`. Otherwise return `{decision: 'approve'}`. Add `// FR-005` comments. **Implemented in `engine.ts engineHandleHook` (the routing layer the hook entry points already call). Hooks themselves stayed thin.**
+- [X] **T-015** [P4] Commit Phase 4 with message `feat(wheel-ts): teammate_idle and subagent_stop become wake-up nudges (FR-005)`. Mark T-014, T-015 `[X]`.
 
 ---
 
