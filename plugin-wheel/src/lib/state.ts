@@ -218,6 +218,31 @@ export async function stateRemoveTeam(stateFile: string, stepId: string): Promis
   await stateWrite(stateFile, state);
 }
 
+// FR-006: stateList(pattern?: string): Promise<string[]> - list state files matching pattern
+export async function stateList(pattern: string = '.wheel/state_*.json'): Promise<string[]> {
+  const { readdir } = await import('fs/promises');
+  const pathModule = await import('path');
+
+  // Parse pattern - handle basic glob like .wheel/state_*.json
+  const dir = pattern.includes('/')
+    ? pattern.slice(0, pattern.lastIndexOf('/'))
+    : '.';
+  const prefix = pattern.slice(pattern.lastIndexOf('/') + 1).replace('*.json', '').replace('*', '');
+
+  let files: string[] = [];
+  try {
+    const entries = await readdir(dir);
+    for (const entry of entries) {
+      if (entry.startsWith(prefix) && entry.endsWith('.json')) {
+        files.push(pathModule.join(dir, entry));
+      }
+    }
+  } catch {
+    // Directory may not exist
+  }
+  return files;
+}
+
 // FR-003/004 (wheel-user-input): stateSetAwaitingUserInput
 export async function stateSetAwaitingUserInput(stateFile: string, stepIndex: number, reason: string): Promise<void> {
   const state = await stateRead(stateFile);

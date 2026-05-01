@@ -1,10 +1,9 @@
 // FR-006/FR-003: Step dispatcher - routes to appropriate handler
 import type { WorkflowStep, WheelState, TeammateEntry } from '../shared/state.js';
 import { stateRead, stateWrite } from '../shared/state.js';
-import { stateSetStepStatus, stateSetStepOutput, stateSetAwaitingUserInput } from './state.js';
+import { stateSetStepStatus, stateSetStepOutput, stateSetAwaitingUserInput, stateList } from './state.js';
 import { contextBuild } from './context.js';
 import { resolveInputs } from './resolve_inputs.js';
-import { guardCheck } from './guard.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -422,21 +421,193 @@ async function dispatchTeammate(
   return { decision: 'approve' };
 }
 
-// FR-026: dispatchTeamWait
+// FR-026: dispatchTeamWait - blocks until all teammates complete
 async function dispatchTeamWait(
-  _step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
+  step: WorkflowStep,
+  hookType: HookType,
+  hookInput: HookInput,
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
-  const guardResult = await guardCheck(stateFile, stepIndex);
-  if (guardResult.decision === 'block') {
-    return {
-      decision: 'block',
-      additionalContext: guardResult.instruction,
-    };
+  const stateModule = await import('./state.js');
+  const state = await stateRead(stateFile);
+  const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
+  const stepId = step.id;
+
+  // Resolve team reference from step
+  const teamRef = (step as any).team ?? stepId;
+
+  // Get current team data
+  const team = state.teams?.[teamRef];
+  if (!team) {
+    // No team found - should not happen but approve
+    return { decision: 'approve' };
   }
+
+  const teammates = team.teammates ?? {};
+  const teammateNames = Object.keys(teammates);
+  const total = teammateNames.length;
+
+  // Handle different hook types
+  if (hookType === 'stop') {
+    if (stepStatus === 'pending') {
+      await stateSetStepStatus(stateFile, stepIndex, 'working');
+    }
+
+    if (stepStatus === 'pending' || stepStatus === 'working') {
+      // FR-022 edge case: 0 teammates — immediately complete
+      if (total === 0) {
+        await stateSetStepStatus(stateFile, stepIndex, 'done');
+        return { decision: 'approve' };
+      }
+
+      // Count completed/failed teammates
+      let completed = 0;
+      let failed = 0;
+      for (const name of teammateNames) {
+        const status = teammates[name]?.status ?? 'pending';
+        if (status === 'completed' || status === 'failed') {
+          completed++;
+        }
+        if (status === 'failed') {
+          failed++;
+        }
+      }
+      const doneCount = completed + failed;
+
+      if (doneCount >= total) {
+        // All teammates done - complete the step
+        await stateSetStepStatus(stateFile, stepIndex, 'done');
+        return { decision: 'approve' };
+      }
+
+      // Not all done - block and wait
+      return {
+        decision: 'block',
+        additionalContext: `Waiting for ${total - doneCount} teammate(s) to complete...`,
+      };
+    }
+
+    return { decision: 'approve' };
+  } else if (hookType === 'post_tool_use') {
+    // Handle Agent spawns and TaskUpdate completion
+    const toolName = hookInput.tool_name;
+
+    if (toolName === 'Agent') {
+      const spawnedName = (hookInput.tool_input as any)?.name;
+      if (spawnedName && teammates[spawnedName]) {
+        // Update teammate with agent_id
+        const now = new Date().toISOString();
+        teammates[spawnedName].agent_id = `${spawnedName}@${team.team_name}`;
+        teammates[spawnedName].status = 'running';
+        teammates[spawnedName].started_at = now;
+        await stateWrite(stateFile, state);
+      }
+    }
+
+    if (toolName === 'TaskUpdate') {
+      const taskStatus = (hookInput.tool_input as any)?.status;
+      if (taskStatus === 'completed') {
+        const taskSubject = (hookInput.tool_input as any)?.subject;
+        if (taskSubject) {
+          // Match task subject to teammate name
+          for (const name of teammateNames) {
+            if (taskSubject.includes(name) || name.includes(taskSubject)) {
+              await stateModule.stateUpdateTeammateStatus(stateFile, teamRef, name, 'completed');
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Check if all teammates done after any updates
+    if (stepStatus === 'pending' || stepStatus === 'working') {
+      let completed = 0;
+      let failed = 0;
+      for (const name of teammateNames) {
+        const status = teammates[name]?.status ?? 'pending';
+        if (status === 'completed' || status === 'failed') {
+          completed++;
+        }
+        if (status === 'failed') {
+          failed++;
+        }
+      }
+      const doneCount = completed + failed;
+
+      if (total > 0 && doneCount >= total) {
+        await stateSetStepStatus(stateFile, stepIndex, 'done');
+        return { decision: 'approve' };
+      }
+    }
+
+    return { decision: 'approve' };
+  } else if (hookType === 'teammate_idle') {
+    // Teammate went idle - check if sub-workflow archived
+    const idleName = (hookInput.teammate_name ?? '') as string;
+    const idleAgentId = (hookInput.agent_id ?? '') as string;
+
+    if (idleName) {
+      // Construct full agent_id if needed
+      let fullAgentId = idleAgentId;
+      if (!fullAgentId || !fullAgentId.includes('@')) {
+        const teamName = (hookInput.team_name ?? '') as string;
+        if (teamName) {
+          fullAgentId = `${idleName}@${teamName}`;
+        }
+      }
+
+      // Check if this teammate's sub-workflow state file was archived
+      // by looking for state files with matching alternate_agent_id
+      const allStateFiles = await stateList();
+      let foundState = false;
+
+      if (fullAgentId && allStateFiles) {
+        for (const sf of allStateFiles) {
+          try {
+            const sfState = await stateRead(sf);
+            if ((sfState as any).alternate_agent_id === fullAgentId) {
+              foundState = true;
+              break;
+            }
+          } catch {
+            // State file may not exist anymore
+          }
+        }
+      }
+
+      if (!foundState) {
+        // Sub-workflow archived - teammate is done
+        const currentStatus = teammates[idleName]?.status;
+        if (currentStatus && currentStatus !== 'completed' && currentStatus !== 'failed') {
+          await stateModule.stateUpdateTeammateStatus(stateFile, teamRef, idleName, 'completed');
+        }
+
+        // Re-check all teammates
+        const updatedState = await stateRead(stateFile);
+        const updatedTeam = updatedState.teams?.[teamRef];
+        const updatedTeammates = updatedTeam?.teammates ?? {};
+        const updatedNames = Object.keys(updatedTeammates);
+
+        let allDone = true;
+        for (const name of updatedNames) {
+          const status = updatedTeammates[name]?.status ?? 'pending';
+          if (status !== 'completed' && status !== 'failed') {
+            allDone = false;
+            break;
+          }
+        }
+
+        if (updatedNames.length > 0 && allDone) {
+          await stateSetStepStatus(stateFile, stepIndex, 'done');
+        }
+      }
+    }
+
+    return { decision: 'approve' };
+  }
+
   return { decision: 'approve' };
 }
 

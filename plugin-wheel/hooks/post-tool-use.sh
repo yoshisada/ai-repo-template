@@ -8,6 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_HOOK="$PLUGIN_ROOT/dist/hooks/post-tool-use.js"
 
-# Execute from plugin directory so node can resolve tsx from plugin-wheel/node_modules
-cd "$PLUGIN_ROOT"
+# Execute from repo root so .wheel state files are created in the right place
+# (the calling user's session cwd, not inside plugin-wheel/)
 exec node "$DIST_HOOK" "$@"
