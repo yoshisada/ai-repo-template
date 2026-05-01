@@ -1,6 +1,10 @@
 # Blockers / unresolved gaps
 
-## B-1 (RESOLVED): Phase 4 fixture location confusion
+_Last reconciled: 2026-04-30 by audit-compliance agent (task #3)_
+
+---
+
+## B-1 (RESOLVED @ 9898a1f3): Phase 4 fixture location confusion
 
 **Initial concern**: I read `ls plugin-wheel/workflows/` and saw only
 `example.json` + `noni.json` and concluded the Phase 4 fixtures
@@ -18,16 +22,21 @@ workflows/tests/team-sub-worker.json   (helper, used by static/dynamic)
 workflows/tests/team-sub-fail.json     (helper, used by partial-failure)
 ```
 
-So the fixtures exist; SC-001/SC-003/SC-004 are reachable at the
-substrate level.
+Confirmed by auditor via `find . -name "team*.json"` — all five files
+present at HEAD `1b9f0617`.
 
-## B-2: SC-001/SC-003/SC-004 — live Phase 4 fixture run not done in this session
+**Status**: RESOLVED. SC-001/SC-003/SC-004 are reachable at the
+fixture level.
+
+---
+
+## B-2 (OPEN — deferred to audit-pr task #4): SC-001/SC-003/SC-004 live Phase 4 run
 
 **Spec/PRD reference**: spec.md User Story 3 + SC-001/SC-003/SC-004;
 tasks.md T-021/T-022.
 
-**Status**: deferred to auditor task #3. **Not blocking** — the FR-004
-backstop and FR-001 archive helper are exhaustively unit-tested.
+**Status**: OPEN — not blocking unit-test gate; deferred to audit-pr
+(task #4) per live-substrate-first rule.
 
 **Detail**: per CLAUDE.md "Testing wheel workflows live" section,
 running `/wheel:wheel-test` from inside an active Claude Code agent
@@ -36,110 +45,111 @@ pollutes the parent's workflow state. The required isolation recipe
 (env-wipe + unique session_id + separate cwd) is documented at
 `plugin-wheel/docs/isolated-workflow-testing.md`.
 
-I did NOT run the isolated recipe in this implementer session because:
+Per team-lead instructions (live-substrate-first rule):
+> "Phase 4 team workflows are wheel-hook-bound. They CANNOT be driven
+> from sub-agent context (Stop hooks bind to primary session). If
+> `/kiln:kiln-test` cannot run them, the audit-pr agent will use the
+> isolated-workflow-testing recipe."
 
-1. FR-001..008 are exhaustively asserted by 28 new unit tests (89
-   total pass), and the unit tests directly exercise the
-   `_runPollingBackstop` / `archiveWorkflow` paths against synthetic
-   parent + child state files in isolated cwds. Every branch of
-   FR-004 (live → history → orphan) has its own test.
-2. Phase 4 fixture live-validation is the auditor's domain per the
-   `/kiln:kiln-build-prd` pipeline split — auditor re-runs smoke + grep
-   verification before declaring task #3 complete.
-3. The kiln-test verdict reports already on disk
-   (`.kiln/logs/kiln-test-*.md`, `.wheel/history/success/team-*`)
-   confirm the fixtures CAN run end-to-end on this branch.
+**Auditor delegation**: This auditor (task #3) confirms the structural
+and unit-test substrates pass. Live Phase 4 validation is explicitly
+delegated to audit-pr (task #4) via the isolated recipe.
 
-**Recommendation for the auditor (task #3)**: run
-`/wheel:wheel-test` (or the env-wipe isolated recipe) against the
-three Phase 4 fixtures and capture the verdict report at
-`.wheel/logs/test-run-<ts>.md`. If a fixture fails, see B-3 below for
-the most likely root cause.
+**Secondary concern**: See B-3. Phase 4 live fixtures may fail if
+`archiveWorkflow` is not yet wired into the TS terminal dispatch path.
+The audit-pr smoke run will surface this.
 
-## B-3: archiveWorkflow not yet wired into TS dispatch terminal handling
+**Impact on compliance**: SC-001/003/004 are **NOT** verifiable from
+this task. They are listed as OPEN DEFERRED. PRD compliance for the
+Phase 4 fixture gate is conditional on audit-pr results.
 
-**Spec/PRD reference**: FR-009; tasks.md T-002 (extension scope).
+---
 
-**Status**: scope decision — **deliberately deferred to a follow-up**.
+## B-3 (OPEN — FR-009 partial): archiveWorkflow not wired into TS terminal dispatch
 
-**Detail**: FR-009 says "Every workflow that archives goes through
-[archiveWorkflow]." The shell `_archive_workflow` in
-`plugin-wheel/lib/dispatch.sh:122–321` is the historical archive call
-site, called from `handle_terminal_step`. With the recent commit
-`fix(wheel-ts): wire shell shims to TypeScript`, hooks delegate to TS
-and the shell archive path is dead code in normal operation.
+**Spec/PRD reference**: FR-009; PRD Assumption "Wheel's archive
+function is a single deterministic call path — every workflow that
+archives goes through it"; tasks.md T-002 (extension scope).
 
-The TypeScript dispatcher (`dispatch.ts dispatchCommand` line 178)
-sets `state.status = 'completed'` on terminal=true steps but does NOT
-yet call `archiveWorkflow`. Wiring this in is the LAST mile of FR-009
-(rename + bucket-selection + parent-update unified into one path) and
-needs:
+**Status**: OPEN — helper implemented and fully tested; upstream
+wiring deferred as a follow-up.
 
-- `dispatchCommand` (terminal command step) → call
-  `archiveWorkflow(stateFile, bucket)` after the terminal status flip.
-- `dispatchAgent` (terminal agent step) → same.
-- `engineHandleHook` after dispatchStep when `state.status` becomes
-  terminal — same.
-- Bucket selection: if `state.status === 'completed'` → `success`;
-  `'failed'` → `failure`; explicit stop sentinel → `stopped`.
+**Detail**: `archiveWorkflow` is defined and exported from
+`plugin-wheel/src/lib/state.ts:473`. It is exhaustively tested by 14
+tests in `archive-workflow.test.ts`. However, it is NOT called from
+any terminal-step dispatcher:
 
-I implemented `archiveWorkflow` per contract (FR-001/002/006/008/009)
-and unit-tested it exhaustively. The wiring above is a separate edit
-that touches every dispatcher; it's logically distinct from the
-wait-all redesign FRs and risks regressing the existing terminal-step
-flows on this branch.
+- `dispatch.ts dispatchCommand` (line 178): sets
+  `state.status = 'completed'` on terminal=true steps but does NOT
+  call `archiveWorkflow`.
+- `engine.ts engineHandleHook`: no archive call.
 
-**Why this is acceptable for the wait-all redesign PRD**: FR-001..008
-are about correctness of the archive helper + parent update + polling
-backstop + hook routing simplification. None of those FRs are blocked
-by where archiveWorkflow is *called from*. The FR-009 "single
-deterministic call path" claim holds at the helper level (one
-function owns the rename + parent update). What's deferred is the
-upstream wiring decision, not the helper itself.
+The shell `_archive_workflow` in `lib/dispatch.sh:122-321` is the
+only live archive path. Whether it remains reachable in the TS shim
+era is unclear without live fixture run (see B-2).
 
-**Why running Phase 4 fixtures might still pass without B-3 wiring**:
-The recent shell→TS shimming commit (`535dc986`) suggests the TS
-hook path now owns hook delivery, but the shell archive helper may
-still be reachable via a different code path I haven't traced. The
-audit run will confirm.
+**Impact on Phase 4 e2e**: If the TS hook path owns all hook delivery
+(confirmed by `hooks/stop.sh` → `dist/hooks/stop.js` → `engineHandleHook`),
+and `_archive_workflow` in shell is dead code, Phase 4 fixtures will
+stall because:
+1. Child terminal step sets status `completed` but state file stays
+   in `.wheel/` (not moved to `history/`)
+2. `archiveWorkflow` parent update (FR-001) never fires
+3. Parent slots stay `running`; polling backstop finds the live child
+   state file and skips it as "still working"
+4. `_recheckAndCompleteIfDone` never sees all teammates done
 
-**Recommended follow-up**: file an issue (`/kiln:kiln-report-issue`) to
-add `archiveWorkflow` calls in `dispatchCommand`/`dispatchAgent`/
-`dispatchWorkflow` terminal-step branches and remove the shell
-archive shim. Block: this is a small surgery that should land in a
-separate PR with its own smoke run.
+**Mitigation in this PRD**: `archiveWorkflow` helper is complete,
+correct, and tested. The wiring edit is a separate change touching
+every terminal-step dispatcher. Correct order:
 
-## B-4: Coverage tooling version mismatch
+```
+dispatchCommand (terminal=true) → call archiveWorkflow(stateFile, bucket)
+dispatchAgent (terminal=true) → call archiveWorkflow(stateFile, bucket)
+engineHandleHook after dispatchStep when state.status terminal → same
+```
+
+**Recommended follow-up**: `/kiln:kiln-report-issue` for wiring
+`archiveWorkflow` into `dispatchCommand`/`dispatchAgent` terminal
+branches.
+
+**Note**: The existing shell `_archive_workflow` path
+(`lib/dispatch.sh:287-318`) includes
+`_chain_parent_after_archive` which calls `teammate_idle` hook handler
+on the parent — that path relies on the old event-driven design this
+PRD replaces. It must be removed or updated if shell archive is still
+reachable.
+
+---
+
+## B-4 (OPEN — pre-existing tooling gap): Coverage tooling version mismatch
 
 **Spec/PRD reference**: tasks.md T-019; constitution Article II (≥80%).
 
-**Status**: pre-existing tooling gap. Worked around with manual
-inspection.
+**Status**: OPEN — pre-existing tooling gap. Manually verified ≥80%.
 
 **Detail**: `npx vitest run --coverage` fails with
 `SyntaxError: The requested module 'vitest/node' does not provide an
 export named 'BaseCoverageProvider'`. `package.json` pins vitest at
 `^1.6.1` and `@vitest/coverage-v8` at `^4.1.5` — coverage-v8 v4.x
-expects vitest v3+. Fixing requires either bumping vitest to ^3
-(likely breaks unrelated test-runner expectations) or pinning
-coverage-v8 to a version compatible with 1.6.x.
+expects vitest v3+.
 
-**Mitigation**: Manual coverage review:
-- `state.ts` new helpers: every helper has at least one direct unit
-  test; every branch (match/no-match/EC-2 bail/skipped-step path) has
-  a dedicated test.
-- `dispatch.ts` `_runPollingBackstop`: live-state, success-bucket,
-  failure-bucket, orphan, archive-wins-over-orphan, log emission,
-  skip-when-done — each is its own test.
-- `dispatch.ts` `dispatchTeamWait`: stop/post_tool_use/0-teammates/
+**Auditor coverage confirmation**: Manual branch-counting review:
+- `state.ts` new helpers: every helper has ≥1 direct test; every
+  branch (match/no-match/EC-2 bail/skipped-step) has a dedicated test.
+- `dispatch.ts _runPollingBackstop`: live-state, success-bucket,
+  failure-bucket, orphan, archive-evidence-wins, log emission,
+  skip-when-done — each is its own test case.
+- `dispatch.ts dispatchTeamWait`: stop/post_tool_use/0-teammates/
   teammate_idle-fallthrough — covered.
-- `engine.ts` FR-005 remap: teammate_idle + subagent_stop direct tests.
-- `lock.ts` `withLockBlocking`: exercised by every concurrent-archive
+- `engine.ts engineHandleHook` FR-005 remap: teammate_idle +
+  subagent_stop direct tests.
+- `lock.ts withLockBlocking`: exercised by every concurrent-archive
   test.
-- `log.ts` `wheelLog`: exercised by FR-008 log-content assertions.
+- `log.ts wheelLog`: exercised by FR-008 log-content assertions.
 
-By branch counting, the ≥80% gate is met. The CI tooling fix is a
-separate ticket.
+By branch counting ≥80% gate is met on FR-001..011 paths. CI
+tooling fix is a separate ticket.
 
-**Recommended follow-up**: file a `/kiln:kiln-report-issue` for the
-coverage-tooling version pin.
+**Recommended follow-up**: Pin `@vitest/coverage-v8` to a version
+compatible with vitest 1.6.x (e.g. `^1.6.1`), or bump vitest to ^3.
