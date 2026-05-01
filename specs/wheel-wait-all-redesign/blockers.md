@@ -1,6 +1,6 @@
 # Blockers / unresolved gaps
 
-_Last reconciled: 2026-04-30 by audit-compliance agent (task #3)_
+_Last reconciled: 2026-04-30 by audit-pr agent (task #4) — verdict appended to B-2._
 
 ---
 
@@ -62,6 +62,28 @@ The audit-pr smoke run will surface this.
 **Impact on compliance**: SC-001/003/004 are **NOT** verifiable from
 this task. They are listed as OPEN DEFERRED. PRD compliance for the
 Phase 4 fixture gate is conditional on audit-pr results.
+
+**audit-pr (task #4) verdict**: DEFERRED. Two compounding reasons:
+1. B-3 is confirmed by code-reading — `archiveWorkflow` has no callers
+   in the TS terminal-step dispatchers. The polling backstop keys on
+   live `.wheel/state_*.json` files; without the archive helper moving
+   files out, every Phase 4 fixture stalls identically. So the live
+   smoke would only confirm a known prediction.
+2. The isolated-workflow-testing recipe execs the cache install at
+   `~/.claude/plugins/cache/yoshisada-speckit/wheel/<version>/`. Latest
+   cached version is `000.001.009.842` (Apr 29) and predates this PR;
+   our local `000.001.009.1340` is uncommitted to the cache. Running
+   the recipe as-written would test stale code (without our wait-all
+   changes), which gives zero signal on the new design.
+
+   Setting up a fake cache version pointing at our local
+   `plugin-wheel/dist` requires understanding Claude Code's plugin
+   resolution at hook time and risks polluting the parent session. Out
+   of scope for this PR.
+
+**Decision**: SC-001/003/004 stay OPEN-DEFERRED until B-3 is wired
+(see B-3 follow-up). Phase 4 live verification happens in the PR that
+fixes B-3, not this one.
 
 ---
 
