@@ -1,6 +1,6 @@
 // FR-006/FR-001: Core engine - initialization, kickstart, and hook handling
-import { stateRead } from '../shared/state.js';
-import { stateGetCursor, stateSetCursor, stateSetStepStatus, stateGetStepStatus } from './state.js';
+import { stateRead, stateWrite } from '../shared/state.js';
+import { stateGetCursor, stateSetCursor, stateSetStepStatus, stateGetStepStatus, archiveWorkflow } from './state.js';
 import { workflowLoad, workflowGetStep } from './workflow.js';
 import { dispatchStep } from './dispatch.js';
 import type { HookType, HookInput, HookOutput } from './dispatch.js';
@@ -77,6 +77,15 @@ export async function engineCurrentStep(): Promise<WorkflowStep | null> {
 // ({decision: 'approve'}). They MUST NOT contain team-wait-specific
 // status mutation logic — that responsibility now lives entirely with
 // FR-001 (archive helper) and FR-004 (polling backstop).
+//
+// FR-009 archive wiring (B-3 fix): after each successful dispatch + cursor
+// advance, detect workflow-terminal condition and call archiveWorkflow.
+// Two terminal triggers:
+//   1. cursor advanced past the last step (natural completion)
+//   2. a dispatcher explicitly set state.status to 'completed' or 'failed'
+//      (early termination, e.g. command step with terminal: true)
+// archiveWorkflow handles parent-teammate-slot update + cursor advance
+// inline, then renames the child state file to .wheel/history/<bucket>/.
 export async function engineHandleHook(hookType: HookType, hookInput: HookInput): Promise<HookOutput> {
   try {
     if (!STATE_FILE) {
@@ -87,7 +96,12 @@ export async function engineHandleHook(hookType: HookType, hookInput: HookInput)
     const cursor = stateGetCursor(state);
 
     if (cursor >= state.steps.length) {
-      // Workflow complete
+      // Workflow already at terminal cursor — try to archive if not yet
+      // archived. This handles the case where a previous hook advanced
+      // the cursor past the last step but the workflow archive was never
+      // wired (B-3 path). Idempotent: if STATE_FILE is missing, the
+      // archive helper is a no-op.
+      await maybeArchiveTerminalWorkflow();
       return { decision: 'approve' };
     }
 
@@ -109,16 +123,95 @@ export async function engineHandleHook(hookType: HookType, hookInput: HookInput)
     // Route through dispatch
     const result = await dispatchStep(step, effectiveHookType, hookInput, STATE_FILE, cursor);
 
-    // Check if step is done and advance cursor
-    const stepStatus = stateGetStepStatus(state, cursor);
-    if (stepStatus === 'done' || stepStatus === 'failed') {
-      await stateSetCursor(STATE_FILE, cursor + 1);
+    // Check if step is done and advance cursor. Re-read state because
+    // dispatchers mutate step.status on disk; the `state` snapshot above
+    // is from before dispatch and is stale.
+    let postDispatchState;
+    try {
+      postDispatchState = await stateRead(STATE_FILE);
+    } catch {
+      // State file already gone (e.g., archived by a re-entrant call) —
+      // nothing more to do.
+      STATE_FILE = '';
+      return result;
     }
+    const postDispatchCursor = stateGetCursor(postDispatchState);
+    const stepStatus = stateGetStepStatus(postDispatchState, postDispatchCursor);
+    if (
+      postDispatchCursor < postDispatchState.steps.length &&
+      (stepStatus === 'done' || stepStatus === 'failed')
+    ) {
+      await stateSetCursor(STATE_FILE, postDispatchCursor + 1);
+    }
+
+    // FR-009: detect workflow-terminal and archive
+    await maybeArchiveTerminalWorkflow();
 
     return result;
   } catch (err) {
     // Fail open - log error and approve
     console.error('Engine error:', err);
     return { decision: 'approve' };
+  }
+}
+
+// FR-009 (wheel-wait-all-redesign B-3 fix): if the workflow has reached a
+// terminal state, finalize state.status and call archiveWorkflow exactly
+// once. Idempotent — second call after STATE_FILE is cleared is a no-op.
+//
+// Terminal conditions (any one suffices):
+//   - cursor >= steps.length (natural completion at end-of-workflow)
+//   - state.status === 'completed' (dispatcher set early-terminal explicitly)
+//   - state.status === 'failed' (dispatcher set early-terminal explicitly)
+//
+// Bucket selection:
+//   - state.status === 'failed' → 'failure'
+//   - any step has status 'failed' → 'failure'
+//   - otherwise → 'success'
+async function maybeArchiveTerminalWorkflow(): Promise<void> {
+  if (!STATE_FILE) return;
+
+  let updatedState;
+  try {
+    updatedState = await stateRead(STATE_FILE);
+  } catch {
+    // State file already gone (archived by a re-entrant call) — nothing to do.
+    STATE_FILE = '';
+    return;
+  }
+
+  const newCursor = stateGetCursor(updatedState);
+  const cursorTerminal = newCursor >= updatedState.steps.length;
+  const explicitTerminal =
+    updatedState.status === 'completed' || updatedState.status === 'failed';
+
+  if (!cursorTerminal && !explicitTerminal) {
+    return;
+  }
+
+  // Determine bucket
+  const anyStepFailed = updatedState.steps.some((s: any) => s.status === 'failed');
+  const bucket: 'success' | 'failure' =
+    updatedState.status === 'failed' || anyStepFailed ? 'failure' : 'success';
+
+  // Finalize state.status if not already terminal
+  if (!explicitTerminal) {
+    const finalStatus: 'completed' | 'failed' =
+      bucket === 'failure' ? 'failed' : 'completed';
+    const fresh = await stateRead(STATE_FILE);
+    await stateWrite(STATE_FILE, { ...fresh, status: finalStatus });
+  }
+
+  // Archive — moves child state file to .wheel/history/<bucket>/ and
+  // (if state.parent_workflow is set) updates the parent's teammate slot
+  // + advances parent cursor past wait-all when all teammates terminal.
+  const archivedStateFile = STATE_FILE;
+  STATE_FILE = ''; // clear before archive so a re-entrant call no-ops
+  try {
+    await archiveWorkflow(archivedStateFile, bucket);
+  } catch (err) {
+    // If archive fails, restore STATE_FILE so future hooks can retry.
+    STATE_FILE = archivedStateFile;
+    throw err;
   }
 }

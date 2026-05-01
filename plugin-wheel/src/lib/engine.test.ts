@@ -123,6 +123,11 @@ describe('engineHandleHook FR-005 hook routing', () => {
 
   async function setupTeamWaitState(stepStatus: 'pending' | 'working') {
     const wfFile = path.join(activeDir, 'parent.json');
+    // Three-step parent so the parent does NOT auto-archive when wait-all
+    // advances cursor past the team-wait step. The trailing 'report' step
+    // keeps the parent in a non-terminal state so the FR-005 tests can
+    // observe the parent's teammate-slot update without racing against
+    // the FR-009 archive wiring.
     await fs.writeFile(
       wfFile,
       JSON.stringify({
@@ -131,6 +136,7 @@ describe('engineHandleHook FR-005 hook routing', () => {
         steps: [
           { id: 'tc', type: 'team-create' },
           { id: 'wait', type: 'team-wait', team: 'wait' },
+          { id: 'report', type: 'agent', instruction: 'noop' },
         ],
       })
     );
@@ -143,6 +149,7 @@ describe('engineHandleHook FR-005 hook routing', () => {
         steps: [
           { id: 'tc', type: 'team-create' },
           { id: 'wait', type: 'team-wait' },
+          { id: 'report', type: 'agent' },
         ],
       },
       sessionId: 'sess',
@@ -157,6 +164,7 @@ describe('engineHandleHook FR-005 hook routing', () => {
       steps: [
         { id: 'tc', type: 'team-create' },
         { id: 'wait', type: 'team-wait', team: 'wait' },
+        { id: 'report', type: 'agent', instruction: 'noop' },
       ],
     };
     await stateWrite(stateFile, state);
@@ -217,5 +225,199 @@ describe('engineHandleHook FR-005 hook routing', () => {
     await engineHandleHook('subagent_stop', {});
     const state = await stateRead(stateFile);
     expect(state.teams['wait'].teammates['a@t'].status).toBe('failed');
+  });
+});
+
+// FR-009 (wheel-wait-all-redesign B-3 fix): engineHandleHook calls
+// archiveWorkflow when the workflow reaches a terminal state. Two terminal
+// triggers — cursor past end-of-steps (natural completion) and explicit
+// state.status set to 'completed'/'failed' by a dispatcher.
+describe('engineHandleHook FR-009 archive wiring', () => {
+  const TEST_ROOT = '/tmp/wheel-engine-fr009';
+  let testCounter = 0;
+  let activeDir: string;
+
+  beforeEach(async () => {
+    testCounter++;
+    activeDir = path.join(TEST_ROOT, `e-${testCounter}-${Date.now()}`);
+    await fs.mkdir(activeDir, { recursive: true });
+    process.chdir(activeDir);
+    await fs.mkdir('.wheel', { recursive: true });
+  });
+
+  afterEach(async () => {
+    process.chdir('/tmp');
+    await fs.rm(activeDir, { recursive: true, force: true });
+  });
+
+  it('archives workflow when cursor advances past last step', async () => {
+    const wfFile = path.join(activeDir, 'wf.json');
+    const wf = {
+      name: 'finite-wf',
+      version: '1.0',
+      steps: [
+        { id: 's1', type: 'command', command: 'true' },
+      ],
+    };
+    await fs.writeFile(wfFile, JSON.stringify(wf));
+    const stateFile = path.join(activeDir, '.wheel', 'state_term.json');
+    await stateInit({
+      stateFile,
+      workflow: wf as any,
+      sessionId: 'sess',
+      agentId: 'a',
+      workflowFile: wfFile,
+    });
+    // Pre-set workflow_definition for engineInit's preferred path
+    const initial = await stateRead(stateFile);
+    initial.workflow_definition = wf as any;
+    await stateWrite(stateFile, initial);
+    await engineInit(wfFile, stateFile);
+
+    // Drive the command step to completion via post_tool_use hook.
+    // dispatchCommand executes inline: status → done, then engineHandleHook
+    // advances cursor (0 → 1) which equals steps.length → terminal → archive.
+    await engineHandleHook('post_tool_use', {});
+
+    // The state file MUST be archived (no longer at original path)
+    let liveStillExists = true;
+    try {
+      await fs.access(stateFile);
+    } catch {
+      liveStillExists = false;
+    }
+    expect(liveStillExists).toBe(false);
+
+    // The archived file MUST exist under .wheel/history/success/
+    const successDir = path.join(activeDir, '.wheel', 'history', 'success');
+    const archives = await fs.readdir(successDir);
+    expect(archives.length).toBe(1);
+    expect(archives[0]).toMatch(/^finite-wf-/);
+
+    // The archived state's workflow.status MUST be 'completed'
+    const archivedJson = JSON.parse(
+      await fs.readFile(path.join(successDir, archives[0]), 'utf8')
+    );
+    expect(archivedJson.status).toBe('completed');
+  });
+
+  it('archives to failure bucket when any step has status failed', async () => {
+    const wfFile = path.join(activeDir, 'wf.json');
+    const wf = {
+      name: 'fail-wf',
+      version: '1.0',
+      steps: [
+        { id: 's1', type: 'command', command: 'true' },
+      ],
+    };
+    await fs.writeFile(wfFile, JSON.stringify(wf));
+    const stateFile = path.join(activeDir, '.wheel', 'state_fail.json');
+    await stateInit({
+      stateFile,
+      workflow: wf as any,
+      sessionId: 'sess',
+      agentId: 'a',
+      workflowFile: wfFile,
+    });
+    const initial = await stateRead(stateFile);
+    initial.workflow_definition = wf as any;
+    initial.cursor = 1; // already past end
+    initial.steps[0].status = 'failed';
+    await stateWrite(stateFile, initial);
+    await engineInit(wfFile, stateFile);
+
+    await engineHandleHook('post_tool_use', {});
+
+    let liveStillExists = true;
+    try {
+      await fs.access(stateFile);
+    } catch {
+      liveStillExists = false;
+    }
+    expect(liveStillExists).toBe(false);
+
+    const failureDir = path.join(activeDir, '.wheel', 'history', 'failure');
+    const archives = await fs.readdir(failureDir);
+    expect(archives.length).toBe(1);
+    const archivedJson = JSON.parse(
+      await fs.readFile(path.join(failureDir, archives[0]), 'utf8')
+    );
+    expect(archivedJson.status).toBe('failed');
+  });
+
+  it('archives child workflow and updates parent teammate slot end-to-end', async () => {
+    // Set up parent workflow with team-wait at cursor 1
+    const parentWfFile = path.join(activeDir, 'parent.json');
+    const parentWf = {
+      name: 'parent',
+      version: '1.0',
+      steps: [
+        { id: 'tc', type: 'team-create' },
+        { id: 'wait', type: 'team-wait', team: 'wait' },
+      ],
+    };
+    await fs.writeFile(parentWfFile, JSON.stringify(parentWf));
+    const parentStateFile = path.join(activeDir, '.wheel', 'state_parent.json');
+    await stateInit({
+      stateFile: parentStateFile,
+      workflow: parentWf as any,
+      sessionId: 'sess',
+      agentId: 'parent-agent',
+      workflowFile: parentWfFile,
+    });
+    const parent = await stateRead(parentStateFile);
+    parent.cursor = 1;
+    parent.workflow_definition = parentWf as any;
+    await stateWrite(parentStateFile, parent);
+    await stateSetTeam(parentStateFile, 'wait', 'parent-wait');
+    await stateAddTeammate(parentStateFile, 'wait', {
+      task_id: '',
+      status: 'pending',
+      agent_id: 'worker-1@parent-wait',
+      output_dir: '.wheel/outputs/worker-1',
+      assign: {},
+      started_at: null,
+      completed_at: null,
+    });
+    await stateUpdateTeammateStatus(parentStateFile, 'wait', 'worker-1@parent-wait', 'running');
+
+    // Set up CHILD workflow (single command step) with parent_workflow link
+    const childWfFile = path.join(activeDir, 'child.json');
+    const childWf = {
+      name: 'child',
+      version: '1.0',
+      steps: [{ id: 'c1', type: 'command', command: 'true' }],
+    };
+    await fs.writeFile(childWfFile, JSON.stringify(childWf));
+    const childStateFile = path.join(activeDir, '.wheel', 'state_child.json');
+    await stateInit({
+      stateFile: childStateFile,
+      workflow: childWf as any,
+      sessionId: 'sess',
+      agentId: 'worker-1-raw-id',
+      workflowFile: childWfFile,
+    });
+    const child = await stateRead(childStateFile);
+    child.workflow_definition = childWf as any;
+    child.parent_workflow = parentStateFile;
+    child.alternate_agent_id = 'worker-1@parent-wait';
+    await stateWrite(childStateFile, child);
+    await engineInit(childWfFile, childStateFile);
+
+    // Run the child's command step → terminal → archive → parent slot updated
+    await engineHandleHook('post_tool_use', {});
+
+    // Child state file must be gone
+    let childExists = true;
+    try {
+      await fs.access(childStateFile);
+    } catch {
+      childExists = false;
+    }
+    expect(childExists).toBe(false);
+
+    // Parent's teammate slot must be 'completed'
+    const finalParent = await stateRead(parentStateFile);
+    expect(finalParent.teams['wait'].teammates['worker-1@parent-wait'].status).toBe('completed');
   });
 });
