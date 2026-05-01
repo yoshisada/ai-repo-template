@@ -32,18 +32,18 @@ Hooks block any `src/` edits until at least ONE task is `[X]`. The first task (T
 
 ## Phase 2 — `dispatchTeamWait` rewrite (FR-003)
 
-- [ ] **T-007** [P2] Extract private helper `_recheckAndCompleteIfDone(stateFile, stepIndex, teamRef): Promise<boolean>` in `plugin-wheel/src/lib/dispatch.ts` per contract. Pure re-check; marks step done via `stateSetStepStatus` if all teammates are completed/failed. Add `// FR-003` comment.
-- [ ] **T-008** [P2] Rewrite `dispatchTeamWait` body to two top-level branches: `stop` and `post_tool_use`. Delete the entire `teammate_idle` branch. Delete inline `Agent`/`TaskUpdate` mutation logic. (Teammate `agent_id` registration moves to wherever the team-create / teammate spawn dispatcher already handles it — implementer decides based on T-001 notes.) Add `// FR-003` comment.
-- [ ] **T-009** [P2] Verify SC-002 line count: run `awk 'NR>=<dispatchTeamWait_start> { print; if (/^}/ && NR><start>) { exit } }' plugin-wheel/src/lib/dispatch.ts | wc -l`. Assert ≤132 lines. If over, simplify before marking T-009 `[X]`.
-- [ ] **T-010** [P2] Commit Phase 2 with message `feat(wheel-ts): dispatchTeamWait collapses to two branches (FR-003, SC-002)`. Mark T-007 through T-010 `[X]`.
+- [X] **T-007** [P2] Extract private helper `_recheckAndCompleteIfDone(stateFile, stepIndex, teamRef): Promise<boolean>` in `plugin-wheel/src/lib/dispatch.ts` per contract. Pure re-check; marks step done via `stateSetStepStatus` if all teammates are completed/failed. Add `// FR-003` comment.
+- [X] **T-008** [P2] Rewrite `dispatchTeamWait` body to two top-level branches: `stop` and `post_tool_use`. Delete the entire `teammate_idle` branch. Delete inline `Agent`/`TaskUpdate` mutation logic. (Teammate `agent_id` registration moves to wherever the team-create / teammate spawn dispatcher already handles it — implementer decides based on T-001 notes.) Add `// FR-003` comment.
+- [X] **T-009** [P2] Verify SC-002 line count: run `awk 'NR>=<dispatchTeamWait_start> { print; if (/^}/ && NR><start>) { exit } }' plugin-wheel/src/lib/dispatch.ts | wc -l`. Assert ≤132 lines. If over, simplify before marking T-009 `[X]`. **Verified: 45 lines (start line 468), well under threshold.**
+- [X] **T-010** [P2] Commit Phase 2 with message `feat(wheel-ts): dispatchTeamWait collapses to two branches (FR-003, SC-002)`. Mark T-007 through T-010 `[X]`.
 
 ---
 
 ## Phase 3 — Polling backstop (FR-004)
 
-- [ ] **T-011** [P3] Implement `_runPollingBackstop(parentStateFile, teamRef): Promise<{reconciledCount, stillRunningCount}>` in `dispatch.ts` per contract. Order: live state files → `history/{success,failure,stopped}` → orphan default. Single parent flock acquisition for all writes. Cache `history/` directory reads within the sweep. Emits `wait_all_polling` log (FR-008). Add `// FR-004, FR-008` comment.
-- [ ] **T-012** [P3] Wire `_runPollingBackstop` into the `post_tool_use` branch of `dispatchTeamWait` (run BEFORE `_recheckAndCompleteIfDone`). Add `// FR-004` comment.
-- [ ] **T-013** [P3] Commit Phase 3 with message `feat(wheel-ts): polling backstop reconciles orphan teammates (FR-004, FR-008)`. Mark T-011 through T-013 `[X]`.
+- [X] **T-011** [P3] Implement `_runPollingBackstop(parentStateFile, teamRef): Promise<{reconciledCount, stillRunningCount}>` in `dispatch.ts` per contract. Order: live state files → `history/{success,failure,stopped}` → orphan default. Single parent flock acquisition for all writes. Cache `history/` directory reads within the sweep. Emits `wait_all_polling` log (FR-008). Add `// FR-004, FR-008` comment.
+- [X] **T-012** [P3] Wire `_runPollingBackstop` into the `post_tool_use` branch of `dispatchTeamWait` (run BEFORE `_recheckAndCompleteIfDone`). Add `// FR-004` comment.
+- [X] **T-013** [P3] Commit Phase 3 with message `feat(wheel-ts): polling backstop reconciles orphan teammates (FR-004, FR-008)`. Mark T-011 through T-013 `[X]`. **Combined with Phase 2 commit because the dispatchTeamWait rewrite calls _runPollingBackstop directly — they ship as one atomic change per plan §"Phase 2 and Phase 3 MAY interleave".**
 
 ---
 

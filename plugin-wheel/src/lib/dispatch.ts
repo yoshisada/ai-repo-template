@@ -421,194 +421,274 @@ async function dispatchTeammate(
   return { decision: 'approve' };
 }
 
-// FR-026: dispatchTeamWait - blocks until all teammates complete
+// FR-003 (wheel-wait-all-redesign): pure re-check helper. Counts teammate
+// statuses; if all are 'completed' or 'failed' (and at least one teammate
+// exists), marks the parent's `team-wait` step done. Otherwise no-op.
+// Does NOT mutate teammate slot status — those mutations come from FR-001
+// (archive helper) and FR-004 (polling backstop).
+async function _recheckAndCompleteIfDone(
+  stateFile: string,
+  stepIndex: number,
+  teamRef: string
+): Promise<boolean> {
+  const state = await stateRead(stateFile);
+  const team = state.teams?.[teamRef];
+  if (!team) return false;
+  const teammates = team.teammates ?? {};
+  const names = Object.keys(teammates);
+
+  // Edge case: 0 teammates — mark done immediately (matches dispatchTeammate's
+  // 0-items short-circuit and preserves backwards behavior of the old function).
+  if (names.length === 0) {
+    if (state.steps[stepIndex]?.status !== 'done') {
+      await stateSetStepStatus(stateFile, stepIndex, 'done');
+    }
+    return true;
+  }
+
+  for (const name of names) {
+    const status = teammates[name]?.status ?? 'pending';
+    if (status !== 'completed' && status !== 'failed') {
+      return false;
+    }
+  }
+
+  if (state.steps[stepIndex]?.status !== 'done') {
+    await stateSetStepStatus(stateFile, stepIndex, 'done');
+  }
+  return true;
+}
+
+// FR-003 (wheel-wait-all-redesign): two-branch state-driven dispatcher.
+// Does NOT mutate teammate slot status. The cross-process signal arrives
+// via FR-001 (archive helper writes parent slot under parent's flock) or
+// FR-004 (polling backstop reconciles orphans). teammate_idle and
+// subagent_stop hook events are remapped to 'post_tool_use' upstream by
+// FR-005 hook routing in engine.ts.
 async function dispatchTeamWait(
   step: WorkflowStep,
   hookType: HookType,
-  hookInput: HookInput,
+  _hookInput: HookInput,
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
-  const stateModule = await import('./state.js');
+  const stepId = step.id;
+  const teamRef = (step as { team?: string }).team ?? stepId;
+
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
-  const stepId = step.id;
 
-  // Resolve team reference from step
-  const teamRef = (step as any).team ?? stepId;
-
-  // Get current team data
-  const team = state.teams?.[teamRef];
-  if (!team) {
-    // No team found - should not happen but approve
-    return { decision: 'approve' };
-  }
-
-  const teammates = team.teammates ?? {};
-  const teammateNames = Object.keys(teammates);
-  const total = teammateNames.length;
-
-  // Handle different hook types
+  // FR-003: stop branch — pending→working transition + re-check.
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
       await stateSetStepStatus(stateFile, stepIndex, 'working');
     }
-
-    if (stepStatus === 'pending' || stepStatus === 'working') {
-      // FR-022 edge case: 0 teammates — immediately complete
-      if (total === 0) {
-        await stateSetStepStatus(stateFile, stepIndex, 'done');
-        return { decision: 'approve' };
-      }
-
-      // Count completed/failed teammates
-      let completed = 0;
-      let failed = 0;
-      for (const name of teammateNames) {
-        const status = teammates[name]?.status ?? 'pending';
-        if (status === 'completed' || status === 'failed') {
-          completed++;
-        }
-        if (status === 'failed') {
-          failed++;
-        }
-      }
-      const doneCount = completed + failed;
-
-      if (doneCount >= total) {
-        // All teammates done - complete the step
-        await stateSetStepStatus(stateFile, stepIndex, 'done');
-        return { decision: 'approve' };
-      }
-
-      // Not all done - block and wait
-      return {
-        decision: 'block',
-        additionalContext: `Waiting for ${total - doneCount} teammate(s) to complete...`,
-      };
+    const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef);
+    if (done) {
+      return { decision: 'approve' };
     }
-
+    // Not done — return approve so the parent harness goes idle waiting
+    // for the next archive write to advance the slot. Block-with-context
+    // is unnecessary here: the archive helper (FR-001) writes under the
+    // parent's lock and the cursor advance happens there directly.
     return { decision: 'approve' };
-  } else if (hookType === 'post_tool_use') {
-    // Handle Agent spawns and TaskUpdate completion
-    const toolName = hookInput.tool_name;
+  }
 
-    if (toolName === 'Agent') {
-      const spawnedName = (hookInput.tool_input as any)?.name;
-      if (spawnedName && teammates[spawnedName]) {
-        // Update teammate with agent_id
-        const now = new Date().toISOString();
-        teammates[spawnedName].agent_id = `${spawnedName}@${team.team_name}`;
-        teammates[spawnedName].status = 'running';
-        teammates[spawnedName].started_at = now;
-        await stateWrite(stateFile, state);
-      }
+  // FR-003 + FR-004: post_tool_use branch — polling backstop first
+  // (reconciles orphans by reading live state files + history buckets),
+  // then re-check.
+  if (hookType === 'post_tool_use') {
+    if (stepStatus !== 'working' && stepStatus !== 'pending') {
+      return { decision: 'approve' };
     }
-
-    if (toolName === 'TaskUpdate') {
-      const taskStatus = (hookInput.tool_input as any)?.status;
-      if (taskStatus === 'completed') {
-        const taskSubject = (hookInput.tool_input as any)?.subject;
-        if (taskSubject) {
-          // Match task subject to teammate name
-          for (const name of teammateNames) {
-            if (taskSubject.includes(name) || name.includes(taskSubject)) {
-              await stateModule.stateUpdateTeammateStatus(stateFile, teamRef, name, 'completed');
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    // Check if all teammates done after any updates
-    if (stepStatus === 'pending' || stepStatus === 'working') {
-      let completed = 0;
-      let failed = 0;
-      for (const name of teammateNames) {
-        const status = teammates[name]?.status ?? 'pending';
-        if (status === 'completed' || status === 'failed') {
-          completed++;
-        }
-        if (status === 'failed') {
-          failed++;
-        }
-      }
-      const doneCount = completed + failed;
-
-      if (total > 0 && doneCount >= total) {
-        await stateSetStepStatus(stateFile, stepIndex, 'done');
-        return { decision: 'approve' };
-      }
-    }
-
-    return { decision: 'approve' };
-  } else if (hookType === 'teammate_idle') {
-    // Teammate went idle - check if sub-workflow archived
-    const idleName = (hookInput.teammate_name ?? '') as string;
-    const idleAgentId = (hookInput.agent_id ?? '') as string;
-
-    if (idleName) {
-      // Construct full agent_id if needed
-      let fullAgentId = idleAgentId;
-      if (!fullAgentId || !fullAgentId.includes('@')) {
-        const teamName = (hookInput.team_name ?? '') as string;
-        if (teamName) {
-          fullAgentId = `${idleName}@${teamName}`;
-        }
-      }
-
-      // Check if this teammate's sub-workflow state file was archived
-      // by looking for state files with matching alternate_agent_id
-      const allStateFiles = await stateList();
-      let foundState = false;
-
-      if (fullAgentId && allStateFiles) {
-        for (const sf of allStateFiles) {
-          try {
-            const sfState = await stateRead(sf);
-            if ((sfState as any).alternate_agent_id === fullAgentId) {
-              foundState = true;
-              break;
-            }
-          } catch {
-            // State file may not exist anymore
-          }
-        }
-      }
-
-      if (!foundState) {
-        // Sub-workflow archived - teammate is done
-        const currentStatus = teammates[idleName]?.status;
-        if (currentStatus && currentStatus !== 'completed' && currentStatus !== 'failed') {
-          await stateModule.stateUpdateTeammateStatus(stateFile, teamRef, idleName, 'completed');
-        }
-
-        // Re-check all teammates
-        const updatedState = await stateRead(stateFile);
-        const updatedTeam = updatedState.teams?.[teamRef];
-        const updatedTeammates = updatedTeam?.teammates ?? {};
-        const updatedNames = Object.keys(updatedTeammates);
-
-        let allDone = true;
-        for (const name of updatedNames) {
-          const status = updatedTeammates[name]?.status ?? 'pending';
-          if (status !== 'completed' && status !== 'failed') {
-            allDone = false;
-            break;
-          }
-        }
-
-        if (updatedNames.length > 0 && allDone) {
-          await stateSetStepStatus(stateFile, stepIndex, 'done');
-        }
-      }
-    }
-
+    // FR-004: run polling backstop BEFORE the re-check so any reconciled
+    // orphans are visible to _recheckAndCompleteIfDone in the same call.
+    await _runPollingBackstop(stateFile, teamRef);
+    await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef);
     return { decision: 'approve' };
   }
 
   return { decision: 'approve' };
+}
+
+// FR-004 (wheel-wait-all-redesign): polling backstop. For each teammate
+// currently status=='running' in parent.teams[teamRef].teammates,
+// reconcile against live state files → history buckets → orphan default.
+// Persists all mutations under a single parent-flock acquisition (one
+// write at the end of the sweep). Cost target: one .wheel/ readdir + up
+// to three history bucket reads per invocation, regardless of teammate
+// count.
+async function _runPollingBackstop(
+  parentStateFile: string,
+  teamRef: string
+): Promise<{ reconciledCount: number; stillRunningCount: number }> {
+  const { withLockBlocking } = await import('./lock.js');
+  const { wheelLog } = await import('./log.js');
+  const { promises: fs } = await import('fs');
+  const path = (await import('path')).default;
+
+  // Snapshot the running teammates outside the lock; this is a hot read
+  // path and we don't want to hold the parent lock during disk scans.
+  let preState: Awaited<ReturnType<typeof stateRead>>;
+  try {
+    preState = await stateRead(parentStateFile);
+  } catch {
+    return { reconciledCount: 0, stillRunningCount: 0 };
+  }
+  const team = preState.teams?.[teamRef];
+  if (!team) {
+    await wheelLog('wait_all_polling', {
+      parent_state_file: parentStateFile,
+      team_id: teamRef,
+      reconciled_count: 0,
+      still_running_count: 0,
+      note: 'team_not_found',
+    });
+    return { reconciledCount: 0, stillRunningCount: 0 };
+  }
+  const teammates = team.teammates ?? {};
+  const runningSlots = Object.entries(teammates).filter(
+    ([, slot]) => slot?.status === 'running'
+  );
+  if (runningSlots.length === 0) {
+    await wheelLog('wait_all_polling', {
+      parent_state_file: parentStateFile,
+      team_id: teamRef,
+      reconciled_count: 0,
+      still_running_count: 0,
+    });
+    return { reconciledCount: 0, stillRunningCount: 0 };
+  }
+
+  // Build live alternate_agent_id set. stateList scans .wheel/state_*.json.
+  const liveAgentIds = new Set<string>();
+  try {
+    const liveFiles = await stateList();
+    for (const sf of liveFiles) {
+      try {
+        const ss = await stateRead(sf);
+        const aid = (ss as { alternate_agent_id?: string }).alternate_agent_id;
+        if (aid) liveAgentIds.add(aid);
+      } catch {
+        // ignore unreadable state files
+      }
+    }
+  } catch {
+    // .wheel may not exist
+  }
+
+  // Build history bucket → set of (parent_state_file, alternate_agent_id) pairs.
+  // Buckets are read once per sweep regardless of how many teammates need
+  // reconciliation (cost target).
+  const buckets: Array<{ name: 'success' | 'failure' | 'stopped'; status: 'completed' | 'failed' }> = [
+    { name: 'success', status: 'completed' },
+    { name: 'failure', status: 'failed' },
+    { name: 'stopped', status: 'failed' },
+  ];
+  const bucketArchives: Record<string, Map<string, 'completed' | 'failed'>> = {};
+  for (const b of buckets) {
+    const dir = path.join('.wheel', 'history', b.name);
+    const map = new Map<string, 'completed' | 'failed'>();
+    try {
+      const entries = await fs.readdir(dir);
+      for (const entry of entries) {
+        if (!entry.endsWith('.json')) continue;
+        const fp = path.join(dir, entry);
+        try {
+          const content = await fs.readFile(fp, 'utf-8');
+          const archived = JSON.parse(content) as {
+            parent_workflow?: string | null;
+            alternate_agent_id?: string;
+          };
+          if (
+            archived.parent_workflow === parentStateFile &&
+            archived.alternate_agent_id
+          ) {
+            // Archive evidence wins — first hit per agent_id stays.
+            if (!map.has(archived.alternate_agent_id)) {
+              map.set(archived.alternate_agent_id, b.status);
+            }
+          }
+        } catch {
+          // skip unreadable archive
+        }
+      }
+    } catch {
+      // bucket may not exist yet
+    }
+    bucketArchives[b.name] = map;
+  }
+
+  // Resolve each running teammate. Order MUST be live → history → orphan.
+  type Resolution = {
+    name: string;
+    newStatus: 'completed' | 'failed';
+    failureReason?: string;
+  };
+  const resolutions: Resolution[] = [];
+  let stillRunning = 0;
+  for (const [name, slot] of runningSlots) {
+    const aid = slot?.agent_id ?? '';
+    if (aid && liveAgentIds.has(aid)) {
+      stillRunning++;
+      continue;
+    }
+    let resolved: 'completed' | 'failed' | null = null;
+    // FR-004 strict order: success first, then failure, then stopped.
+    if (bucketArchives.success.has(aid)) {
+      resolved = bucketArchives.success.get(aid)!;
+    } else if (bucketArchives.failure.has(aid)) {
+      resolved = bucketArchives.failure.get(aid)!;
+    } else if (bucketArchives.stopped.has(aid)) {
+      resolved = bucketArchives.stopped.get(aid)!;
+    }
+
+    if (resolved !== null) {
+      resolutions.push({ name, newStatus: resolved });
+    } else {
+      // Orphan: state file disappeared without archiving.
+      resolutions.push({
+        name,
+        newStatus: 'failed',
+        failureReason: 'state-file-disappeared',
+      });
+    }
+  }
+
+  let reconciled = 0;
+  if (resolutions.length > 0) {
+    // FR-007: take parent lock for the single write.
+    await withLockBlocking(parentStateFile, async () => {
+      const parent = await stateRead(parentStateFile);
+      const team2 = parent.teams?.[teamRef];
+      if (!team2) return;
+      const t2 = team2.teammates ?? {};
+      const now = new Date().toISOString();
+      for (const r of resolutions) {
+        const slot = t2[r.name];
+        if (!slot) continue;
+        // Re-check status in case archive helper raced ahead.
+        if (slot.status === 'completed' || slot.status === 'failed') continue;
+        slot.status = r.newStatus;
+        slot.completed_at = now;
+        if (r.failureReason) {
+          slot.failure_reason = r.failureReason;
+        }
+        reconciled++;
+      }
+      parent.updated_at = now;
+      await stateWrite(parentStateFile, parent);
+    });
+  }
+
+  await wheelLog('wait_all_polling', {
+    parent_state_file: parentStateFile,
+    team_id: teamRef,
+    reconciled_count: reconciled,
+    still_running_count: stillRunning,
+  });
+
+  return { reconciledCount: reconciled, stillRunningCount: stillRunning };
 }
 
 // FR-025: dispatchTeamDelete
