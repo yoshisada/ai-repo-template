@@ -519,6 +519,9 @@ async function dispatchWorkflow(
       workflow: childJson,
       sessionId: state.owner_session_id ?? '',
       agentId: state.owner_agent_id ?? '',
+      // parity: shell dispatch.sh:144 — child must know its parent so
+      // archiveWorkflow can resume the parent on child terminal.
+      parentWorkflow: stateFile,
     });
 
     // Persist child workflow_definition so subsequent hooks can resolve it

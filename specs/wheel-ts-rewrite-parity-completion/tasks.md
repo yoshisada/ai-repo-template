@@ -80,11 +80,11 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 6 — dispatchWorkflow + archiveWorkflow composition parent-resume (FR-005)
 
-- [ ] **T-060** — Read `plugin-wheel/src/lib/engine.ts` `archiveWorkflow` (or wherever wait-all FR-009 archive helper lives). Identify whether composition parent-resume branch is present (decision D-3).
-- [ ] **T-061** — If absent: add `_chainParentAfterArchive` helper per contracts §3 (also used by FR-002 T-044). Wire from `archiveWorkflow` when archived state had `parent_workflow` set.
-- [ ] **T-062** — Verify `dispatchWorkflow` (line 378) cascade-into-child still works — read existing impl, add comment anchoring to PR #200 work.
-- [ ] **T-063** — Add test `dispatch-terminal.test.ts:child-archive-advances-parent` — composition fixture where child archives and parent's cursor advances + next step dispatches.
-- [ ] **T-064** — `npx vitest run` — all tests pass.
+- [X] **T-060** — Read `archiveWorkflow` in state.ts (lines 473-580). Confirmed: it handles teammate-slot update + team-wait cursor advance, but NO composition parent-resume branch.
+- [X] **T-061** — Added composition branch in `archiveWorkflow` (state.ts) — when parent has no teammate slot match, find parent's working `workflow` step, mark done, advance cursor via `resolveNextIndex`+`advancePastSkipped`. Also wired `parentWorkflow` into `dispatchWorkflow`'s `stateInit` call so the child knows its parent.
+- [X] **T-062** — `dispatchWorkflow` cascade-into-child confirmed working (PR #200 work intact); added parity comment.
+- [X] **T-063** — `dispatch-terminal.test.ts:child-archive-advances-parent` added; updated existing `dispatch-cascade.test.ts` `parent halts at workflow step` to reflect FR-005 A1 new semantics.
+- [X] **T-064** — `npx vitest run`: 110/110 pass.
 - [ ] **T-065** — Commit: `feat(wheel-ts): composition child-archive advances parent cursor (FR-005)`.
 
 ---

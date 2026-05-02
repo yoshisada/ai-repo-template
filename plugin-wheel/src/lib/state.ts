@@ -547,6 +547,43 @@ export async function archiveWorkflow(
     }
   }
 
+  // parity: shell dispatch.sh:144 — composition parent-resume.
+  // When child has a parent_workflow but no alternate_agent_id (or no
+  // teammate slot matched), this is a composition (workflow-step parent).
+  // Find the parent's currently-working `workflow` step, mark it done,
+  // advance cursor past skipped steps. The dispatch of the parent's NEXT
+  // step is handled separately by _chainParentAfterArchive at the call
+  // site (or by the next hook fire if not invoked).
+  if (parentPath && !updateResult) {
+    try {
+      await fs.access(parentPath);
+      const parent = await stateRead(parentPath);
+      const workingIdx = parent.steps.findIndex(
+        (s: any) => s.type === 'workflow' && s.status === 'working'
+      );
+      if (workingIdx >= 0) {
+        await stateSetStepStatus(parentPath, workingIdx, 'done');
+        // resolve next via workflow_definition if available
+        const wfDef: any = (parent as any).workflow_definition;
+        let nextIdx = workingIdx + 1;
+        if (wfDef?.steps) {
+          const stepJson = wfDef.steps[workingIdx];
+          const wfMod = await import('./workflow.js');
+          const rawNext = wfMod.resolveNextIndex(stepJson, workingIdx, wfDef);
+          nextIdx = await wfMod.advancePastSkipped(parentPath, rawNext, wfDef);
+        }
+        await stateSetCursor(parentPath, nextIdx);
+        await wheelLog('archive_parent_compose_advance', {
+          parent_state_file: parentPath,
+          parent_step_index: workingIdx,
+          new_cursor: nextIdx,
+        });
+      }
+    } catch {
+      // parent file missing or unreadable — already logged above
+    }
+  }
+
   // FR-009: rename child state file to .wheel/history/<bucket>/.
   const archiveDir = path.join('.wheel', 'history', bucket);
   await mkdirp(archiveDir);

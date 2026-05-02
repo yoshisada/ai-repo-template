@@ -325,8 +325,13 @@ describe('dispatch cascade composition (FR-001 Composite, US-5)', () => {
     );
     expect(childArchivedState.steps.every((s: any) => s.status === 'done')).toBe(true);
 
-    // Parent cascade is paused at the workflow step (still working).
+    // FR-005 A1 (parity-completion) — when child archives, the composition
+    // parent's workflow step is marked 'done' and cursor advances inside
+    // archiveWorkflow. Pre-FR-005 the parent stayed 'working' until an
+    // unrelated hook fire advanced it; that path orphaned composition
+    // workflows.
     const parentNow = await stateRead(parentStateFile);
-    expect(parentNow.steps[1].status).toBe('working');
+    expect(parentNow.steps[1].status).toBe('done');
+    expect(parentNow.cursor).toBe(2);
   });
 });
