@@ -316,8 +316,15 @@ async function dispatchCommand(
   const stateModule = await import('./state.js');
   await stateSetStepStatus(stateFile, stepIndex, 'working');
 
+  // parity: shell dispatch.sh:1535–1544 — export WORKFLOW_PLUGIN_DIR for plugin-shipped commands.
+  const wfModule = await import('./workflow.js');
+  const wfPluginDir = await wfModule.deriveWorkflowPluginDir(stateFile);
+  const cmdEnv = wfPluginDir
+    ? { ...process.env, WORKFLOW_PLUGIN_DIR: wfPluginDir }
+    : { ...process.env };
+
   try {
-    const { stdout, stderr } = await execAsync(step.command, { timeout: 300000 });
+    const { stdout, stderr } = await execAsync(step.command, { timeout: 300000, env: cmdEnv });
     const timestamp = new Date().toISOString();
     await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
       command: step.command,

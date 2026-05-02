@@ -68,3 +68,69 @@ export function workflowGetBranchTarget(workflow: WorkflowDefinition, stepId: st
   const targetStep = workflow.steps.find(s => s.id === target);
   return targetStep ?? null;
 }
+
+// parity: shell dispatch.sh:98 — resolve_next_index. If step.next is set,
+// look up its target index in workflow.steps; else return stepIndex+1.
+// Returns -1 if step.next references a non-existent step (caller decides
+// how to surface; shell returns rc=1 + stderr).
+export function resolveNextIndex(
+  step: { next?: string } & Record<string, unknown>,
+  stepIndex: number,
+  workflow: WorkflowDefinition,
+): number {
+  const nextId = (step as { next?: string }).next;
+  if (nextId) {
+    const target = workflow.steps.findIndex(s => s.id === nextId);
+    if (target === -1) return -1;
+    return target;
+  }
+  return stepIndex + 1;
+}
+
+// parity: shell dispatch.sh:71 — advance_past_skipped. Walk past any
+// steps marked status='skipped' in the live state file. Returns the
+// next non-skipped index (may be >= workflow.steps.length when all
+// remaining are skipped).
+export async function advancePastSkipped(
+  stateFile: string,
+  rawNext: number,
+  workflow: WorkflowDefinition,
+): Promise<number> {
+  const total = workflow.steps.length;
+  let idx = rawNext;
+  if (idx < 0) return idx;
+  let state;
+  try {
+    state = await stateRead(stateFile);
+  } catch {
+    return idx;
+  }
+  while (idx < total) {
+    const stepStatus = state.steps[idx]?.status;
+    if (stepStatus === 'skipped') {
+      idx++;
+    } else {
+      break;
+    }
+  }
+  return idx;
+}
+
+// parity: shell dispatch.sh:1535–1544 — derive plugin dir from
+// state.workflow_file. The workflow_file is at
+//   <plugin-dir>/workflows/<wf-name>.json
+// so the plugin dir is the directory two levels up from the file.
+// Returns null if state can't be read or workflow_file missing.
+export async function deriveWorkflowPluginDir(stateFile: string): Promise<string | null> {
+  try {
+    const state = await stateRead(stateFile);
+    const wfFile = state.workflow_file;
+    if (!wfFile) return null;
+    const path = (await import('path')).default;
+    const workflowsDir = path.dirname(wfFile);    // .../workflows
+    const pluginDir = path.dirname(workflowsDir); // .../<plugin>
+    return pluginDir;
+  } catch {
+    return null;
+  }
+}

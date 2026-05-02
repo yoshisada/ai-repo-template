@@ -36,10 +36,10 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 2 — dispatchCommand WORKFLOW_PLUGIN_DIR injection (FR-001)
 
-- [ ] **T-020** — Add `deriveWorkflowPluginDir(stateFile)` helper to `plugin-wheel/src/lib/state.ts` (or `workflow.ts` — implementer chooses). Match contracts §9. Comment: `// parity: shell dispatch.sh:1535–1544 — derive plugin dir from state.workflow_file.`
-- [ ] **T-021** — In `dispatchCommand` line 320: pass `{ env: { ...process.env, WORKFLOW_PLUGIN_DIR: <derived> }, timeout: 300000 }` to `execAsync`. Comment: `// parity: shell dispatch.sh:1535–1544 — export WORKFLOW_PLUGIN_DIR for plugin-shipped commands.`
-- [ ] **T-022** — Add test `dispatch.test.ts:command-exports-plugin-dir` — verifies child process sees `WORKFLOW_PLUGIN_DIR` env var (via a fixture command that prints it).
-- [ ] **T-023** — `npx vitest run` — all 99+ tests still pass.
+- [X] **T-020** — Added `deriveWorkflowPluginDir(stateFile)` to `workflow.ts` (also ports `resolveNextIndex` + `advancePastSkipped` per Phase 0 audit). Match contracts §9.
+- [X] **T-021** — `dispatchCommand` now injects `WORKFLOW_PLUGIN_DIR` into child process env via `cmdEnv`.
+- [X] **T-022** — `dispatch.test.ts:command-exports-plugin-dir` added; verifies child process sees the env var.
+- [X] **T-023** — `npx vitest run`: 100/100 pass.
 - [ ] **T-024** — Commit: `feat(wheel-ts): dispatchCommand WORKFLOW_PLUGIN_DIR injection (FR-001)`.
 
 ---

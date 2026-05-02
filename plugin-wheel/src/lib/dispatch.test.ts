@@ -287,3 +287,47 @@ describe('dispatchTeamWait', () => {
     expect(result.decision).toBe('approve');
   });
 });
+
+// FR-001 — dispatchCommand WORKFLOW_PLUGIN_DIR injection
+describe('dispatchCommand: command-exports-plugin-dir', () => {
+  it('exports WORKFLOW_PLUGIN_DIR derived from state.workflow_file', async () => {
+    // Build a simulated plugin dir tree:
+    //   /tmp/wheel-dispatch-test/fakeplugin/workflows/wf.json
+    // The derived plugin dir should be the fakeplugin path.
+    const pluginRoot = path.join(TEST_DIR, 'fakeplugin');
+    const wfDir = path.join(pluginRoot, 'workflows');
+    const wfFile = path.join(wfDir, 'wf.json');
+    const outFile = path.join(TEST_DIR, 'cmd-out.txt');
+    await fs.mkdir(wfDir, { recursive: true });
+    await fs.writeFile(wfFile, JSON.stringify({
+      name: 'wf', version: '1.0', steps: [{ id: 's1', type: 'command' }],
+    }));
+
+    const statePath = path.join(TEST_DIR, 'cmd-plugin-dir.json');
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [{ id: 's1', type: 'command' }] },
+      sessionId: 's1',
+      agentId: '',
+    });
+    // Wire workflow_file into state so deriveWorkflowPluginDir can find it.
+    {
+      const s = await stateRead(statePath);
+      s.workflow_file = wfFile;
+      await stateWrite(statePath, s);
+    }
+
+    // Command echoes WORKFLOW_PLUGIN_DIR to outFile (use printf for portability).
+    const cmd = `printf '%s' "$WORKFLOW_PLUGIN_DIR" > ${outFile}`;
+    const result = await dispatchStep(
+      { id: 's1', type: 'command', command: cmd } as any,
+      'post_tool_use',
+      {},
+      statePath,
+      0,
+    );
+    expect(result.decision).toBe('approve');
+    const got = await fs.readFile(outFile, 'utf-8');
+    expect(got).toBe(pluginRoot);
+  });
+});
