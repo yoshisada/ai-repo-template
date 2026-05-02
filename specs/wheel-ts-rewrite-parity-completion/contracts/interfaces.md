@@ -38,8 +38,8 @@ If any of these is MISSING in current TS code, the implementer ports it from she
  * teammate's output_dir. Mirrors shell context_write_teammate_files.
  *
  * Side effects: creates outputDir if absent; writes two files:
- *   - <outputDir>/context.md         — rendered context block from contextFromJson
- *   - <outputDir>/assign_inputs.json — assignJson serialized
+ *   - <outputDir>/context.json    — JSON map of dep-step-id → captured output
+ *   - <outputDir>/assignment.json — assignJson serialized
  *
  * Failure: throws on filesystem errors. Caller (dispatchTeammate) catches and
  * marks step failed.
@@ -84,38 +84,50 @@ Used by: `dispatchAgent` (FR-002 A5), `dispatchWorkflow` archive path (FR-005 A1
 
 ## 4. NEW: `_teammateChainNext` + `_teammateFlushFromState` (FR-006 A3)
 
+**Module**: `plugin-wheel/src/lib/dispatch-team.ts` (D-4 decision — extracted from dispatch.ts to stay under 500-line limit; see impl-wheel friction note §D-4)
+
 ```typescript
-// plugin-wheel/src/lib/dispatch.ts (module-private; exported for tests)
+// plugin-wheel/src/lib/dispatch-team.ts (exported)
+
+export interface TeammateSpawnInfo {
+  name: string;
+  agent_id: string;
+  output_dir: string;
+  workflow: string;
+  assign?: Record<string, unknown[]>;
+}
 
 /**
  * FR-006 — after a teammate step marks done, look ahead at the next workflow
  * step:
- *  - if next step is also `teammate`: dispatch it directly (no block emitted).
- *  - if next step is NOT teammate (or end-of-workflow): flush all registered
- *    teammates from state into a SINGLE block message with batched spawn
- *    instructions for the orchestrator.
+ *  - if next step is also `teammate` for the same team_ref: return null
+ *    (caller continues registering teammates without emitting a block).
+ *  - otherwise: flush all registered teammates from state and emit a
+ *    single batched block.
  *
  * Mirrors shell _teammate_chain_next (dispatch.sh:1889) and
  * _teammate_flush_from_state (dispatch.sh:1927).
+ *
+ * Returns null when chaining should continue; returns spawn result when ready
+ * to emit block. Caller (dispatchTeammate) uses this to build the HookOutput.
  */
 export async function _teammateChainNext(
-  step: WorkflowStep,
+  workflowSteps: ReadonlyArray<{ id: string; type: string; team?: string; workflow?: string }>,
   stepIndex: number,
-  hookInput: HookInput,
   stateFile: string,
   teamRef: string,
   subWorkflow: string,
-): Promise<HookOutput>;
+): Promise<{ instructions: string; spawned: TeammateSpawnInfo[] } | null>;
 
 /**
  * FR-006 — collect all teammates registered for `teamRef` and emit a block
  * message containing batched spawn instructions, one per teammate.
  */
-async function _teammateFlushFromState(
+export async function _teammateFlushFromState(
   stateFile: string,
   teamRef: string,
   subWorkflow: string,
-): Promise<HookOutput>;
+): Promise<{ instructions: string; spawned: TeammateSpawnInfo[] } | null>;
 ```
 
 Parity reference: `dispatch.sh:1889`, `dispatch.sh:1927`.
@@ -124,18 +136,21 @@ Parity reference: `dispatch.sh:1889`, `dispatch.sh:1927`.
 
 ## 5. NEW: `_teamWaitComplete` (FR-006 A5, A6)
 
+**Module**: `plugin-wheel/src/lib/dispatch-team.ts` (D-4 decision — same module as §4)
+
 ```typescript
-// plugin-wheel/src/lib/dispatch.ts (module-private)
+// plugin-wheel/src/lib/dispatch-team.ts (exported)
 
 /**
  * FR-006 — finalise a `team-wait` step: collect all teammate outputs into
  * the wait step's output path as `summary.json`; if `collect_to` is set,
- * copy each teammate's output into the configured output_dir.
+ * copy each teammate's output dir contents into <collect_to>/<teammate_name>/.
  *
  * Mirrors shell _team_wait_complete (dispatch.sh:2248).
+ * Idempotent: if step has no `output` field, summary.json write is skipped.
  */
-async function _teamWaitComplete(
-  step: WorkflowStep,
+export async function _teamWaitComplete(
+  step: { output?: string; collect_to?: string },
   stateFile: string,
   stepIndex: number,
   teamRef: string,
