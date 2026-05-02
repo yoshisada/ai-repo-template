@@ -30,7 +30,7 @@ Execution rules (Constitution Articles VII + VIII):
 - [X] **T-011** — `cd plugin-wheel && npm install`. Install succeeded (16 packages added, 8 removed, 4 changed).
 - [X] **T-012** — `cd plugin-wheel && npx vitest run --coverage`. Coverage report printed, all 99 tests pass. SC-3 met.
 - [X] **T-013** — Option (a) succeeded; option (b) fallback NOT needed.
-- [ ] **T-014** — Commit: `chore(wheel-ts): vitest coverage-v8 1.6.x compat (FR-009)`.
+- [X] **T-014** — Commit: `chore(wheel-ts): vitest coverage-v8 1.6.x compat (FR-009)`.
 
 ---
 
@@ -40,7 +40,7 @@ Execution rules (Constitution Articles VII + VIII):
 - [X] **T-021** — `dispatchCommand` now injects `WORKFLOW_PLUGIN_DIR` into child process env via `cmdEnv`.
 - [X] **T-022** — `dispatch.test.ts:command-exports-plugin-dir` added; verifies child process sees the env var.
 - [X] **T-023** — `npx vitest run`: 100/100 pass.
-- [ ] **T-024** — Commit: `feat(wheel-ts): dispatchCommand WORKFLOW_PLUGIN_DIR injection (FR-001)`.
+- [X] **T-024** — Commit: `feat(wheel-ts): dispatchCommand WORKFLOW_PLUGIN_DIR injection (FR-001)`.
 
 ---
 
@@ -52,7 +52,7 @@ Execution rules (Constitution Articles VII + VIII):
 - [ ] **T-033** — DEFERRED — `cascadeNext` already walks past skipped steps internally (lines 149–166), and the workflow-def `next` field is uncommon in loop-cascade tail paths. Filing as follow-up issue if a fixture surfaces it; FR-013 frozen-scope dictates no in-flight expansion.
 - [X] **T-034** — Created `dispatch-loop-iter.test.ts` with 3 tests; all pass.
 - [X] **T-035** — `npx vitest run`: 103/103 pass.
-- [ ] **T-036** — Commit: `fix(wheel-ts): dispatchLoop self-cascade + max_iterations from workflow def (FR-003, closes #199)`.
+- [X] **T-036** — Commit: `fix(wheel-ts): dispatchLoop self-cascade + max_iterations from workflow def (FR-003, closes #199)`.
 
 ---
 
@@ -66,7 +66,7 @@ Execution rules (Constitution Articles VII + VIII):
 - [X] **T-045** — All 5 `console.error('DEBUG dispatchAgent: ...')` calls removed.
 - [X] **T-046** — `dispatch-agent-parity.test.ts` (6 tests) — all pass.
 - [X] **T-047** — `npx vitest run`: 109/109 pass.
-- [ ] **T-048** — Commit: `feat(wheel-ts): dispatchAgent parity (FR-002)`.
+- [X] **T-048** — Commit: `feat(wheel-ts): dispatchAgent parity (FR-002)`.
 
 ---
 
@@ -74,7 +74,7 @@ Execution rules (Constitution Articles VII + VIII):
 
 - [X] **T-050** — Branch fall-through uses `resolveNextIndex` + `advancePastSkipped` from workflow_definition.
 - [X] **T-051** — `dispatch-cascade.test.ts` — 7/7 still pass.
-- [ ] **T-052** — Commit: `fix(wheel-ts): dispatchBranch fall-through cursor via resolveNextIndex (FR-004)`.
+- [X] **T-052** — Commit: `fix(wheel-ts): dispatchBranch fall-through cursor via resolveNextIndex (FR-004)`.
 
 ---
 
@@ -85,7 +85,7 @@ Execution rules (Constitution Articles VII + VIII):
 - [X] **T-062** — `dispatchWorkflow` cascade-into-child confirmed working (PR #200 work intact); added parity comment.
 - [X] **T-063** — `dispatch-terminal.test.ts:child-archive-advances-parent` added; updated existing `dispatch-cascade.test.ts` `parent halts at workflow step` to reflect FR-005 A1 new semantics.
 - [X] **T-064** — `npx vitest run`: 110/110 pass.
-- [ ] **T-065** — Commit: `feat(wheel-ts): composition child-archive advances parent cursor (FR-005)`.
+- [X] **T-065** — Commit: `feat(wheel-ts): composition child-archive advances parent cursor (FR-005)`.
 
 ---
 
@@ -124,7 +124,7 @@ This is the largest phase. Sub-divide into 4 commits.
 - [X] **T-087** — `dispatchTeamDelete` stub replaced with full impl.
 - [X] **T-088** — `dispatch-team-delete.test.ts` (3 tests) — all pass.
 - [X] **T-089** — `npx vitest run`: 119/119 pass.
-- [ ] **T-090** — Commit: `feat(wheel-ts): team primitives parity (FR-006 A1-A7)`.
+- [X] **T-090** — Commit: `feat(wheel-ts): team primitives parity (FR-006 A1-A7)`.
 
 ---
 
@@ -133,7 +133,7 @@ This is the largest phase. Sub-divide into 4 commits.
 - [X] **T-100** — `dispatchParallel` audited: TS already matches shell on `stop` (transitions pending→working, emits agent list block). `teammate_idle` and `subagent_stop` paths intact (existing PR #200 work). Added `dispatch-parallel.test.ts:basic-dispatch`.
 - [X] **T-101** — `dispatchApproval` was over-simplified — replaced with full parity matching shell `dispatch_approval`. Stop blocks with "APPROVAL GATE", teammate_idle with `approval='approved'` advances cursor; otherwise blocks "WAITING FOR APPROVAL". `dispatch-approval.test.ts:approval-teammate-idle` added.
 - [X] **T-102** — `npx vitest run`: 122/122 pass.
-- [ ] **T-103** — Commit: `feat(wheel-ts): dispatchParallel + dispatchApproval parity (FR-007)`.
+- [X] **T-103** — Commit: `feat(wheel-ts): dispatchParallel + dispatchApproval parity (FR-007)`.
 
 ---
 
@@ -143,7 +143,7 @@ This is the largest phase. Sub-divide into 4 commits.
 - [X] **T-111** — `main()` calls `handleDeactivate` instead of the no-op branch. Also gated `main()` invocation behind argv check so the module is testable.
 - [X] **T-112** — `hook-deactivate.test.ts` (3 tests) — all pass.
 - [X] **T-113** — `npx vitest run`: 125/125 pass.
-- [ ] **T-114** — Commit: `feat(wheel-ts): post-tool-use handleDeactivate (FR-008 A1)`.
+- [X] **T-114** — Commit: `feat(wheel-ts): post-tool-use handleDeactivate (FR-008 A1)`.
 
 ---
 
@@ -152,7 +152,7 @@ This is the largest phase. Sub-divide into 4 commits.
 - [X] **T-120** — All 12 `console.error('DEBUG ...')` calls in post-tool-use.ts removed. `grep -c DEBUG`: 0.
 - [X] **T-121** — Read stop.ts, subagent-stop.ts, teammate-idle.ts, session-start.ts, subagent-start.ts. All four delegate to engineInit + engineHandleHook (wait-all-redesign foundation). No outstanding gaps surfaced — see research.md §intentional-deviations.
 - [X] **T-122** — `npx vitest run`: 125/125 pass.
-- [ ] **T-123** — Commit: covered by Phase 9 commit.
+- [X] **T-123** — Commit: covered by Phase 9 commit.
 
 ---
 
