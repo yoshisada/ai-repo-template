@@ -1097,15 +1097,23 @@ async function dispatchLoop(
 
   const substepType = substep.type;
   if (substepType === 'command') {
+    // parity: shell dispatch.sh:1537–1544 — export WORKFLOW_PLUGIN_DIR for substep command exec.
+    const wfModule = await import('./workflow.js');
+    const wfPluginDir = await wfModule.deriveWorkflowPluginDir(stateFile);
+    const cmdEnv = wfPluginDir
+      ? { ...process.env, WORKFLOW_PLUGIN_DIR: wfPluginDir }
+      : { ...process.env };
     try {
-      await execAsync(substep.command, { timeout: 300000 });
+      await execAsync(substep.command, { timeout: 300000, env: cmdEnv });
     } catch (e: any) {
       // Continue loop even on command failure
     }
 
     const reState = await stateRead(stateFile);
     const reIteration = (reState.steps[stepIndex] as any)?.loop_iteration ?? 0;
-    const reMaxIter = (reState.steps[stepIndex] as any)?.max_iterations ?? 10;
+    // parity: shell dispatch.sh:1440 — max_iterations is per-workflow-def, not per-state.
+    // Bug B fix (#199): read from step (workflow def), NOT state.steps[i] (never written).
+    const reMaxIter = (step as any).max_iterations ?? 10;
 
     if (reIteration >= reMaxIter) {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
@@ -1113,7 +1121,11 @@ async function dispatchLoop(
       return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
     }
 
-    return { decision: 'approve' };
+    // parity: shell dispatch.sh:1555 — self-cascade between loop iterations
+    // within one hook fire (closes #199 Bug A). Without this, the loop caps at
+    // 1 iteration per hook fire and count-to-100 never completes inside the
+    // 60s per-fixture timeout.
+    return dispatchLoop(step, hookType, hookInput, stateFile, stepIndex, depth);
   } else if (substepType === 'agent') {
     const instruction = substep.instruction ?? '';
     return {

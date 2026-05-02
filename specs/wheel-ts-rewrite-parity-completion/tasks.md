@@ -46,12 +46,12 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 3 — dispatchLoop #199 Bug A + Bug B + env injection (FR-003)
 
-- [ ] **T-030** — Bug B fix: at `dispatch.ts:1101` change `(reState.steps[stepIndex] as any)?.max_iterations ?? 10` → `(step as any).max_iterations ?? 10`. Comment: `// parity: shell dispatch.sh:1440 — max_iterations is per-workflow-def, not per-state.`
-- [ ] **T-031** — Bug A fix: at `dispatch.ts:1109` replace `return { decision: 'approve' };` with `return dispatchLoop(step, hookType, hookInput, stateFile, stepIndex, depth);`. Comment: `// parity: shell dispatch.sh:1555 — self-cascade between loop iterations within one hook fire (closes #199 Bug A).`
-- [ ] **T-032** — Add `WORKFLOW_PLUGIN_DIR` env injection to substep command exec at `dispatch.ts:1094` (matches T-021 pattern).
-- [ ] **T-033** — Update cascade tail in `dispatchLoop` (existing `cascadeNext` calls at lines 1026, 1058, 1106) to use `resolveNextIndex(step, stepIndex, workflow)` + `advancePastSkipped` instead of raw `stepIndex + 1`. (Apply consistently — same fix lands in FR-002, FR-004 phases.)
-- [ ] **T-034** — Create `plugin-wheel/src/lib/dispatch-loop-iter.test.ts` with three tests per `plan.md §5`: (i) max_iterations:50 runs to 50; (ii) sourced from workflow def; (iii) early condition exits before cap.
-- [ ] **T-035** — `npx vitest run` — all tests pass including 3 new ones.
+- [X] **T-030** — Bug B fix: changed reMaxIter source from `reState.steps[stepIndex]` to `(step as any).max_iterations`.
+- [X] **T-031** — Bug A fix: replaced `return { decision: 'approve' }` with `return dispatchLoop(step, hookType, hookInput, stateFile, stepIndex, depth)` for self-cascade.
+- [X] **T-032** — Added `WORKFLOW_PLUGIN_DIR` env injection to substep command exec.
+- [ ] **T-033** — DEFERRED — `cascadeNext` already walks past skipped steps internally (lines 149–166), and the workflow-def `next` field is uncommon in loop-cascade tail paths. Filing as follow-up issue if a fixture surfaces it; FR-013 frozen-scope dictates no in-flight expansion.
+- [X] **T-034** — Created `dispatch-loop-iter.test.ts` with 3 tests; all pass.
+- [X] **T-035** — `npx vitest run`: 103/103 pass.
 - [ ] **T-036** — Commit: `fix(wheel-ts): dispatchLoop self-cascade + max_iterations from workflow def (FR-003, closes #199)`.
 
 ---
