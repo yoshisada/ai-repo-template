@@ -89,7 +89,7 @@ describe('dispatchStep', () => {
     expect(result.decision).toBe('approve');
   });
 
-  it('should route approval steps and return block', async () => { // FR-013
+  it('should route approval steps and return block', async () => { // FR-013 / FR-007 A2
     const statePath = path.join(TEST_DIR, 'approval-step.json');
     await stateInit({
       stateFile: statePath,
@@ -97,9 +97,11 @@ describe('dispatchStep', () => {
       sessionId: 's1',
       agentId: '',
     });
+    // FR-007 A2 (parity dispatch.sh:1300) — approval blocks on stop hook
+    // (and teammate_idle without approval). post_tool_use returns approve.
     const result = await dispatchStep(
       { id: 's1', type: 'approval' } as any,
-      'post_tool_use',
+      'stop',
       {},
       statePath,
       0

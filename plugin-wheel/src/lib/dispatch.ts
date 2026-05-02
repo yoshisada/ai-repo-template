@@ -1460,19 +1460,48 @@ async function dispatchParallel(
   return { decision: 'approve' };
 }
 
-// FR-013: dispatchApproval - blocks orchestrator
+// parity: shell dispatch.sh:1300 — dispatchApproval.
+// stop: set working if pending, return block message.
+// teammate_idle with .approval === 'approved' → done + advance.
+// teammate_idle without approval → block "WAITING FOR APPROVAL".
 async function dispatchApproval(
-  _step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
+  step: WorkflowStep,
+  hookType: HookType,
+  hookInput: HookInput,
   stateFile: string,
-  stepIndex: number
+  stepIndex: number,
 ): Promise<HookOutput> {
-  await stateSetAwaitingUserInput(stateFile, stepIndex, 'Approval required');
-  return {
-    decision: 'block',
-    additionalContext: 'Approval required for this step. Please review and approve.',
-  };
+  const stateModule = await import('./state.js');
+  const state = await stateRead(stateFile);
+  const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
+  const message = (step as any).message ?? 'Approval required to continue.';
+
+  if (hookType === 'stop') {
+    if (stepStatus === 'pending') {
+      await stateSetStepStatus(stateFile, stepIndex, 'working');
+    }
+    await stateSetAwaitingUserInput(stateFile, stepIndex, message);
+    return {
+      decision: 'block',
+      additionalContext: `APPROVAL GATE: ${message} — Waiting for approval via TeammateIdle.`,
+    };
+  }
+
+  if (hookType === 'teammate_idle') {
+    const approval = (hookInput as any).approval ?? '';
+    if (approval === 'approved') {
+      await stateSetStepStatus(stateFile, stepIndex, 'done');
+      // parity: shell dispatch.sh:1328 — advance cursor.
+      await (stateModule as any).stateSetCursor(stateFile, stepIndex + 1);
+      return { decision: 'approve' };
+    }
+    return {
+      decision: 'block',
+      additionalContext: `WAITING FOR APPROVAL: ${message}`,
+    };
+  }
+
+  return { decision: 'approve' };
 }
 
 // FR-G3-1/FR-G3-4: _hydrateAgentStep - resolves step inputs against state + workflow + registry

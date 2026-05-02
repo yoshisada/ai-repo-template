@@ -130,9 +130,9 @@ This is the largest phase. Sub-divide into 4 commits.
 
 ## Phase 8 — Parallel + Approval audit (FR-007)
 
-- [ ] **T-100** — Read `dispatchParallel` (line 1122) and shell `dispatch_parallel` (dispatch.sh:1215) side by side. Document any concrete gap in `research.md §intentional-deviations` OR fix it. Add minimal `dispatch-parallel.test.ts:basic-dispatch` test.
-- [ ] **T-101** — Read `dispatchApproval` (line 1186) and shell `dispatch_approval` (dispatch.sh:1300) side by side. Verify teammate_idle handling; if missing, add it. Add `dispatch-approval.test.ts:approval-teammate-idle` test.
-- [ ] **T-102** — `npx vitest run` — all tests pass.
+- [X] **T-100** — `dispatchParallel` audited: TS already matches shell on `stop` (transitions pending→working, emits agent list block). `teammate_idle` and `subagent_stop` paths intact (existing PR #200 work). Added `dispatch-parallel.test.ts:basic-dispatch`.
+- [X] **T-101** — `dispatchApproval` was over-simplified — replaced with full parity matching shell `dispatch_approval`. Stop blocks with "APPROVAL GATE", teammate_idle with `approval='approved'` advances cursor; otherwise blocks "WAITING FOR APPROVAL". `dispatch-approval.test.ts:approval-teammate-idle` added.
+- [X] **T-102** — `npx vitest run`: 122/122 pass.
 - [ ] **T-103** — Commit: `feat(wheel-ts): dispatchParallel + dispatchApproval parity (FR-007)`.
 
 ---
