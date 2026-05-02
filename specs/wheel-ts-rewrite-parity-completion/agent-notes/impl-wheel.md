@@ -85,5 +85,36 @@ audit-pr owns SC-1 (the live `/wheel:wheel-test` Phases 1–4 run). impl-wheel c
 
 ## Final test counts
 - pre-impl: 99 tests (96 from rewrite + 3 cascade fixtures)
-- post-impl: 125 tests (+26: 3 loop, 6 agent-parity, 4 teammate, 3 team-delete, 1 parallel, 2 approval, 3 deactivate, 4 inline extensions on existing files)
+- post-impl: 126 tests (+27: 3 loop, 7 agent-parity (incl. P0 regression), 4 teammate, 3 team-delete, 1 parallel, 2 approval, 3 deactivate, 4 inline extensions on existing files)
 - 100% pass rate.
+
+---
+
+## Round 2 — P0 fix (post-handoff)
+
+team-lead found a P0 during parallel SC-1 verification: Phase 2 first
+fixture (agent-chain) hung at the agent step because
+`handleNormalPath` in `post-tool-use.ts` reads `step.output` from
+`state.steps[cursor]`, but stateInit was projecting state.steps[i]
+with only `{id, type, ...dynamic}` — dropping workflow-step
+properties (`output`, `instruction`, `context_from`, `command`, etc.).
+dispatchAgent's stop-hook check `if (outputKey)` therefore failed
+and the step never advanced.
+
+Two-front fix:
+
+1. **stateInit (state.ts)** — spread the workflow step shape FIRST,
+   then override with dynamic state fields. state.steps[i] now mirrors
+   shell wheel's `workflow_step UNION dynamic_fields` shape. Initial
+   `output` value preserves the workflow-step path (was null pre-fix).
+
+2. **handleNormalPath (post-tool-use.ts)** — prefer
+   `state.workflow_definition.steps[cursor]` over `state.steps[cursor]`
+   when computing `step` for dispatch. Defense-in-depth + parity with
+   `cascadeNext` at dispatch.ts:173 (which already uses this pattern).
+
+Regression test: added `dispatch-agent-parity.test.ts:regression: stateInit
+preserves workflow-step output path on state.steps[i]` which asserts
+`output`, `instruction`, `context_from` are all carried through stateInit.
+
+`npm run build` clean, full suite 126/126 pass.

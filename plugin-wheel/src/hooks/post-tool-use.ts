@@ -434,7 +434,18 @@ async function handleNormalPath(
     return { decision: 'approve' };
   }
 
-  const step = state.steps[cursor];
+  // P0 fix: prefer workflow_definition.steps[cursor] over state.steps[cursor]
+  // for the dispatcher input. workflow_definition.steps[cursor] carries the
+  // full workflow-step JSON (output path, instruction, context_from,
+  // command, branches, …). state.steps[cursor] is the dynamic projection;
+  // pre-fix it was missing the workflow-step properties so dispatchAgent
+  // could not find step.output and the agent step never advanced. After
+  // the stateInit spread fix, both sources carry the same fields, but we
+  // keep this guard so the cascade tail and hook entry point use the
+  // SAME source-of-truth (parity with cascadeNext at dispatch.ts:173).
+  const wfDef = (state as any).workflow_definition;
+  const wfSteps: any[] = wfDef?.steps ?? state.steps;
+  const step = wfSteps[cursor] ?? state.steps[cursor];
   const stepType = step?.type ?? '';
 
   // For agent and teammate steps: dispatch with 'stop' hook (these handlers only respond to stop)

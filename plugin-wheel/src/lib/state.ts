@@ -63,13 +63,28 @@ export async function stateInit(params: StateInitParams): Promise<void> {
     parent_workflow: parentWorkflow ?? null,
     started_at: now,
     updated_at: now,
+    // parity: shell wheel — state.steps[i] is a clone of the workflow
+    // step JSON (id, type, instruction, output, context_from, command,
+    // branches, max_iterations, agents, team_name, …) UNION-ed with the
+    // dynamic state fields (status, started_at, command_log, etc.).
+    // Hook entry points read step.output / step.instruction / step.command
+    // from state.steps[i]; without the spread, those fields are absent
+    // and dispatchers can't find the workflow-step shape (P0 bug found
+    // in /wheel:wheel-test Phase 2 agent fixtures).
     steps: workflow.steps.map((step) => ({
+      // 1. Spread workflow-step shape first.
+      ...(step as Record<string, unknown>),
+      // 2. Then override with dynamic state fields. Note: workflow-step
+      //    `output` is the expected path; we preserve it here as the
+      //    initial value, NOT null, so dispatchAgent's stop-hook check
+      //    can find the path. Stale-file cleanup (FR-002 A1) deletes
+      //    leftover files before the step runs.
       id: step.id,
       type: step.type,
       status: 'pending' as StepStatus,
       started_at: null,
       completed_at: null,
-      output: null,
+      output: (step as { output?: unknown }).output ?? null,
       command_log: [],
       agents: {},
       loop_iteration: 0,

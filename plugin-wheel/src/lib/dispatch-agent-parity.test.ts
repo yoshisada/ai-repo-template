@@ -183,6 +183,27 @@ describe('dispatchAgent FR-002 parity', () => {
     expect(finalParent.steps[0].status).toBe('working');
   });
 
+  // P0 regression — state.steps[i] must carry workflow-step `output`
+  // (and other workflow-step properties) after stateInit. Pre-fix
+  // stateInit projected only {id, type, status, ...dynamic} and dropped
+  // the `output` path, so dispatchAgent's stop-hook outputKey lookup
+  // returned undefined and the agent step never advanced.
+  it('regression: stateInit preserves workflow-step output path on state.steps[i]', async () => {
+    const statePath = path.join(TEST_DIR, 'init-output.json');
+    const outFile = path.join(TEST_DIR, 'planned-out.txt');
+    const step = { id: 's1', type: 'agent', instruction: 'do', output: outFile, context_from: ['_context'] };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    const persisted = await stateRead(statePath);
+    expect((persisted.steps[0] as any).output).toBe(outFile);
+    expect((persisted.steps[0] as any).instruction).toBe('do');
+    expect((persisted.steps[0] as any).context_from).toEqual(['_context']);
+  });
+
   // FR-002 A6
   it('emits no DEBUG console output during stop hook', async () => {
     const statePath = path.join(TEST_DIR, 'no-debug.json');
