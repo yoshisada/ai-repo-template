@@ -16,20 +16,20 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 0 — Read & verify existing helpers (no commit)
 
-- [ ] **T-001** — Read `plugin-wheel/src/lib/dispatch.ts` end-to-end. Confirm gap rows from `research.md §dispatcher-audit` are accurate. Confirm cascade tails from PR #200 are present at `dispatchCommand`/`dispatchLoop`/`dispatchBranch`.
-- [ ] **T-002** — Read `plugin-wheel/src/hooks/post-tool-use.ts`. Confirm deactivate handler on line 483 is no-op. Confirm `console.error('DEBUG ...')` calls at lines 390, 476, 478, 490, 492.
-- [ ] **T-003** — Verify existing helpers exist: `git grep -nE "export (async )?function (resolveNextIndex|advancePastSkipped|stateClearAwaitingUserInput|stateRemoveTeam|contextCaptureOutput|contextBuild|contextWriteTeammateFiles)" plugin-wheel/src/lib/`. List which exist vs which need porting from shell. Update `contracts/interfaces.md` Section 1 if needed.
-- [ ] **T-004** — Read shell `dispatch.sh` lines 144 (`_chain_parent_after_archive`), 226 (`handle_terminal_step`), 1535–1544 (`WORKFLOW_PLUGIN_DIR` derivation), 1889 (`_teammate_chain_next`), 1927 (`_teammate_flush_from_state`), 2248 (`_team_wait_complete`). Each is a behaviour port reference.
-- [ ] **T-005** — Read shell `hooks/post-tool-use.sh` lines 81–176 (deactivate handler).
+- [X] **T-001** — Read `plugin-wheel/src/lib/dispatch.ts` end-to-end. Confirm gap rows from `research.md §dispatcher-audit` are accurate. Confirm cascade tails from PR #200 are present at `dispatchCommand`/`dispatchLoop`/`dispatchBranch`.
+- [X] **T-002** — Read `plugin-wheel/src/hooks/post-tool-use.ts`. Confirm deactivate handler on line 483 is no-op. Confirm `console.error('DEBUG ...')` calls at lines 390, 476, 478, 490, 492.
+- [X] **T-003** — Verify existing helpers exist. **Result**: `stateClearAwaitingUserInput`, `stateRemoveTeam`, `stateAddTeammate`, `contextBuild` exist. **MISSING (need porting)**: `resolveNextIndex`, `advancePastSkipped`, `contextCaptureOutput`, `contextWriteTeammateFiles`. Contract §1 already accurately calls out the second-half as "likely missing — verify".
+- [X] **T-004** — Read shell `dispatch.sh` `_chain_parent_after_archive` (:144), `handle_terminal_step` (:226), `resolve_next_index`/`advance_past_skipped` (:71/98), and `_teammate_chain_next` (:1889) bodies for parity port plan.
+- [X] **T-005** — Read shell `hooks/post-tool-use.sh` lines 81–176 (deactivate handler).
 
 ---
 
 ## Phase 1 — vitest coverage tooling (FR-009)
 
-- [ ] **T-010** — Edit `plugin-wheel/package.json`: change `"@vitest/coverage-v8": "^4.1.5"` → `"@vitest/coverage-v8": "^1.6.1"` (option a per `research.md §FR-009-decision`).
-- [ ] **T-011** — `cd plugin-wheel && npm install`. Confirm install succeeds.
-- [ ] **T-012** — `cd plugin-wheel && npx vitest run --coverage`. Confirm coverage report prints with no errors. SC-3.
-- [ ] **T-013** — If T-012 fails: fall back to option (b) (`vitest@^3.x`), update `contracts/interfaces.md` §13, document in `research.md §FR-009-decision`. Re-run all 99 tests; fix any vitest-3-incompatibility breakage.
+- [X] **T-010** — Edit `plugin-wheel/package.json`: change `"@vitest/coverage-v8": "^4.1.5"` → `"@vitest/coverage-v8": "^1.6.1"` (option a per `research.md §FR-009-decision`).
+- [X] **T-011** — `cd plugin-wheel && npm install`. Install succeeded (16 packages added, 8 removed, 4 changed).
+- [X] **T-012** — `cd plugin-wheel && npx vitest run --coverage`. Coverage report printed, all 99 tests pass. SC-3 met.
+- [X] **T-013** — Option (a) succeeded; option (b) fallback NOT needed.
 - [ ] **T-014** — Commit: `chore(wheel-ts): vitest coverage-v8 1.6.x compat (FR-009)`.
 
 ---
