@@ -61,6 +61,8 @@ Captured 2026-05-01 on branch `build/wheel-ts-rewrite-parity-completion-20260501
 |---|---|---|---|
 | Output-schema validation in `dispatchAgent` (`workflow_validate_output_against_schema`) | shell:642–660 | TS rewrite has not implemented the `wheel-typed-schema-locality` Theme H1 wrapper. Porting it would balloon scope. spec.md FR-002 explicitly defers. Schema-violation block is not test-fixture parity (no fixture asserts on the violation message). | TBD — implementer files at end of pipeline. |
 | `WheelLogPhase` type strictness | parent rewrite | `wheelLog(phase: string, fields)` accepts any string in TS — shell uses freeform string. No deviation in observable behaviour. | n/a |
+| `dispatchLoop` cascade tail uses raw `stepIndex+1` | shell `dispatch_loop` :1551 | The `cascadeNext` helper already walks past skipped steps (`dispatch.ts:149-166`). `step.next` field is uncommon in loop tail paths — the only difference is when a workflow author adds `next` to a `loop` step, which is uncommon. T-033 deferred per FR-013 frozen scope; will file follow-up issue if a fixture surfaces it. | TBD |
+| `stop.ts` / `subagent-stop.ts` / `teammate-idle.ts` / `session-start.ts` / `subagent-start.ts` | various | TS hooks all delegate to `engineInit` + `engineHandleHook` (wait-all-redesign foundation). End-to-end audit confirmed parity. The TS files are intentionally smaller than shell because the engine modularisation collapsed per-hook bookkeeping into shared helpers. | n/a |
 
 Add additional rows during implementation if any further deliberate deviations surface. The auditor MUST flag any undocumented deviation.
 

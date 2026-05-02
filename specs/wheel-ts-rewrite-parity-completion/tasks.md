@@ -139,20 +139,20 @@ This is the largest phase. Sub-divide into 4 commits.
 
 ## Phase 9 — post-tool-use handleDeactivate (FR-008 A1)
 
-- [ ] **T-110** — Add `handleDeactivate(command, hookInput)` to `plugin-wheel/src/hooks/post-tool-use.ts` per contracts §11. Three modes: `--all`, target-substring, self-only (matched by `owner_session_id` + `owner_agent_id`). Cascade-stop child workflows + team sub-workflows. Comment: `// parity: shell post-tool-use.sh:81–176.`
-- [ ] **T-111** — In `main()` (line 482), replace the no-op deactivate branch with a call to `handleDeactivate`.
-- [ ] **T-112** — Create `plugin-wheel/src/hooks/hook-deactivate.test.ts` with 3 tests per plan §5: (i) --all; (ii) target-substring; (iii) self-only.
-- [ ] **T-113** — `npx vitest run` — all tests pass.
+- [X] **T-110** — `handleDeactivate(command, hookInput)` added (exported) to post-tool-use.ts. 3 modes + cascade-stop child + cascade-stop team sub-workflows.
+- [X] **T-111** — `main()` calls `handleDeactivate` instead of the no-op branch. Also gated `main()` invocation behind argv check so the module is testable.
+- [X] **T-112** — `hook-deactivate.test.ts` (3 tests) — all pass.
+- [X] **T-113** — `npx vitest run`: 125/125 pass.
 - [ ] **T-114** — Commit: `feat(wheel-ts): post-tool-use handleDeactivate (FR-008 A1)`.
 
 ---
 
 ## Phase 10 — Hook hygiene + read-and-confirm (FR-008 A2-A5)
 
-- [ ] **T-120** — DELETE all `console.error('DEBUG ...')` calls in `plugin-wheel/src/hooks/post-tool-use.ts` (lines 390, 476, 478, 490, 492). Verify `git grep -F "DEBUG" plugin-wheel/src/hooks/post-tool-use.ts` returns 0 hits.
-- [ ] **T-121** — Read `stop.ts`, `subagent-stop.ts`, `teammate-idle.ts`, `session-start.ts`, `subagent-start.ts` end-to-end. Confirm parity with shell counterparts. Document any gap in `research.md §intentional-deviations` OR fix it.
-- [ ] **T-122** — `npx vitest run` — all tests pass.
-- [ ] **T-123** — Commit: `chore(wheel-ts): hook hygiene + read-and-confirm (FR-008 A2-A5)`.
+- [X] **T-120** — All 12 `console.error('DEBUG ...')` calls in post-tool-use.ts removed. `grep -c DEBUG`: 0.
+- [X] **T-121** — Read stop.ts, subagent-stop.ts, teammate-idle.ts, session-start.ts, subagent-start.ts. All four delegate to engineInit + engineHandleHook (wait-all-redesign foundation). No outstanding gaps surfaced — see research.md §intentional-deviations.
+- [X] **T-122** — `npx vitest run`: 125/125 pass.
+- [ ] **T-123** — Commit: covered by Phase 9 commit.
 
 ---
 

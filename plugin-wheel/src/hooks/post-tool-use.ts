@@ -98,42 +98,33 @@ function extractAlternateAgentId(line: string): string | null {
 
 // Resolve workflow file path from name
 async function resolveWorkflowFile(workflowName: string): Promise<string | null> {
-  console.error('DEBUG: resolveWorkflowFile input:', workflowName.substring(0, 100));
-
   // Absolute path - use directly if it starts with /
   if (workflowName.startsWith('/')) {
-    console.error('DEBUG: checking absolute path:', workflowName);
     if (await fileExists(workflowName)) {
-      console.error('DEBUG: absolute path exists:', workflowName);
       return workflowName;
     }
     // Try resolving relative to cwd if it's not an absolute path
     const resolved = path.resolve(process.cwd(), workflowName);
-    console.error('DEBUG: resolved relative to cwd:', resolved);
     if (await fileExists(resolved)) return resolved;
   }
 
   // Local workflows/ — also try stripping leading "tests/" prefix since workflow
   // names from composition steps are like "tests/team-sub-worker"
   const localPath = path.join(process.cwd(), 'workflows', `${workflowName}.json`);
-  console.error('DEBUG: checking localPath:', localPath);
   if (await fileExists(localPath)) return localPath;
 
   // Try stripping "tests/" prefix: "tests/foo" → "foo"
   if (workflowName.startsWith('tests/')) {
     const strippedName = workflowName.slice(5); // remove "tests/"
     const strippedPath = path.join(process.cwd(), 'workflows', `${strippedName}.json`);
-    console.error('DEBUG: checking stripped localPath:', strippedPath);
     if (await fileExists(strippedPath)) return strippedPath;
   }
 
   // Try direct path
-  console.error('DEBUG: checking direct path:', workflowName);
   if (await fileExists(workflowName)) return workflowName;
 
   // Discover from plugins
   const workflows = await discoverPluginWorkflows();
-  console.error('DEBUG: discovered workflows count:', workflows.length);
   if (workflowName.includes(':')) {
     const [plugin, name] = workflowName.split(':');
     const found = workflows.find(w => w.plugin === plugin && w.name === name);
@@ -307,15 +298,12 @@ async function handleActivation(
   }
 
   // Load workflow
-  console.error('DEBUG: workflowFile resolved to:', workflowFile);
   let workflowJson: string;
   try {
     const wf = await loadWorkflowJson(workflowFile) as Record<string, unknown>;
     workflowJson = JSON.stringify(wf);
-    console.error('DEBUG: workflow loaded successfully, name:', wf.name);
   } catch (err) {
-    console.error('DEBUG: workflowLoad failed:', err instanceof Error ? err.message : String(err));
-    console.error(`wheel post-tool-use: activate-failed workflow=${workflowName} reason=unresolved-or-invalid`);
+    console.error(`wheel post-tool-use: activate-failed workflow=${workflowName} reason=unresolved-or-invalid err=${err instanceof Error ? err.message : String(err)}`);
     return { output: { hookEventName: 'PostToolUse' }, activated: false };
   }
 
@@ -387,7 +375,7 @@ async function handleActivation(
     try {
       await dispatchStep(workflow.steps[0] as any, 'post_tool_use', hookInput, stateFile, 0, 0);
     } catch (err) {
-      console.error('DEBUG: handleActivation cascade error:', err);
+      // non-fatal: cascade error during activation swallowed (parity hygiene).
     }
   }
   // FR-005 — terminal-cursor archive after cascade. cascadeNext can drive
@@ -470,26 +458,169 @@ async function handleNormalPath(
   }
 }
 
+/**
+ * parity: shell post-tool-use.sh:81–176 — handle a deactivate.sh
+ * invocation. Modes:
+ *   --all          → archive every state file in .wheel/state_*.json
+ *   <substring>    → archive state files whose basename contains arg
+ *   <empty>        → archive only the caller's own state file
+ *                    (matched by owner_session_id + owner_agent_id)
+ *
+ * After primary archive: cascade-stop child workflows (parent_workflow
+ * points to a now-missing file) and team sub-workflows (teammate
+ * agent_ids found in archived state). Always returns
+ * {hookEventName: 'PostToolUse'}.
+ */
+export async function handleDeactivate(
+  command: string,
+  hookInput: HookInput,
+): Promise<HookOutput> {
+  // Extract argument from the deactivate line.
+  const lines = command.split('\n').filter(l => l.includes('deactivate.sh'));
+  const lastLine = lines[lines.length - 1] ?? '';
+  const afterCmd = lastLine.replace(/.*deactivate\.sh\s*/, '');
+  const arg = (afterCmd.split(/\s+/)[0] ?? '').replace(/['"]/g, '');
+
+  const sessionId = String((hookInput as any).session_id ?? '');
+  const agentId = String((hookInput as any).agent_id ?? '');
+
+  const stoppedDir = path.join('.wheel', 'history', 'stopped');
+  await fs.mkdir(stoppedDir, { recursive: true });
+
+  const stateDir = '.wheel';
+  let stateFiles: string[] = [];
+  try {
+    const all = await fs.readdir(stateDir);
+    stateFiles = all
+      .filter(f => f.startsWith('state_') && f.endsWith('.json'))
+      .map(f => path.join(stateDir, f));
+  } catch {
+    stateFiles = [];
+  }
+
+  const archiveOne = async (sf: string): Promise<void> => {
+    const ts = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*Z$/, '').replace('T', '-');
+    const fname = path.basename(sf, '.json');
+    const target = path.join(stoppedDir, `${fname}-${ts}.json`);
+    try {
+      await fs.copyFile(sf, target);
+      await fs.unlink(sf);
+    } catch {
+      // non-fatal — log via wheelLog if needed
+    }
+  };
+
+  if (arg === '--all') {
+    for (const sf of stateFiles) await archiveOne(sf);
+  } else if (arg) {
+    for (const sf of stateFiles) {
+      if (path.basename(sf).includes(arg)) await archiveOne(sf);
+    }
+  } else {
+    for (const sf of stateFiles) {
+      try {
+        const s = JSON.parse(await fs.readFile(sf, 'utf-8'));
+        if (s.owner_session_id === sessionId && s.owner_agent_id === agentId) {
+          await archiveOne(sf);
+          break;
+        }
+      } catch {
+        // skip unreadable
+      }
+    }
+  }
+
+  // FR-018: cascade-stop child workflows whose parent_workflow points to
+  // a now-missing file.
+  try {
+    const remaining = await fs.readdir(stateDir);
+    for (const f of remaining) {
+      if (!f.startsWith('state_') || !f.endsWith('.json')) continue;
+      const sf = path.join(stateDir, f);
+      try {
+        const s = JSON.parse(await fs.readFile(sf, 'utf-8'));
+        const parent = s.parent_workflow as string | null | undefined;
+        if (parent) {
+          try {
+            await fs.access(parent);
+          } catch {
+            // parent gone — stop child
+            await archiveOne(sf);
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+  } catch {
+    // .wheel may not exist
+  }
+
+  // FR-028: cascade-stop team agent sub-workflows. Walk archived state
+  // files in stopped/ to find teammate agent_ids, then archive any live
+  // state file with matching owner_agent_id.
+  try {
+    const stoppedFiles = await fs.readdir(stoppedDir);
+    const teammateAgentIds = new Set<string>();
+    for (const f of stoppedFiles) {
+      try {
+        const s = JSON.parse(await fs.readFile(path.join(stoppedDir, f), 'utf-8'));
+        const teams = s.teams as Record<string, any> | undefined;
+        if (!teams) continue;
+        for (const team of Object.values(teams)) {
+          const teammates = (team as any)?.teammates ?? {};
+          for (const tm of Object.values(teammates)) {
+            const status = (tm as any)?.status ?? '';
+            const aid = (tm as any)?.agent_id ?? '';
+            if ((status === 'pending' || status === 'running') && aid) {
+              teammateAgentIds.add(String(aid));
+            }
+          }
+        }
+      } catch {
+        // skip
+      }
+    }
+    if (teammateAgentIds.size > 0) {
+      const live = await fs.readdir(stateDir).catch(() => [] as string[]);
+      for (const f of live) {
+        if (!f.startsWith('state_') || !f.endsWith('.json')) continue;
+        const sf = path.join(stateDir, f);
+        try {
+          const s = JSON.parse(await fs.readFile(sf, 'utf-8'));
+          if (teammateAgentIds.has(String(s.owner_agent_id ?? ''))) {
+            await archiveOne(sf);
+          }
+        } catch {
+          // skip
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return { hookEventName: 'PostToolUse' };
+}
+
 // Main entry point
 async function main(): Promise<void> {
   try {
-    console.error('DEBUG: starting hook');
     const rawInput = await readStdin();
-    console.error('DEBUG: read stdin, len=', rawInput.length);
     const command = await extractCommandWithFallback(rawInput);
     const hookInput = JSON.parse(rawInput) as HookInput;
 
-    // Check for deactivate.sh
+    // parity: shell post-tool-use.sh:83 — handle deactivate.sh BEFORE
+    // activate.sh (substring overlap).
     if (command.includes('deactivate.sh')) {
-      console.log(JSON.stringify({ hookEventName: 'PostToolUse' }));
+      const output = await handleDeactivate(command, hookInput);
+      console.log(JSON.stringify(output));
       return;
     }
 
     // Check for activate.sh
     const activateLine = detectActivateLine(command);
-    console.error('DEBUG: detectActivateLine result:', activateLine ? 'found' : 'null');
     if (activateLine) {
-      console.error('DEBUG: calling handleActivation with line:', activateLine.substring(0,100));
       const { output } = await handleActivation(activateLine, hookInput);
       console.log(JSON.stringify(output));
       return;
@@ -521,4 +652,9 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+// Only invoke main() when this module is the entry point (allows testing
+// individual exports without triggering hook execution).
+const mainScript = process.argv[1] ?? '';
+if (mainScript.endsWith('post-tool-use.js') || mainScript.endsWith('post-tool-use.ts')) {
+  main();
+}
