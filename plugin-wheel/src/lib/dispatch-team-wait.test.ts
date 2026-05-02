@@ -313,3 +313,56 @@ describe('FR-005 hook remap is engine-layer', () => {
     expect(state.steps[1].status).toBe('working');
   });
 });
+
+// FR-006 A5/A6 — _team_wait_complete: summary.json + collect_to copy.
+describe('dispatchTeamWait _team_wait_complete (FR-006 A5/A6)', () => {
+  it('wait-summary-output: writes summary.json on completion', async () => {
+    const { stateFile } = await setupParent({
+      teammates: [
+        { name: 'a', agent_id: 'a@t', status: 'completed' },
+        { name: 'b', agent_id: 'b@t', status: 'failed' },
+      ],
+    });
+    // Override the step.output so _teamWaitComplete writes summary.json there.
+    const summaryPath = path.join(activeDir, 'summary-output.json');
+    const stepWithOutput = { id: 'wait', type: 'team-wait', team: 'wait', output: summaryPath };
+
+    await dispatchStep(stepWithOutput as any, 'stop', {}, stateFile, 1);
+
+    const summary = JSON.parse(await fs.readFile(summaryPath, 'utf-8'));
+    // Teammate slots keyed by agent_id (parent setup uses agent_id as key).
+    expect(summary['a@t']).toBeDefined();
+    expect(summary['a@t'].status).toBe('completed');
+    expect(summary['b@t'].status).toBe('failed');
+  });
+
+  it('collect-to-copy: copies teammate output_dir contents into collect_to', async () => {
+    const { stateFile } = await setupParent({
+      teammates: [
+        { name: 'a', agent_id: 'a@t', status: 'completed' },
+      ],
+    });
+    // Seed teammate output_dir with a file to be copied.
+    const teamOutputDir = path.join(activeDir, '.wheel', 'outputs', 'a');
+    await fs.mkdir(teamOutputDir, { recursive: true });
+    await fs.writeFile(path.join(teamOutputDir, 'result.txt'), 'hello');
+
+    // Update teammate's output_dir in state to point to seeded dir.
+    {
+      const s = await stateRead(stateFile);
+      s.teams['wait'].teammates['a@t'].output_dir = teamOutputDir;
+      await stateWrite(stateFile, s);
+    }
+
+    const collectDir = path.join(activeDir, 'collected');
+    const stepWithCollect = {
+      id: 'wait', type: 'team-wait', team: 'wait', collect_to: collectDir,
+    };
+
+    await dispatchStep(stepWithCollect as any, 'stop', {}, stateFile, 1);
+
+    // Expect <collectDir>/a@t/result.txt to exist with the original content.
+    const copied = await fs.readFile(path.join(collectDir, 'a@t', 'result.txt'), 'utf-8');
+    expect(copied).toBe('hello');
+  });
+});

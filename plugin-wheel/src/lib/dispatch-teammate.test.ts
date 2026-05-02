@@ -1,0 +1,169 @@
+// FR-006 A2-A4 — dispatchTeammate parity tests.
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { dispatchStep } from './dispatch.js';
+import { stateInit } from './state.js';
+import { stateRead, stateWrite } from '../shared/state.js';
+
+const TEST_DIR = '/tmp/wheel-dispatch-teammate-test';
+
+beforeEach(async () => {
+  await fs.mkdir(TEST_DIR, { recursive: true });
+});
+
+afterEach(async () => {
+  await fs.rm(TEST_DIR, { recursive: true, force: true });
+});
+
+async function setupTeam(stateFile: string, teamRef: string, teamName: string) {
+  const state = await stateRead(stateFile);
+  state.teams[teamRef] = { team_name: teamName, teammates: {} };
+  await stateWrite(stateFile, state);
+}
+
+describe('dispatchTeammate FR-006 parity', () => {
+  // FR-006 A2
+  it('writes context.json + assignment.json into teammate output_dir', async () => {
+    const statePath = path.join(TEST_DIR, 'ctx.json');
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      assign: { task: 'do' },
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    await dispatchStep(step as any, 'stop', {}, statePath, 0);
+
+    const outputDir = `.wheel/outputs/team-tm/${step.id}`;
+    const ctxPath = path.join(outputDir, 'context.json');
+    const assignPath = path.join(outputDir, 'assignment.json');
+    const ctxStat = await fs.stat(ctxPath);
+    const assignStat = await fs.stat(assignPath);
+    expect(ctxStat.isFile()).toBe(true);
+    expect(assignStat.isFile()).toBe(true);
+    const assignData = JSON.parse(await fs.readFile(assignPath, 'utf-8'));
+    expect(assignData).toEqual({ task: 'do' });
+
+    // cleanup
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
+  // FR-006 A3
+  it('_teammateChainNext: emits a single batched block, not one per teammate', async () => {
+    const statePath = path.join(TEST_DIR, 'chain.json');
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      assign: { task: 'a' },
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+
+    expect(result.decision).toBe('block');
+    // batched format mentions team and lists agent_id
+    expect(result.additionalContext).toContain('Spawn');
+    expect(result.additionalContext).toContain('s1');
+    expect(result.additionalContext).toContain('agent_id');
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
+  // FR-006 A4
+  it('post_tool_use TaskCreate detection updates teammate task_id', async () => {
+    const statePath = path.join(TEST_DIR, 'tc.json');
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    // First, dispatch stop to register teammate s1.
+    await dispatchStep(step as any, 'stop', {}, statePath, 0);
+
+    // Now simulate orchestrator calling TaskCreate with subject matching s1.
+    await dispatchStep(
+      step as any,
+      'post_tool_use',
+      {
+        tool_name: 'TaskCreate',
+        tool_input: { subject: 's1', task_id: 'task-abc' },
+      },
+      statePath,
+      0,
+    );
+
+    const finalState = await stateRead(statePath);
+    expect(finalState.teams.main.teammates.s1.task_id).toBe('task-abc');
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
+  // FR-006 A4 (additional)
+  it('dynamic-spawn loop threads agent_assign distribution', async () => {
+    // Build a loop_from output containing 4 items; max_agents=2 → round-robin.
+    const itemsFile = path.join(TEST_DIR, 'items.json');
+    await fs.writeFile(itemsFile, JSON.stringify(['a', 'b', 'c', 'd']));
+
+    const statePath = path.join(TEST_DIR, 'dyn.json');
+    const items_step = { id: 'items', type: 'command' };
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      loop_from: 'items',
+      max_agents: 2,
+      name: 'worker',
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [items_step as any, step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    // Write items output into state.
+    {
+      const s = await stateRead(statePath);
+      s.steps[0].output = itemsFile;
+      s.teams.main = { team_name: 'tm', teammates: {} };
+      await stateWrite(statePath, s);
+    }
+
+    await dispatchStep(step as any, 'stop', {}, statePath, 1);
+
+    const finalState = await stateRead(statePath);
+    const tm = finalState.teams.main.teammates;
+    expect(Object.keys(tm).length).toBe(2);
+    // Round-robin: bucket 0 = ['a', 'c'], bucket 1 = ['b', 'd']
+    expect((tm['worker-0'].assign as any).items).toEqual(['a', 'c']);
+    expect((tm['worker-1'].assign as any).items).toEqual(['b', 'd']);
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+});

@@ -613,6 +613,8 @@ async function dispatchTeamCreate(
       if (toolName === 'TeamCreate') {
         await stateModule.stateSetTeam(stateFile, stepId, teamName);
         await stateSetStepStatus(stateFile, stepIndex, 'done');
+        // parity: shell dispatch.sh:1669–1673 — cascade into next auto-executable step.
+        return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, 0);
       }
     }
     return { decision: 'approve' };
@@ -629,6 +631,25 @@ async function dispatchTeammate(
   stateFile: string,
   stepIndex: number
 ): Promise<HookOutput> {
+  // parity: shell dispatch.sh:1843–1876 — post_tool_use TaskCreate detection.
+  // When the orchestrator calls TaskCreate after a teammate spawn block,
+  // match the subject field to a registered teammate name and update task_id.
+  if (hookType === 'post_tool_use') {
+    const toolName = _hookInput.tool_name;
+    if (toolName === 'TaskCreate') {
+      const teamRef = (step as any).team;
+      if (teamRef) {
+        const teamModule = await import('./dispatch-team.js');
+        await teamModule.teammateMatchTaskCreate(
+          stateFile,
+          teamRef,
+          (_hookInput.tool_input ?? {}) as Record<string, unknown>,
+        );
+      }
+    }
+    return { decision: 'approve' };
+  }
+
   if (hookType !== 'stop') {
     return { decision: 'approve' };
   }
@@ -686,42 +707,106 @@ async function dispatchTeammate(
       }
 
       const agentCount = Math.min(items.length, maxAgents);
+      // parity: shell dispatch.sh:1796–1808 — round-robin agent_assign distribution.
+      const teamModule = await import('./dispatch-team.js');
+      const distribution = teamModule.distributeAgentAssign(items, agentCount);
+      const contextModule = await import('./context.js');
+      const wfDef: any = (state as any).workflow_definition ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
+      const contextFromJson: unknown[] = (step as any).context_from ?? [];
 
       for (let i = 0; i < agentCount; i++) {
         const name = `${agentName}-${i}`;
+        const outputDir = `.wheel/outputs/team-${teamName}/${name}`;
+        const assignJson = { items: distribution[String(i)] ?? [] };
         const teammate: TeammateEntry = {
           task_id: '',
           status: 'pending',
           agent_id: name,
-          output_dir: `.wheel/outputs/team-${teamName}/${name}`,
-          assign: {},
+          output_dir: outputDir,
+          // parity: shell dispatch.sh:1808 — pass agent_assign to teammate slot.
+          assign: assignJson,
           started_at: null,
           completed_at: null,
         };
         await stateModule.stateAddTeammate(stateFile, teamRef, teammate);
+        // parity: shell dispatch.sh:1806/1827 — write per-teammate context.json + assignment.json.
+        try {
+          await contextModule.contextWriteTeammateFiles(
+            outputDir,
+            state,
+            wfDef,
+            contextFromJson,
+            assignJson,
+          );
+        } catch {
+          // FS errors are non-fatal — log but continue
+        }
       }
 
       await stateSetStepStatus(stateFile, stepIndex, 'done');
+      // parity: shell dispatch.sh:1813/1832 — single batched block via _teammateChainNext.
+      const wfStepsArr = wfDef?.steps ?? state.steps;
+      const chainResult = await teamModule._teammateChainNext(
+        wfStepsArr,
+        stepIndex,
+        stateFile,
+        teamRef,
+        subWorkflow,
+      );
+      if (chainResult === null) {
+        // Next step is also a teammate for the same team — chain on, no block.
+        return { decision: 'approve' };
+      }
       return {
         decision: 'block',
-        additionalContext: `Spawned ${agentCount} agents for ${subWorkflow}`,
+        additionalContext: chainResult.instructions || `Spawned ${agentCount} agents for ${subWorkflow}`,
       };
     } else {
+      const outputDir = `.wheel/outputs/team-${teamName}/${agentName}`;
+      const assignJson = (step as any).assign ?? {};
       const teammate: TeammateEntry = {
         task_id: '',
         status: 'pending',
         agent_id: agentName,
-        output_dir: `.wheel/outputs/team-${teamName}/${agentName}`,
-        assign: (step as any).assign ?? {},
+        output_dir: outputDir,
+        assign: assignJson,
         started_at: null,
         completed_at: null,
       };
       await stateModule.stateAddTeammate(stateFile, teamRef, teammate);
+      // parity: shell dispatch.sh:1806 — write context.json + assignment.json.
+      const contextModule = await import('./context.js');
+      const wfDef: any = (state as any).workflow_definition ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
+      const contextFromJson: unknown[] = (step as any).context_from ?? [];
+      try {
+        await contextModule.contextWriteTeammateFiles(
+          outputDir,
+          state,
+          wfDef,
+          contextFromJson,
+          assignJson,
+        );
+      } catch {
+        // non-fatal
+      }
 
       await stateSetStepStatus(stateFile, stepIndex, 'done');
+      // parity: shell dispatch.sh:1813/1832 — single batched block via _teammateChainNext.
+      const teamModule = await import('./dispatch-team.js');
+      const wfStepsArr = wfDef?.steps ?? state.steps;
+      const chainResult = await teamModule._teammateChainNext(
+        wfStepsArr,
+        stepIndex,
+        stateFile,
+        teamRef,
+        subWorkflow,
+      );
+      if (chainResult === null) {
+        return { decision: 'approve' };
+      }
       return {
         decision: 'block',
-        additionalContext: `Spawned agent: ${agentName} for ${subWorkflow}`,
+        additionalContext: chainResult.instructions || `Spawned agent: ${agentName} for ${subWorkflow}`,
       };
     }
   }
@@ -737,7 +822,8 @@ async function dispatchTeammate(
 async function _recheckAndCompleteIfDone(
   stateFile: string,
   stepIndex: number,
-  teamRef: string
+  teamRef: string,
+  step?: { output?: string; collect_to?: string },
 ): Promise<boolean> {
   const state = await stateRead(stateFile);
   const team = state.teams?.[teamRef];
@@ -758,6 +844,17 @@ async function _recheckAndCompleteIfDone(
     const status = teammates[name]?.status ?? 'pending';
     if (status !== 'completed' && status !== 'failed') {
       return false;
+    }
+  }
+
+  // parity: shell dispatch.sh:2248 — call _team_wait_complete BEFORE marking done.
+  // Writes summary.json and (if collect_to set) copies teammate outputs.
+  if (step && state.steps[stepIndex]?.status !== 'done') {
+    try {
+      const teamModule = await import('./dispatch-team.js');
+      await teamModule._teamWaitComplete(step, stateFile, stepIndex, teamRef);
+    } catch {
+      // non-fatal; archive flow proceeds
     }
   }
 
@@ -791,7 +888,7 @@ async function dispatchTeamWait(
     if (stepStatus === 'pending') {
       await stateSetStepStatus(stateFile, stepIndex, 'working');
     }
-    const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef);
+    const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as any);
     if (done) {
       return { decision: 'approve' };
     }
@@ -812,7 +909,7 @@ async function dispatchTeamWait(
     // FR-004: run polling backstop BEFORE the re-check so any reconciled
     // orphans are visible to _recheckAndCompleteIfDone in the same call.
     await _runPollingBackstop(stateFile, teamRef);
-    await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef);
+    await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as any);
     return { decision: 'approve' };
   }
 
@@ -999,14 +1096,75 @@ async function _runPollingBackstop(
   return { reconciledCount: reconciled, stillRunningCount: stillRunning };
 }
 
-// FR-025: dispatchTeamDelete
+// parity: shell dispatch.sh:2375 — dispatch_team_delete full implementation.
+// Stop hook: pending → block "Delete team", working → "still waiting".
+// post_tool_use: TeamDelete tool → state_remove_team + cursor advance + cascade.
+// Idempotency: if team already removed, no-op + advance cursor.
 async function dispatchTeamDelete(
-  _step: WorkflowStep,
-  _hookType: HookType,
-  _hookInput: HookInput,
-  _stateFile: string,
-  _stepIndex: number
+  step: WorkflowStep,
+  hookType: HookType,
+  hookInput: HookInput,
+  stateFile: string,
+  stepIndex: number,
 ): Promise<HookOutput> {
+  const stateModule = await import('./state.js');
+  const state = await stateRead(stateFile);
+  const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
+  const teamRef = (step as any).team as string | undefined;
+  const teamName = teamRef ? state.teams?.[teamRef]?.team_name : undefined;
+
+  if (hookType === 'stop') {
+    if (stepStatus === 'pending') {
+      // parity: shell dispatch.sh:2399 — idempotency. If team already gone, no-op + advance.
+      if (!teamName) {
+        await stateSetStepStatus(stateFile, stepIndex, 'done');
+        return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, 0);
+      }
+      await stateSetStepStatus(stateFile, stepIndex, 'working');
+      // parity: shell dispatch.sh:2421–2434 — emit block with shutdown + TeamDelete instruction.
+      const teammates = state.teams?.[teamRef!]?.teammates ?? {};
+      const stillRunning = Object.entries(teammates)
+        .filter(([, slot]) => slot?.status === 'running' || slot?.status === 'pending')
+        .map(([name]) => name);
+      let forceMsg = '';
+      if (stillRunning.length > 0) {
+        forceMsg = ` WARNING: These teammates are still active and must be force-terminated first: ${stillRunning.join(', ')}. Send shutdown requests to them before calling TeamDelete.`;
+      }
+      return {
+        decision: 'block',
+        additionalContext: `Delete team '${teamName}'. Send shutdown to all teammates, then call TeamDelete to remove the team.${forceMsg}`,
+      };
+    } else if (stepStatus === 'working') {
+      return {
+        decision: 'block',
+        additionalContext: `Still waiting for TeamDelete to be called for team: ${teamName ?? teamRef}. Complete the deletion.`,
+      };
+    }
+    return { decision: 'approve' };
+  }
+
+  if (hookType === 'post_tool_use') {
+    if (stepStatus === 'working') {
+      const toolName = hookInput.tool_name;
+      if (toolName === 'TeamDelete') {
+        // parity: shell dispatch.sh:2447–2451 — state_remove_team + mark done.
+        if (teamRef) {
+          await stateModule.stateRemoveTeam(stateFile, teamRef);
+        }
+        await stateSetStepStatus(stateFile, stepIndex, 'done');
+        // parity: shell dispatch.sh:2453–2458 — terminal step archive trigger.
+        if ((step as any).terminal === true) {
+          const fresh = await stateRead(stateFile);
+          await stateWrite(stateFile, { ...fresh, status: 'completed' as const });
+          return { hookEventName: 'PostToolUse' };
+        }
+        // parity: shell dispatch.sh:2461–2480 — advance cursor + cascade into next auto-executable.
+        return cascadeNext('stop', hookInput, stateFile, stepIndex + 1, 0);
+      }
+    }
+    return { hookEventName: 'PostToolUse' };
+  }
+
   return { decision: 'approve' };
 }
 

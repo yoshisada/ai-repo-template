@@ -199,9 +199,13 @@ describe('dispatchTeammate', () => {
       statePath,
       0
     );
-    // Should block with spawn instruction
+    // FR-006 A3 — block emits a single batched spawn instruction via
+    // _teammateChainNext / _teammateFlushFromState. Pre-FR-006 wording
+    // was "Spawned agent: ..." — new wording is "Spawn the following
+    // teammates as part of team ...".
     expect(result.decision).toBe('block');
-    expect(result.additionalContext).toContain('Spawned');
+    expect(result.additionalContext).toContain('Spawn');
+    expect(result.additionalContext).toContain('worker-1');
   });
 });
 
