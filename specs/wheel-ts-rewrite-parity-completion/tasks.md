@@ -58,14 +58,14 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 4 — dispatchAgent 6 sub-fixes (FR-002)
 
-- [ ] **T-040** — FR-002 A1: at `dispatch.ts:237` (pending→working transition), add stale-output-file deletion. Read `step.output`, `unlink` if file exists. Comment: `// parity: shell dispatch.sh:594–602 — delete stale output file from prior run.`
-- [ ] **T-041** — FR-002 A2: at `dispatch.ts:261` replace `const newCursor = stepIndex + 1;` with `resolveNextIndex` + `advancePastSkipped` chain. Comment: `// parity: shell dispatch.sh:676–680 — cursor advance respects skipped + next field.`
-- [ ] **T-042** — FR-002 A3: after `stateSetStepStatus(stateFile, stepIndex, 'done')` at `dispatch.ts:260`, add `await stateClearAwaitingUserInput(stateFile, stepIndex);`. Comment: `// parity: shell dispatch.sh:667 — clear awaiting_user_input on agent advance.`
-- [ ] **T-043** — FR-002 A4: replace `await stateSetStepOutput(stateFile, stepIndex, null)` (line 259) with `await contextCaptureOutput(stateFile, stepIndex, outputKey)`. Comment: `// parity: shell dispatch.sh:664 — capture output via context module, not null-out.`
-- [ ] **T-044** — FR-002 A5: read `state.parent_workflow` snapshot before terminal-step archive; if archive triggers, call `await _chainParentAfterArchive(parentSnap, hookType, hookInput)`. Add `_chainParentAfterArchive` helper to `dispatch.ts` per contracts §3. Comment: `// parity: shell dispatch.sh:144 — advance parent cursor when child terminates.`
-- [ ] **T-045** — FR-002 A6: DELETE all `console.error('DEBUG dispatchAgent: ...')` calls at lines 251, 256, 262, 264, 267. Verify `git grep -F "DEBUG" plugin-wheel/src/lib/dispatch.ts` returns 0 hits.
-- [ ] **T-046** — Create `plugin-wheel/src/lib/dispatch-agent-parity.test.ts` with 6 tests per `plan.md §5`.
-- [ ] **T-047** — `npx vitest run` — all tests pass.
+- [X] **T-040** — Stale-output-file deletion on pending→working in stop hook.
+- [X] **T-041** — Cursor advance via `resolveNextIndex` + `advancePastSkipped`.
+- [X] **T-042** — `stateClearAwaitingUserInput` after advance.
+- [X] **T-043** — `contextCaptureOutput` replaces null-out regression.
+- [X] **T-044** — `_chainParentAfterArchive` added (helper near top of dispatch.ts), called when terminal child archives. Also ports `contextCaptureOutput` + `contextWriteTeammateFiles` to context.ts (Phase 0 helper port).
+- [X] **T-045** — All 5 `console.error('DEBUG dispatchAgent: ...')` calls removed.
+- [X] **T-046** — `dispatch-agent-parity.test.ts` (6 tests) — all pass.
+- [X] **T-047** — `npx vitest run`: 109/109 pass.
 - [ ] **T-048** — Commit: `feat(wheel-ts): dispatchAgent parity (FR-002)`.
 
 ---

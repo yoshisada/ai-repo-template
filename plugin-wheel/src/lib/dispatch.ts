@@ -52,6 +52,65 @@ export interface HookOutput {
   [key: string]: unknown;
 }
 
+/**
+ * parity: shell dispatch.sh:144 — _chain_parent_after_archive.
+ *
+ * When a child workflow's terminal step triggers archive, the parent's
+ * cursor must advance and the parent's next step must be dispatched in
+ * the SAME hook fire (otherwise the parent stalls until an unrelated
+ * hook event fires).
+ *
+ * parentStateFile MUST be a snapshot captured BEFORE archive — once the
+ * child archives, its state file is gone and we can no longer read its
+ * parent_workflow field.
+ *
+ * Always dispatches with hook_type='stop' so an agent step transitions
+ * pending→working and emits its instruction block. Other hook types
+ * (post_tool_use, teammate_idle) skip that transition and orphan the
+ * parent.
+ */
+export async function _chainParentAfterArchive(
+  parentStateFile: string | null,
+  _origHookType: HookType,
+  hookInput: HookInput,
+): Promise<HookOutput> {
+  if (!parentStateFile) return { decision: 'approve' };
+  try {
+    const { promises: fs } = await import('fs');
+    await fs.access(parentStateFile);
+  } catch {
+    return { decision: 'approve' };
+  }
+
+  let parentState;
+  try {
+    parentState = await stateRead(parentStateFile);
+  } catch {
+    return { decision: 'approve' };
+  }
+
+  const parentWfFile = parentState.workflow_file;
+  if (!parentWfFile) return { decision: 'approve' };
+
+  let parentWf: any = (parentState as any).workflow_definition;
+  if (!parentWf) {
+    try {
+      const wfMod = await import('./workflow.js');
+      parentWf = await wfMod.workflowLoad(parentWfFile);
+    } catch {
+      return { decision: 'approve' };
+    }
+  }
+
+  const parentCursor = parentState.cursor ?? 0;
+  const parentTotal = parentWf?.steps?.length ?? 0;
+  if (parentCursor >= parentTotal) return { decision: 'approve' };
+
+  const parentStepJson = parentWf.steps[parentCursor];
+  // Always dispatch with 'stop' hook semantics so agent steps emit their block.
+  return dispatchStep(parentStepJson as WorkflowStep, 'stop', hookInput, parentStateFile, parentCursor, 0);
+}
+
 // FR-007: dispatchStep(step, hookType, hookInput, stateFile, stepIndex, depth?)
 // FR-006: depth tracks cascade recursion; external callers omit (defaults 0).
 export async function dispatchStep(
@@ -235,6 +294,19 @@ async function dispatchAgent(
 
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
+      // parity: shell dispatch.sh:594–602 — delete stale output file from prior run
+      // before transitioning pending→working, so a leftover file doesn't auto-complete
+      // the step before the agent writes anything.
+      const outputKey = (step as any).output as string | undefined;
+      if (outputKey) {
+        try {
+          const { unlink } = await import('fs/promises');
+          await unlink(outputKey);
+        } catch {
+          // file absent — fine
+        }
+      }
+
       await stateSetStepStatus(stateFile, stepIndex, 'working');
 
       // Build context for agent
@@ -248,23 +320,42 @@ async function dispatchAgent(
     } else if (stepStatus === 'working') {
       // Check if the agent completed its work (output file exists)
       const outputKey = (step as any).output as string | undefined;
-      console.error('DEBUG dispatchAgent: stop hook, step working, outputKey=', outputKey);
       if (outputKey) {
         try {
           const { access } = await import('fs/promises');
           await access(outputKey);
-          console.error('DEBUG dispatchAgent: output file EXISTS, marking done');
           // Output file exists — agent completed, mark done
           const stateModule = await import('./state.js');
-          await stateSetStepOutput(stateFile, stepIndex, null);
+          const wfModule = await import('./workflow.js');
+          const contextModule = await import('./context.js');
+
+          // parity: shell dispatch.sh:664 — capture output via context module,
+          // not null-out. Stores the output value/path in state.steps[i].output.
+          await contextModule.contextCaptureOutput(stateFile, stepIndex, outputKey);
+
           await stateSetStepStatus(stateFile, stepIndex, 'done');
-          const newCursor = stepIndex + 1;
-          console.error('DEBUG dispatchAgent: calling stateSetCursor with', newCursor);
+
+          // parity: shell dispatch.sh:667 — clear awaiting_user_input on agent advance.
+          await (stateModule as any).stateClearAwaitingUserInput(stateFile, stepIndex);
+
+          // parity: shell dispatch.sh:676–680 — cursor advance respects skipped + next field
+          const stateNow = await stateRead(stateFile);
+          const wfDef = (stateNow as any).workflow_definition;
+          let newCursor = stepIndex + 1;
+          if (wfDef) {
+            const rawNext = wfModule.resolveNextIndex(step as any, stepIndex, wfDef);
+            newCursor = await wfModule.advancePastSkipped(stateFile, rawNext, wfDef);
+          }
           await (stateModule as any).stateSetCursor(stateFile, newCursor);
-          console.error('DEBUG dispatchAgent: done, returning approve');
+
+          // parity: shell dispatch.sh:144 — advance parent cursor when child terminates.
+          // Capture parent_workflow snapshot BEFORE archive so the helper can read it.
+          const parentSnap = (stateNow as any).parent_workflow ?? null;
+          if ((step as any).terminal === true) {
+            await _chainParentAfterArchive(parentSnap, hookType, _hookInput);
+          }
           return { decision: 'approve' };
-        } catch (e) {
-          console.error('DEBUG dispatchAgent: output file not yet present:', e);
+        } catch {
           // Output file not yet present, still waiting
         }
       }
@@ -453,8 +544,8 @@ async function dispatchWorkflow(
     if (childSteps.length > 0 && isAutoExecutable(childSteps[0])) {
       try {
         await dispatchStep(childSteps[0] as WorkflowStep, 'post_tool_use', hookInput, childStateFile, 0, 0);
-      } catch (err) {
-        console.error('DEBUG: dispatchWorkflow child cascade error:', err);
+      } catch {
+        // non-fatal: child cascade error swallowed (parity hygiene)
       }
       // Mirror handleActivation: archive child if cascade drove it terminal.
       try {
