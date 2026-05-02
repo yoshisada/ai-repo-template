@@ -72,8 +72,8 @@ Execution rules (Constitution Articles VII + VIII):
 
 ## Phase 5 — dispatchBranch resolveNextIndex (FR-004)
 
-- [ ] **T-050** — At `dispatch.ts:953` (END / fall-through branch path), replace `cascadeNext(..., stepIndex + 1, depth)` with `resolveNextIndex` + `advancePastSkipped` chain. Comment: `// parity: shell dispatch.sh — branch fall-through respects skipped + next field.`
-- [ ] **T-051** — `npx vitest run dispatch-cascade.test.ts` — `branch-jump-cascade` and related tests still pass.
+- [X] **T-050** — Branch fall-through uses `resolveNextIndex` + `advancePastSkipped` from workflow_definition.
+- [X] **T-051** — `dispatch-cascade.test.ts` — 7/7 still pass.
 - [ ] **T-052** — Commit: `fix(wheel-ts): dispatchBranch fall-through cursor via resolveNextIndex (FR-004)`.
 
 ---

@@ -1047,8 +1047,15 @@ async function dispatchBranch(
 
   if (!targetId || targetId === 'END') {
     await stateSetStepStatus(stateFile, stepIndex, 'done');
-    // FR-004 — branch with no target falls through to next step.
-    return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
+    // parity: shell dispatch.sh — branch fall-through respects skipped + next field.
+    const wfMod = await import('./workflow.js');
+    const wfDef = (state as any).workflow_definition;
+    let fallNext = stepIndex + 1;
+    if (wfDef) {
+      const rawNext = wfMod.resolveNextIndex(step as any, stepIndex, wfDef);
+      fallNext = await wfMod.advancePastSkipped(stateFile, rawNext, wfDef);
+    }
+    return cascadeNext(hookType, hookInput, stateFile, fallNext, depth);
   }
 
   const targetIndex = state.steps.findIndex((s: any) => s.id === targetId);
