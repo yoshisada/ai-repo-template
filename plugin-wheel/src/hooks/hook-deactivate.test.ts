@@ -2,7 +2,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { handleDeactivate } from './post-tool-use.js';
+import { handleDeactivate, handleNormalPath } from './post-tool-use.js';
+import { stateInit } from '../lib/state.js';
+import { stateRead, stateWrite } from '../shared/state.js';
 
 const TEST_ROOT = '/tmp/wheel-hook-deactivate-test';
 let activeDir: string;
@@ -81,5 +83,82 @@ describe('handleDeactivate FR-008 A1 parity', () => {
     expect(live.sort()).toEqual(['state_theirs.json']);
     const stopped = await fs.readdir('.wheel/history/stopped');
     expect(stopped.length).toBe(1);
+  });
+});
+
+// P1 round-3 regression — handleNormalPath calls maybeArchiveAfterActivation
+// after dispatchStep so terminal-cursor workflows archive in the same hook
+// fire (parity with handleActivation's pattern).
+describe('handleNormalPath archive trigger (P1 round-3)', () => {
+  it('terminal agent step archives to history/success/ in same hook fire', async () => {
+    // Build a 2-step workflow ending in a terminal:true agent. Pre-advance
+    // cursor to the agent step (index 1) and mark it 'working' to simulate
+    // the orchestrator having spawned the agent. Place the agent's expected
+    // output file. handleNormalPath should dispatch dispatchAgent (stop),
+    // which sees the output file, marks step done, advances cursor past
+    // the end, and (because terminal:true) sets state.status='completed'.
+    // Then the post-dispatch maybeArchiveAfterActivation moves the state
+    // file to history/success/.
+    //
+    // This is the EXACT shape of the agent-chain Phase 2 fixture failure:
+    // terminal agent step at end-of-workflow.
+    const outFile = path.join(activeDir, 'agent-out.txt');
+    await fs.writeFile(outFile, 'agent done');
+    const sf = path.join('.wheel', 'state_chain.json');
+    const steps = [
+      { id: 's1', type: 'command', command: 'true' },
+      { id: 's2', type: 'agent', instruction: 'do work', output: outFile, terminal: true },
+    ];
+    await stateInit({
+      stateFile: sf,
+      workflow: { name: 'chain', version: '1.0', steps: steps as any },
+      sessionId: 's',
+      agentId: 'a',
+    });
+    {
+      const s = await stateRead(sf);
+      (s as any).workflow_definition = { name: 'chain', version: '1.0', steps };
+      s.cursor = 1;
+      s.steps[0].status = 'done';
+      s.steps[1].status = 'working';
+      await stateWrite(sf, s);
+    }
+
+    await handleNormalPath({} as any, sf);
+
+    // State file should be archived to history/success/.
+    await expect(fs.access(sf)).rejects.toThrow();
+    const success = await fs.readdir('.wheel/history/success').catch(() => [] as string[]);
+    expect(success.length).toBeGreaterThan(0);
+    expect(success.some(f => f.startsWith('chain-'))).toBe(true);
+  });
+
+  it('orphan recovery: cursor>=steps.length triggers archive even without dispatch', async () => {
+    // Simulate a state file from a pre-fix run: cursor past last index but
+    // never archived. Subsequent post_tool_use should archive it.
+    const sf = path.join('.wheel', 'state_orphan.json');
+    const steps = [
+      { id: 's1', type: 'command', command: 'true', terminal: true },
+    ];
+    await stateInit({
+      stateFile: sf,
+      workflow: { name: 'orphan', version: '1.0', steps: steps as any },
+      sessionId: 's',
+      agentId: 'a',
+    });
+    {
+      const s = await stateRead(sf);
+      (s as any).workflow_definition = { name: 'orphan', version: '1.0', steps };
+      s.cursor = 1; // past last index
+      s.steps[0].status = 'done';
+      await stateWrite(sf, s);
+    }
+
+    await handleNormalPath({} as any, sf);
+
+    // Orphan state file should be archived.
+    await expect(fs.access(sf)).rejects.toThrow();
+    const success = await fs.readdir('.wheel/history/success').catch(() => [] as string[]);
+    expect(success.some(f => f.startsWith('orphan-'))).toBe(true);
   });
 });

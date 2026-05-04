@@ -423,7 +423,8 @@ async function resolveStateFile(
 }
 
 // Handle normal post_tool_use for active workflow
-async function handleNormalPath(
+// Exported for regression testing (Round-3 P1 archive flow).
+export async function handleNormalPath(
   hookInput: HookInput,
   stateFile: string
 ): Promise<HookOutput> {
@@ -431,6 +432,16 @@ async function handleNormalPath(
   const cursor = state.cursor;
 
   if (cursor >= state.steps.length) {
+    // P1 round-2 fix: cursor already past last step — try to archive
+    // the workflow if it's terminal. This is the orphan-recovery path
+    // for state files left behind by a pre-fix run that advanced cursor
+    // but didn't archive. Idempotent: no-op if state file is already
+    // gone or not yet terminal.
+    try {
+      await maybeArchiveAfterActivation(stateFile);
+    } catch {
+      // non-fatal
+    }
     return { decision: 'approve' };
   }
 

@@ -145,3 +145,34 @@ Regression test added: `dispatch-agent-parity.test.ts:regression: terminal
 agent step sets state.status=completed`.
 
 `npm run build` clean, full suite 127/127 pass.
+
+---
+
+## Round 4 — P1 round-2 (handleNormalPath orphan-recovery + integration test)
+
+team-lead ping: even after Round 3, agent-chain Phase 2 still failed —
+the orphan state file at cursor=4 of 4 was created by a pre-fix run
+and subsequent post_tool_use hook fires hit the
+`if (cursor >= state.steps.length) return approve;` early-return
+in `handleNormalPath` WITHOUT calling
+`maybeArchiveAfterActivation`. So a state file left behind by the
+broken pre-fix code path could never get cleaned up by hooks fired
+after deploy.
+
+Fix: add `maybeArchiveAfterActivation` call to the cursor-already-past-end
+early-return path too. Mirrors `handleActivation`'s pattern: ALWAYS call
+the archive helper after every entry. Idempotent (no-op when not
+terminal).
+
+Also exported `handleNormalPath` so it's directly testable, and added 2
+end-to-end integration regression tests:
+
+  - `terminal agent step archives to history/success/ in same hook fire`
+    — exact shape of agent-chain Phase 2 fixture (terminal agent at
+    end-of-workflow). Asserts state file is archived to history/success/.
+
+  - `orphan recovery: cursor>=steps.length triggers archive even without
+    dispatch` — simulates a state file left behind by a pre-fix run.
+    Asserts the next handleNormalPath call cleans it up.
+
+`npm run build` clean, full suite 129/129 pass (+2).
