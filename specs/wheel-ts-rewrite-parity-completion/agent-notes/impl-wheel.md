@@ -118,3 +118,30 @@ preserves workflow-step output path on state.steps[i]` which asserts
 `output`, `instruction`, `context_from` are all carried through stateInit.
 
 `npm run build` clean, full suite 126/126 pass.
+
+---
+
+## Round 3 — P1 fix (terminal agent + archive)
+
+audit-pr ping #1: Phase 1 ✓; Phase 2 first fixture (agent-chain) failed
+with cursor=4 of 4, terminal step status=done with terminal:true, but
+state.status='running' and workflow never archives. Subsequent hooks
+didn't pick it up.
+
+Two fixes:
+
+1. **dispatchAgent** — when terminal:true agent step transitions to done,
+   set `state.status='completed'` (mirrors dispatchCommand's terminal
+   path). Without this, the workflow sits at cursor>=steps.length with
+   status='running' and `maybeArchiveAfterActivation` never finds it.
+
+2. **handleNormalPath** — call `maybeArchiveAfterActivation(stateFile)`
+   after every dispatchStep return, so terminal-workflow detection runs
+   in the SAME hook fire (parity with shell's per-dispatcher
+   handle_terminal_step pattern + the existing
+   maybeArchiveTerminalWorkflow path inside engineHandleHook).
+
+Regression test added: `dispatch-agent-parity.test.ts:regression: terminal
+agent step sets state.status=completed`.
+
+`npm run build` clean, full suite 127/127 pass.

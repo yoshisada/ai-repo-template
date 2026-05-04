@@ -448,25 +448,42 @@ async function handleNormalPath(
   const step = wfSteps[cursor] ?? state.steps[cursor];
   const stepType = step?.type ?? '';
 
-  // For agent and teammate steps: dispatch with 'stop' hook (these handlers only respond to stop)
-  if (stepType === 'agent' || stepType === 'teammate') {
-    try {
-      const result = await dispatchStep(step as any, 'stop', hookInput, stateFile, cursor);
-      return result;
-    } catch (err) {
-      console.error('Engine error:', err);
-      return { decision: 'approve' };
-    }
-  }
-
-  // For all other step types, use 'post_tool_use' hook so commands actually execute
+  // P1 fix: after every dispatch, run the post-dispatch terminal-workflow
+  // archive check. handleNormalPath was the only path that didn't trigger
+  // archive — engineHandleHook does it via maybeArchiveTerminalWorkflow,
+  // and the activation path does it via maybeArchiveAfterActivation. The
+  // hook-based agent/teammate flow advances cursor past the last step
+  // (or marks state.status='completed' for terminal:true), but without
+  // an archive trigger here the workflow sits at cursor>=steps.length
+  // until an unrelated hook event happens to fire engineHandleHook.
+  // (Found in Phase 2 agent-chain fixture: cursor=4 of 4, terminal step
+  // done, status=running, never archived.)
+  let result: HookOutput;
   try {
-    const result = await dispatchStep(step as any, 'post_tool_use', hookInput, stateFile, cursor);
-    return result;
+    if (stepType === 'agent' || stepType === 'teammate') {
+      // For agent and teammate steps: dispatch with 'stop' hook (these handlers only respond to stop)
+      result = await dispatchStep(step as any, 'stop', hookInput, stateFile, cursor);
+    } else {
+      // For all other step types, use 'post_tool_use' hook so commands actually execute
+      result = await dispatchStep(step as any, 'post_tool_use', hookInput, stateFile, cursor);
+    }
   } catch (err) {
     console.error('Engine error:', err);
     return { decision: 'approve' };
   }
+
+  // parity: shell wheel — handle_terminal_step is invoked from inside each
+  // dispatcher, so cursor>=steps.length OR state.status==completed/failed
+  // always triggers archive in the same hook fire. We mirror that via the
+  // existing maybeArchiveAfterActivation helper (idempotent — no-op if
+  // not terminal).
+  try {
+    await maybeArchiveAfterActivation(stateFile);
+  } catch {
+    // non-fatal: archive errors don't block the hook response
+  }
+
+  return result;
 }
 
 /**

@@ -204,6 +204,27 @@ describe('dispatchAgent FR-002 parity', () => {
     expect((persisted.steps[0] as any).context_from).toEqual(['_context']);
   });
 
+  // P1 regression — terminal:true agent step must mark state.status='completed'
+  // so the post-dispatch archive helper picks it up. Pre-fix, the workflow
+  // sat at cursor>=steps.length with status='running' and never archived.
+  it('regression: terminal agent step sets state.status=completed', async () => {
+    const statePath = path.join(TEST_DIR, 'terminal-status.json');
+    const outFile = path.join(TEST_DIR, 't-out.txt');
+    const step = { id: 's1', type: 'agent', instruction: 'do', output: outFile, terminal: true };
+    await setupAgentStep({ stateFile: statePath, step });
+    {
+      const s = await stateRead(statePath);
+      s.steps[0].status = 'working';
+      await stateWrite(statePath, s);
+    }
+    await fs.writeFile(outFile, 'done');
+
+    await dispatchStep(step as any, 'stop', {}, statePath, 0);
+
+    const final = await stateRead(statePath);
+    expect(final.status).toBe('completed');
+  });
+
   // FR-002 A6
   it('emits no DEBUG console output during stop hook', async () => {
     const statePath = path.join(TEST_DIR, 'no-debug.json');

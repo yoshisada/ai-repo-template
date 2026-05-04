@@ -348,6 +348,16 @@ async function dispatchAgent(
           }
           await (stateModule as any).stateSetCursor(stateFile, newCursor);
 
+          // parity: shell dispatch.sh:226 (handle_terminal_step) — when the
+          // agent step is itself terminal:true, mark the workflow status
+          // as completed so the post-dispatch archive helper picks it up.
+          // Mirrors dispatchCommand's terminal path. Without this, the
+          // workflow sits at cursor>=steps.length with status=running and
+          // never archives (P1 bug found in Phase 2 agent-chain fixture).
+          if ((step as any).terminal === true) {
+            const fresh = await stateRead(stateFile);
+            await stateWrite(stateFile, { ...fresh, status: 'completed' as const });
+          }
           // parity: shell dispatch.sh:144 — advance parent cursor when child terminates.
           // Capture parent_workflow snapshot BEFORE archive so the helper can read it.
           const parentSnap = (stateNow as any).parent_workflow ?? null;
