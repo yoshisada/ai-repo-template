@@ -217,3 +217,41 @@ Regression: NEW `plugin-wheel/src/lib/workflow.test.ts` (4 tests):
   4. missing path → throws
 
 `npm run build` clean, full suite 133/133 pass (+4).
+
+---
+
+## Round 6 — P3 (composition multi-state-file processing)
+
+audit-pr ping #3: Phase 3 composition-mega still stalled even after
+Round 5 fix. workflowLoad now correctly returns the child workflow,
+the child state file IS created, but the child's cursor never
+advances even when the agent's declared output file is written.
+
+Root cause: `main()` resolved a SINGLE state file via
+`resolveStateFile`, which returned the FIRST matching state file by
+readdir order. With composition, parent + child share
+`owner_session_id`, so only the parent (or only the child) was
+processed per hook fire. The non-resolved workflow's cursor never
+advanced.
+
+Shell parity reference: shell `post-tool-use.sh` loops over EVERY
+matching state file per tool call.
+
+Fix: replaced single-state-file resolution with
+`listMatchingStateFiles` + a loop in `main()`. For each matching
+state file, run `handleNormalPath`; aggregate the per-file outputs
+into a single hook response. Output policy:
+
+  - If ANY state file emits `decision: 'block'`, the latest block wins
+    (orchestrator stays blocked on the most-recent instruction).
+  - Else return the latest `approve` output.
+  - Else fall back to `{ hookEventName: 'PostToolUse' }`.
+
+Removed the now-unused `resolveStateFile` helper.
+
+Regression test added in `hook-deactivate.test.ts`: `composition:
+child state cursor advances when parent + child share session_id`.
+Asserts child's agent step transitions pending→working when a hook
+fires (the post-fix main() loop visits both state files).
+
+`npm run build` clean, full suite 134/134 pass (+1).

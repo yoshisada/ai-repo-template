@@ -133,6 +133,63 @@ describe('handleNormalPath archive trigger (P1 round-3)', () => {
     expect(success.some(f => f.startsWith('chain-'))).toBe(true);
   });
 
+  it('composition: child state cursor advances when parent + child share session_id', async () => {
+    // P3 regression — pre-fix the post-tool-use main() resolved a SINGLE
+    // state file via resolveStateFile, which returned the FIRST match.
+    // With composition, parent + child share owner_session_id, so the
+    // child's pending agent step never advanced.
+    //
+    // We don't drive main() here (it reads stdin); instead we simulate
+    // the loop pattern by calling handleNormalPath on each matching
+    // state file in order. The assertion is that the child's pending
+    // agent step transitions to working (after which a subsequent hook
+    // fire with the output file present would advance it to done).
+    const childAgentOut = path.join(activeDir, 'child-agent-out.txt');
+    // Parent: workflow-step pointing at child.
+    const parentSf = path.join('.wheel', 'state_parent.json');
+    const parentSteps = [
+      { id: 'p1', type: 'workflow', workflow: 'tests/child' },
+    ];
+    await stateInit({
+      stateFile: parentSf,
+      workflow: { name: 'parent', version: '1.0', steps: parentSteps as any },
+      sessionId: 'shared-sess',
+      agentId: 'a',
+    });
+    {
+      const s = await stateRead(parentSf);
+      (s as any).workflow_definition = { name: 'parent', version: '1.0', steps: parentSteps };
+      s.steps[0].status = 'working';
+      await stateWrite(parentSf, s);
+    }
+    // Child: agent step that hasn't advanced yet.
+    const childSf = path.join('.wheel', 'state_child.json');
+    const childSteps = [
+      { id: 'c1', type: 'agent', instruction: 'do', output: childAgentOut, terminal: true },
+    ];
+    await stateInit({
+      stateFile: childSf,
+      workflow: { name: 'child', version: '1.0', steps: childSteps as any },
+      sessionId: 'shared-sess',  // SAME session as parent
+      agentId: 'a',
+      parentWorkflow: parentSf,
+    });
+    {
+      const s = await stateRead(childSf);
+      (s as any).workflow_definition = { name: 'child', version: '1.0', steps: childSteps };
+      await stateWrite(childSf, s);
+    }
+
+    // Drive the parent then child explicitly (the main() loop pattern).
+    const hookInput = { session_id: 'shared-sess', agent_id: 'a' };
+    await handleNormalPath(hookInput as any, parentSf);
+    await handleNormalPath(hookInput as any, childSf);
+
+    // Child step should now be working (transitioned from pending on stop).
+    const childAfter = await stateRead(childSf);
+    expect(childAfter.steps[0].status).toBe('working');
+  });
+
   it('orphan recovery: cursor>=steps.length triggers archive even without dispatch', async () => {
     // Simulate a state file from a pre-fix run: cursor past last index but
     // never archived. Subsequent post_tool_use should archive it.

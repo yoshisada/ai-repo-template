@@ -387,15 +387,35 @@ async function handleActivation(
 }
 
 // Resolve state file from hook input
-async function resolveStateFile(
+/**
+ * P3 fix: return ALL state files whose ownership matches the hook input.
+ *
+ * With composition / team workflows, multiple state files can share an
+ * owner_session_id (parent + children). Pre-fix `resolveStateFile`
+ * returned the FIRST match (typically the parent), so the child's
+ * cursor never advanced because the dispatcher was never run on the
+ * child. Mirrors shell `post-tool-use.sh`'s loop-over-all-state-files
+ * pattern.
+ *
+ * Order: parent-then-child is fine (the parent's "waiting for child"
+ * block doesn't block the child from being processed in a separate
+ * iteration). Stable filesystem readdir order suffices.
+ */
+async function listMatchingStateFiles(
   stateDir: string,
-  hookInput: HookInput
-): Promise<string | null> {
+  hookInput: HookInput,
+): Promise<string[]> {
   const hookSessionId = (hookInput.session_id as string) ?? '';
   const hookAgentId = (hookInput.agent_id as string) ?? '';
+  const matched: string[] = [];
 
-  const stateFiles = await fs.readdir(stateDir);
-  for (const file of stateFiles) {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(stateDir);
+  } catch {
+    return matched;
+  }
+  for (const file of entries) {
     if (!file.startsWith('state_') || !file.endsWith('.json')) continue;
 
     const statePath = path.join(stateDir, file);
@@ -406,20 +426,21 @@ async function resolveStateFile(
       // Match by owner_session_id + owner_agent_id (or session-only if owner_agent_id is empty)
       if (state.owner_session_id === hookSessionId) {
         if (state.owner_agent_id === hookAgentId || state.owner_agent_id === '') {
-          return statePath;
+          matched.push(statePath);
+          continue;
         }
       }
 
       // Match by alternate_agent_id (for teammate agents)
       if (state.alternate_agent_id === hookAgentId) {
-        return statePath;
+        matched.push(statePath);
       }
     } catch {
       // Skip invalid state files
     }
   }
 
-  return null;
+  return matched;
 }
 
 // Handle normal post_tool_use for active workflow
@@ -665,26 +686,58 @@ async function main(): Promise<void> {
       return;
     }
 
-    // Normal path: resolve state file
+    // P3 fix: loop over ALL matching state files. With composition /
+    // team workflows, parent + child can share owner_session_id. The
+    // pre-fix single-state-file code path always returned the first
+    // match (typically the parent), so the child never advanced.
+    // Mirrors shell post-tool-use.sh's loop-over-all-state-files
+    // pattern.
+    //
+    // Output-aggregation policy: a `block` decision from ANY state file
+    // wins (so the orchestrator stays blocked until the most stringent
+    // workflow gets unblocked). If multiple state files emit `block`,
+    // we keep the LAST one's `additionalContext` (most recent advance).
+    // If all approve, return the last `approve` output. If no state
+    // files match, fall back to the no-op PostToolUse event.
     const stateDir = '.wheel';
-    const stateFile = await resolveStateFile(stateDir, hookInput);
+    const stateFiles = await listMatchingStateFiles(stateDir, hookInput);
 
-    if (!stateFile) {
+    if (stateFiles.length === 0) {
       console.log(JSON.stringify({ hookEventName: 'PostToolUse' }));
       return;
     }
 
-    // Get workflow file from state
-    const state = await stateRead(stateFile);
-    const workflowFile = state.workflow_file;
+    let aggregatedOutput: HookOutput = { hookEventName: 'PostToolUse' };
+    let sawBlock = false;
+    for (const stateFile of stateFiles) {
+      // Get workflow file from state — skip files without one.
+      let state;
+      try {
+        state = await stateRead(stateFile);
+      } catch {
+        continue;
+      }
+      if (!state.workflow_file) continue;
 
-    if (!workflowFile) {
-      console.log(JSON.stringify({ hookEventName: 'PostToolUse' }));
-      return;
+      let out: HookOutput;
+      try {
+        out = await handleNormalPath(hookInput, stateFile);
+      } catch (err) {
+        console.error('Engine error:', err);
+        continue;
+      }
+
+      if (out.decision === 'block') {
+        // The latest block wins (so the orchestrator gets the most
+        // recently-emitted instruction).
+        aggregatedOutput = out;
+        sawBlock = true;
+      } else if (!sawBlock) {
+        // No block seen yet — keep the latest approve as the running output.
+        aggregatedOutput = out;
+      }
     }
-
-    const output = await handleNormalPath(hookInput, stateFile);
-    console.log(JSON.stringify(output));
+    console.log(JSON.stringify(aggregatedOutput));
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
