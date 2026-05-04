@@ -4,33 +4,64 @@ import { StateNotFoundError, ValidationError } from '../shared/error.js';
 import type { WorkflowDefinition, WorkflowStep } from '../shared/state.js';
 
 // FR-006: workflowLoad(path: string): Promise<WorkflowDefinition>
+//
+// Accepts EITHER a state-file path OR a raw workflow JSON path. P2 round-1
+// fix (Phase 3 composition-mega): dispatchWorkflow calls workflowLoad with
+// `workflows/tests/<name>.json` — a raw workflow file. Pre-fix the
+// function read the JSON via stateRead (which loosely succeeds on any
+// JSON), found no workflow_definition/workflow_file fields, threw
+// ValidationError, and the inner catch rethrew it BEFORE reaching the
+// direct-file-read fallback. Composition workflows therefore failed
+// immediately on activation.
+//
+// New strategy:
+//   1. Read the file once (raw bytes).
+//   2. Parse JSON — bail with StateNotFoundError on any IO/parse error.
+//   3. If it shape-matches a workflow JSON (has `name` + `steps[]` array),
+//      return it directly. This is the common case for dispatchWorkflow.
+//   4. Else treat as a state file: prefer workflow_definition, fall back
+//      to workflow_file (which IS a workflow JSON path → recurse).
 export async function workflowLoad(path: string): Promise<WorkflowDefinition> {
+  const fs = (await import('fs')).promises;
+
+  let content: string;
   try {
-    const state = await stateRead(path);
-    if (state.workflow_definition) {
-      return state.workflow_definition;
+    content = await fs.readFile(path, 'utf-8');
+  } catch {
+    throw new StateNotFoundError(path);
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new StateNotFoundError(path);
+  }
+
+  // Shape-detect: workflow JSON has top-level `name` + `steps[]`. State
+  // file has `workflow_name`, `cursor`, etc. — distinct enough to tell apart.
+  const looksLikeWorkflow =
+    parsed && typeof parsed === 'object' &&
+    typeof parsed.name === 'string' &&
+    Array.isArray(parsed.steps);
+  if (looksLikeWorkflow) {
+    validateWorkflow(parsed as WorkflowDefinition);
+    return parsed as WorkflowDefinition;
+  }
+
+  // State-file path: prefer workflow_definition, fall back to workflow_file.
+  if (parsed && typeof parsed === 'object') {
+    if (parsed.workflow_definition) {
+      return parsed.workflow_definition as WorkflowDefinition;
     }
-    // Fall back to loading from file path stored in workflow_file
-    const filePath = state.workflow_file;
-    if (!filePath) {
-      throw new ValidationError(path, 'No workflow definition available');
-    }
-    const content = await (await import('fs')).promises.readFile(filePath, 'utf-8');
-    return JSON.parse(content) as WorkflowDefinition;
-  } catch (err) {
-    if (err instanceof StateNotFoundError || err instanceof ValidationError) {
-      throw err;
-    }
-    // Try direct file read
-    try {
-      const content = await (await import('fs')).promises.readFile(path, 'utf-8');
-      const wf = JSON.parse(content) as WorkflowDefinition;
-      validateWorkflow(wf);
-      return wf;
-    } catch {
-      throw new StateNotFoundError(path);
+    const filePath = parsed.workflow_file;
+    if (filePath && typeof filePath === 'string') {
+      // Recurse — the workflow_file points at an actual workflow JSON.
+      return workflowLoad(filePath);
     }
   }
+
+  throw new ValidationError(path, 'No workflow definition available');
 }
 
 function validateWorkflow(wf: WorkflowDefinition): void {

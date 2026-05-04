@@ -176,3 +176,44 @@ end-to-end integration regression tests:
     Asserts the next handleNormalPath call cleans it up.
 
 `npm run build` clean, full suite 129/129 pass (+2).
+
+---
+
+## Round 5 — P2 (workflowLoad accepts raw workflow JSON paths)
+
+audit-pr ping #2: Phase 3 first fixture (composition-mega) failed.
+The parent's `workflow` step (`run-command-chain`) flipped to
+status='failed' immediately on activation; no child state file was
+created.
+
+Root cause: `dispatchWorkflow` (dispatch.ts) calls
+`workflowLoad("workflows/tests/command-chain.json")` — a raw workflow
+JSON path. Pre-fix `workflowLoad` always tried `stateRead` first
+(which loosely succeeds on any JSON), found no
+`workflow_definition`/`workflow_file`, threw `ValidationError`, and
+the inner catch's `if (err instanceof ValidationError) throw err`
+rethrew it BEFORE reaching the direct-file-read fallback. So
+composition workflows always failed.
+
+Fix: rewrote `workflowLoad` with a clean shape-detection strategy:
+
+  1. Read file once (raw bytes).
+  2. Parse JSON — bail StateNotFoundError on any IO/parse error.
+  3. If JSON shape-matches a workflow file (`name` string +
+     `steps[]` array) → validate + return directly.
+  4. Else treat as state file: prefer `workflow_definition`, else
+     fall back to `workflow_file` (recursive load).
+
+Verified the original repro:
+  `node -e "import('./plugin-wheel/dist/lib/workflow.js')...workflowLoad('workflows/tests/command-chain.json')"`
+  Pre-fix: `Validation failed at path '...': No workflow definition available`
+  Post-fix: `OK name=command-chain steps=4`
+
+Regression: NEW `plugin-wheel/src/lib/workflow.test.ts` (4 tests):
+
+  1. raw workflow JSON path → returns workflow (the dispatchWorkflow case)
+  2. state file with embedded `workflow_definition` → returns workflow
+  3. state file with only `workflow_file` set → recurses, returns workflow
+  4. missing path → throws
+
+`npm run build` clean, full suite 133/133 pass (+4).
