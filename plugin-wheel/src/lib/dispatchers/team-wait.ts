@@ -16,7 +16,7 @@
 // FR-003 / FR-004 / FR-005 (wheel-wait-all-redesign).
 
 import type { WorkflowStep, WheelState } from '../../shared/state.js';
-import { stateRead, listLiveStateFiles } from '../../shared/state.js';
+import { stateRead, stateWrite, listLiveStateFiles } from '../../shared/state.js';
 import { stateSetStepStatus } from '../state.js';
 import { wheelLog } from '../log.js';
 import { runPollingBackstop } from '../dispatch-team-polling.js';
@@ -160,31 +160,55 @@ async function _teammateIdle(
   teamRef: string,
   hookInput: HookInput,
 ): Promise<HookOutput> {
+  // Empirical hookInput shape from a real spawned-teammate's TeammateIdle
+  // (probe-team / 2026-05-06):
+  //   session_id     "<sub-agent's-own-session-id>"
+  //   agent_id       null   ← Claude Code never populates this
+  //   teammate_name  "<short>"
+  //   team_name      "<team-name>"
+  //   agent_type     "general-purpose"
+  //
+  // The sub-agent's child workflow state file has `owner_session_id`
+  // equal to that same session_id (it was created by the spawn's
+  // activate.sh under the sub-agent's session). So `session_id` is the
+  // ONLY canonical link from parent to child; agent_id-based matching
+  // is moot because agent_id is always null.
+  const idleSessionId = String(hookInput.session_id ?? '');
   const idleAgentId = String(hookInput.agent_id ?? '');
   const idleName = String(hookInput.teammate_name ?? '');
   const idleTeamName = String(hookInput.team_name ?? '');
   await wheelLog('dispatch_teammate_idle_enter', {
-    agent_id: idleAgentId, teammate_name: idleName,
+    session_id: idleSessionId, agent_id: idleAgentId, teammate_name: idleName,
     hook_input_keys: Object.keys(hookInput ?? {}),
     state_file: stateFile,
   });
-  if (!idleAgentId && !idleName) {
-    await wheelLog('dispatch_teammate_idle_skip', { reason: 'no_agent_id_or_name' });
+  if (!idleSessionId && !idleAgentId && !idleName) {
+    await wheelLog('dispatch_teammate_idle_skip', { reason: 'no_session_or_agent_or_name' });
     return { decision: 'approve' };
   }
-  // Find child state file: harness gives short `teammate_name` + `team_name`;
-  // the child's alternate_agent_id is constructed as `name@team`.
-  const expectedAltCandidates = [
-    idleAgentId, `${idleName}@${idleTeamName}`, idleName,
-  ].filter(s => s);
+  // Slot identity computed from teammate_name + team_name (parent owns
+  // both via the Agent call's structured fields). This is what
+  // dispatchTeammate stamps on slot.agent_id at registration.
+  const slotAgentId = idleName && idleTeamName ? `${idleName}@${idleTeamName}` : '';
+
+  // Locate the child state file. Match priority:
+  //   1. owner_session_id === hookInput.session_id  ← canonical bridge
+  //   2. alternate_agent_id matches a known candidate (legacy --as path)
+  //   3. owner_agent_id matches (legacy)
+  const fallbackCandidates = [idleAgentId, slotAgentId, idleName].filter(s => s);
   let childStateFile: string | null = null;
   let childState: WheelState | null = null;
   for (const { path: candidate } of await listLiveStateFiles()) {
+    if (candidate === stateFile) continue; // skip parent
     try {
       const cs = await stateRead(candidate);
+      const childOwnerSession = cs.owner_session_id ?? '';
       const childAlt = cs.alternate_agent_id ?? '';
-      const childOwner = cs.owner_agent_id ?? '';
-      if (expectedAltCandidates.some(e => childAlt === e || childOwner === e)) {
+      const childOwnerAgent = cs.owner_agent_id ?? '';
+      const sessionMatch = idleSessionId && childOwnerSession === idleSessionId;
+      const altMatch = fallbackCandidates.some(e => childAlt === e);
+      const agentMatch = fallbackCandidates.some(e => childOwnerAgent === e);
+      if (sessionMatch || altMatch || agentMatch) {
         childStateFile = candidate;
         childState = cs;
         break;
@@ -194,10 +218,36 @@ async function _teammateIdle(
 
   if (!childStateFile || !childState) {
     await wheelLog('dispatch_teammate_idle_skip', {
-      reason: 'no_child_state', idle_agent_id: idleAgentId, idle_name: idleName,
+      reason: 'no_child_state', idle_session: idleSessionId, idle_name: idleName,
     });
     await runPollingBackstop(stateFile, teamRef);
     return { decision: 'approve' };
+  }
+
+  // Backfill parent linkage on the child if it's missing (the orchestrator
+  // dropped --as; activate.sh saw no alt_id; child was created without
+  // parent_workflow / alternate_agent_id). At this point we know:
+  //   - slotAgentId is the canonical alt id (from teammate_name + team_name)
+  //   - stateFile is the parent's path
+  // Stamping these unblocks archiveWorkflow's parent-update path on
+  // child terminal, AND the polling backstop's bucket-archive lookup.
+  if (slotAgentId) {
+    const needsLink =
+      !childState.alternate_agent_id || !childState.parent_workflow;
+    if (needsLink) {
+      try {
+        const fresh = await stateRead(childStateFile);
+        if (!fresh.alternate_agent_id) fresh.alternate_agent_id = slotAgentId;
+        if (!fresh.parent_workflow) fresh.parent_workflow = stateFile;
+        await stateWrite(childStateFile, fresh);
+        childState = fresh;
+        await wheelLog('dispatch_teammate_idle_backfill_link', {
+          child_state_file: childStateFile,
+          alternate_agent_id: slotAgentId,
+          parent_state_file: stateFile,
+        });
+      } catch { /* race with archive — ignore */ }
+    }
   }
   const teamModule = await import('../dispatch-team.js');
   // Auto-executable steps run inline (sub-agent's session is gone).
