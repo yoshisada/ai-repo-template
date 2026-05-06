@@ -126,7 +126,17 @@ export async function _teammateFlushFromState(
       `Do not investigate wheel internals; the hooks are authoritative.`;
     lines.push('```');
     lines.push('Agent({');
-    lines.push(`  subagent_type: "general-purpose",`);
+    // `wheel-runner` is the dedicated agent type for sub-workflow
+    // drivers. Its frontmatter wires PostToolUse(Bash|Write|Edit) and
+    // Stop hooks into the sub-agent's session so the wheel can
+    // intercept tool calls and advance the child workflow. Spawning
+    // a `general-purpose` here leaves the sub-agent without hooks —
+    // its tool calls don't fire wheel hooks, so the child workflow
+    // never advances past `activate.sh`, the agent goes idle, and the
+    // parent's team-wait hangs indefinitely. The architectural rule
+    // about "NEVER use general-purpose for specialized roles" applies
+    // here squarely.
+    lines.push(`  subagent_type: "wheel-runner",`);
     lines.push(`  description: "${shortName} sub-workflow spawn",`);
     lines.push(`  prompt: ${JSON.stringify(promptText)},`);
     // Architectural Fix — short-name in `name`, NOT the full agent_id.
