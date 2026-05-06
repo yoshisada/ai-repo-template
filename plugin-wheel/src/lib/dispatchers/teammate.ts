@@ -22,7 +22,7 @@
 // FR-025 / FR-026.
 
 import type {
-  WorkflowStep, TeammateEntry, WheelState, WorkflowDefinition,
+  WorkflowStep, TeammateEntry, TeammateModel, WheelState, WorkflowDefinition,
 } from '../../shared/state.js';
 import { stateRead } from '../../shared/state.js';
 import { stateSetStepStatus, stateAddTeammate } from '../state.js';
@@ -39,6 +39,12 @@ interface TeammateStepFields {
   name?: string;
   context_from?: unknown[];
   assign?: unknown;
+  // Per-slot model override (sonnet | opus | haiku). When set, every
+  // teammate slot registered by this step inherits this model and the
+  // emitted Agent call carries `model: "<value>"`. Omitted → spawned
+  // sub-agent inherits the parent orchestrator's model (Claude Code's
+  // default Agent-tool behaviour).
+  model?: TeammateModel;
 }
 
 export async function dispatchTeammate(
@@ -101,7 +107,7 @@ export async function dispatchTeammate(
     return { decision: 'approve' };
   }
 
-  return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads);
+  return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads, sf.model);
 }
 
 interface SlotPayload {
@@ -187,6 +193,7 @@ async function spawnTeammates(
   subWorkflow: string,
   state: WheelState,
   slots: SlotPayload[],
+  model: TeammateModel | undefined,
 ): Promise<HookOutput> {
   const contextModule = await import('../context.js');
   const teamModule = await import('../dispatch-team.js');
@@ -207,6 +214,7 @@ async function spawnTeammates(
       output_dir: outputDir,
       assign: slot.assign,
       started_at: null, completed_at: null,
+      ...(model ? { model } : {}),
     };
     await stateAddTeammate(stateFile, teamRef, teammate);
     try {

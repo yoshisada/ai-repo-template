@@ -135,6 +135,12 @@ export async function _teammateFlushFromState(
     lines.push(`  prompt: ${JSON.stringify(promptText)},`);
     lines.push(`  name: "${shortName}",`);
     lines.push(`  team_name: "${teamName}",`);
+    if (slot.model) {
+      // Per-slot model override from the `teammate` step's `model` JSON
+      // field. Without this, the spawned sub-agent inherits the parent
+      // orchestrator's model (Claude Code Agent-tool default).
+      lines.push(`  model: "${slot.model}",`);
+    }
     lines.push(`  mode: "bypassPermissions"`);
     lines.push('})');
     lines.push('```');

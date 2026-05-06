@@ -88,9 +88,18 @@ export interface TeammateEntry {
   // the orphan path. Distinguishes "archive evidence said failed" from
   // "child state file disappeared without an archive".
   failure_reason?: string;
+  // Per-slot model override. Templated into the emitted Agent call's
+  // `model:` field so the spawned sub-agent runs on the requested model
+  // instead of inheriting the parent's. Resolved from the `teammate`
+  // step's `model` JSON field at slot-registration time.
+  model?: TeammateModel;
 }
 
 export type TeammateStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+// Model shapes accepted by Claude Code's Agent tool. Mirrors the runtime's
+// model parameter on `Agent({...})`.
+export type TeammateModel = 'sonnet' | 'opus' | 'haiku';
 
 export interface WorkflowDefinition {
   name: string;

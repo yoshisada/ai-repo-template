@@ -90,6 +90,68 @@ describe('dispatchTeammate FR-006 parity', () => {
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
 
+  // Per-slot model: when the `teammate` step JSON sets `model`, the
+  // emitted spawn block carries `model: "<value>"` so each spawned
+  // sub-agent runs on the requested model instead of inheriting the
+  // parent orchestrator's. Omitted → spawn block has no `model:` line.
+  it('per-slot model field templates into the emitted Agent spawn block', async () => {
+    const statePath = path.join(TEST_DIR, 'model.json');
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      assign: { task: 'a' },
+      model: 'haiku',
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+    expect(result.decision).toBe('block');
+    expect(result.additionalContext).toContain('model: "haiku"');
+
+    // Slot is persisted with the model field.
+    const stateAfter = await stateRead(statePath);
+    const slot = stateAfter.teams.main.teammates['s1@tm'];
+    expect(slot.model).toBe('haiku');
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
+  it('omits model line when teammate step has no model field', async () => {
+    const statePath = path.join(TEST_DIR, 'no-model.json');
+    const step = {
+      id: 's1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      assign: { task: 'a' },
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+    expect(result.decision).toBe('block');
+    expect(result.additionalContext).not.toContain('model:');
+
+    const stateAfter = await stateRead(statePath);
+    const slot = stateAfter.teams.main.teammates['s1@tm'];
+    expect(slot.model).toBeUndefined();
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
   // FR-006 A4
   it('post_tool_use TaskCreate detection updates teammate task_id', async () => {
     const statePath = path.join(TEST_DIR, 'tc.json');
