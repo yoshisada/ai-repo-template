@@ -37,8 +37,11 @@ describe('dispatchTeamDelete FR-006 A7 parity', () => {
 
     const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
     expect(result.decision).toBe('block');
-    expect(result.additionalContext).toContain('Delete team');
-    expect(result.additionalContext).toContain('mainteam');
+    // Post-fix: instruction emits a literal `TeamDelete({...})` tool-call
+    // JSON instead of free-form prose ("Delete team..."), so callers can
+    // copy-paste verbatim. Verify the new shape.
+    expect(result.additionalContext).toContain('TeamDelete({');
+    expect(result.additionalContext).toContain('"mainteam"');
 
     const finalState = await stateRead(statePath);
     expect(finalState.steps[0].status).toBe('working');

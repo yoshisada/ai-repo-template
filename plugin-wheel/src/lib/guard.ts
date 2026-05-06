@@ -1,7 +1,6 @@
 // FR-006/FR-004/FR-005: Session guard for teammate idle handling
 import { promises as fs } from 'fs';
-import path from 'path';
-import { stateRead } from '../shared/state.js';
+import { stateRead, listLiveStateFiles } from '../shared/state.js';
 import type { HookInput } from './dispatch.js';
 
 export interface GuardResult {
@@ -23,15 +22,7 @@ export async function resolveStateFile(
   const hookSessionId = (hookInput.session_id as string) ?? '';
   const hookAgentId = (hookInput.agent_id as string) ?? '';
 
-  let stateFiles: string[];
-  try {
-    stateFiles = await fs.readdir(stateDir);
-  } catch {
-    return null;
-  }
-  for (const file of stateFiles) {
-    if (!file.startsWith('state_') || !file.endsWith('.json')) continue;
-    const statePath = path.join(stateDir, file);
+  for (const { path: statePath } of await listLiveStateFiles(stateDir)) {
     try {
       const content = await fs.readFile(statePath, 'utf-8');
       const state = JSON.parse(content);

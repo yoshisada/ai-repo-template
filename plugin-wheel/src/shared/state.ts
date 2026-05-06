@@ -2,13 +2,15 @@
 import { fileRead, atomicWrite } from './fs.js';
 import { StateNotFoundError, ValidationError } from './error.js';
 
+export type WorkflowStatus = 'running' | 'completed' | 'failed';
+
 // Types matching contracts/interfaces.md §17
 export interface WheelState {
   workflow_name: string;
   workflow_version: string;
   workflow_file: string;
   workflow_definition: WorkflowDefinition | null;
-  status: 'running' | 'completed' | 'failed';
+  status: WorkflowStatus;
   cursor: number;
   owner_session_id: string;
   owner_agent_id: string;
@@ -23,6 +25,15 @@ export interface WheelState {
   session_registry: Record<string, string> | null;
 }
 
+// Runtime step shape: at init time, stateInit spreads the workflow-step
+// JSON into state.steps[i] (FR-006), then overlays the dynamic state
+// fields. So at runtime a Step ALSO carries WorkflowStep fields like
+// `workflow`, `max_iterations`, `condition`, `team`, `loop_from`, etc.
+// The index signature [k: string]: unknown lets dispatchers read those
+// fields without `as any` casts at the cost of needing narrowing at the
+// read site. (Modeling Step `extends WorkflowStep` collides on the
+// `agents` field — runtime stores Record<string, Agent>, workflow JSON
+// declares string[].)
 export interface Step {
   id: string;
   type: string;
@@ -38,6 +49,9 @@ export interface Step {
   awaiting_user_input_reason: string | null;
   resolved_inputs: unknown | null;
   contract_emitted: boolean;
+  // Workflow-step JSON fields spread in at stateInit. Read-site narrowing
+  // is the dispatcher author's responsibility.
+  [key: string]: unknown;
 }
 
 export type StepStatus = 'pending' | 'working' | 'done' | 'failed' | 'skipped';
@@ -126,4 +140,32 @@ export async function stateWrite(statePath: string, state: WheelState): Promise<
   const updated = { ...state, updated_at: new Date().toISOString() };
   const json = JSON.stringify(updated);
   await atomicWrite(statePath, json);
+}
+
+/**
+ * List live wheel state files in `.wheel/` (the directory layer above
+ * `.wheel/history/`). Returns `{ name, path }` pairs — `name` is the
+ * basename (`state_<sid>_<ts>_<pid>.json`), `path` is `.wheel/<name>`.
+ *
+ * Replaces the duplicated `readdir + filter('state_'/'.json')` pattern
+ * across hooks, dispatchers, guard, and team-wait helpers. Dir-missing
+ * is treated as "no files" (empty array), matching every callsite's
+ * behaviour pre-helper.
+ */
+export async function listLiveStateFiles(
+  wheelDir: string = '.wheel',
+): Promise<Array<{ name: string; path: string }>> {
+  const { readdir } = await import('fs/promises');
+  let entries: string[];
+  try {
+    entries = await readdir(wheelDir);
+  } catch {
+    return [];
+  }
+  const out: Array<{ name: string; path: string }> = [];
+  for (const entry of entries) {
+    if (!entry.startsWith('state_') || !entry.endsWith('.json')) continue;
+    out.push({ name: entry, path: `${wheelDir}/${entry}` });
+  }
+  return out;
 }

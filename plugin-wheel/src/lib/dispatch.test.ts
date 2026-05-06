@@ -201,13 +201,12 @@ describe('dispatchTeammate', () => {
       statePath,
       0
     );
-    // FR-006 A3 — block emits a single batched spawn instruction via
-    // _teammateChainNext / _teammateFlushFromState. Pre-FR-006 wording
-    // was "Spawned agent: ..." — new wording is "Spawn the following
-    // teammates as part of team ...".
+    // Post-fix: spawn block emits literal `Agent({...})` tool-call JSON
+    // (one block per teammate). Wording transitioned from "Spawn the
+    // following teammates" → "Make these N parallel Agent tool calls".
     expect(result.decision).toBe('block');
-    expect(result.additionalContext).toContain('Spawn');
-    expect(result.additionalContext).toContain('worker-1');
+    expect(result.additionalContext).toContain('parallel Agent tool call');
+    expect(result.additionalContext).toContain('--as');
   });
 });
 
@@ -272,25 +271,39 @@ describe('dispatchTeamCreate', () => {
 });
 
 describe('dispatchTeamWait', () => {
-  it('should return approve when no teammates registered', async () => { // FR-026
+  it('should return block with progress snapshot when teammates not all terminal', async () => {
+    // Post-fix: dispatchTeamWait.stop ALWAYS returns block (with progress
+    // snapshot) when not done — never silent approve. The snapshot tells
+    // the orchestrator what's happening across all child workflows so it
+    // can avoid inferring "stuck" from silence.
     const statePath = path.join(TEST_DIR, 'team-wait.json');
     await stateInit({
       stateFile: statePath,
       workflow: {
-        name: 'test', version: '1.0', steps: [{ id: 's1', type: 'team-wait' }],
-        teams: { main: { team_name: 'test-team', teammates: [] } }
+        name: 'test', version: '1.0', steps: [{ id: 's1', type: 'team-wait', team: 'main' }],
       },
       sessionId: 's1',
       agentId: '',
     });
+    // Add a single pending teammate so wait-all has something to report on.
+    await stateAddTeammate(statePath, 'main', {
+      task_id: '', status: 'pending', agent_id: 'w@t', output_dir: 'o', assign: {},
+      started_at: null, completed_at: null,
+    });
+    const state = await stateRead(statePath);
+    state.teams['main'].team_name = 't';
+    await stateWrite(statePath, state);
+
     const result = await dispatchStep(
-      { id: 's1', type: 'team-wait' } as any,
+      { id: 's1', type: 'team-wait', team: 'main' } as any,
       'stop',
       {},
       statePath,
       0
     );
-    expect(result.decision).toBe('approve');
+    expect(result.decision).toBe('block');
+    expect(result.additionalContext).toContain('Progress:');
+    expect(result.additionalContext).toContain('slot "w@t"');
   });
 });
 

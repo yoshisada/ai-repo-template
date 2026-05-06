@@ -107,14 +107,14 @@ export async function engineHandleHook(hookType: HookType, hookInput: HookInput)
 
     const step = workflowGetStep(WORKFLOW, cursor);
 
-    // FR-005: remap teammate_idle / subagent_stop to post_tool_use ONLY
-    // when the current step is team-wait. For any other step, drop the
-    // event (the legacy code paths in dispatchParallel etc. that responded
-    // to teammate_idle still receive the original hookType because the
-    // remap is gated on step.type === 'team-wait'.)
+    // FR-005: remap subagent_stop to post_tool_use when current step is
+    // team-wait. KEEP teammate_idle as 'teammate_idle' so dispatchTeamWait
+    // can distinguish it and emit SendMessage instructions to wake idle
+    // teammates whose child workflows are blocked at agent steps. Without
+    // that branch, idle children sit forever and team-wait spins.
     let effectiveHookType: HookType = hookType;
     if (
-      (hookType === 'teammate_idle' || hookType === 'subagent_stop') &&
+      hookType === 'subagent_stop' &&
       step.type === 'team-wait'
     ) {
       effectiveHookType = 'post_tool_use';

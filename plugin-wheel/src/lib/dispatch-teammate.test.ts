@@ -78,10 +78,14 @@ describe('dispatchTeammate FR-006 parity', () => {
     const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
 
     expect(result.decision).toBe('block');
-    // batched format mentions team and lists agent_id
-    expect(result.additionalContext).toContain('Spawn');
+    // Post-fix: spawn block emits literal `Agent({...})` tool-call JSON
+    // (one block per teammate) so the orchestrator can copy-paste
+    // verbatim. The bracketing wording changed from "Spawn N teammate"
+    // (shell parity) to "Make these N parallel Agent tool calls" — the
+    // INTENT is the same (one batched message with N spawns).
+    expect(result.additionalContext).toContain('parallel Agent tool call');
     expect(result.additionalContext).toContain('s1');
-    expect(result.additionalContext).toContain('agent_id');
+    expect(result.additionalContext).toContain('--as');
 
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
@@ -119,7 +123,10 @@ describe('dispatchTeammate FR-006 parity', () => {
     );
 
     const finalState = await stateRead(statePath);
-    expect(finalState.teams.main.teammates.s1.task_id).toBe('task-abc');
+    // Post-fix: teammate slots are keyed by `name@team_name`, not the
+    // short step id. teammateMatchTaskCreate matches by substring inside
+    // the slot key, so subject="s1" still resolves to slot "s1@tm".
+    expect(finalState.teams.main.teammates['s1@tm'].task_id).toBe('task-abc');
 
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
@@ -160,9 +167,14 @@ describe('dispatchTeammate FR-006 parity', () => {
     const finalState = await stateRead(statePath);
     const tm = finalState.teams.main.teammates;
     expect(Object.keys(tm).length).toBe(2);
+    // Post-fix: teammate map is keyed by `name@team_name` (the agent_id),
+    // not by the short name. This matches the join key used in
+    // `stateUpdateParentTeammateSlot` (parent slot lookup by
+    // child.alternate_agent_id) — keeping a separate short-name key
+    // would split the source-of-truth.
     // Round-robin: bucket 0 = ['a', 'c'], bucket 1 = ['b', 'd']
-    expect((tm['worker-0'].assign as any).items).toEqual(['a', 'c']);
-    expect((tm['worker-1'].assign as any).items).toEqual(['b', 'd']);
+    expect((tm['worker-0@tm'].assign as any).items).toEqual(['a', 'c']);
+    expect((tm['worker-1@tm'].assign as any).items).toEqual(['b', 'd']);
 
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });

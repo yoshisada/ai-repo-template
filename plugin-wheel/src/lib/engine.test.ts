@@ -186,26 +186,17 @@ describe('engineHandleHook FR-005 hook routing', () => {
     return stateFile;
   }
 
-  it('teammate_idle on team-wait triggers polling backstop', async () => {
-    const stateFile = await setupTeamWaitState('working');
-    // Plant a success archive — polling backstop should pick it up.
-    const archiveDir = path.join(activeDir, '.wheel', 'history', 'success');
-    await fs.mkdir(archiveDir, { recursive: true });
-    await fs.writeFile(
-      path.join(archiveDir, 'a.json'),
-      JSON.stringify({
-        workflow_name: 'a-child',
-        parent_workflow: stateFile,
-        alternate_agent_id: 'a@t',
-        status: 'completed',
-      })
-    );
-
+  it('teammate_idle on team-wait runs the wake-up branch (not the polling backstop)', async () => {
+    // Post-fix: teammate_idle is NO LONGER remapped to post_tool_use. It
+    // runs `_teamWaitTeammateIdle` which finds the idle teammate's child
+    // state file and either advances an auto-executable step or emits a
+    // SendMessage wake block. With no `agent_id`/`teammate_name` in the
+    // hook input, the dispatcher logs `no_agent_id_or_name` and returns
+    // approve without touching the polling backstop. The polling-backstop
+    // path is still exercised by subagent_stop (next test).
+    await setupTeamWaitState('working');
     const result = await engineHandleHook('teammate_idle', {});
     expect(result.decision).toBe('approve');
-    const state = await stateRead(stateFile);
-    expect(state.teams['wait'].teammates['a@t'].status).toBe('completed');
-    expect(state.steps[1].status).toBe('done');
   });
 
   it('subagent_stop on team-wait triggers polling backstop', async () => {

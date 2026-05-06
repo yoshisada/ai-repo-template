@@ -9,5 +9,4 @@ PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_HOOK="$PLUGIN_ROOT/dist/hooks/teammate-idle.js"
 
 # Execute from plugin directory so node can resolve tsx from plugin-wheel/node_modules
-cd "$PLUGIN_ROOT"
 exec node "$DIST_HOOK" "$@"
