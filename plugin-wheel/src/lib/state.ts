@@ -23,7 +23,7 @@
 // same time, that is a redesign — update this comment block first.
 // =============================================================================
 import { stateRead, stateWrite } from '../shared/state.js';
-import type { WheelState, StepStatus, AgentStatus } from '../shared/state.js';
+import type { WheelState, Step, StepStatus, AgentStatus } from '../shared/state.js';
 import { mkdirp } from '../shared/fs.js';
 import path from 'path';
 
@@ -126,6 +126,29 @@ export function stateGetCursor(state: WheelState): number {
   return state.cursor;
 }
 
+/**
+ * Read-modify-write helper for step mutations. Loads the state file,
+ * looks up `state.steps[stepIndex]`, no-ops if the step is missing,
+ * applies `mutator(step, now)`, stamps `state.updated_at`, and writes.
+ *
+ * Centralises the RMW pattern that every `stateSet*` helper used to
+ * inline. The `now` ISO timestamp is computed once and threaded through
+ * so callers can stamp `started_at` / `completed_at` consistently.
+ */
+async function mutateStep(
+  stateFile: string,
+  stepIndex: number,
+  mutator: (step: Step, now: string) => void,
+): Promise<void> {
+  const state = await stateRead(stateFile);
+  const step = state.steps[stepIndex];
+  if (!step) return;
+  const now = new Date().toISOString();
+  mutator(step, now);
+  state.updated_at = now;
+  await stateWrite(stateFile, state);
+}
+
 // FR-006: stateSetCursor(stateFile: string, cursor: number): Promise<void>
 export async function stateSetCursor(stateFile: string, cursor: number): Promise<void> {
   const state = await stateRead(stateFile);
@@ -140,19 +163,11 @@ export function stateGetStepStatus(state: WheelState, stepIndex: number): StepSt
 
 // FR-006: stateSetStepStatus(stateFile: string, stepIndex: number, status: StepStatus): Promise<void>
 export async function stateSetStepStatus(stateFile: string, stepIndex: number, status: StepStatus): Promise<void> {
-  const state = await stateRead(stateFile);
-  const now = new Date().toISOString();
-  const step = state.steps[stepIndex];
-  if (!step) return;
-
-  step.status = status;
-  if (status === 'working') {
-    step.started_at = now;
-  } else if (status === 'done' || status === 'failed') {
-    step.completed_at = now;
-  }
-  state.updated_at = now;
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step, now) => {
+    step.status = status;
+    if (status === 'working') step.started_at = now;
+    else if (status === 'done' || status === 'failed') step.completed_at = now;
+  });
 }
 
 // FR-006: stateGetAgentStatus(state: WheelState, stepIndex: number, agentType: string): AgentStatus
@@ -166,33 +181,20 @@ export function stateGetAgentStatus(state: WheelState, stepIndex: number, agentT
 
 // FR-006: stateSetAgentStatus(stateFile: string, stepIndex: number, agentType: string, status: AgentStatus): Promise<void>
 export async function stateSetAgentStatus(stateFile: string, stepIndex: number, agentType: string, status: AgentStatus): Promise<void> {
-  const state = await stateRead(stateFile);
-  const now = new Date().toISOString();
-  const step = state.steps[stepIndex];
-  if (!step) return;
-
-  if (!step.agents[agentType]) {
-    step.agents[agentType] = { status: 'pending', started_at: null, completed_at: null };
-  }
-  const agent = step.agents[agentType];
-  agent.status = status;
-  if (status === 'working') {
-    agent.started_at = now;
-  } else if (status === 'done' || status === 'failed') {
-    agent.completed_at = now;
-  }
-  state.updated_at = now;
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step, now) => {
+    if (!step.agents[agentType]) {
+      step.agents[agentType] = { status: 'pending', started_at: null, completed_at: null };
+    }
+    const agent = step.agents[agentType];
+    agent.status = status;
+    if (status === 'working') agent.started_at = now;
+    else if (status === 'done' || status === 'failed') agent.completed_at = now;
+  });
 }
 
 // FR-006: stateSetStepOutput(stateFile: string, stepIndex: number, output: unknown): Promise<void>
 export async function stateSetStepOutput(stateFile: string, stepIndex: number, output: unknown): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.output = output;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step) => { step.output = output; });
 }
 
 // FR-006: stateAppendCommandLog(stateFile: string, stepIndex: number, entry: { command: string; exit_code: number; timestamp: string }): Promise<void>
@@ -201,12 +203,7 @@ export async function stateAppendCommandLog(
   stepIndex: number,
   entry: { command: string; exit_code: number; timestamp: string }
 ): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.command_log.push(entry);
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step) => { step.command_log.push(entry); });
 }
 
 // FR-006: stateGetCommandLog(state: WheelState, stepIndex: number): { command: string; exit_code: number; timestamp: string }[]
@@ -242,46 +239,30 @@ export async function stateList(pattern: string = '.wheel/state_*.json'): Promis
 
 // FR-003/004 (wheel-user-input): stateSetAwaitingUserInput
 export async function stateSetAwaitingUserInput(stateFile: string, stepIndex: number, reason: string): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.awaiting_user_input = true;
-  step.awaiting_user_input_since = new Date().toISOString();
-  step.awaiting_user_input_reason = reason;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step, now) => {
+    step.awaiting_user_input = true;
+    step.awaiting_user_input_since = now;
+    step.awaiting_user_input_reason = reason;
+  });
 }
 
 // FR-004/008 (wheel-user-input): stateClearAwaitingUserInput
 export async function stateClearAwaitingUserInput(stateFile: string, stepIndex: number): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.awaiting_user_input = false;
-  step.awaiting_user_input_since = null;
-  step.awaiting_user_input_reason = null;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step) => {
+    step.awaiting_user_input = false;
+    step.awaiting_user_input_since = null;
+    step.awaiting_user_input_reason = null;
+  });
 }
 
 // FR-§4.1 (wheel-typed-schema-locality): stateSetResolvedInputs
 export async function stateSetResolvedInputs(stateFile: string, stepIndex: number, resolvedMap: unknown): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.resolved_inputs = resolvedMap;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step) => { step.resolved_inputs = resolvedMap; });
 }
 
 // FR-§4.2: stateSetContractEmitted
 export async function stateSetContractEmitted(stateFile: string, stepIndex: number, emitted: boolean): Promise<void> {
-  const state = await stateRead(stateFile);
-  const step = state.steps[stepIndex];
-  if (!step) return;
-  step.contract_emitted = emitted;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateStep(stateFile, stepIndex, (step) => { step.contract_emitted = emitted; });
 }
 
 // FR-§4.3: stateGetContractEmitted

@@ -8,7 +8,8 @@
 // FR-001 / FR-003 / FR-009 (wheel-wait-all-redesign).
 
 import { stateRead, listLiveStateFiles } from '../shared/state.js';
-import type { TeammateEntry } from '../shared/state.js';
+import type { TeammateEntry, WheelState, WorkflowStep } from '../shared/state.js';
+import type { HookInput } from './dispatch-types.js';
 import { wheelLog } from './log.js';
 
 export async function _teamWaitProgressSnapshot(
@@ -74,12 +75,12 @@ export async function _teamWaitBuildWakeBlock(
   idleName: string,
   idleTeamName: string,
   childStateFile: string,
-  childState: any,
+  childState: WheelState,
 ): Promise<string | null> {
   const childCursor = childState.cursor ?? 0;
   const childWfDef = childState.workflow_definition;
-  const childWfSteps: any[] = childWfDef?.steps ?? [];
-  const childStateSteps: any[] = childState.steps ?? [];
+  const childWfSteps: WorkflowStep[] = childWfDef?.steps ?? [];
+  const childStateSteps = childState.steps ?? [];
   const childStepDef = childWfSteps[childCursor];
   const childStepState = childStateSteps[childCursor];
   if (!childStepDef && !childStepState) return null;
@@ -126,13 +127,13 @@ export async function _teamWaitBuildWakeBlock(
  */
 export async function _teamWaitAdvanceChildIfAuto(
   childStateFile: string,
-  childState: any,
-  hookInput: any,
+  childState: WheelState,
+  hookInput: HookInput,
 ): Promise<boolean> {
   const childCursor = childState.cursor ?? 0;
   const childWfDef = childState.workflow_definition;
-  const childWfSteps: any[] = childWfDef?.steps ?? [];
-  const childStateSteps: any[] = childState.steps ?? [];
+  const childWfSteps: WorkflowStep[] = childWfDef?.steps ?? [];
+  const childStateSteps = childState.steps ?? [];
   const childStepDef = childWfSteps[childCursor];
   const childStepState = childStateSteps[childCursor];
   if (!childStepDef && !childStepState) return false;
@@ -149,7 +150,7 @@ export async function _teamWaitAdvanceChildIfAuto(
     child_step_type: childStepType,
   });
   const dispatchModule = await import('./dispatch.js');
-  await dispatchModule.dispatchStep(childStep, 'stop', hookInput, childStateFile, childCursor, 0);
+  await dispatchModule.dispatchStep(childStep as unknown as WorkflowStep, 'stop', hookInput, childStateFile, childCursor, 0);
   const engineModule = await import('./engine.js');
   await engineModule.maybeArchiveAfterActivation(childStateFile);
   return true;

@@ -11,20 +11,31 @@ import type {
   WheelState, TeammateEntry, TeammateStatus,
 } from '../shared/state.js';
 
+/**
+ * Read-modify-write helper for state mutations that don't fit the
+ * step-scoped `mutateStep` shape (whole-state-graph reads/writes,
+ * teams[*] mutations, etc.). Stamps `updated_at` automatically.
+ */
+async function mutateState(
+  stateFile: string,
+  mutator: (state: WheelState, now: string) => void,
+): Promise<void> {
+  const state = await stateRead(stateFile);
+  const now = new Date().toISOString();
+  mutator(state, now);
+  state.updated_at = now;
+  await stateWrite(stateFile, state);
+}
+
 /** Register a fresh team under `state.teams[stepId]` with empty teammate map. */
 export async function stateSetTeam(
   stateFile: string,
   stepId: string,
   teamName: string,
 ): Promise<void> {
-  const state = await stateRead(stateFile);
-  state.teams[stepId] = {
-    team_name: teamName,
-    created_at: new Date().toISOString(),
-    teammates: {},
-  };
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateState(stateFile, (state, now) => {
+    state.teams[stepId] = { team_name: teamName, created_at: now, teammates: {} };
+  });
 }
 
 /** Read team registration; null if missing. */
@@ -42,17 +53,12 @@ export async function stateAddTeammate(
   teamStepId: string,
   teammate: TeammateEntry,
 ): Promise<void> {
-  const state = await stateRead(stateFile);
-  if (!state.teams[teamStepId]) {
-    state.teams[teamStepId] = {
-      team_name: '',
-      created_at: new Date().toISOString(),
-      teammates: {},
-    };
-  }
-  state.teams[teamStepId].teammates[teammate.agent_id] = teammate;
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateState(stateFile, (state, now) => {
+    if (!state.teams[teamStepId]) {
+      state.teams[teamStepId] = { team_name: '', created_at: now, teammates: {} };
+    }
+    state.teams[teamStepId].teammates[teammate.agent_id] = teammate;
+  });
 }
 
 /**
@@ -65,19 +71,13 @@ export async function stateUpdateTeammateStatus(
   agentName: string,
   status: TeammateStatus,
 ): Promise<void> {
-  const state = await stateRead(stateFile);
-  const team = state.teams[teamStepId];
-  if (!team || !team.teammates[agentName]) return;
-
-  const now = new Date().toISOString();
-  team.teammates[agentName].status = status;
-  if (status === 'running') {
-    team.teammates[agentName].started_at = now;
-  } else if (status === 'completed' || status === 'failed') {
-    team.teammates[agentName].completed_at = now;
-  }
-  state.updated_at = now;
-  await stateWrite(stateFile, state);
+  await mutateState(stateFile, (state, now) => {
+    const slot = state.teams[teamStepId]?.teammates[agentName];
+    if (!slot) return;
+    slot.status = status;
+    if (status === 'running') slot.started_at = now;
+    else if (status === 'completed' || status === 'failed') slot.completed_at = now;
+  });
 }
 
 /** Return the teammate map for team `teamStepId`. Empty object if missing. */
@@ -93,8 +93,5 @@ export async function stateRemoveTeam(
   stateFile: string,
   stepId: string,
 ): Promise<void> {
-  const state = await stateRead(stateFile);
-  delete state.teams[stepId];
-  state.updated_at = new Date().toISOString();
-  await stateWrite(stateFile, state);
+  await mutateState(stateFile, (state) => { delete state.teams[stepId]; });
 }
