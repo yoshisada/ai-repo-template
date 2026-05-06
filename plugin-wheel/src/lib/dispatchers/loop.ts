@@ -20,6 +20,14 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
+// Step-type-specific fields read from a `loop` step's JSON.
+interface LoopStepFields {
+  max_iterations?: number;
+  on_exhaustion?: 'fail' | 'continue';
+  condition?: string;
+  substep?: { type: string; command?: string; instruction?: string };
+}
+
 const execAsync = promisify(exec);
 
 export async function dispatchLoop(
@@ -34,16 +42,17 @@ export async function dispatchLoop(
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const dispatchModule = await import('../dispatch.js');
-  const cascadeNext = (dispatchModule as any).cascadeNext;
+  const cascadeNext = dispatchModule.cascadeNext;
 
   if (stepStatus === 'pending') {
     await stateSetStepStatus(stateFile, stepIndex, 'working');
   }
 
-  const maxIterations = (step as any).max_iterations ?? 10;
-  const onExhaustion = (step as any).on_exhaustion ?? 'fail';
-  const condition = (step as any).condition;
-  const currentIteration = (state.steps[stepIndex] as any)?.loop_iteration ?? 0;
+  const lf = step as WorkflowStep & LoopStepFields;
+  const maxIterations = lf.max_iterations ?? 10;
+  const onExhaustion = lf.on_exhaustion ?? 'fail';
+  const condition = lf.condition;
+  const currentIteration = state.steps[stepIndex]?.loop_iteration ?? 0;
 
   if (currentIteration >= maxIterations) {
     await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
@@ -94,10 +103,10 @@ export async function dispatchLoop(
       resolved_inputs: null, contract_emitted: false,
     };
   }
-  (newState.steps[stepIndex] as any).loop_iteration = currentIteration + 1;
+  newState.steps[stepIndex].loop_iteration = currentIteration + 1;
   await stateWrite(stateFile, newState);
 
-  const substep = (step as any).substep;
+  const substep = lf.substep;
   if (!substep) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
     return { decision: 'approve' };
@@ -109,17 +118,19 @@ export async function dispatchLoop(
     const cmdEnv = wfPluginDir
       ? { ...process.env, WORKFLOW_PLUGIN_DIR: wfPluginDir }
       : { ...process.env };
-    try {
-      await execAsync(substep.command, { timeout: 300000, env: cmdEnv });
-    } catch {
-      // Continue loop even on command failure
+    if (substep.command) {
+      try {
+        await execAsync(substep.command, { timeout: 300000, env: cmdEnv });
+      } catch {
+        // Continue loop even on command failure
+      }
     }
 
     const reState = await stateRead(stateFile);
-    const reIteration = (reState.steps[stepIndex] as any)?.loop_iteration ?? 0;
+    const reIteration = reState.steps[stepIndex]?.loop_iteration ?? 0;
     // parity: shell dispatch.sh:1440 — max_iterations is per-workflow-def.
     // Bug B fix (#199): read from step (workflow def), NOT state.steps[i].
-    const reMaxIter = (step as any).max_iterations ?? 10;
+    const reMaxIter = lf.max_iterations ?? 10;
     if (reIteration >= reMaxIter) {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
       return cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);

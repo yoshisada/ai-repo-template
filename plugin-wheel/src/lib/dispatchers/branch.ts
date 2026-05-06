@@ -15,6 +15,12 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
+interface BranchStepFields {
+  condition?: string;
+  if_zero?: string;
+  if_nonzero?: string;
+}
+
 const execAsync = promisify(exec);
 
 export async function dispatchBranch(
@@ -28,11 +34,12 @@ export async function dispatchBranch(
   const stateModule = await import('../state.js');
   const state = await stateRead(stateFile);
   const dispatchModule = await import('../dispatch.js');
-  const cascadeNext = (dispatchModule as any).cascadeNext;
+  const cascadeNext = dispatchModule.cascadeNext;
 
   await stateSetStepStatus(stateFile, stepIndex, 'working');
 
-  const condition = (step as any).condition;
+  const bf = step as WorkflowStep & BranchStepFields;
+  const condition = bf.condition;
   if (!condition) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
     const fresh = await stateRead(stateFile);
@@ -51,7 +58,7 @@ export async function dispatchBranch(
     condExit = e.code ?? 1;
   }
 
-  const targetId = condExit === 0 ? (step as any).if_zero : (step as any).if_nonzero;
+  const targetId = condExit === 0 ? bf.if_zero : bf.if_nonzero;
 
   if (!targetId || targetId === 'END') {
     await stateSetStepStatus(stateFile, stepIndex, 'done');
@@ -60,7 +67,7 @@ export async function dispatchBranch(
     const wfDef = state.workflow_definition;
     let fallNext = stepIndex + 1;
     if (wfDef) {
-      const rawNext = wfMod.resolveNextIndex(step as any, stepIndex, wfDef);
+      const rawNext = wfMod.resolveNextIndex(step, stepIndex, wfDef);
       fallNext = await wfMod.advancePastSkipped(stateFile, rawNext, wfDef);
     }
     return cascadeNext(hookType, hookInput, stateFile, fallNext, depth);
@@ -81,7 +88,7 @@ export async function dispatchBranch(
   await stateSetStepStatus(stateFile, stepIndex, 'done');
 
   // Mark the off-branch step as 'skipped' so cascadeNext walks past it.
-  const otherTargetId = condExit === 0 ? (step as any).if_nonzero : (step as any).if_zero;
+  const otherTargetId = condExit === 0 ? bf.if_nonzero : bf.if_zero;
   if (otherTargetId) {
     const otherIndex = state.steps.findIndex((s: any) => s.id === otherTargetId);
     if (otherIndex !== -1) {

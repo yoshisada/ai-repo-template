@@ -28,7 +28,7 @@ export async function dispatchTeamCreate(
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const stepId = step.id;
-  const teamName = (step as any).team_name ?? `${state.workflow_name}-${stepId}`;
+  const teamName = (step.team_name as string | undefined) ?? `${state.workflow_name}-${stepId}`;
 
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
@@ -56,7 +56,7 @@ export async function dispatchTeamCreate(
         await stateSetStepStatus(stateFile, stepIndex, 'done');
         // parity: shell dispatch.sh:1669–1673 — cascade into next auto-executable step.
         const dispatchModule = await import('../dispatch.js');
-        return (dispatchModule as any).cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, 0);
+        return dispatchModule.cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, 0);
       }
     }
     return { decision: 'approve' };

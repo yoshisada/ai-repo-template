@@ -23,10 +23,10 @@ export async function dispatchTeamDelete(
   const stateModule = await import('../state.js');
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
-  const teamRef = (step as any).team as string | undefined;
+  const teamRef = step.team as string | undefined;
   const teamName = teamRef ? state.teams?.[teamRef]?.team_name : undefined;
   const dispatchModule = await import('../dispatch.js');
-  const cascadeNext = (dispatchModule as any).cascadeNext;
+  const cascadeNext = dispatchModule.cascadeNext;
 
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
@@ -65,7 +65,7 @@ export async function dispatchTeamDelete(
         if (teamRef) await stateModule.stateRemoveTeam(stateFile, teamRef);
         await stateSetStepStatus(stateFile, stepIndex, 'done');
         // parity: shell dispatch.sh:2453–2458 — terminal step archive trigger.
-        if ((step as any).terminal === true) {
+        if (step.terminal === true) {
           const fresh = await stateRead(stateFile);
           await stateWrite(stateFile, { ...fresh, status: 'completed' as const });
           return { hookEventName: 'PostToolUse' };

@@ -8,7 +8,7 @@
 //
 // FR-001/FR-002/FR-003/FR-004/FR-006/FR-007/FR-008/FR-009 (step dispatch + cascade).
 
-import type { WorkflowStep } from '../shared/state.js';
+import type { WorkflowStep, WorkflowDefinition } from '../shared/state.js';
 import { stateRead } from '../shared/state.js';
 import { wheelLog } from './log.js';
 import {
@@ -79,7 +79,7 @@ export async function _chainParentAfterArchive(
   const parentWfFile = parentState.workflow_file;
   if (!parentWfFile) return { decision: 'approve' };
 
-  let parentWf: any = (parentState as any).workflow_definition;
+  let parentWf: WorkflowDefinition | null = parentState.workflow_definition;
   if (!parentWf) {
     try {
       const wfMod = await import('./workflow.js');

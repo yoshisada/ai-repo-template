@@ -38,7 +38,7 @@ export async function _teamWaitProgressSnapshot(
   let completed = 0, failed = 0, running = 0;
   const lines: string[] = [];
   for (const [name, slot] of Object.entries(teammates)) {
-    const s = slot as any;
+    const s = slot as TeammateEntry;
     if (s.status === 'completed') completed++;
     else if (s.status === 'failed') failed++;
     else if (s.status === 'running') running++;
@@ -149,7 +149,7 @@ export async function _teamWaitAdvanceChildIfAuto(
     child_step_type: childStepType,
   });
   const dispatchModule = await import('./dispatch.js');
-  await dispatchModule.dispatchStep(childStep as any, 'stop', hookInput, childStateFile, childCursor, 0);
+  await dispatchModule.dispatchStep(childStep, 'stop', hookInput, childStateFile, childCursor, 0);
   const engineModule = await import('./engine.js');
   await engineModule.maybeArchiveAfterActivation(childStateFile);
   return true;

@@ -10,7 +10,7 @@
 //
 // FR-003.
 
-import type { WorkflowStep, WheelState } from '../../shared/state.js';
+import type { WorkflowStep, WheelState, WorkflowDefinition } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
 import { stateSetStepStatus } from '../state.js';
 import { contextBuild } from '../context.js';
@@ -36,7 +36,7 @@ export async function dispatchAgent(
       // parity: shell dispatch.sh:594–602 — delete stale output file from
       // prior run before pending→working transition. Otherwise a leftover
       // file would auto-complete the step before the agent writes anything.
-      const outputKey = (step as any).output as string | undefined;
+      const outputKey = step.output as string | undefined;
       if (outputKey) {
         try {
           const { unlink } = await import('fs/promises');
@@ -45,14 +45,14 @@ export async function dispatchAgent(
       }
       await stateSetStepStatus(stateFile, stepIndex, 'working');
       const resolvedInputs = step.inputs
-        ? resolveInputs(step.inputs, {} as WheelState, {} as any, {})
+        ? resolveInputs(step.inputs, {} as WheelState, {} as WorkflowDefinition, {})
         : {};
       const context = await contextBuild(step, {} as WheelState, resolvedInputs);
       return { decision: 'block', additionalContext: context };
     }
     if (stepStatus === 'working') {
       // Output file exists → agent completed.
-      const outputKey = (step as any).output as string | undefined;
+      const outputKey = step.output as string | undefined;
       if (outputKey) {
         try {
           const { access } = await import('fs/promises');
@@ -70,7 +70,7 @@ export async function dispatchAgent(
           const wfDef = stateNow.workflow_definition;
           let newCursor = stepIndex + 1;
           if (wfDef) {
-            const rawNext = wfModule.resolveNextIndex(step as any, stepIndex, wfDef);
+            const rawNext = wfModule.resolveNextIndex(step, stepIndex, wfDef);
             newCursor = await wfModule.advancePastSkipped(stateFile, rawNext, wfDef);
           }
           await stateModule.stateSetCursor(stateFile, newCursor);
@@ -81,7 +81,7 @@ export async function dispatchAgent(
             // parity: shell dispatch.sh:144 — advance parent cursor when child terminates.
             const parentSnap = stateNow.parent_workflow ?? null;
             const dispatchModule = await import('../dispatch.js');
-            await (dispatchModule as any)._chainParentAfterArchive(parentSnap, hookType, hookInput);
+            await dispatchModule._chainParentAfterArchive(parentSnap, hookType, hookInput);
           }
           return { decision: 'approve' };
         } catch {
@@ -99,7 +99,7 @@ export async function dispatchAgent(
     if (stepStatus === 'working') return { decision: 'approve' };
     await stateSetStepStatus(stateFile, stepIndex, 'working');
     const resolvedInputs = step.inputs
-      ? resolveInputs(step.inputs, {} as WheelState, {} as any, {})
+      ? resolveInputs(step.inputs, {} as WheelState, {} as WorkflowDefinition, {})
       : {};
     const context = await contextBuild(step, {} as WheelState, resolvedInputs);
     return { decision: 'approve', additionalContext: context };

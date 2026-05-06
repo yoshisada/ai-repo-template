@@ -47,7 +47,7 @@ export async function dispatchCommand(
     await stateSetStepStatus(stateFile, stepIndex, 'done');
 
     // FR-008: terminal step — set status=completed; no cascade after.
-    if ((step as any).terminal === true) {
+    if (step.terminal === true) {
       const state = await stateRead(stateFile);
       await stateWrite(stateFile, { ...state, status: 'completed' as const });
       await wheelLog('dispatch_cascade_halt', {
@@ -60,7 +60,7 @@ export async function dispatchCommand(
     // FR-002 — cascade to next step after success. Imported lazily to
     // avoid the circular dep (dispatch.ts imports this file).
     const dispatchModule = await import('../dispatch.js');
-    return (dispatchModule as any).cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
+    return dispatchModule.cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
   } catch (err) {
     const exitCode = (err as NodeJS.ErrnoException).code ?? 1;
     await stateModule.stateAppendCommandLog(stateFile, stepIndex, {

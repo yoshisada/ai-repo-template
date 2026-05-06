@@ -60,7 +60,7 @@ export const AUTO_EXECUTABLE_STEP_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 export function isAutoExecutable(step: WorkflowStep | { type?: string }): boolean {
-  return AUTO_EXECUTABLE_STEP_TYPES.has((step as any).type);
+  return AUTO_EXECUTABLE_STEP_TYPES.has(step.type ?? '');
 }
 
 // FR-006 — hard cap on cascade recursion depth. Graceful halt at this depth.

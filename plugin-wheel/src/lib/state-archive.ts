@@ -221,11 +221,11 @@ async function maybeAdvanceParentCompositionStep(parentPath: string): Promise<vo
     await fs.access(parentPath);
     const parent = await stateRead(parentPath);
     const workingIdx = parent.steps.findIndex(
-      (s: any) => s.type === 'workflow' && s.status === 'working',
+      (s) => s.type === 'workflow' && s.status === 'working',
     );
     if (workingIdx < 0) return;
     await stateSetStepStatus(parentPath, workingIdx, 'done');
-    const wfDef: any = (parent as any).workflow_definition;
+    const wfDef = parent.workflow_definition;
     let nextIdx = workingIdx + 1;
     if (wfDef?.steps) {
       const stepJson = wfDef.steps[workingIdx];

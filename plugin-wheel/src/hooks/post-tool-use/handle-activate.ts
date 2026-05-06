@@ -105,7 +105,7 @@ export async function handleActivation(
   // FR-005 — post-init cascade (drives the workflow until first blocking step).
   if (workflow.steps.length > 0 && isAutoExecutable(workflow.steps[0])) {
     try {
-      await dispatchStep(workflow.steps[0] as any, 'post_tool_use', hookInput, stateFile, 0, 0);
+      await dispatchStep(workflow.steps[0], 'post_tool_use', hookInput, stateFile, 0, 0);
     } catch { /* non-fatal: cascade error during activation swallowed */ }
   }
   // FR-005 — terminal-cursor archive after cascade.

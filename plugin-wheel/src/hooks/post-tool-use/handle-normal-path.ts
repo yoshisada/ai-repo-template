@@ -76,7 +76,7 @@ export async function handleNormalPath(
   // for the dispatcher input — definition carries full WorkflowStep shape
   // (output, instruction, command, branches, …); state.steps is a dynamic
   // projection and pre-fix stripped definition fields.
-  const wfDef = (state as any).workflow_definition;
+  const wfDef = state.workflow_definition;
   const wfSteps: any[] = wfDef?.steps ?? state.steps;
   const step = wfSteps[cursor] ?? state.steps[cursor];
   const stepType = step?.type ?? '';
@@ -85,9 +85,9 @@ export async function handleNormalPath(
   try {
     if (stepType === 'agent' || stepType === 'teammate') {
       // Agent + teammate dispatchers only respond to 'stop' hooks.
-      result = await dispatchStep(step as any, 'stop', hookInput, stateFile, cursor);
+      result = await dispatchStep(step, 'stop', hookInput, stateFile, cursor);
     } else {
-      result = await dispatchStep(step as any, 'post_tool_use', hookInput, stateFile, cursor);
+      result = await dispatchStep(step, 'post_tool_use', hookInput, stateFile, cursor);
     }
   } catch (err) {
     console.error('Engine error:', err);

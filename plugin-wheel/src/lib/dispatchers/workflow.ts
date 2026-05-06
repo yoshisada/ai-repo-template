@@ -33,7 +33,7 @@ export async function dispatchWorkflow(
 
   if (stepStatus === 'pending') {
     await stateSetStepStatus(stateFile, stepIndex, 'working');
-    const childName = (step as any).workflow;
+    const childName = step.workflow as string | undefined;
     if (!childName) return { decision: 'approve' };
 
     const safeChildName = String(childName).replace(/\//g, '-');
@@ -66,7 +66,7 @@ export async function dispatchWorkflow(
 
     try {
       const persistedChild = await stateRead(childStateFile);
-      (persistedChild as any).workflow_definition = childJson;
+      persistedChild.workflow_definition = childJson;
       await stateWrite(childStateFile, persistedChild);
     } catch { /* non-fatal */ }
 
@@ -93,7 +93,7 @@ export async function dispatchWorkflow(
     };
   }
   if (stepStatus === 'working') {
-    const childName = (step as any).workflow ?? 'unknown';
+    const childName = (step.workflow as string | undefined) ?? 'unknown';
     return {
       decision: 'block',
       additionalContext: `Waiting for child workflow to complete: ${childName}`,

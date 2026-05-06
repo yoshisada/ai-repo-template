@@ -26,6 +26,19 @@ import { stateRead } from '../../shared/state.js';
 import { stateSetStepStatus } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
+// Step-type-specific fields read from the `teammate` step JSON. Modeled
+// once here so dispatchers cast the step shape at the boundary instead
+// of reaching for `(step as any).<field>` at every read site.
+interface TeammateStepFields {
+  team?: string;
+  workflow?: string;
+  loop_from?: string;
+  max_agents?: number;
+  name?: string;
+  context_from?: unknown[];
+  assign?: unknown;
+}
+
 export async function dispatchTeammate(
   step: WorkflowStep,
   hookType: HookType,
@@ -33,10 +46,12 @@ export async function dispatchTeammate(
   stateFile: string,
   stepIndex: number,
 ): Promise<HookOutput> {
+  const sf = step as WorkflowStep & TeammateStepFields;
+
   // PostToolUse: TaskCreate detection (parity: shell dispatch.sh:1843–1876).
   if (hookType === 'post_tool_use') {
     if (hookInput.tool_name === 'TaskCreate') {
-      const teamRef = (step as any).team;
+      const teamRef = sf.team;
       if (teamRef) {
         const teamModule = await import('../dispatch-team.js');
         await teamModule.teammateMatchTaskCreate(
@@ -56,12 +71,16 @@ export async function dispatchTeammate(
 
   await stateSetStepStatus(stateFile, stepIndex, 'working');
 
-  const teamRef = (step as any).team;
-  const subWorkflow = (step as any).workflow;
-  const loopFrom = (step as any).loop_from;
-  const maxAgents = (step as any).max_agents ?? 5;
-  const agentName = (step as any).name ?? step.id;
+  const teamRef = sf.team;
+  const subWorkflow = sf.workflow ?? '';
+  const loopFrom = sf.loop_from;
+  const maxAgents = sf.max_agents ?? 5;
+  const agentName = sf.name ?? step.id;
 
+  if (!teamRef) {
+    await stateSetStepStatus(stateFile, stepIndex, 'failed');
+    return { decision: 'approve' };
+  }
   const teamName = state.teams?.[teamRef]?.team_name;
   if (!teamName) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
@@ -130,7 +149,7 @@ async function spawnDynamic(
   const contextModule = await import('../context.js');
   const wfDef: any = state.workflow_definition
     ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
-  const contextFromJson: unknown[] = (step as any).context_from ?? [];
+  const contextFromJson: unknown[] = (step as WorkflowStep & TeammateStepFields).context_from ?? [];
 
   for (let i = 0; i < agentCount; i++) {
     const name = `${agentName}-${i}`;
@@ -172,7 +191,7 @@ async function spawnStatic(
 ): Promise<HookOutput> {
   const stateModule = await import('../state.js');
   const outputDir = `.wheel/outputs/team-${teamName}/${agentName}`;
-  const assignJson = (step as any).assign ?? {};
+  const assignJson = ((step as WorkflowStep & TeammateStepFields).assign ?? {}) as Record<string, unknown>;
   // parity: shell dispatch.sh:2082 — agent_id is team-format `name@team`.
   const teammate: TeammateEntry = {
     task_id: '', status: 'pending',
@@ -186,7 +205,7 @@ async function spawnStatic(
   const contextModule = await import('../context.js');
   const wfDef: any = state.workflow_definition
     ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
-  const contextFromJson: unknown[] = (step as any).context_from ?? [];
+  const contextFromJson: unknown[] = (step as WorkflowStep & TeammateStepFields).context_from ?? [];
   try {
     await contextModule.contextWriteTeammateFiles(outputDir, state, wfDef, contextFromJson, assignJson);
   } catch { /* non-fatal */ }

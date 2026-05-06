@@ -41,7 +41,7 @@ export async function dispatchTeamWait(
     if (stepStatus === 'pending') {
       await stateSetStepStatus(stateFile, stepIndex, 'working');
     }
-    const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as any);
+    const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as { output?: string; collect_to?: string });
     if (done) return { decision: 'approve' };
     return _stopBlock(stateFile, teamRef);
   }
@@ -52,7 +52,7 @@ export async function dispatchTeamWait(
       return { decision: 'approve' };
     }
     await runPollingBackstop(stateFile, teamRef);
-    await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as any);
+    await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as { output?: string; collect_to?: string });
     return { decision: 'approve' };
   }
 
@@ -120,7 +120,7 @@ async function _stopBlock(stateFile: string, teamRef: string): Promise<HookOutpu
   // forever waiting for slot updates that can never happen.
   if (hasPendingSlots && totalSlots > 0) {
     const freshState = await stateRead(stateFile);
-    const wfDef: any = (freshState as any).workflow_definition;
+    const wfDef = freshState.workflow_definition;
     const wfStepsArr: any[] = wfDef?.steps ?? freshState.steps;
     const lastTeammateStep = [...wfStepsArr]
       .reverse()
@@ -148,9 +148,9 @@ async function _teammateIdle(
   teamRef: string,
   hookInput: HookInput,
 ): Promise<HookOutput> {
-  const idleAgentId = String((hookInput as any).agent_id ?? '');
-  const idleName = String((hookInput as any).teammate_name ?? '');
-  const idleTeamName = String((hookInput as any).team_name ?? '');
+  const idleAgentId = String(hookInput.agent_id ?? '');
+  const idleName = String(hookInput.teammate_name ?? '');
+  const idleTeamName = String(hookInput.team_name ?? '');
   await wheelLog('dispatch_teammate_idle_enter', {
     agent_id: idleAgentId, teammate_name: idleName,
     hook_input_keys: Object.keys(hookInput ?? {}),

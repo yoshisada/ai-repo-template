@@ -22,7 +22,7 @@ export async function dispatchApproval(
   const stateModule = await import('../state.js');
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
-  const message = (step as any).message ?? 'Approval required to continue.';
+  const message = (step.message as string | undefined) ?? 'Approval required to continue.';
 
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
@@ -36,7 +36,7 @@ export async function dispatchApproval(
   }
 
   if (hookType === 'teammate_idle') {
-    const approval = (hookInput as any).approval ?? '';
+    const approval = (hookInput.approval as string | undefined) ?? '';
     if (approval === 'approved') {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
       // parity: shell dispatch.sh:1328 — advance cursor.

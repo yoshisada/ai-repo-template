@@ -25,8 +25,8 @@ export async function handleDeactivate(
   hookInput: HookInput,
 ): Promise<HookOutput> {
   const arg = parseDeactivateArg(command);
-  const sessionId = String((hookInput as any).session_id ?? '');
-  const agentId = String((hookInput as any).agent_id ?? '');
+  const sessionId = String(hookInput.session_id ?? '');
+  const agentId = String(hookInput.agent_id ?? '');
 
   const stoppedDir = path.join('.wheel', 'history', 'stopped');
   await fs.mkdir(stoppedDir, { recursive: true });
@@ -108,14 +108,16 @@ async function cascadeStopTeammateSubworkflows(stoppedDir: string): Promise<void
     const teammateAgentIds = new Set<string>();
     for (const f of stoppedFiles) {
       try {
-        const s = JSON.parse(await fs.readFile(path.join(stoppedDir, f), 'utf-8'));
-        const teams = s.teams as Record<string, any> | undefined;
+        const s = JSON.parse(await fs.readFile(path.join(stoppedDir, f), 'utf-8')) as {
+          teams?: Record<string, { teammates?: Record<string, { status?: string; agent_id?: string }> }>;
+        };
+        const teams = s.teams;
         if (!teams) continue;
         for (const team of Object.values(teams)) {
-          const teammates = (team as any)?.teammates ?? {};
+          const teammates = team?.teammates ?? {};
           for (const tm of Object.values(teammates)) {
-            const status = (tm as any)?.status ?? '';
-            const aid = (tm as any)?.agent_id ?? '';
+            const status = tm?.status ?? '';
+            const aid = tm?.agent_id ?? '';
             if ((status === 'pending' || status === 'running') && aid) {
               teammateAgentIds.add(String(aid));
             }

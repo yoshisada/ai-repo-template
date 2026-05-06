@@ -10,6 +10,12 @@ import { stateRead } from '../../shared/state.js';
 import { stateSetStepStatus } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
+interface ParallelStepFields {
+  agents?: string[];
+  instruction?: string;
+  agent_instructions?: Record<string, string>;
+}
+
 export async function dispatchParallel(
   step: WorkflowStep,
   hookType: HookType,
@@ -20,17 +26,18 @@ export async function dispatchParallel(
   const stateModule = await import('../state.js');
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
+  const pf = step as WorkflowStep & ParallelStepFields;
 
   if (hookType === 'stop') {
     if (stepStatus === 'pending') {
       await stateSetStepStatus(stateFile, stepIndex, 'working');
-      const agents = (step as any).agents ?? [];
+      const agents = pf.agents ?? [];
       for (const agent of agents) {
         await stateModule.stateSetAgentStatus(stateFile, stepIndex, agent, 'pending');
       }
     }
-    const instruction = (step as any).instruction ?? 'Spawn parallel agents for this step.';
-    const agentList = ((step as any).agents ?? []).join(', ');
+    const instruction = pf.instruction ?? 'Spawn parallel agents for this step.';
+    const agentList = (pf.agents ?? []).join(', ');
     return {
       decision: 'block',
       additionalContext: `Spawn these agents in parallel: ${agentList}. ${instruction}`,
@@ -42,8 +49,8 @@ export async function dispatchParallel(
     const agentStatus = state.steps[stepIndex]?.agents?.[agentType]?.status;
     if (agentStatus === 'pending' || agentStatus === 'idle') {
       await stateModule.stateSetAgentStatus(stateFile, stepIndex, agentType, 'working');
-      const agentInstructions = (step as any).agent_instructions ?? {};
-      const agentInstruction = agentInstructions[agentType] ?? (step as any).instruction ?? '';
+      const agentInstructions = pf.agent_instructions ?? {};
+      const agentInstruction = agentInstructions[agentType] ?? pf.instruction ?? '';
       return { decision: 'block', additionalContext: agentInstruction };
     }
     return { decision: 'approve' };
@@ -54,7 +61,7 @@ export async function dispatchParallel(
     }
     const updatedState = await stateRead(stateFile);
     const agents = updatedState.steps[stepIndex]?.agents ?? {};
-    const allDone = Object.values(agents).every((a: any) => a.status === 'done');
+    const allDone = Object.values(agents).every((a) => a.status === 'done');
     if (allDone) {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
       await stateModule.stateSetCursor(stateFile, stepIndex + 1);
