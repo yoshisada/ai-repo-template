@@ -90,12 +90,21 @@ describe('dispatchTeammate FR-006 parity', () => {
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
 
-  // Fix A — the emitted spawn block sets the Agent call's structured
-  // `name` field to the FULL agent_id (`name@team`), not the bare
-  // short-name. The PreToolUse-team guard then accepts the call on
-  // `name` match alone, surviving prompt paraphrasing that drops --as.
-  it('spawn block uses full agent_id (name@team) as the Agent call name field', async () => {
-    const statePath = path.join(TEST_DIR, 'name-as-agentid.json');
+  // Architectural fix — the emitted spawn block uses the SHORT name
+  // (without `@<team>` suffix) as the Agent call's `name` parameter.
+  //
+  // Why short name: Claude Code mangles `name + team_name` into the
+  // spawned sub-agent's `agent_id`. With `name="w1"` + `team_name="tm"`,
+  // the spawned agent_id is `w1@tm` — verbatim equal to the slot's
+  // registered agent_id. The sub-agent's intrinsic hookInput.agent_id
+  // then matches the slot during handleActivation, so the parent-link
+  // works without depending on `--as` surviving prompt paraphrasing.
+  //
+  // Sending the FULL agent_id as `name` instead would mangle: Claude
+  // Code strips `@` from name, producing `w1-tm@tm` (a different,
+  // non-matching key). That's why short-name is the right contract.
+  it('spawn block uses short-name as Agent.name (matches slot agent_id under Claude Code mangling)', async () => {
+    const statePath = path.join(TEST_DIR, 'name-shortname.json');
     const step = {
       id: 'w1',
       type: 'teammate',
@@ -113,9 +122,9 @@ describe('dispatchTeammate FR-006 parity', () => {
 
     const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
     expect(result.decision).toBe('block');
-    // Block emits `name: "w1@tm"` (full agent_id), NOT `name: "w1"`.
-    expect(result.additionalContext).toContain('name: "w1@tm"');
-    expect(result.additionalContext).not.toContain('name: "w1",');
+    expect(result.additionalContext).toContain('name: "w1",');
+    expect(result.additionalContext).not.toContain('name: "w1@tm"');
+    expect(result.additionalContext).toContain('team_name: "tm"');
 
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });

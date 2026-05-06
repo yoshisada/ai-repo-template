@@ -119,7 +119,7 @@ export async function _teammateFlushFromState(
     const promptText =
       `${activate}\n\n` +
       `^^ Run that bash command FIRST, verbatim, in a single tool call. ` +
-      `It activates your sub-workflow and stamps your --as identity. ` +
+      `It activates your sub-workflow; the wheel hook auto-links you to the parent's teammate slot using your intrinsic agent_id, no extra steps needed. ` +
       `Then end your turn so the wheel Stop hook fires. ` +
       `For every subsequent turn: read the hook's \`additionalContext\` instruction, make ONE tool call following it, end the turn. ` +
       `Repeat until your state file archives (no more .wheel/state_*.json for you). ` +
@@ -129,11 +129,20 @@ export async function _teammateFlushFromState(
     lines.push(`  subagent_type: "general-purpose",`);
     lines.push(`  description: "${shortName} sub-workflow spawn",`);
     lines.push(`  prompt: ${JSON.stringify(promptText)},`);
-    // Fix A: emit the FULL agent_id (`name@team`) as the Agent call's
-    // structured `name` parameter. The PreToolUse-team guard reads this
-    // and accepts the call when it matches a registered slot, regardless
-    // of whether the orchestrator preserved the prompt's --as flag.
-    lines.push(`  name: "${teamFmtId}",`);
+    // Architectural Fix — short-name in `name`, NOT the full agent_id.
+    //
+    // Claude Code mangles `name` + `team_name` → spawned `agent_id` as:
+    //   name has NO `@`  →  agent_id = `<name>@<team_name>`
+    //   name has `@`     →  every `@` in name becomes `-`, then `@<team>` is appended
+    //
+    // We register slots with `agent_id = "<short>@<team>"`. Sending the
+    // short name here makes Claude Code's mangled spawn agent_id equal
+    // the slot agent_id verbatim, which means the spawned sub-agent's
+    // own `hookInput.agent_id` IS the linkage key — no prompt round-trip
+    // needed. handleActivation falls back to hookInput.agent_id when
+    // the activate.sh command has no `--as` flag, so the orchestrator
+    // dropping --as via paraphrasing no longer breaks parent-child link.
+    lines.push(`  name: "${shortName}",`);
     lines.push(`  team_name: "${teamName}",`);
     if (slot.model) {
       // Per-slot model override from the `teammate` step's `model` JSON

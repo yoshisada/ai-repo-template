@@ -35,7 +35,28 @@ export async function handleActivation(
   hookInput: HookInput,
 ): Promise<{ output: HookOutput; activated: boolean }> {
   const workflowName = extractWorkflowName(activateLine);
-  const alternateAgentId = extractAlternateAgentId(activateLine);
+  // Architectural Fix — alt_agent_id resolution priority:
+  //   1. `--as <id>` on the activate.sh command (legacy, explicit)
+  //   2. hookInput.agent_id (Claude Code's intrinsic identity for the
+  //      spawned sub-agent — populated regardless of prompt content)
+  //
+  // Source 2 is the resilience layer. Even if the orchestrator
+  // paraphrases the prompt and drops --as, the sub-agent's own
+  // `agent_id` remains intact and matches the parent's registered slot
+  // verbatim (because the spawn template uses short-name in `name:`,
+  // which Claude Code mangles into `<short>@<team>` — exactly the
+  // format dispatchTeammate uses for `slot.agent_id`).
+  //
+  // The teammate-context distinguisher: only treat hookInput.agent_id
+  // as an alt_id when it contains `@` (the team-format suffix). A bare
+  // session-level agent_id without `@` belongs to a top-level wheel
+  // run, not a teammate spawn, and stamping it as alt_id would
+  // mis-link a non-team activation to a parent slot.
+  const alternateAgentId =
+    extractAlternateAgentId(activateLine)
+    ?? (typeof hookInput.agent_id === 'string' && hookInput.agent_id.includes('@')
+      ? hookInput.agent_id
+      : null);
   if (!workflowName) return { output: { decision: 'approve' }, activated: false };
 
   const workflowFile = await resolveWorkflowFile(workflowName);
