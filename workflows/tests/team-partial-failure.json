@@ -12,6 +12,7 @@
       "type": "teammate",
       "team": "create-team",
       "workflow": "tests/team-sub-worker",
+      "model": "haiku",
       "assign": { "worker_id": 1, "task": "Write the word SUCCESS to your output file" }
     },
     {
@@ -19,6 +20,7 @@
       "type": "teammate",
       "team": "create-team",
       "workflow": "tests/team-sub-fail",
+      "model": "haiku",
       "assign": { "worker_id": 2, "task": "This worker is expected to fail" }
     },
     {

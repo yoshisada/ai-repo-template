@@ -1,0 +1,31 @@
+{
+  "name": "team-single-haiku-test",
+  "description": "Minimal team fixture — one haiku worker, no setup or report steps. Fastest possible Phase 4 fixture for iteration / smoke / regression checks.",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "team_name": "test-single-haiku-team"
+    },
+    {
+      "id": "lone-worker",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "model": "haiku",
+      "assign": { "worker_id": 1, "task": "Stamp 'OK' to your output" }
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "team": "create-team",
+      "output": ".wheel/outputs/team-single-haiku/summary.json"
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "team": "create-team",
+      "terminal": true
+    }
+  ]
+}

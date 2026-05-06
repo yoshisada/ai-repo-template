@@ -20,6 +20,7 @@
       "workflow": "tests/team-sub-worker",
       "loop_from": "generate-work",
       "max_agents": 3,
+      "model": "haiku",
       "context_from": ["generate-work"]
     },
     {
