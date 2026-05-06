@@ -191,7 +191,7 @@ export async function maybeArchiveAfterActivation(stateFile: string): Promise<vo
     return;
   }
 
-  const anyStepFailed = updatedState.steps.some((s: any) => s.status === 'failed');
+  const anyStepFailed = updatedState.steps.some((s) => s.status === 'failed');
   const bucket: 'success' | 'failure' =
     updatedState.status === 'failed' || anyStepFailed ? 'failure' : 'success';
 

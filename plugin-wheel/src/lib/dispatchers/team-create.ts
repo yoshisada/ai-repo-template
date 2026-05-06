@@ -14,7 +14,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateSetTeam } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
 export async function dispatchTeamCreate(
@@ -24,7 +24,7 @@ export async function dispatchTeamCreate(
   stateFile: string,
   stepIndex: number,
 ): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
+
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const stepId = step.id;
@@ -52,7 +52,7 @@ export async function dispatchTeamCreate(
   } else if (hookType === 'post_tool_use') {
     if (stepStatus === 'pending' || stepStatus === 'working') {
       if (hookInput.tool_name === 'TeamCreate') {
-        await stateModule.stateSetTeam(stateFile, stepId, teamName);
+        await stateSetTeam(stateFile, stepId, teamName);
         await stateSetStepStatus(stateFile, stepIndex, 'done');
         // parity: shell dispatch.sh:1669–1673 — cascade into next auto-executable step.
         const dispatchModule = await import('../dispatch.js');

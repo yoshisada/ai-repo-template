@@ -1,5 +1,6 @@
 // FR-006: Context building for agent instructions
 import type { WorkflowStep, WheelState, WorkflowDefinition } from '../shared/state.js';
+import { stateSetStepOutput } from './state.js';
 
 // FR-006: contextBuild(step: WorkflowStep, state: WheelState, resolvedInputs: unknown): Promise<string>
 export async function contextBuild(
@@ -60,8 +61,7 @@ export async function contextCaptureOutput(
   stepIndex: number,
   outputValue: unknown,
 ): Promise<void> {
-  const stateModule = await import('./state.js');
-  await stateModule.stateSetStepOutput(stateFile, stepIndex, outputValue);
+  await stateSetStepOutput(stateFile, stepIndex, outputValue);
 }
 
 // parity: shell context.sh:341 — context_write_teammate_files. Writes

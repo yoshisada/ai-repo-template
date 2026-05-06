@@ -10,7 +10,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateRemoveTeam } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
 export async function dispatchTeamDelete(
@@ -20,7 +20,7 @@ export async function dispatchTeamDelete(
   stateFile: string,
   stepIndex: number,
 ): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
+
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const teamRef = step.team as string | undefined;
@@ -62,7 +62,7 @@ export async function dispatchTeamDelete(
     // the call before the Stop hook flips pending → working.
     if (stepStatus === 'pending' || stepStatus === 'working') {
       if (hookInput.tool_name === 'TeamDelete') {
-        if (teamRef) await stateModule.stateRemoveTeam(stateFile, teamRef);
+        if (teamRef) await stateRemoveTeam(stateFile, teamRef);
         await stateSetStepStatus(stateFile, stepIndex, 'done');
         // parity: shell dispatch.sh:2453–2458 — terminal step archive trigger.
         if (step.terminal === true) {

@@ -10,6 +10,7 @@
 
 import type { WorkflowStep, WorkflowDefinition } from '../shared/state.js';
 import { stateRead } from '../shared/state.js';
+import { stateSetCursor } from './state.js';
 import { wheelLog } from './log.js';
 import {
   isAutoExecutable,
@@ -159,7 +160,6 @@ export async function cascadeNext(
   nextIndex: number,
   depth: number
 ): Promise<HookOutput> {
-  const stateModule = await import('./state.js');
   let state;
   try {
     state = await stateRead(stateFile);
@@ -175,7 +175,7 @@ export async function cascadeNext(
 
   // FR-009 — end-of-workflow halt.
   if (nextIndex >= state.steps.length) {
-    await stateModule.stateSetCursor(stateFile, nextIndex);
+    await stateSetCursor(stateFile, nextIndex);
     await wheelLog('cursor_advance', {
       from_cursor: fromCursor,
       to_cursor: nextIndex,
@@ -200,7 +200,7 @@ export async function cascadeNext(
     resolvedIndex++;
   }
   if (resolvedIndex >= state.steps.length) {
-    await stateModule.stateSetCursor(stateFile, resolvedIndex);
+    await stateSetCursor(stateFile, resolvedIndex);
     await wheelLog('cursor_advance', {
       from_cursor: fromCursor, to_cursor: resolvedIndex, state_file: stateFile,
     });
@@ -221,7 +221,7 @@ export async function cascadeNext(
   const nextStep: any = wfSteps[resolvedIndex] ?? state.steps[resolvedIndex];
 
   // FR-008 — advance cursor BEFORE recursing (idempotency contract).
-  await stateModule.stateSetCursor(stateFile, resolvedIndex);
+  await stateSetCursor(stateFile, resolvedIndex);
   await wheelLog('cursor_advance', {
     from_cursor: fromCursor,
     to_cursor: resolvedIndex,

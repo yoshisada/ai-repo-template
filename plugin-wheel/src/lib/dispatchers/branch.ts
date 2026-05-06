@@ -9,7 +9,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateAppendCommandLog } from '../state.js';
 import { wheelLog } from '../log.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -31,7 +31,7 @@ export async function dispatchBranch(
   stepIndex: number,
   depth: number = 0,
 ): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
+
   const state = await stateRead(stateFile);
   const dispatchModule = await import('../dispatch.js');
   const cascadeNext = dispatchModule.cascadeNext;
@@ -96,7 +96,7 @@ export async function dispatchBranch(
     }
   }
 
-  await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
+  await stateAppendCommandLog(stateFile, stepIndex, {
     command: `branch: condition='${condition}' exit=${condExit} target=${targetId}`,
     exit_code: condExit,
     timestamp: new Date().toISOString(),

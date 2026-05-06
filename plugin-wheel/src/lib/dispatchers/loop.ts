@@ -14,7 +14,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateAppendCommandLog } from '../state.js';
 import { wheelLog } from '../log.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -38,7 +38,7 @@ export async function dispatchLoop(
   stepIndex: number,
   depth: number = 0,
 ): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
+
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const dispatchModule = await import('../dispatch.js');
@@ -55,7 +55,7 @@ export async function dispatchLoop(
   const currentIteration = state.steps[stepIndex]?.loop_iteration ?? 0;
 
   if (currentIteration >= maxIterations) {
-    await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
+    await stateAppendCommandLog(stateFile, stepIndex, {
       command: `loop: exhausted after ${currentIteration} iterations`,
       exit_code: 1, timestamp: new Date().toISOString(),
     });
@@ -81,7 +81,7 @@ export async function dispatchLoop(
       condExit = e.code ?? 1;
     }
     if (condExit === 0) {
-      await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
+      await stateAppendCommandLog(stateFile, stepIndex, {
         command: `loop: condition met at iteration ${currentIteration}`,
         exit_code: 0, timestamp: new Date().toISOString(),
       });

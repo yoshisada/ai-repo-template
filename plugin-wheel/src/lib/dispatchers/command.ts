@@ -9,7 +9,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus, stateSetStepOutput } from '../state.js';
+import { stateSetStepStatus, stateSetStepOutput, stateAppendCommandLog } from '../state.js';
 import { wheelLog } from '../log.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -27,7 +27,7 @@ export async function dispatchCommand(
 ): Promise<HookOutput> {
   if (!step.command) return { decision: 'approve' };
 
-  const stateModule = await import('../state.js');
+
   await stateSetStepStatus(stateFile, stepIndex, 'working');
 
   // parity: shell dispatch.sh:1535–1544 — export WORKFLOW_PLUGIN_DIR for plugin-shipped commands.
@@ -40,7 +40,7 @@ export async function dispatchCommand(
   try {
     const { stdout, stderr } = await execAsync(step.command, { timeout: 300000, env: cmdEnv });
     const timestamp = new Date().toISOString();
-    await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
+    await stateAppendCommandLog(stateFile, stepIndex, {
       command: step.command, exit_code: 0, timestamp,
     });
     await stateSetStepOutput(stateFile, stepIndex, stdout || stderr);
@@ -63,7 +63,7 @@ export async function dispatchCommand(
     return dispatchModule.cascadeNext(hookType, hookInput, stateFile, stepIndex + 1, depth);
   } catch (err) {
     const exitCode = (err as NodeJS.ErrnoException).code ?? 1;
-    await stateModule.stateAppendCommandLog(stateFile, stepIndex, {
+    await stateAppendCommandLog(stateFile, stepIndex, {
       command: step.command ?? '', exit_code: exitCode as number,
       timestamp: new Date().toISOString(),
     });

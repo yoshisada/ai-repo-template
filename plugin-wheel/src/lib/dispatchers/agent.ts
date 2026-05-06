@@ -12,7 +12,7 @@
 
 import type { WorkflowStep, WheelState, WorkflowDefinition } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateSetCursor, stateClearAwaitingUserInput } from '../state.js';
 import { contextBuild } from '../context.js';
 import { resolveInputs } from '../resolve_inputs.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
@@ -57,14 +57,13 @@ export async function dispatchAgent(
         try {
           const { access } = await import('fs/promises');
           await access(outputKey);
-          const stateModule = await import('../state.js');
           const wfModule = await import('../workflow.js');
           const contextModule = await import('../context.js');
           // parity: shell dispatch.sh:664 — capture output to state.steps[i].output.
           await contextModule.contextCaptureOutput(stateFile, stepIndex, outputKey);
           await stateSetStepStatus(stateFile, stepIndex, 'done');
           // parity: shell dispatch.sh:667 — clear awaiting_user_input on advance.
-          await stateModule.stateClearAwaitingUserInput(stateFile, stepIndex);
+          await stateClearAwaitingUserInput(stateFile, stepIndex);
           // parity: shell dispatch.sh:676–680 — cursor advance respects skipped + next.
           const stateNow = await stateRead(stateFile);
           const wfDef = stateNow.workflow_definition;
@@ -73,7 +72,7 @@ export async function dispatchAgent(
             const rawNext = wfModule.resolveNextIndex(step, stepIndex, wfDef);
             newCursor = await wfModule.advancePastSkipped(stateFile, rawNext, wfDef);
           }
-          await stateModule.stateSetCursor(stateFile, newCursor);
+          await stateSetCursor(stateFile, newCursor);
           // parity: shell dispatch.sh:226 — terminal:true → set state.status='completed'.
           if (step.terminal === true) {
             const fresh = await stateRead(stateFile);

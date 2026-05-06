@@ -21,9 +21,11 @@
 //
 // FR-025 / FR-026.
 
-import type { WorkflowStep, TeammateEntry } from '../../shared/state.js';
+import type {
+  WorkflowStep, TeammateEntry, WheelState, WorkflowDefinition,
+} from '../../shared/state.js';
 import { stateRead } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateAddTeammate } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
 // Step-type-specific fields read from the `teammate` step JSON. Modeled
@@ -87,85 +89,128 @@ export async function dispatchTeammate(
     return { decision: 'approve' };
   }
 
-  if (loopFrom) {
-    return spawnDynamic(step, stateFile, stepIndex, teamRef, teamName, agentName, loopFrom, maxAgents, subWorkflow, state);
+  const slotPayloads = loopFrom
+    ? await buildDynamicSlots(stateFile, stepIndex, state, agentName, loopFrom, maxAgents)
+    : [{ name: agentName, assign: ((sf.assign ?? {}) as Record<string, unknown>) }];
+
+  // buildDynamicSlots returns null on early-fail/empty paths it has
+  // already resolved (it sets step status itself). Plain return.
+  if (slotPayloads === null) return { decision: 'approve' };
+  if (slotPayloads.length === 0) {
+    await stateSetStepStatus(stateFile, stepIndex, 'done');
+    return { decision: 'approve' };
   }
-  return spawnStatic(step, stateFile, stepIndex, teamRef, teamName, agentName, subWorkflow, state);
+
+  return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads);
 }
 
-async function spawnDynamic(
-  step: WorkflowStep,
+interface SlotPayload {
+  name: string;
+  assign: Record<string, unknown>;
+}
+
+/**
+ * Resolve a `loop_from` reference into N round-robin slot payloads.
+ * Returns null when the loop step / output is unresolvable (status set
+ * to 'failed'), or [] when items are present but empty (caller marks
+ * the step done).
+ */
+async function buildDynamicSlots(
   stateFile: string,
   stepIndex: number,
-  teamRef: string,
-  teamName: string,
+  state: WheelState,
   agentName: string,
   loopFrom: string,
   maxAgents: number,
-  subWorkflow: string,
-  state: any,
-): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
-  const loopStepIndex = state.steps.findIndex((s: any) => s.id === loopFrom);
+): Promise<SlotPayload[] | null> {
+  const loopStepIndex = state.steps.findIndex((s) => s.id === loopFrom);
   if (loopStepIndex === -1) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    return { decision: 'approve' };
+    return null;
   }
 
   // Output file path comes from the workflow DEFINITION's `output` field
   // for the referenced step — not state.steps[i].output (captured stdout).
   // Fall back to state.output only when workflow_definition is absent.
-  const wfDefForLoop: any = state.workflow_definition;
-  const wfStepsForLoop: any[] = wfDefForLoop?.steps ?? [];
-  const loopStepDef = wfStepsForLoop.find((s: any) => s.id === loopFrom);
+  const wfStepsForLoop = state.workflow_definition?.steps ?? [];
+  const loopStepDef = wfStepsForLoop.find((s) => s.id === loopFrom);
   const loopOutput = (loopStepDef?.output as string | null)
     ?? (state.steps[loopStepIndex]?.output as string | null);
   if (!loopOutput) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    return { decision: 'approve' };
+    return null;
   }
 
-  let items: any[] = [];
-  try {
-    const { readFile } = await import('fs/promises');
-    items = JSON.parse(await readFile(loopOutput, 'utf-8'));
-  } catch {
+  const items = await readJsonArray(loopOutput);
+  if (items === null) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    return { decision: 'approve' };
+    return null;
   }
-  if (!Array.isArray(items)) {
-    await stateSetStepStatus(stateFile, stepIndex, 'failed');
-    return { decision: 'approve' };
-  }
-  if (items.length === 0) {
-    await stateSetStepStatus(stateFile, stepIndex, 'done');
-    return { decision: 'approve' };
-  }
+  if (items.length === 0) return [];
 
   const agentCount = Math.min(items.length, maxAgents);
   const teamModule = await import('../dispatch-team.js');
   // parity: shell dispatch.sh:1796–1808 — round-robin agent_assign distribution.
   const distribution = teamModule.distributeAgentAssign(items, agentCount);
+  const slots: SlotPayload[] = [];
+  for (let i = 0; i < agentCount; i++) {
+    slots.push({
+      name: `${agentName}-${i}`,
+      assign: { items: distribution[String(i)] ?? [] },
+    });
+  }
+  return slots;
+}
+
+async function readJsonArray(filePath: string): Promise<unknown[] | null> {
+  try {
+    const { readFile } = await import('fs/promises');
+    const parsed = JSON.parse(await readFile(filePath, 'utf-8'));
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Register N teammate slots, write per-slot context files, mark step
+ * done, and chain to the next teammate step (or flush + emit batched
+ * spawn block). Shared between static (1 slot) and dynamic (N slots)
+ * paths.
+ */
+async function spawnTeammates(
+  step: WorkflowStep,
+  stateFile: string,
+  stepIndex: number,
+  teamRef: string,
+  teamName: string,
+  subWorkflow: string,
+  state: WheelState,
+  slots: SlotPayload[],
+): Promise<HookOutput> {
   const contextModule = await import('../context.js');
-  const wfDef: any = state.workflow_definition
-    ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
+  const teamModule = await import('../dispatch-team.js');
+  // Fallback when workflow_definition isn't loaded: synthesize one from
+  // state.steps. The cast is safe — Step extends the workflow-step shape
+  // at runtime via stateInit's spread, so the only nominal mismatch
+  // (`agents`) is unused by the consumer.
+  const wfDef: WorkflowDefinition = state.workflow_definition
+    ?? ({ name: state.workflow_name, version: state.workflow_version, steps: state.steps } as unknown as WorkflowDefinition);
   const contextFromJson: unknown[] = (step as WorkflowStep & TeammateStepFields).context_from ?? [];
 
-  for (let i = 0; i < agentCount; i++) {
-    const name = `${agentName}-${i}`;
-    const outputDir = `.wheel/outputs/team-${teamName}/${name}`;
-    const assignJson = { items: distribution[String(i)] ?? [] };
+  for (const slot of slots) {
+    const outputDir = `.wheel/outputs/team-${teamName}/${slot.name}`;
     // parity: shell dispatch.sh:2082 — agent_id is team-format `name@team`.
     const teammate: TeammateEntry = {
       task_id: '', status: 'pending',
-      agent_id: `${name}@${teamName}`,
+      agent_id: `${slot.name}@${teamName}`,
       output_dir: outputDir,
-      assign: assignJson,
+      assign: slot.assign,
       started_at: null, completed_at: null,
     };
-    await stateModule.stateAddTeammate(stateFile, teamRef, teammate);
+    await stateAddTeammate(stateFile, teamRef, teammate);
     try {
-      await contextModule.contextWriteTeammateFiles(outputDir, state, wfDef, contextFromJson, assignJson);
+      await contextModule.contextWriteTeammateFiles(outputDir, state, wfDef, contextFromJson, slot.assign);
     } catch { /* FS errors non-fatal */ }
   }
 
@@ -173,50 +218,12 @@ async function spawnDynamic(
   const wfStepsArr = wfDef?.steps ?? state.steps;
   const chainResult = await teamModule._teammateChainNext(wfStepsArr, stepIndex, stateFile, teamRef, subWorkflow);
   if (chainResult === null) return { decision: 'approve' };
+
+  const fallback = slots.length === 1
+    ? `Spawned agent: ${slots[0].name} for ${subWorkflow}`
+    : `Spawned ${slots.length} agents for ${subWorkflow}`;
   return {
     decision: 'block',
-    additionalContext: chainResult.instructions || `Spawned ${agentCount} agents for ${subWorkflow}`,
-  };
-}
-
-async function spawnStatic(
-  step: WorkflowStep,
-  stateFile: string,
-  stepIndex: number,
-  teamRef: string,
-  teamName: string,
-  agentName: string,
-  subWorkflow: string,
-  state: any,
-): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
-  const outputDir = `.wheel/outputs/team-${teamName}/${agentName}`;
-  const assignJson = ((step as WorkflowStep & TeammateStepFields).assign ?? {}) as Record<string, unknown>;
-  // parity: shell dispatch.sh:2082 — agent_id is team-format `name@team`.
-  const teammate: TeammateEntry = {
-    task_id: '', status: 'pending',
-    agent_id: `${agentName}@${teamName}`,
-    output_dir: outputDir,
-    assign: assignJson,
-    started_at: null, completed_at: null,
-  };
-  await stateModule.stateAddTeammate(stateFile, teamRef, teammate);
-
-  const contextModule = await import('../context.js');
-  const wfDef: any = state.workflow_definition
-    ?? { name: state.workflow_name, version: state.workflow_version, steps: state.steps };
-  const contextFromJson: unknown[] = (step as WorkflowStep & TeammateStepFields).context_from ?? [];
-  try {
-    await contextModule.contextWriteTeammateFiles(outputDir, state, wfDef, contextFromJson, assignJson);
-  } catch { /* non-fatal */ }
-
-  await stateSetStepStatus(stateFile, stepIndex, 'done');
-  const teamModule = await import('../dispatch-team.js');
-  const wfStepsArr = wfDef?.steps ?? state.steps;
-  const chainResult = await teamModule._teammateChainNext(wfStepsArr, stepIndex, stateFile, teamRef, subWorkflow);
-  if (chainResult === null) return { decision: 'approve' };
-  return {
-    decision: 'block',
-    additionalContext: chainResult.instructions || `Spawned agent: ${agentName} for ${subWorkflow}`,
+    additionalContext: chainResult.instructions || fallback,
   };
 }

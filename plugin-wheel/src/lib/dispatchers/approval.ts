@@ -9,7 +9,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead } from '../../shared/state.js';
-import { stateSetStepStatus, stateSetAwaitingUserInput } from '../state.js';
+import { stateSetStepStatus, stateSetAwaitingUserInput, stateSetCursor } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
 export async function dispatchApproval(
@@ -19,7 +19,7 @@ export async function dispatchApproval(
   stateFile: string,
   stepIndex: number,
 ): Promise<HookOutput> {
-  const stateModule = await import('../state.js');
+
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
   const message = (step.message as string | undefined) ?? 'Approval required to continue.';
@@ -40,7 +40,7 @@ export async function dispatchApproval(
     if (approval === 'approved') {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
       // parity: shell dispatch.sh:1328 — advance cursor.
-      await stateModule.stateSetCursor(stateFile, stepIndex + 1);
+      await stateSetCursor(stateFile, stepIndex + 1);
       return { decision: 'approve' };
     }
     return {

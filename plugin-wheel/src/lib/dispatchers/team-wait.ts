@@ -16,12 +16,16 @@
 // FR-003 / FR-004 / FR-005 (wheel-wait-all-redesign).
 
 import type { WorkflowStep } from '../../shared/state.js';
-import { stateRead, stateWrite, listLiveStateFiles } from '../../shared/state.js';
-import {
-  stateSetStepStatus, stateList,
-} from '../state.js';
+import { stateRead, listLiveStateFiles } from '../../shared/state.js';
+import { stateSetStepStatus } from '../state.js';
 import { wheelLog } from '../log.js';
+import { runPollingBackstop } from '../dispatch-team-polling.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
+
+// Re-export polling backstop so callers (callers using the dispatcher
+// module path) keep working after the extraction. New code should import
+// from `../dispatch-team-polling.js` directly.
+export { runPollingBackstop };
 
 export async function dispatchTeamWait(
   step: WorkflowStep,
@@ -197,137 +201,4 @@ async function _teammateIdle(
   );
   if (wake) return { decision: 'block', additionalContext: wake };
   return { decision: 'approve' };
-}
-
-/**
- * FR-004 (wheel-wait-all-redesign): polling backstop. For each teammate
- * currently `status='running'` in `parent.teams[teamRef].teammates`,
- * reconcile against live state files → history buckets → orphan default.
- * Single parent-flock write at the end. One `.wheel/` readdir + up to
- * three history-bucket scans per invocation regardless of teammate count.
- */
-export async function runPollingBackstop(
-  parentStateFile: string,
-  teamRef: string,
-): Promise<{ reconciledCount: number; stillRunningCount: number }> {
-  const { withLockBlocking } = await import('../lock.js');
-  const { promises: fs } = await import('fs');
-  const path = (await import('path')).default;
-
-  let preState: Awaited<ReturnType<typeof stateRead>>;
-  try {
-    preState = await stateRead(parentStateFile);
-  } catch {
-    return { reconciledCount: 0, stillRunningCount: 0 };
-  }
-  const team = preState.teams?.[teamRef];
-  if (!team) {
-    await wheelLog('wait_all_polling', {
-      parent_state_file: parentStateFile, team_id: teamRef,
-      reconciled_count: 0, still_running_count: 0,
-      note: 'team_not_found',
-    });
-    return { reconciledCount: 0, stillRunningCount: 0 };
-  }
-  const teammates = team.teammates ?? {};
-  const runningSlots = Object.entries(teammates).filter(([, slot]) => slot?.status === 'running');
-  if (runningSlots.length === 0) {
-    await wheelLog('wait_all_polling', {
-      parent_state_file: parentStateFile, team_id: teamRef,
-      reconciled_count: 0, still_running_count: 0,
-    });
-    return { reconciledCount: 0, stillRunningCount: 0 };
-  }
-
-  // Live alternate_agent_id set.
-  const liveAgentIds = new Set<string>();
-  try {
-    const liveFiles = await stateList();
-    for (const sf of liveFiles) {
-      try {
-        const ss = await stateRead(sf);
-        const aid = (ss as { alternate_agent_id?: string }).alternate_agent_id;
-        if (aid) liveAgentIds.add(aid);
-      } catch { /* ignore */ }
-    }
-  } catch { /* .wheel may not exist */ }
-
-  // Bucket → (alternate_agent_id → resolved status) map.
-  const buckets: Array<{ name: 'success' | 'failure' | 'stopped'; status: 'completed' | 'failed' }> = [
-    { name: 'success', status: 'completed' },
-    { name: 'failure', status: 'failed' },
-    { name: 'stopped', status: 'failed' },
-  ];
-  const bucketArchives: Record<string, Map<string, 'completed' | 'failed'>> = {};
-  for (const b of buckets) {
-    const dir = path.join('.wheel', 'history', b.name);
-    const map = new Map<string, 'completed' | 'failed'>();
-    try {
-      const entries = await fs.readdir(dir);
-      for (const entry of entries) {
-        if (!entry.endsWith('.json')) continue;
-        try {
-          const archived = JSON.parse(await fs.readFile(path.join(dir, entry), 'utf-8')) as {
-            parent_workflow?: string | null;
-            alternate_agent_id?: string;
-          };
-          if (archived.parent_workflow === parentStateFile && archived.alternate_agent_id
-              && !map.has(archived.alternate_agent_id)) {
-            map.set(archived.alternate_agent_id, b.status);
-          }
-        } catch { /* skip unreadable */ }
-      }
-    } catch { /* bucket may not exist yet */ }
-    bucketArchives[b.name] = map;
-  }
-
-  // Resolve each running teammate. Order MUST be live → history → orphan.
-  type Resolution = { name: string; newStatus: 'completed' | 'failed'; failureReason?: string };
-  const resolutions: Resolution[] = [];
-  let stillRunning = 0;
-  for (const [name, slot] of runningSlots) {
-    const aid = slot?.agent_id ?? '';
-    if (aid && liveAgentIds.has(aid)) {
-      stillRunning++;
-      continue;
-    }
-    let resolved: 'completed' | 'failed' | null = null;
-    if (bucketArchives.success.has(aid)) resolved = bucketArchives.success.get(aid)!;
-    else if (bucketArchives.failure.has(aid)) resolved = bucketArchives.failure.get(aid)!;
-    else if (bucketArchives.stopped.has(aid)) resolved = bucketArchives.stopped.get(aid)!;
-
-    if (resolved !== null) {
-      resolutions.push({ name, newStatus: resolved });
-    } else {
-      resolutions.push({ name, newStatus: 'failed', failureReason: 'state-file-disappeared' });
-    }
-  }
-
-  let reconciled = 0;
-  if (resolutions.length > 0) {
-    await withLockBlocking(parentStateFile, async () => {
-      const parent = await stateRead(parentStateFile);
-      const team2 = parent.teams?.[teamRef];
-      if (!team2) return;
-      const t2 = team2.teammates ?? {};
-      const now = new Date().toISOString();
-      for (const r of resolutions) {
-        const slot = t2[r.name];
-        if (!slot) continue;
-        if (slot.status === 'completed' || slot.status === 'failed') continue;
-        slot.status = r.newStatus;
-        slot.completed_at = now;
-        if (r.failureReason) slot.failure_reason = r.failureReason;
-        reconciled++;
-      }
-      parent.updated_at = now;
-      await stateWrite(parentStateFile, parent);
-    });
-  }
-
-  await wheelLog('wait_all_polling', {
-    parent_state_file: parentStateFile, team_id: teamRef,
-    reconciled_count: reconciled, still_running_count: stillRunning,
-  });
-  return { reconciledCount: reconciled, stillRunningCount: stillRunning };
 }

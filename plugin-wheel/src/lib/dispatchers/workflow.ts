@@ -12,7 +12,7 @@
 
 import type { WorkflowStep } from '../../shared/state.js';
 import { stateRead, stateWrite } from '../../shared/state.js';
-import { stateSetStepStatus } from '../state.js';
+import { stateSetStepStatus, stateInit } from '../state.js';
 import { isAutoExecutable } from '../dispatch-types.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
@@ -27,7 +27,6 @@ export async function dispatchWorkflow(
     return { decision: 'approve' };
   }
 
-  const stateModule = await import('../state.js');
   const state = await stateRead(stateFile);
   const stepStatus = state.steps[stepIndex]?.status ?? 'pending';
 
@@ -54,7 +53,7 @@ export async function dispatchWorkflow(
       return { decision: 'approve' };
     }
 
-    await stateModule.stateInit({
+    await stateInit({
       stateFile: childStateFile,
       workflow: childJson,
       sessionId: state.owner_session_id ?? '',
