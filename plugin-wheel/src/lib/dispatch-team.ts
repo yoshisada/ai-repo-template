@@ -105,35 +105,35 @@ export async function _teammateFlushFromState(
       workflow: wf,
       task_id: slot.task_id ?? '',
     });
-    // Build the prompt: (1) activate the sub-workflow, then (2) drive it.
-    // The activate-only prompt was a hang trap — sub-agents ran the Bash
-    // command, considered their task complete, and went idle. Their child
-    // workflow's `do-work` step then never advanced past `pending` because
-    // the Stop hook needs *that sub-agent's own turn* to fire, and they
-    // never took another turn. JSON.stringify-encoded so the orchestrator
-    // sees a literal JS string literal (no newline-escape ambiguity).
+    // Build the prompt. Tightened layout (Fix A):
+    //   * The exact bash command goes on the FIRST line of the prompt, no
+    //     framing prose around it. Orchestrators paraphrasing the prompt
+    //     are far less likely to drop the first line than to compress
+    //     multi-stage instructions into a one-liner.
+    //   * Drive instructions follow but are short. Long prompt = more
+    //     paraphrase pressure.
+    //   * The structured `name:` field on the Agent call (set below) is
+    //     the primary linkage source per Fix A — the prompt's `--as`
+    //     remains as a belt-and-braces fallback consumed by activate.sh
+    //     itself.
     const promptText =
-      `You are spawned to run a sub-workflow. Two stages:\n\n` +
-      `STAGE 1 — Activate (single tool call): run this exact bash command, then end your turn:\n\n` +
       `${activate}\n\n` +
-      `STAGE 2 — Drive the workflow to completion. After activation, the wheel hooks will tell you what to do via Stop-hook block messages with \`additionalContext\` instructions. Loop:\n` +
-      `  - End your turn so the Stop hook fires\n` +
-      `  - Read the hook's \`additionalContext\` instructions in the next turn\n` +
-      `  - Make exactly one tool call per turn following those instructions (Write a file, Bash, etc.)\n` +
-      `  - End your turn again\n` +
-      `  - Repeat until your sub-workflow's state file is archived (no more wheel state for your agent)\n\n` +
-      `Rules:\n` +
-      `  - Do NOT paraphrase the activation command in stage 1. Run it verbatim.\n` +
-      `  - Do NOT run /wheel:wheel-run; the activation above is the correct entry point.\n` +
-      `  - Do NOT investigate wheel internals. The hooks are authoritative.\n` +
-      `  - When asked to write an output file, write it with whatever stub content fits (content quality is not checked, only existence).\n` +
-      `  - When the hooks stop emitting block instructions and your state file is gone, your work is done. Send a SendMessage to "team-lead" reporting completion, then end your turn.`;
+      `^^ Run that bash command FIRST, verbatim, in a single tool call. ` +
+      `It activates your sub-workflow and stamps your --as identity. ` +
+      `Then end your turn so the wheel Stop hook fires. ` +
+      `For every subsequent turn: read the hook's \`additionalContext\` instruction, make ONE tool call following it, end the turn. ` +
+      `Repeat until your state file archives (no more .wheel/state_*.json for you). ` +
+      `Do not investigate wheel internals; the hooks are authoritative.`;
     lines.push('```');
     lines.push('Agent({');
     lines.push(`  subagent_type: "general-purpose",`);
     lines.push(`  description: "${shortName} sub-workflow spawn",`);
     lines.push(`  prompt: ${JSON.stringify(promptText)},`);
-    lines.push(`  name: "${shortName}",`);
+    // Fix A: emit the FULL agent_id (`name@team`) as the Agent call's
+    // structured `name` parameter. The PreToolUse-team guard reads this
+    // and accepts the call when it matches a registered slot, regardless
+    // of whether the orchestrator preserved the prompt's --as flag.
+    lines.push(`  name: "${teamFmtId}",`);
     lines.push(`  team_name: "${teamName}",`);
     if (slot.model) {
       // Per-slot model override from the `teammate` step's `model` JSON

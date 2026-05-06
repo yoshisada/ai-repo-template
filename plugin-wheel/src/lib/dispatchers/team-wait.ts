@@ -91,8 +91,15 @@ async function _recheckAndCompleteIfDone(
   if (!team) return false;
   const teammates = team.teammates ?? {};
   const names = Object.keys(teammates);
-  // 0 teammates → mark done immediately (matches dispatchTeammate's 0-items short-circuit).
+  // Fix B: 0 teammates is only a legitimate "done" state when
+  // dispatchTeammate stamped `spawn_finalized` (i.e. the spawn step
+  // ran and either dispatched N≥1 slots or legitimately resolved
+  // loop_from to []). Without that flag, 0 teammates means the team
+  // step was bypassed by the orchestrator — team-wait MUST hang so
+  // the wheel-stop / polling backstop / failure paths can take over
+  // instead of producing a false PASS archive.
   if (names.length === 0) {
+    if (team.spawn_finalized !== true) return false;
     if (state.steps[stepIndex]?.status !== 'done') {
       await stateSetStepStatus(stateFile, stepIndex, 'done');
     }

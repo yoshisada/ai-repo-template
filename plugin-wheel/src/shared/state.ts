@@ -74,6 +74,14 @@ export interface Team {
   team_name: string;
   created_at: string;
   teammates: Record<string, TeammateEntry>;
+  // Soundness gate for `team-wait`: set to `true` exactly once when
+  // dispatchTeammate finishes processing the *last* teammate step in
+  // a chain (the one that emits the spawn block). Without this flag,
+  // a team-wait step could short-circuit on `0 teammates` because the
+  // orchestrator skipped the teammate steps entirely (false PASS).
+  // With the flag, 0 teammates is only valid when spawning was
+  // legitimately attempted (e.g. `loop_from` resolved to an empty array).
+  spawn_finalized?: boolean;
 }
 
 export interface TeammateEntry {

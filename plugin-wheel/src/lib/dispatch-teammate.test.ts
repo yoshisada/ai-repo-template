@@ -90,6 +90,36 @@ describe('dispatchTeammate FR-006 parity', () => {
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
 
+  // Fix A — the emitted spawn block sets the Agent call's structured
+  // `name` field to the FULL agent_id (`name@team`), not the bare
+  // short-name. The PreToolUse-team guard then accepts the call on
+  // `name` match alone, surviving prompt paraphrasing that drops --as.
+  it('spawn block uses full agent_id (name@team) as the Agent call name field', async () => {
+    const statePath = path.join(TEST_DIR, 'name-as-agentid.json');
+    const step = {
+      id: 'w1',
+      type: 'teammate',
+      team: 'main',
+      workflow: 'sub',
+      assign: { task: 'a' },
+    };
+    await stateInit({
+      stateFile: statePath,
+      workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+      sessionId: 's',
+      agentId: '',
+    });
+    await setupTeam(statePath, 'main', 'tm');
+
+    const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+    expect(result.decision).toBe('block');
+    // Block emits `name: "w1@tm"` (full agent_id), NOT `name: "w1"`.
+    expect(result.additionalContext).toContain('name: "w1@tm"');
+    expect(result.additionalContext).not.toContain('name: "w1",');
+
+    await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
+  });
+
   // Per-slot model: when the `teammate` step JSON sets `model`, the
   // emitted spawn block carries `model: "<value>"` so each spawned
   // sub-agent runs on the requested model instead of inheriting the

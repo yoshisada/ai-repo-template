@@ -24,7 +24,7 @@
 import type {
   WorkflowStep, TeammateEntry, TeammateModel, WheelState, WorkflowDefinition,
 } from '../../shared/state.js';
-import { stateRead } from '../../shared/state.js';
+import { stateRead, stateWrite } from '../../shared/state.js';
 import { stateSetStepStatus, stateAddTeammate } from '../state.js';
 import type { HookInput, HookOutput, HookType } from '../dispatch-types.js';
 
@@ -103,11 +103,30 @@ export async function dispatchTeammate(
   // already resolved (it sets step status itself). Plain return.
   if (slotPayloads === null) return { decision: 'approve' };
   if (slotPayloads.length === 0) {
+    // Fix B: spawn was legitimately attempted (loop_from resolved to []).
+    // Mark spawn_finalized so the downstream team-wait can short-circuit
+    // on 0 teammates without conflating "skipped spawn entirely" with
+    // "spawned 0 items by design".
+    await markSpawnFinalized(stateFile, teamRef);
     await stateSetStepStatus(stateFile, stepIndex, 'done');
     return { decision: 'approve' };
   }
 
   return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads, sf.model);
+}
+
+/**
+ * Stamp `state.teams[teamRef].spawn_finalized = true`. Used by
+ * dispatchTeammate at the end of slot registration (whether 0-items
+ * legitimate-empty or N-items normal flow). Read by team-wait's
+ * 0-teammate gate to distinguish "spawn ran" from "spawn bypassed".
+ */
+async function markSpawnFinalized(stateFile: string, teamRef: string): Promise<void> {
+  const state = await stateRead(stateFile);
+  const team = state.teams?.[teamRef];
+  if (!team) return;
+  team.spawn_finalized = true;
+  await stateWrite(stateFile, state);
 }
 
 interface SlotPayload {
@@ -225,7 +244,14 @@ async function spawnTeammates(
   await stateSetStepStatus(stateFile, stepIndex, 'done');
   const wfStepsArr = wfDef?.steps ?? state.steps;
   const chainResult = await teamModule._teammateChainNext(wfStepsArr, stepIndex, stateFile, teamRef, subWorkflow);
+  // Fix B: chainResult === null means we're chaining (next step is also
+  // teammate for this team). Don't finalize yet — finalize on the LAST
+  // teammate step that emits the spawn block.
   if (chainResult === null) return { decision: 'approve' };
+  // We're at the last teammate step in the chain (chainResult emitted
+  // a flush). Stamp spawn_finalized so team-wait's 0-teammate gate can
+  // distinguish "spawn ran" from "spawn bypassed".
+  await markSpawnFinalized(stateFile, teamRef);
 
   const fallback = slots.length === 1
     ? `Spawned agent: ${slots[0].name} for ${subWorkflow}`

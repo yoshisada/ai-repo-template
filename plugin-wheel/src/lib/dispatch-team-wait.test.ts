@@ -155,8 +155,26 @@ describe('dispatchTeamWait stop branch (FR-003)', () => {
     expect(state.teams['wait'].teammates['a@t'].status).toBe('running');
   });
 
-  it('handles 0 teammates by marking done immediately', async () => {
+  // Fix B — soundness gate: 0 teammates only short-circuits to done
+  // when dispatchTeammate stamped `spawn_finalized=true`. Without that
+  // flag, 0 teammates means the spawn step was bypassed entirely and
+  // team-wait MUST hang.
+  it('does NOT short-circuit 0 teammates when spawn_finalized is unset (orchestrator-bypass case)', async () => {
     const { stateFile, step } = await setupParent({ teammates: [] });
+    await dispatchStep(step, 'stop', {}, stateFile, 1);
+    const state = await stateRead(stateFile);
+    // Step should remain working (or pending → working via stop hook),
+    // not advance to done. This is what stops false-PASS archives.
+    expect(state.steps[1].status).not.toBe('done');
+  });
+
+  it('short-circuits 0 teammates when spawn_finalized=true (legit loop_from=empty case)', async () => {
+    const { stateFile, step } = await setupParent({ teammates: [] });
+    // Stamp the gate flag the way dispatchTeammate would when its
+    // loop_from path resolves to an empty array.
+    const s0 = await stateRead(stateFile);
+    s0.teams.wait.spawn_finalized = true;
+    await stateWrite(stateFile, s0);
     await dispatchStep(step, 'stop', {}, stateFile, 1);
     const state = await stateRead(stateFile);
     expect(state.steps[1].status).toBe('done');
