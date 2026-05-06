@@ -73,7 +73,7 @@ export async function dispatchBranch(
     return cascadeNext(hookType, hookInput, stateFile, fallNext, depth);
   }
 
-  const targetIndex = state.steps.findIndex((s: any) => s.id === targetId);
+  const targetIndex = state.steps.findIndex((s) => s.id === targetId);
   if (targetIndex === -1) {
     await stateSetStepStatus(stateFile, stepIndex, 'failed');
     const fresh = await stateRead(stateFile);
@@ -90,7 +90,7 @@ export async function dispatchBranch(
   // Mark the off-branch step as 'skipped' so cascadeNext walks past it.
   const otherTargetId = condExit === 0 ? bf.if_nonzero : bf.if_zero;
   if (otherTargetId) {
-    const otherIndex = state.steps.findIndex((s: any) => s.id === otherTargetId);
+    const otherIndex = state.steps.findIndex((s) => s.id === otherTargetId);
     if (otherIndex !== -1) {
       await stateSetStepStatus(stateFile, otherIndex, 'skipped');
     }

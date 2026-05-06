@@ -8,7 +8,7 @@
 //
 // FR-001/FR-002/FR-003/FR-004/FR-006/FR-007/FR-008/FR-009 (step dispatch + cascade).
 
-import type { WorkflowStep, WorkflowDefinition } from '../shared/state.js';
+import type { WorkflowStep, WorkflowDefinition, Step } from '../shared/state.js';
 import { stateRead } from '../shared/state.js';
 import { stateSetCursor } from './state.js';
 import { wheelLog } from './log.js';
@@ -169,9 +169,9 @@ export async function cascadeNext(
   }
 
   const fromCursor = state.cursor;
-  const fromStep: any = state.steps[fromCursor] ?? {};
-  const fromStepId = fromStep.id ?? '';
-  const fromStepType = fromStep.type ?? '';
+  const fromStep = state.steps[fromCursor];
+  const fromStepId = fromStep?.id ?? '';
+  const fromStepType = fromStep?.type ?? '';
 
   // FR-009 — end-of-workflow halt.
   if (nextIndex >= state.steps.length) {
@@ -217,8 +217,8 @@ export async function cascadeNext(
   // step.command is missing — without this, cascade silently no-ops on
   // every hop.
   const wfDef = state.workflow_definition;
-  const wfSteps: any[] = wfDef?.steps ?? state.steps;
-  const nextStep: any = wfSteps[resolvedIndex] ?? state.steps[resolvedIndex];
+  const wfSteps: ReadonlyArray<WorkflowStep | Step> = wfDef?.steps ?? state.steps;
+  const nextStep = wfSteps[resolvedIndex] ?? state.steps[resolvedIndex];
 
   // FR-008 — advance cursor BEFORE recursing (idempotency contract).
   await stateSetCursor(stateFile, resolvedIndex);

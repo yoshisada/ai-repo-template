@@ -65,11 +65,12 @@ export async function _teammateFlushFromState(
   // Resolve plugin dir from the workflow definition's source path. Falls back
   // to a heuristic activation command if not available — the harness's
   // wheel:wheel-run skill will supply absolute paths.
-  const wfDef: any = state.workflow_definition ?? {};
-  const wfStepsArr: any[] = wfDef.steps ?? state.steps ?? [];
+  const wfDef = state.workflow_definition;
+  const wfStepsArr: ReadonlyArray<{ id: string; type: string; workflow?: string; name?: string }> =
+    wfDef?.steps ?? state.steps;
   // Find the teammate step's workflow override; fall back to subWorkflow.
   const stepFor = (name: string): string => {
-    const s = wfStepsArr.find((s: any) => s.type === 'teammate' && (s.id === name || s.name === name));
+    const s = wfStepsArr.find((s) => s.type === 'teammate' && (s.id === name || s.name === name));
     return s?.workflow ?? subWorkflow;
   };
   // Prefer env override (consumer-set), fall back to PLUGIN_ROOT derived at

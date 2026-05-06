@@ -129,7 +129,7 @@ async function main(): Promise<void> {
       const teammates = state.teams?.[teamRef]?.teammates ?? {};
       const calledPrompt = String((toolInput as { prompt?: string }).prompt ?? '');
       const slotAgentIds = Object.values(teammates)
-        .map((s: any) => (s && typeof s.agent_id === 'string') ? s.agent_id : null)
+        .map((s) => (s && typeof s.agent_id === 'string') ? s.agent_id : null)
         .filter((s): s is string => !!s);
       if (slotAgentIds.length === 0) {
         // No teammates registered yet — pass through; orchestrator may be
@@ -144,8 +144,8 @@ async function main(): Promise<void> {
         // (the next un-spawned slot) and re-issues the Agent call with the
         // full 2-stage drive prompt.
         const pendingAgentIds = Object.values(teammates)
-          .filter((s: any) => s && s.status === 'pending')
-          .map((s: any) => s.agent_id)
+          .filter((s) => s && s.status === 'pending')
+          .map((s) => s.agent_id)
           .filter((s): s is string => !!s);
         const candidates = pendingAgentIds.length > 0 ? pendingAgentIds : slotAgentIds;
         const recoveryLines: string[] = [

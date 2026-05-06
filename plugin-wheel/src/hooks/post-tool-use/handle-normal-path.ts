@@ -12,6 +12,7 @@
 
 import { promises as fs } from 'fs';
 import { stateRead, listLiveStateFiles } from '../../shared/state.js';
+import type { WorkflowStep, Step } from '../../shared/state.js';
 import { dispatchStep, type HookInput, type HookOutput } from '../../lib/dispatch.js';
 import { maybeArchiveAfterActivation } from '../../lib/engine.js';
 
@@ -77,17 +78,22 @@ export async function handleNormalPath(
   // (output, instruction, command, branches, …); state.steps is a dynamic
   // projection and pre-fix stripped definition fields.
   const wfDef = state.workflow_definition;
-  const wfSteps: any[] = wfDef?.steps ?? state.steps;
+  const wfSteps: ReadonlyArray<WorkflowStep | Step> = wfDef?.steps ?? state.steps;
   const step = wfSteps[cursor] ?? state.steps[cursor];
   const stepType = step?.type ?? '';
 
+  // Step | WorkflowStep widen to WorkflowStep at the dispatch boundary.
+  // The runtime shape is identical for the dispatcher's reads — `agents`
+  // (the only nominal-difference field) is consumed only by `parallel`
+  // and that dispatcher narrows the field locally.
+  const dispatchInput = step as unknown as WorkflowStep;
   let result: HookOutput;
   try {
     if (stepType === 'agent' || stepType === 'teammate') {
       // Agent + teammate dispatchers only respond to 'stop' hooks.
-      result = await dispatchStep(step, 'stop', hookInput, stateFile, cursor);
+      result = await dispatchStep(dispatchInput, 'stop', hookInput, stateFile, cursor);
     } else {
-      result = await dispatchStep(step, 'post_tool_use', hookInput, stateFile, cursor);
+      result = await dispatchStep(dispatchInput, 'post_tool_use', hookInput, stateFile, cursor);
     }
   } catch (err) {
     console.error('Engine error:', err);

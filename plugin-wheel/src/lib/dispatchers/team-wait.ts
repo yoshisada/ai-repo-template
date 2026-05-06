@@ -15,7 +15,7 @@
 //
 // FR-003 / FR-004 / FR-005 (wheel-wait-all-redesign).
 
-import type { WorkflowStep } from '../../shared/state.js';
+import type { WorkflowStep, WheelState } from '../../shared/state.js';
 import { stateRead, listLiveStateFiles } from '../../shared/state.js';
 import { stateSetStepStatus } from '../state.js';
 import { wheelLog } from '../log.js';
@@ -125,10 +125,11 @@ async function _stopBlock(stateFile: string, teamRef: string): Promise<HookOutpu
   if (hasPendingSlots && totalSlots > 0) {
     const freshState = await stateRead(stateFile);
     const wfDef = freshState.workflow_definition;
-    const wfStepsArr: any[] = wfDef?.steps ?? freshState.steps;
+    const wfStepsArr: ReadonlyArray<{ type: string; team?: string; workflow?: string }> =
+      wfDef?.steps ?? freshState.steps;
     const lastTeammateStep = [...wfStepsArr]
       .reverse()
-      .find((s: any) => s.type === 'teammate' && (s.team ?? '') === teamRef);
+      .find((s) => s.type === 'teammate' && (s.team ?? '') === teamRef);
     const subWorkflow = lastTeammateStep?.workflow ?? '';
     if (subWorkflow) {
       const flushed = await teamModule._teammateFlushFromState(stateFile, teamRef, subWorkflow);
@@ -170,7 +171,7 @@ async function _teammateIdle(
     idleAgentId, `${idleName}@${idleTeamName}`, idleName,
   ].filter(s => s);
   let childStateFile: string | null = null;
-  let childState: any = null;
+  let childState: WheelState | null = null;
   for (const { path: candidate } of await listLiveStateFiles()) {
     try {
       const cs = await stateRead(candidate);

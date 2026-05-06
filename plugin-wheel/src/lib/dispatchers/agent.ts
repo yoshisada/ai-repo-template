@@ -111,7 +111,7 @@ export async function dispatchAgent(
 export async function _hydrateAgentStep(
   step: WorkflowStep,
   state: WheelState,
-  workflow: any,
+  workflow: WorkflowDefinition,
   _stateFile: string,
   _stepIndex: number,
 ): Promise<string> {

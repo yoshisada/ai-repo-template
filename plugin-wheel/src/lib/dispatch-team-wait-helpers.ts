@@ -20,7 +20,7 @@ export async function _teamWaitProgressSnapshot(
   const teammates = parentState.teams?.[teamRef]?.teammates ?? {};
   const totalSlots = Object.keys(teammates).length;
   const hasPendingSlots = Object.values(teammates).some(
-    (slot: any) => slot && slot.status === 'pending'
+    (slot) => slot && slot.status === 'pending'
   );
 
   // Index live child state files once by alternate_agent_id / owner_agent_id.
