@@ -20,8 +20,9 @@
       "workflow": "tests/team-sub-worker",
       "loop_from": "generate-work",
       "max_agents": 5,
-      "model": "haiku",
-      "context_from": ["generate-work"]
+      "context_from": [
+        "generate-work"
+      ]
     },
     {
       "id": "wait-all",

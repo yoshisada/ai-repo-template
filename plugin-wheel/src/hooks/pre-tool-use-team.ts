@@ -150,50 +150,69 @@ async function main(): Promise<void> {
         console.log(JSON.stringify({}));
         return;
       }
-      // Source 1 — `name` field matches a slot's agent_id (or its
-      // short-name part with `@<team>` stripped). Tolerate the common
-      // re-shaping where orchestrators send `worker-1` for a slot
-      // registered as `worker-1@test-team`.
+      // Source 1 — `name` field matches a slot's SHORT name only.
+      //
+      // Critical: we must NOT accept the FULL agent_id (`<short>@<team>`)
+      // as the `name` value, even though it identifies the same slot.
+      // Reason: Claude Code mangles the Agent call's `name + team_name`
+      // into the spawned sub-agent's intrinsic agent_id like so:
+      //
+      //   name = "<short>"            → agent_id = `<short>@<team>`        ✓ matches slot
+      //   name = "<short>@<team>"     → agent_id = `<short>-<team>@<team>` ✗ does NOT match
+      //
+      // The `@` in name gets sanitized to `-` and `@<team>` is appended
+      // anyway, producing a different agent_id that won't match the
+      // parent slot. Accepting the full-agent_id form here would let
+      // the call through but leave the parent-child link broken
+      // downstream — the exact false-PASS / hang failure we just fixed.
+      //
+      // Reject full-agent_id and steer the orchestrator to short-name.
       const teamSuffix = `@${calledTeamName}`;
-      const calledNameShort = calledName.endsWith(teamSuffix)
-        ? calledName.slice(0, -teamSuffix.length)
-        : calledName;
-      const nameMatches = slotAgentIds.some(aid => {
-        const aidShort = aid.endsWith(teamSuffix)
-          ? aid.slice(0, -teamSuffix.length)
-          : aid;
-        return calledName === aid || calledNameShort === aidShort;
-      });
+      const calledNameLooksLikeFullAgentId = calledName.endsWith(teamSuffix);
+      const nameMatches = !calledNameLooksLikeFullAgentId
+        && slotAgentIds.some(aid => {
+          const aidShort = aid.endsWith(teamSuffix)
+            ? aid.slice(0, -teamSuffix.length)
+            : aid;
+          return calledName === aidShort;
+        });
       // Source 2 — prompt scan for `--as <agent_id>`.
       const hasValidAs = slotAgentIds.some(aid => calledPrompt.includes(`--as ${aid}`));
       if (!nameMatches && !hasValidAs) {
         // Neither the structured `name` field nor the prompt's `--as`
-        // flag identifies a registered slot. Surface both repair paths
-        // so the orchestrator can pick whichever survives its own
-        // paraphrasing better.
+        // flag identifies a registered slot.
+        //
+        // Build the SHORT-name candidate list — what the orchestrator
+        // should put in the Agent call's `name` parameter. Sending the
+        // full agent_id (`<short>@<team>`) is a trap: Claude Code
+        // mangles `@` in the name to `-` and the spawned sub-agent's
+        // intrinsic agent_id will NOT match the parent slot's
+        // registration. Always recommend short-name.
         const pendingAgentIds = Object.values(teammates)
           .filter((s) => s && s.status === 'pending')
           .map((s) => s.agent_id)
           .filter((s): s is string => !!s);
-        const candidates = pendingAgentIds.length > 0 ? pendingAgentIds : slotAgentIds;
+        const fullCandidates = pendingAgentIds.length > 0 ? pendingAgentIds : slotAgentIds;
+        const teamSfx = `@${calledTeamName}`;
+        const shortCandidates = fullCandidates.map(aid =>
+          aid.endsWith(teamSfx) ? aid.slice(0, -teamSfx.length) : aid,
+        );
         const recoveryLines: string[] = [
-          `Wheel Agent guard: this Agent call has no slot identity. Fix it ONE of two ways:`,
+          `Wheel Agent guard: this Agent call has no slot identity. Re-issue it with the structured \`name\` field set to one of the registered teammate SHORT names below.`,
           ``,
-          `Option 1 (preferred — structured): set the Agent call's \`name\` parameter to one of the registered teammate agent_ids. That field is the canonical slot link; the wheel guard accepts on \`name\` match alone.`,
+          `Why short name (not full agent_id): Claude Code rewrites \`name + team_name\` into the spawned sub-agent's canonical agent_id. With \`name="<short>"\`, the spawned agent_id becomes \`<short>@<team>\` — verbatim equal to the slot. Send the full \`<short>@<team>\` and the \`@\` gets sanitized to \`-\`, breaking the linkage.`,
           ``,
-          `Option 2 (fallback — prompt-embedded): include \`--as <agent_id>\` in the prompt's activate.sh command. Use this if Option 1 is for some reason unavailable.`,
-          ``,
-          `Registered teammate agent_ids (one per Agent call, no duplicates):`,
+          `Registered teammate short-names (one per Agent call, no duplicates):`,
         ];
-        for (const aid of candidates) recoveryLines.push(`  - ${aid}`);
+        for (const sn of shortCandidates) recoveryLines.push(`  - ${sn}`);
         recoveryLines.push(``);
-        recoveryLines.push(`Re-issue the Agent call. The cleanest spawn block looks like:`);
+        recoveryLines.push(`Cleanest spawn block:`);
         recoveryLines.push('```');
         recoveryLines.push(`Agent({`);
         recoveryLines.push(`  subagent_type: "general-purpose",`);
-        recoveryLines.push(`  name: "<one-of-the-agent-ids-above>",`);
+        recoveryLines.push(`  name: "<one-of-the-short-names-above>",`);
         recoveryLines.push(`  team_name: "${calledTeamName}",`);
-        recoveryLines.push(`  prompt: "bash <plugin>/bin/activate.sh <sub-workflow> --as <one-of-the-agent-ids-above>\\n\\n^^ Run that command verbatim then end the turn; subsequent turns follow Stop-hook additionalContext instructions one tool call at a time."`);
+        recoveryLines.push(`  prompt: "bash <plugin>/bin/activate.sh <sub-workflow>\\n\\n^^ Run that command verbatim, then end the turn. The wheel auto-links the child to the parent slot via the sub-agent's intrinsic agent_id — no --as needed."`);
         recoveryLines.push(`})`);
         recoveryLines.push('```');
         console.log(JSON.stringify({

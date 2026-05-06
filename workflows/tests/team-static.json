@@ -18,27 +18,39 @@
       "type": "teammate",
       "team": "create-team",
       "workflow": "tests/team-sub-worker",
-      "context_from": ["setup"],
-      "model": "haiku",
-      "assign": { "worker_id": 1, "task": "Write a haiku about code" }
+      "context_from": [
+        "setup"
+      ],
+      "assign": {
+        "worker_id": 1,
+        "task": "Write a haiku about code"
+      }
     },
     {
       "id": "worker-2",
       "type": "teammate",
       "team": "create-team",
       "workflow": "tests/team-sub-worker",
-      "context_from": ["setup"],
-      "model": "haiku",
-      "assign": { "worker_id": 2, "task": "Write a haiku about bugs" }
+      "context_from": [
+        "setup"
+      ],
+      "assign": {
+        "worker_id": 2,
+        "task": "Write a haiku about bugs"
+      }
     },
     {
       "id": "worker-3",
       "type": "teammate",
       "team": "create-team",
       "workflow": "tests/team-sub-worker",
-      "context_from": ["setup"],
-      "model": "haiku",
-      "assign": { "worker_id": 3, "task": "Write a haiku about testing" }
+      "context_from": [
+        "setup"
+      ],
+      "assign": {
+        "worker_id": 3,
+        "task": "Write a haiku about testing"
+      }
     },
     {
       "id": "wait-all",

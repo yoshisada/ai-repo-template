@@ -35,23 +35,22 @@ export async function handleActivation(
   hookInput: HookInput,
 ): Promise<{ output: HookOutput; activated: boolean }> {
   const workflowName = extractWorkflowName(activateLine);
-  // Architectural Fix — alt_agent_id resolution priority:
-  //   1. `--as <id>` on the activate.sh command (legacy, explicit)
-  //   2. hookInput.agent_id (Claude Code's intrinsic identity for the
-  //      spawned sub-agent — populated regardless of prompt content)
+  // alt_agent_id resolution:
+  //   1. `--as <id>` on the activate.sh command — the load-bearing source.
+  //   2. hookInput.agent_id IF it contains `@` — reserved fallback for a
+  //      future Claude Code semantic. As of 2026-05, Claude Code
+  //      populates hookInput.agent_id for spawned sub-agents with an
+  //      opaque session-level hex hash (e.g., `afa554b052dff8a00`), not
+  //      the canonical `<short>@<team>` form, so this branch never fires
+  //      for teammate spawns today. Kept gated on `@` so a bare hash
+  //      can't accidentally stamp as a teammate alt_id and mis-link to
+  //      a parent slot.
   //
-  // Source 2 is the resilience layer. Even if the orchestrator
-  // paraphrases the prompt and drops --as, the sub-agent's own
-  // `agent_id` remains intact and matches the parent's registered slot
-  // verbatim (because the spawn template uses short-name in `name:`,
-  // which Claude Code mangles into `<short>@<team>` — exactly the
-  // format dispatchTeammate uses for `slot.agent_id`).
-  //
-  // The teammate-context distinguisher: only treat hookInput.agent_id
-  // as an alt_id when it contains `@` (the team-format suffix). A bare
-  // session-level agent_id without `@` belongs to a top-level wheel
-  // run, not a teammate spawn, and stamping it as alt_id would
-  // mis-link a non-team activation to a parent slot.
+  // Implication: parent-child linkage today depends on the spawn
+  // template's `--as <agent_id>` being preserved by the orchestrator
+  // through prompt paraphrasing. The PreToolUse-team guard catches
+  // most drops and emits a corrective recovery prompt; persistent
+  // drops result in budget burn on retry loops.
   const alternateAgentId =
     extractAlternateAgentId(activateLine)
     ?? (typeof hookInput.agent_id === 'string' && hookInput.agent_id.includes('@')
