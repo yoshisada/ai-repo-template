@@ -105,38 +105,52 @@ export async function _teammateFlushFromState(
       workflow: wf,
       task_id: slot.task_id ?? '',
     });
-    // Build the prompt. Tightened layout (Fix A):
-    //   * The exact bash command goes on the FIRST line of the prompt, no
-    //     framing prose around it. Orchestrators paraphrasing the prompt
-    //     are far less likely to drop the first line than to compress
-    //     multi-stage instructions into a one-liner.
-    //   * Drive instructions follow but are short. Long prompt = more
-    //     paraphrase pressure.
-    //   * The structured `name:` field on the Agent call (set below) is
-    //     the primary linkage source per Fix A — the prompt's `--as`
-    //     remains as a belt-and-braces fallback consumed by activate.sh
-    //     itself.
+    // Self-contained drive-loop prompt — agent-type-agnostic.
+    //
+    // Plugin-level wheel hooks (`hooks/hooks.json`) fire in EVERY
+    // session including spawned sub-agents (verified empirically by
+    // the hookinput-probe — `general-purpose` sub-agents fire the
+    // wheel post-tool-use hook on Bash calls). So the wheel doesn't
+    // need a dedicated agent type for hooks to work.
+    //
+    // What `general-purpose` lacks is the agent KNOWLEDGE of how to
+    // interpret the wheel's hook signals. Previously we worked around
+    // this by spawning `wheel-runner` whose system prompt taught the
+    // drive loop. That's a project-local file dependency that doesn't
+    // ship with the plugin. Embedding the same knowledge in the spawn
+    // prompt makes the wheel agent-type-agnostic.
+    //
+    // Layout principles:
+    //   * activate.sh literal on FIRST line — survives paraphrasing
+    //     better than mid-prompt instructions.
+    //   * Numbered drive-loop steps so the orchestrator copying the
+    //     spawn block verbatim AND the receiving agent reading the
+    //     prompt both have a clear ordered protocol.
+    //   * Sentinel-file recovery clause for `--print` mode where
+    //     Stop-hook additionalContext is dropped (PostToolUse
+    //     additionalContext survives, so the issue is Stop only).
     const promptText =
       `${activate}\n\n` +
-      `^^ Run that bash command FIRST, verbatim, in a single tool call. ` +
-      `It activates your sub-workflow; the wheel hook auto-links you to the parent's teammate slot using your intrinsic agent_id, no extra steps needed. ` +
-      `Then end your turn so the wheel Stop hook fires. ` +
-      `For every subsequent turn: read the hook's \`additionalContext\` instruction, make ONE tool call following it, end the turn. ` +
-      `Repeat until your state file archives (no more .wheel/state_*.json for you). ` +
-      `Do not investigate wheel internals; the hooks are authoritative.`;
+      `^^ Step 1: run the bash command above VERBATIM in a single tool call, then end your turn.\n\n` +
+      `You are spawned to drive a wheel sub-workflow. The wheel hooks fire in your session automatically; you don't need to do anything special — just respond to their signals.\n\n` +
+      `Drive loop (one tool call per turn, then END YOUR TURN):\n` +
+      `  - The wheel Stop hook will block your turn with an \`additionalContext\` instruction. Make exactly the tool call it asks for. (Common cases: Write a file at the exact path the hook specifies; Bash a command verbatim; SendMessage to a peer.)\n` +
+      `  - PostToolUse hooks intercept Bash/Write/Edit tool calls and auto-advance the workflow cursor. You don't see those — they just work.\n` +
+      `  - For agent-type steps you'll be asked to write an output file. Use the EXACT path. Stub content is fine if you can't tell what to write.\n` +
+      `  - End your turn after each tool call so the next Stop hook can fire.\n` +
+      `  - Repeat until the wheel emits no more block instructions and your \`.wheel/state_*.json\` file is gone (archived). Then SendMessage("team-lead", "<short status>") and end your turn.\n\n` +
+      `If a Stop hook blocks but the message you see is just "Blocked by hook" with no actionable content (this happens in \`--print\` mode), recover by running \`cat .wheel/.next-instruction.md\` — the wheel mirrors the instruction to that file. Then follow it.\n\n` +
+      `Forbidden:\n` +
+      `  - Do NOT call /wheel:wheel-stop — let the workflow archive naturally.\n` +
+      `  - Do NOT investigate wheel internals (\`dist/\`, \`hooks/\`, plugin source). The hooks are authoritative; if they say wait, wait.\n` +
+      `  - Do NOT batch tool calls or skip turn boundaries. The hooks need turn ends to fire.`;
     lines.push('```');
     lines.push('Agent({');
-    // `wheel-runner` is the dedicated agent type for sub-workflow
-    // drivers. Its frontmatter wires PostToolUse(Bash|Write|Edit) and
-    // Stop hooks into the sub-agent's session so the wheel can
-    // intercept tool calls and advance the child workflow. Spawning
-    // a `general-purpose` here leaves the sub-agent without hooks —
-    // its tool calls don't fire wheel hooks, so the child workflow
-    // never advances past `activate.sh`, the agent goes idle, and the
-    // parent's team-wait hangs indefinitely. The architectural rule
-    // about "NEVER use general-purpose for specialized roles" applies
-    // here squarely.
-    lines.push(`  subagent_type: "wheel-runner",`);
+    // Agent-type-agnostic — the prompt above carries the drive-loop
+    // knowledge that previously came from the wheel-runner agent's
+    // system prompt. Plugin hooks fire regardless of subagent_type
+    // (verified by hookinput-probe). general-purpose is fine.
+    lines.push(`  subagent_type: "general-purpose",`);
     lines.push(`  description: "${shortName} sub-workflow spawn",`);
     lines.push(`  prompt: ${JSON.stringify(promptText)},`);
     // Architectural Fix — short-name in `name`, NOT the full agent_id.
