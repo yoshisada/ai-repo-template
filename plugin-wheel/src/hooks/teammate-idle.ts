@@ -7,6 +7,7 @@ import { stateRead } from '../shared/state.js';
 import { engineInit, engineHandleHook } from '../lib/engine.js';
 import { resolveStateFile } from '../lib/guard.js';
 import type { HookInput } from '../lib/dispatch.js';
+import { emitHookOutput } from './emit.js';
 
 async function readStdin(): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
@@ -43,7 +44,7 @@ async function main(): Promise<void> {
     await engineInit(workflowFile, stateFile);
 
     const output = await engineHandleHook('teammate_idle', input);
-    console.log(JSON.stringify(output));
+    await emitHookOutput(output);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);

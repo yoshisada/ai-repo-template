@@ -1,6 +1,7 @@
 // FR-007: SessionStart (resume) hook entry point
 import { engineHandleHook } from '../lib/engine.js';
 import type { HookInput } from '../shared/index.js';
+import { emitHookOutput } from './emit.js';
 
 async function readStdin(): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
@@ -17,7 +18,7 @@ async function main(): Promise<void> {
   try {
     const input: HookInput = JSON.parse(await readStdin());
     const output = await engineHandleHook('session_start', input);
-    console.log(JSON.stringify(output));
+    await emitHookOutput(output);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);

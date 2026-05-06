@@ -27,6 +27,7 @@ import {
   handleNormalPath,
   listMatchingStateFiles,
 } from './post-tool-use/handle-normal-path.js';
+import { emitHookOutput } from './emit.js';
 
 // Re-export for callers (engine.ts, tests) that still import these
 // from the entry-point file.
@@ -42,14 +43,14 @@ async function main(): Promise<void> {
     // activate.sh (substring overlap).
     if (command.includes('deactivate.sh')) {
       const output = await handleDeactivate(command, hookInput);
-      console.log(JSON.stringify(output));
+      await emitHookOutput(output);
       return;
     }
 
     const activateLine = detectActivateLine(command);
     if (activateLine) {
       const { output } = await handleActivation(activateLine, hookInput);
-      console.log(JSON.stringify(output));
+      await emitHookOutput(output);
       return;
     }
 
@@ -63,7 +64,7 @@ async function main(): Promise<void> {
     // workflow gets unblocked). LAST block's `additionalContext` is kept.
     const stateFiles = await listMatchingStateFiles('.wheel', hookInput);
     if (stateFiles.length === 0) {
-      console.log(JSON.stringify({ hookEventName: 'PostToolUse' }));
+      await emitHookOutput({ hookEventName: 'PostToolUse' });
       return;
     }
 
@@ -91,7 +92,7 @@ async function main(): Promise<void> {
         aggregatedOutput = out;
       }
     }
-    console.log(JSON.stringify(aggregatedOutput));
+    await emitHookOutput(aggregatedOutput);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);

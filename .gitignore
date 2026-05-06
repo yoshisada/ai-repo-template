@@ -36,6 +36,7 @@ npm-debug.log*
 .wheel/state.json
 .wheel/.locks/
 .wheel/history/
+.wheel/.next-instruction.md
 
 # Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
 .shelf-config.lock
