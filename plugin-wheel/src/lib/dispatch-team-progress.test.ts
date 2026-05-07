@@ -131,7 +131,7 @@ describe('dispatchTeamWait stop branch — progress visibility (bug #21)', () =>
 });
 
 describe('dispatchTeamWait teammate_idle — wake-up branch (bug #16)', () => {
-  it('emits SendMessage block when child is at agent step pending', async () => {
+  it('emits SendMessage block on first idle when child is at agent step pending', async () => {
     const stateFile = await setupParentWithTeammates([
       { id: 'w1', status: 'running' },
     ]);

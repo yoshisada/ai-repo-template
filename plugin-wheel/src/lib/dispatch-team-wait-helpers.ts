@@ -67,18 +67,30 @@ export async function _teamWaitProgressSnapshot(
  * the block's additionalContext text, or null if no wake is needed (child
  * is at a different step type, archived, or never linked back to parent).
  *
- * The orchestrator gets a literal `SendMessage({to, message})` to copy-
- * paste, eliminating interpretation room.
+ * Two-tier severity: emit the explicit wake immediately on every
+ * TeammateIdle (workers need to be woken on first idle to make
+ * progress), but ESCALATE the message after N consecutive idles at the
+ * same cursor — that's the genuine "stuck" signal. The escalation
+ * tells the orchestrator the worker won't progress and to wait for
+ * the polling backstop / wheel-stop instead of spamming SendMessages.
  *
- * No wheel-side rate-limiting: TeammateIdle fires once per teammate
- * turn boundary, and downstream-of-here we rely on the orchestrator's
- * prompt rules (plus the sentinel skip-write-on-no-change in emit.ts
- * that keeps mtime stable when content is unchanged) to suppress
- * repeats. Wheel-side cooldowns we tried (time-based, cursor-keyed)
- * were net-negative across the fixture matrix — too short caused
- * spam, too long starved genuinely-stuck workers. The harness
- * budget-cap-as-terminal is the safety net for runaway costs.
+ * Wake-spam containment is shared between two layers:
+ *   1. emit.ts skip-write-on-no-change — sentinel mtime stays stable
+ *      when the wheel re-emits identical content (which happens during
+ *      legitimate "still waiting for worker" gaps).
+ *   2. The escalation tier here — once a worker has been idle 5+ times
+ *      at the same cursor, the wheel admits the worker is stuck and
+ *      stops emitting actionable wakes.
+ *
+ * Counter resets when the child cursor advances (any progress).
  */
+const ESCALATE_THRESHOLD = 5;
+
+interface IdleTrackingMeta {
+  idle_count_at_cursor?: number;
+  idle_count_cursor?: number;
+}
+
 export async function _teamWaitBuildWakeBlock(
   idleAgentId: string,
   idleName: string,
@@ -102,17 +114,49 @@ export async function _teamWaitBuildWakeBlock(
   if (!(childStepType === 'agent' && (childStepStatus === 'pending' || childStepStatus === 'working'))) {
     return null;
   }
+
+  // Idle counter — tracks consecutive idles at the current child cursor.
+  // Reset on cursor advance.
+  const meta = childState as unknown as IdleTrackingMeta;
+  const priorCursor = meta.idle_count_cursor;
+  const priorCount = (priorCursor === childCursor ? meta.idle_count_at_cursor : 0) ?? 0;
+  const newCount = priorCount + 1;
+
+  try {
+    const fresh = await stateRead(childStateFile);
+    const freshMeta = fresh as unknown as IdleTrackingMeta;
+    freshMeta.idle_count_at_cursor = newCount;
+    freshMeta.idle_count_cursor = childCursor;
+    const { stateWrite } = await import('../shared/state.js');
+    await stateWrite(childStateFile, fresh);
+  } catch { /* state-file race — best-effort */ }
+
+  void idleTeamName; // reserved for richer messaging
+
   const instruction = childStepInstr ?? `Execute step "${childStep.id}" of your sub-workflow.`;
   const outputPath = childStepOutput ?? '';
+  const recipient = idleAgentId || idleName;
   const wakeMessage =
     `Continue your sub-workflow. Current step: ${childStep.id} (agent, status: ${childStepStatus}). ` +
     `${instruction} ` +
     (outputPath
       ? `Write your output to: ${outputPath}. After writing, end your turn so the wheel hooks can advance the workflow.`
       : `End your turn after producing the output so the wheel hooks can advance.`);
-  const recipient = idleAgentId || idleName;
-  void idleTeamName; // currently unused but reserved for richer messaging
-  void childStateFile; // reserved for future side-channel signalling
+
+  // Escalation: 5+ idles at same cursor → worker is genuinely stuck.
+  if (newCount >= ESCALATE_THRESHOLD) {
+    return (
+      `Teammate "${recipient}" has been idle ${newCount}+ turns at agent step "${childStep.id}" without progress. This slot is likely genuinely stuck.\n\n` +
+      `Options:\n` +
+      `  - Wait for the polling backstop to mark this slot failed (it scans live child state files for stuck workers).\n` +
+      `  - As a last resort, /wheel:wheel-stop to terminate the workflow.\n\n` +
+      `End your turn while you decide. Do NOT send another SendMessage — the previous wakes haven't moved the cursor, this one won't either.`
+    );
+  }
+
+  // Standard wake — emitted on every TeammateIdle (1st through 4th).
+  // Sentinel skip-write-on-no-change in emit.ts keeps the orchestrator
+  // from re-acting on identical re-emits.
   return (
     `Teammate "${recipient}" is idle but their sub-workflow is blocked at an agent step (${childStep.id}). Wake them by issuing this exact tool call:\n\n` +
     '```\n' +
