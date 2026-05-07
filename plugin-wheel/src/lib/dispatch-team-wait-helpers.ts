@@ -103,7 +103,7 @@ export async function _teamWaitBuildWakeBlock(
       : `End your turn after producing the output so the wheel hooks can advance.`);
   const recipient = idleAgentId || idleName;
   void idleTeamName; // currently unused but reserved for richer messaging
-  void childStateFile;
+  void childStateFile; // reserved for future side-channel signalling
   return (
     `Teammate "${recipient}" is idle but their sub-workflow is blocked at an agent step (${childStep.id}). Wake them by issuing this exact tool call:\n\n` +
     '```\n' +
