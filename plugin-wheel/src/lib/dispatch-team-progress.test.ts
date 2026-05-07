@@ -120,12 +120,13 @@ describe('dispatchTeamWait stop branch — progress visibility (bug #21)', () =>
     );
     expect(result.decision).toBe('block');
     // Anti-wheel-stop guidance — orchestrator must not bail on the
-    // workflow during routine wait gaps. Wording was tightened to
-    // also explicitly forbid re-reads / re-spawns / sentinel polling
-    // during waits (Phase 4 prompt-engineering improvements).
+    // workflow during routine wait gaps.
     expect(result.additionalContext).toContain('Wheel-stop is reserved');
     expect(result.additionalContext).toContain('Silence between turns is normal');
-    expect(result.additionalContext).toContain('Do NOT take any action this turn');
+    // Anti-spam-action guidance: don't re-spawn or re-read sentinel,
+    // but DO allow targeted SendMessage to stuck workers.
+    expect(result.additionalContext).toContain('Do NOT');
+    expect(result.additionalContext).toContain('SendMessage');
   });
 });
 
