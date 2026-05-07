@@ -69,6 +69,15 @@ export async function _teamWaitProgressSnapshot(
  *
  * The orchestrator gets a literal `SendMessage({to, message})` to copy-
  * paste, eliminating interpretation room.
+ *
+ * No wheel-side rate-limiting: TeammateIdle fires once per teammate
+ * turn boundary, and downstream-of-here we rely on the orchestrator's
+ * prompt rules (plus the sentinel skip-write-on-no-change in emit.ts
+ * that keeps mtime stable when content is unchanged) to suppress
+ * repeats. Wheel-side cooldowns we tried (time-based, cursor-keyed)
+ * were net-negative across the fixture matrix — too short caused
+ * spam, too long starved genuinely-stuck workers. The harness
+ * budget-cap-as-terminal is the safety net for runaway costs.
  */
 export async function _teamWaitBuildWakeBlock(
   idleAgentId: string,
