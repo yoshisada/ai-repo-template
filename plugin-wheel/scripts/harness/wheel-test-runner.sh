@@ -112,6 +112,21 @@ else
   fi
 fi
 
+# Auto-load test credentials from `<plugin>/.env.test` if present.
+# Lets fixtures with `require-env:` blocks pick up provider creds (e.g.
+# Bifrost / Bedrock / Vertex tokens) without the developer having to
+# `source` the env file manually before every harness run. The path is
+# gitignored repo-wide via the `.env.*` rule; a sibling `.env.example`
+# (committed) documents the schema. Auto-export is set/unset around the
+# source so existing shell vars stay untouched.
+env_file="$plugin_root/.env.test"
+if [[ -f "$env_file" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$env_file"
+  set +a
+fi
+
 # Check claude CLI present (only needed once per invocation).
 check_claude_on_path
 

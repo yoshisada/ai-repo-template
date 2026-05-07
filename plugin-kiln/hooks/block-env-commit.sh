@@ -22,9 +22,17 @@ if ! echo "$COMMAND" | grep -q "git commit" 2>/dev/null; then
   exit 0
 fi
 
-# Check if .env files are staged
-if git diff --cached --name-only 2>/dev/null | grep -qE '\.env(\..*)?$'; then
-  STAGED_ENV=$(git diff --cached --name-only 2>/dev/null | grep -E '\.env(\..*)?$')
+# Check if .env files are staged. The repo-root .gitignore allows
+# `.env.example` through (it's the canonical schema-template
+# convention used by Node/Python/Ruby ecosystems and by this repo's
+# own plugin-wheel/.env.example). Mirror that exception here so the
+# hook agrees with gitignore — otherwise legitimate template commits
+# get blocked while the corresponding `.env.test` file with secrets
+# can never be staged in the first place (gitignored).
+STAGED_ENV=$(git diff --cached --name-only 2>/dev/null \
+  | grep -E '\.env(\..*)?$' \
+  | grep -vE '(^|/)\.env\.example$' || true)
+if [[ -n "$STAGED_ENV" ]]; then
   cat >&2 <<EOF
 BLOCKED: .env file(s) are staged for commit:
 
