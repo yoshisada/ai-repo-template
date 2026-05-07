@@ -1,0 +1,1 @@
+Run /wheel:wheel-run minimax-smoke against the fixture workflow at workflows/minimax-smoke.json. The workflow has a single agent step that asks you to write a short haiku to a specified output path. Follow the step instruction exactly: write the haiku to the declared output file. Then end your turn so the wheel can advance the cursor and archive.

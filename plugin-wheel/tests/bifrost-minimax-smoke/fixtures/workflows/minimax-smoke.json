@@ -1,0 +1,14 @@
+{
+  "name": "minimax-smoke",
+  "version": "1.0.0",
+  "_doc": "Minimum viable agent-step workflow. The orchestrator (running on whatever model Bifrost routes to) reads the instruction and writes a tiny artifact. Cheap to run; bounds cost.",
+  "steps": [
+    {
+      "id": "haiku-from-minimax",
+      "type": "agent",
+      "instruction": "Write a 5-7-5 haiku about a wheel rolling downhill. Output the haiku verbatim, no extra prose, three lines, one stanza.",
+      "output": ".wheel/outputs/minimax-haiku.md",
+      "terminal": true
+    }
+  ]
+}
