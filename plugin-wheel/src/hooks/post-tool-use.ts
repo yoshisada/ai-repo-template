@@ -19,6 +19,7 @@ import type { HookInput, HookOutput } from '../lib/dispatch.js';
 import {
   readStdin,
   extractCommandWithFallback,
+  parseHookInputWithFallback,
   detectActivateLine,
 } from './post-tool-use/extractors.js';
 import { handleActivation } from './post-tool-use/handle-activate.js';
@@ -37,7 +38,16 @@ async function main(): Promise<void> {
   try {
     const rawInput = await readStdin();
     const command = await extractCommandWithFallback(rawInput);
-    const hookInput = JSON.parse(rawInput) as HookInput;
+    // FR-C1 fallback: rawInput may contain literal control chars (the actual
+    // hook payload shape Claude Code's harness emits) — JSON.parse rejects,
+    // python3 strict=False accepts. Use the same fallback both extractors share.
+    const parsed = await parseHookInputWithFallback(rawInput);
+    if (!parsed || typeof parsed !== 'object') {
+      // Both parsers failed — emit empty hook output and exit gracefully.
+      await emitHookOutput({ hookEventName: 'PostToolUse' });
+      return;
+    }
+    const hookInput = parsed as HookInput;
 
     // parity: shell post-tool-use.sh:83 — handle deactivate.sh BEFORE
     // activate.sh (substring overlap).

@@ -191,6 +191,88 @@ describe('dispatchTeammate FR-006 parity', () => {
     await fs.rm('.wheel/outputs/team-tm', { recursive: true, force: true });
   });
 
+  // Idea 5: spawn block pre-loads the worker with the sub-workflow's
+  // first agent step's instruction + output path, so the worker can
+  // act on the first turn without waiting for hook interpretation.
+  it('spawn block pre-loads first agent step instructions when sub-workflow JSON exists on disk', async () => {
+    // Write a fake sub-workflow JSON at workflows/sub-pre.json with an
+    // agent step. The resolver looks for the workflow via its name.
+    const cwd = process.cwd();
+    const tmpRoot = path.join(TEST_DIR, 'preload-cwd');
+    await fs.mkdir(path.join(tmpRoot, 'workflows'), { recursive: true });
+    await fs.writeFile(
+      path.join(tmpRoot, 'workflows', 'sub-pre.json'),
+      JSON.stringify({
+        name: 'sub-pre', version: '1.0',
+        steps: [
+          { id: 'do-x', type: 'agent', instruction: 'Pretend to do X.', output: '.wheel/outputs/x.txt' },
+        ],
+      }),
+    );
+    process.chdir(tmpRoot);
+    try {
+      const statePath = path.join(tmpRoot, 'state.json');
+      const step = {
+        id: 's1',
+        type: 'teammate',
+        team: 'main',
+        workflow: 'sub-pre',
+        assign: {},
+      };
+      await stateInit({
+        stateFile: statePath,
+        workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+        sessionId: 's',
+        agentId: '',
+      });
+      await setupTeam(statePath, 'main', 'tm');
+
+      const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+      expect(result.decision).toBe('block');
+      // Concrete instructions should appear in the spawn block.
+      expect(result.additionalContext).toContain('Step ID: do-x');
+      expect(result.additionalContext).toContain('Pretend to do X.');
+      expect(result.additionalContext).toContain('.wheel/outputs/x.txt');
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
+  it('spawn block falls back to generic prompt when sub-workflow has no agent step', async () => {
+    // Sub-workflow with only command steps (no agent) — pre-load is null.
+    const cwd = process.cwd();
+    const tmpRoot = path.join(TEST_DIR, 'preload-noagent');
+    await fs.mkdir(path.join(tmpRoot, 'workflows'), { recursive: true });
+    await fs.writeFile(
+      path.join(tmpRoot, 'workflows', 'sub-cmd.json'),
+      JSON.stringify({
+        name: 'sub-cmd', version: '1.0',
+        steps: [{ id: 'cmd', type: 'command', command: 'echo hi' }],
+      }),
+    );
+    process.chdir(tmpRoot);
+    try {
+      const statePath = path.join(tmpRoot, 'state.json');
+      const step = {
+        id: 's1', type: 'teammate', team: 'main',
+        workflow: 'sub-cmd', assign: {},
+      };
+      await stateInit({
+        stateFile: statePath,
+        workflow: { name: 'wf', version: '1.0', steps: [step as any] },
+        sessionId: 's', agentId: '',
+      });
+      await setupTeam(statePath, 'main', 'tm');
+
+      const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
+      expect(result.decision).toBe('block');
+      // No "Step ID:" preload header when there's no agent step.
+      expect(result.additionalContext).not.toContain('Step ID: cmd');
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
   // FR-006 A4
   it('post_tool_use TaskCreate detection updates teammate task_id', async () => {
     const statePath = path.join(TEST_DIR, 'tc.json');

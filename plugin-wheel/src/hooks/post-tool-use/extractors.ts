@@ -32,28 +32,47 @@ export function readStdin(): string {
 }
 
 /**
+ * FR-C1 fallback: parse hook stdin into a full object. Tries native
+ * JSON.parse first; falls back to python3 with strict=False for inputs
+ * containing literal control chars that JSON rejects (the actual hook
+ * payload shape Claude Code's harness emits — see specs/wheel-as-runtime
+ * §FR-C1).
+ *
+ * Returns the parsed object on success, or null when both parsers reject.
+ */
+export async function parseHookInputWithFallback(rawInput: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(rawInput);
+  } catch { /* JSON.parse failed, try python3 */ }
+
+  const { execSync } = await import('child_process');
+  try {
+    // Re-emit the parsed object as compliant JSON so the JS side can JSON.parse it.
+    const out = execSync(
+      'python3 -c "import json,sys;print(json.dumps(json.loads(sys.stdin.read(),strict=False)))"',
+      { input: rawInput, encoding: 'utf-8', timeout: 5000 },
+    );
+    return JSON.parse(out);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * FR-C1 fallback: parse hook stdin and extract `tool_input.command`.
  * Tries native JSON.parse first; falls back to python3 with strict=False
  * for inputs containing literal control chars that JSON rejects.
  */
 export async function extractCommandWithFallback(rawInput: string): Promise<string> {
-  try {
-    const parsed = JSON.parse(rawInput);
-    const cmd = parsed?.tool_input?.command as string;
-    if (cmd !== undefined) return cmd;
-  } catch { /* JSON.parse failed, try python3 */ }
-
-  const { execSync } = await import('child_process');
-  try {
-    const cmd = execSync(
-      'python3 -c "import json,sys;d=json.loads(sys.stdin.read(),strict=False);print(d.get(\'tool_input\',{}).get(\'command\',\'\'))"',
-      { input: rawInput, encoding: 'utf-8', timeout: 5000 },
-    );
-    return cmd.trim();
-  } catch {
-    console.error('wheel post-tool-use: FR-C1 command extraction failed (jq + python3 both rejected hook input)');
-    return '';
+  const parsed = await parseHookInputWithFallback(rawInput);
+  if (parsed && typeof parsed === 'object') {
+    const cmd = (parsed as { tool_input?: { command?: string } })?.tool_input?.command;
+    if (typeof cmd === 'string') return cmd;
   }
+  if (parsed === null) {
+    console.error('wheel post-tool-use: FR-C1 command extraction failed (jq + python3 both rejected hook input)');
+  }
+  return '';
 }
 
 /**

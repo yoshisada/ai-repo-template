@@ -17,6 +17,7 @@
 
 import { readFileSync } from 'fs';
 import { stateRead } from '../shared/state.js';
+import type { WheelState } from '../shared/state.js';
 import { resolveStateFile } from '../lib/guard.js';
 import type { HookInput } from '../lib/dispatch.js';
 
@@ -29,40 +30,54 @@ interface ToolInput {
   [key: string]: unknown;
 }
 
+interface HookDecision {
+  decision?: 'block';
+  reason?: string;
+}
+
+const PASS: HookDecision = {};
+
+export async function decideTeamHookOutput(
+  hookInput: HookInput,
+  wheelDir: string = '.wheel',
+): Promise<HookDecision> {
+  const toolName = (hookInput.tool_name as string) ?? '';
+  const toolInput = (hookInput.tool_input as ToolInput) ?? {};
+
+  if (toolName !== 'TeamCreate' && toolName !== 'Agent') return PASS;
+
+  const stateFile = await resolveStateFile(wheelDir, hookInput);
+  if (!stateFile) return PASS;
+
+  let state;
+  try {
+    state = await stateRead(stateFile);
+  } catch {
+    return PASS;
+  }
+  return decideFromState(toolName, toolInput, state);
+}
+
 async function main(): Promise<void> {
   try {
     const rawInput = readStdin();
     const hookInput: HookInput = JSON.parse(rawInput);
-    const toolName = (hookInput.tool_name as string) ?? '';
-    const toolInput = (hookInput.tool_input as ToolInput) ?? {};
+    const decision = await decideTeamHookOutput(hookInput);
+    console.log(JSON.stringify(decision));
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    console.log(JSON.stringify({}));
+  }
+}
 
-    // Only guard TeamCreate and Agent.
-    if (toolName !== 'TeamCreate' && toolName !== 'Agent') {
-      console.log(JSON.stringify({}));
-      return;
-    }
-
-    const stateFile = await resolveStateFile('.wheel', hookInput);
-    if (!stateFile) {
-      // No active wheel workflow — pass through; user is doing something else.
-      console.log(JSON.stringify({}));
-      return;
-    }
-
-    let state;
-    try {
-      state = await stateRead(stateFile);
-    } catch {
-      console.log(JSON.stringify({}));
-      return;
-    }
+function decideFromState(toolName: string, toolInput: ToolInput, state: WheelState): HookDecision {
+  try {
 
     const cursor = state.cursor ?? 0;
     const stepDef = state.workflow_definition?.steps?.[cursor]
       ?? state.steps?.[cursor];
     if (!stepDef) {
-      console.log(JSON.stringify({}));
-      return;
+      return PASS;
     }
 
     const calledTeamName = toolInput.team_name ?? '';
@@ -71,20 +86,17 @@ async function main(): Promise<void> {
       // Only guard during a team-create step. Other steps may call
       // TeamCreate for unrelated reasons; pass through.
       if (stepDef.type !== 'team-create') {
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       const expected = (stepDef as { team_name?: string }).team_name ?? `${state.workflow_name}-${stepDef.id}`;
       if (calledTeamName === expected) {
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       // Mismatch — deny.
-      console.log(JSON.stringify({
+      return {
         decision: 'block',
         reason: `Wheel team-name guard: TeamCreate must use team_name="${expected}" (the create-team step's declared name). Got "${calledTeamName}". Retry the call with team_name="${expected}".`,
-      }));
-      return;
+      };
     }
 
     if (toolName === 'Agent') {
@@ -97,27 +109,23 @@ async function main(): Promise<void> {
         stepDef.type === 'team-wait' &&
         state.steps[cursor]?.status === 'working';
       if (!isTeammateStep && !isTeamWaitWorking) {
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       const teamRef = (stepDef as { team?: string }).team;
       if (!teamRef) {
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       const recordedTeamName = state.teams?.[teamRef]?.team_name;
       if (!recordedTeamName) {
         // Team not yet registered — pass through.
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       // Verify team_name matches.
       if (calledTeamName !== recordedTeamName) {
-        console.log(JSON.stringify({
+        return {
           decision: 'block',
           reason: `Wheel Agent guard: team_name must be "${recordedTeamName}" for this workflow. Got "${calledTeamName}". Re-issue the Agent call with team_name="${recordedTeamName}".`,
-        }));
-        return;
+        };
       }
       // Fix A: dual-source contract for slot identity.
       //
@@ -147,8 +155,7 @@ async function main(): Promise<void> {
       if (slotAgentIds.length === 0) {
         // No teammates registered yet — pass through; orchestrator may be
         // running an Agent for a non-teammate purpose.
-        console.log(JSON.stringify({}));
-        return;
+        return PASS;
       }
       // Source 1 — `name` field matches a slot's SHORT name only.
       //
@@ -178,6 +185,36 @@ async function main(): Promise<void> {
         });
       // Source 2 — prompt scan for `--as <agent_id>`.
       const hasValidAs = slotAgentIds.some(aid => calledPrompt.includes(`--as ${aid}`));
+      // Issue F (duplicate-spawn guard): if the call DOES identify a slot,
+      // confirm that slot is still `pending`. Re-spawning a slot that's
+      // already running/completed/failed produces a duplicate worker that
+      // can't be linked back to the parent (slot's agent_id is taken) and
+      // wastes orchestrator budget. Block with the slot's current status
+      // so the orchestrator stops paranoia-spawning.
+      if (nameMatches || hasValidAs) {
+        // Determine which slot this call identifies.
+        const teamSfxF = `@${calledTeamName}`;
+        const matchedSlot = Object.values(teammates).find((s) => {
+          if (!s || typeof s.agent_id !== 'string') return false;
+          const aid = s.agent_id;
+          const short = aid.endsWith(teamSfxF) ? aid.slice(0, -teamSfxF.length) : aid;
+          if (calledName && (calledName === short || calledName === aid)) return true;
+          if (calledPrompt.includes(`--as ${aid}`)) return true;
+          return false;
+        });
+        if (matchedSlot && matchedSlot.status && matchedSlot.status !== 'pending') {
+          return {
+            decision: 'block',
+            reason: [
+              `Wheel duplicate-spawn guard: slot "${matchedSlot.agent_id}" is already in status "${matchedSlot.status}". Do NOT re-spawn it.`,
+              ``,
+              matchedSlot.status === 'running'
+                ? `The teammate is mid-flight. Wait for hook signals (teammate_idle / spawn re-emit) instead of issuing another Agent call. The wheel will tell you what to do next.`
+                : `The teammate has terminated (${matchedSlot.status}). Move on — don't try to revive it. The polling backstop already reconciled this slot.`,
+            ].join('\n'),
+          };
+        }
+      }
       if (!nameMatches && !hasValidAs) {
         // Neither the structured `name` field nor the prompt's `--as`
         // flag identifies a registered slot.
@@ -215,22 +252,25 @@ async function main(): Promise<void> {
         recoveryLines.push(`  prompt: "bash <plugin>/bin/activate.sh <sub-workflow>\\n\\n^^ Run that command verbatim, then end the turn. The wheel auto-links the child to the parent slot via the sub-agent's intrinsic agent_id — no --as needed."`);
         recoveryLines.push(`})`);
         recoveryLines.push('```');
-        console.log(JSON.stringify({
+        return {
           decision: 'block',
           reason: recoveryLines.join('\n'),
-        }));
-        return;
+        };
       }
-      console.log(JSON.stringify({}));
-      return;
+      return PASS;
     }
 
-    console.log(JSON.stringify({}));
+    return PASS;
   } catch (err) {
     // Fail open — the guard MUST NOT break the harness if it errors.
     console.error(err instanceof Error ? err.message : String(err));
-    console.log(JSON.stringify({}));
+    return PASS;
   }
 }
 
-main();
+// Only run as a script (not when imported by tests). When imported, the
+// vitest worker has no stdin payload to parse and the side-effect would
+// emit a noisy "Unexpected end of JSON input" line.
+if (process.argv[1] && process.argv[1].endsWith('pre-tool-use-team.js')) {
+  main();
+}

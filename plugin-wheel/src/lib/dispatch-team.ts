@@ -36,6 +36,54 @@ export interface TeammateSpawnInfo {
 }
 
 /**
+ * Idea 5: Resolve the sub-workflow's first agent step (if any) so the
+ * spawn prompt can pre-load the worker with concrete first-action
+ * instructions. Returns `null` when:
+ *   - workflow file isn't on disk (e.g., consumer install path varies)
+ *   - workflow has no agent step
+ *   - file read / parse fails
+ *
+ * Best-effort: never throws. Spawn template falls back to generic
+ * "follow hook signals" wording when this returns null.
+ */
+async function _resolveFirstAgentStep(workflowName: string): Promise<{
+  id: string;
+  instruction: string;
+  output: string;
+} | null> {
+  const fs = (await import('fs')).promises;
+  // Conventional path. Match the resolver's same lookup order
+  // (`workflows/<name>.json`, `workflows/tests/<name>.json`, etc.) but
+  // simplified — if none of these match, return null.
+  const candidates = [
+    `workflows/${workflowName}.json`,
+    `workflows/${workflowName.replace(/^tests\//, '')}.json`,
+    `${workflowName}.json`,
+    workflowName,
+  ];
+  for (const p of candidates) {
+    try {
+      const content = await fs.readFile(p, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (!Array.isArray(parsed?.steps)) continue;
+      for (const step of parsed.steps) {
+        if (step?.type === 'agent') {
+          return {
+            id: String(step.id ?? ''),
+            instruction: String(step.instruction ?? ''),
+            output: String(step.output ?? ''),
+          };
+        }
+      }
+      // Workflow exists but no agent step (all command/branch/loop) —
+      // null out so we don't preload anything.
+      return null;
+    } catch { /* try next candidate */ }
+  }
+  return null;
+}
+
+/**
  * parity: shell dispatch.sh:1927 — _teammate_flush_from_state.
  *
  * Collect every registered teammate for `teamRef` from the state file,
@@ -129,11 +177,26 @@ export async function _teammateFlushFromState(
     //   * Sentinel-file recovery clause for `--print` mode where
     //     Stop-hook additionalContext is dropped (PostToolUse
     //     additionalContext survives, so the issue is Stop only).
+    //
+    // Idea 5: pre-load the worker with concrete first-step instructions
+    // pulled from the sub-workflow JSON's first agent step. Worker can
+    // act on it immediately on first wake without waiting for hook
+    // signals to interpret. Falls back gracefully when we can't resolve
+    // the workflow on disk (consumer install paths vary).
+    const firstAgentStep = await _resolveFirstAgentStep(wf);
+    const concreteInstructions = firstAgentStep
+      ? `\n\nYour FIRST agent step (after activate.sh runs) — you can act on this immediately:\n` +
+        `  Step ID: ${firstAgentStep.id}\n` +
+        (firstAgentStep.instruction ? `  Instruction: ${firstAgentStep.instruction}\n` : '') +
+        (firstAgentStep.output ? `  Required output path: ${firstAgentStep.output}\n` : '') +
+        `\nOn the turn AFTER activate.sh, use the Write tool to write content to the output path. Stub content (any plausible text matching the instruction) is fine. Then end your turn so the wheel advances the cursor.`
+      : '';
     const promptText =
       `${activate}\n\n` +
       `^^ Step 1: run the bash command above VERBATIM in a single tool call, then end your turn.\n\n` +
-      `You are spawned to drive a wheel sub-workflow. The wheel hooks fire in your session automatically; you don't need to do anything special — just respond to their signals.\n\n` +
-      `Drive loop (one tool call per turn, then END YOUR TURN):\n` +
+      `You are spawned to drive a wheel sub-workflow. The wheel hooks fire in your session automatically; you don't need to do anything special — just respond to their signals.` +
+      concreteInstructions +
+      `\n\nDrive loop (one tool call per turn, then END YOUR TURN):\n` +
       `  - The wheel Stop hook will block your turn with an \`additionalContext\` instruction. Make exactly the tool call it asks for. (Common cases: Write a file at the exact path the hook specifies; Bash a command verbatim; SendMessage to a peer.)\n` +
       `  - PostToolUse hooks intercept Bash/Write/Edit tool calls and auto-advance the workflow cursor. You don't see those — they just work.\n` +
       `  - For agent-type steps you'll be asked to write an output file. Use the EXACT path. Stub content is fine if you can't tell what to write.\n` +

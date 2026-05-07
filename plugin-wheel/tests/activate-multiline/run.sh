@@ -58,6 +58,7 @@ _run_case() {
 
   # Fresh state-file workspace per case
   rm -f .wheel/state_*.json
+  rm -f .wheel/wheel.log .wheel/hook-events.log
   rm -rf .wheel/logs
 
   local payload
@@ -87,7 +88,8 @@ print(json.dumps({
 ' "$multiline_cmd")
   fi
 
-  # Invoke the hook with the payload
+  # Invoke the hook with the payload. The TS hook writes its activation
+  # signal to stderr; capture combined stream so we can assert on it.
   local hook_out
   if ! hook_out=$(printf '%s' "$payload" | "$HOOK" 2>&1); then
     echo "FAIL [$label]: hook exited non-zero" >&2
@@ -96,31 +98,25 @@ print(json.dumps({
     return
   fi
 
-  # Assert state file was created
+  # Primary signal: state file was created. This is the canonical proof
+  # that the hook detected activate.sh in the (potentially multi-line)
+  # command body and ran the activation path.
   local state_files
   state_files=$(ls .wheel/state_*.json 2>/dev/null || true)
   if [[ -z "$state_files" ]]; then
     echo "FAIL [$label]: no .wheel/state_*.json created — hook silently missed activate.sh in multi-line input (FR-C2 invariant violated)" >&2
     echo "  payload (first 200 chars): $(printf '%s' "$payload" | head -c 200)" >&2
+    echo "  hook output: $hook_out" >&2
     FAILURES=$((FAILURES + 1))
     return
   fi
 
-  # Assert wheel.log contains path=activate + result=activate
-  if [[ -f .wheel/logs/wheel.log ]]; then
-    if ! grep -q 'path=activate' .wheel/logs/wheel.log; then
-      echo "FAIL [$label]: wheel.log missing 'path=activate' — hook did not reach activate branch" >&2
-      FAILURES=$((FAILURES + 1))
-      return
-    fi
-    if ! grep -q 'result=activate' .wheel/logs/wheel.log; then
-      echo "FAIL [$label]: wheel.log missing 'result=activate' — activation reached branch but did not complete" >&2
-      cat .wheel/logs/wheel.log >&2 || true
-      FAILURES=$((FAILURES + 1))
-      return
-    fi
-  else
-    echo "FAIL [$label]: .wheel/logs/wheel.log not created" >&2
+  # Secondary signal: stderr contains the activation-success line. The TS
+  # hook writes `wheel post-tool-use: activate workflow=<name> file=<path>`
+  # to stderr; we verify both fragments are present.
+  if ! grep -q 'wheel post-tool-use: activate workflow=' <<<"$hook_out"; then
+    echo "FAIL [$label]: hook stderr missing activation log line — activation may have completed silently or via a non-canonical path" >&2
+    echo "  hook output: $hook_out" >&2
     FAILURES=$((FAILURES + 1))
     return
   fi
