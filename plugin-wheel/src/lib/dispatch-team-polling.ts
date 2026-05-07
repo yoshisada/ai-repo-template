@@ -74,9 +74,10 @@ export async function runPollingBackstop(
 
   const liveAgentIds = await collectLiveAgentIds();
   const bucketArchives = await collectBucketArchives(parentStateFile);
+  const stuckAgentIds = await collectStuckAgentIds(parentStateFile);
 
   const { resolutions, stillRunning } =
-    classifyRunningSlots(runningSlots, liveAgentIds, bucketArchives);
+    classifyRunningSlots(runningSlots, liveAgentIds, bucketArchives, stuckAgentIds);
 
   const reconciledCount = resolutions.length > 0
     ? await applyResolutions(parentStateFile, teamRef, resolutions)
@@ -104,6 +105,47 @@ async function collectLiveAgentIds(): Promise<Set<string>> {
     } catch { /* unreadable — ignore */ }
   }
   return live;
+}
+
+/**
+ * Idea 4: scan live child state files for "stuck worker" symptoms.
+ *
+ * A child is stuck when:
+ *   - Its current step is type=agent (worker action required)
+ *   - Status is pending OR working (not yet terminal)
+ *   - Its updated_at is older than STUCK_THRESHOLD_MS (no recent
+ *     state mutation = worker is not making progress)
+ *
+ * Returns the set of alternate_agent_ids belonging to stuck children.
+ * The caller fails those slots in the parent — caps the maximum
+ * coordination time per fixture and prevents indefinite hangs when
+ * a worker session dies without archiving.
+ */
+const STUCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 min
+
+async function collectStuckAgentIds(parentStateFile: string): Promise<Set<string>> {
+  const stuck = new Set<string>();
+  const now = Date.now();
+  let files: string[];
+  try { files = await stateList(); } catch { return stuck; }
+  for (const sf of files) {
+    if (sf === parentStateFile) continue;
+    try {
+      const cs = await stateRead(sf);
+      if (!cs.alternate_agent_id) continue;
+      const cursor = cs.cursor ?? 0;
+      const step = cs.steps?.[cursor];
+      if (!step) continue;
+      const isAgentStep = step.type === 'agent';
+      const isUnterminated = step.status === 'pending' || step.status === 'working';
+      if (!(isAgentStep && isUnterminated)) continue;
+      const updatedAtMs = cs.updated_at ? Date.parse(cs.updated_at) : NaN;
+      if (Number.isFinite(updatedAtMs) && (now - updatedAtMs) > STUCK_THRESHOLD_MS) {
+        stuck.add(cs.alternate_agent_id);
+      }
+    } catch { /* unreadable — ignore */ }
+  }
+  return stuck;
 }
 
 type BucketArchives = Record<BucketDef['name'], Map<string, TerminalStatus>>;
@@ -147,11 +189,20 @@ function classifyRunningSlots(
   runningSlots: Array<[string, { agent_id?: string } | undefined]>,
   liveAgentIds: ReadonlySet<string>,
   bucketArchives: BucketArchives,
+  stuckAgentIds: ReadonlySet<string>,
 ): { resolutions: Resolution[]; stillRunning: number } {
   const resolutions: Resolution[] = [];
   let stillRunning = 0;
   for (const [name, slot] of runningSlots) {
     const aid = slot?.agent_id ?? '';
+    if (aid && stuckAgentIds.has(aid)) {
+      // Idea 4: live child has been idle at the same cursor too long
+      // → mark slot failed with explicit reason. Caps the maximum
+      // coordination time per fixture without depending on the
+      // orchestrator to wheel-stop.
+      resolutions.push({ name, newStatus: 'failed', failureReason: 'stuck_worker' });
+      continue;
+    }
     if (aid && liveAgentIds.has(aid)) { stillRunning++; continue; }
     const resolved =
       bucketArchives.success.get(aid)
