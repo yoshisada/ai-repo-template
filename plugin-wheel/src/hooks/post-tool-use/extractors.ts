@@ -32,27 +32,74 @@ export function readStdin(): string {
 }
 
 /**
- * FR-C1 fallback: parse hook stdin into a full object. Tries native
- * JSON.parse first; falls back to python3 with strict=False for inputs
- * containing literal control chars that JSON rejects (the actual hook
- * payload shape Claude Code's harness emits — see specs/wheel-as-runtime
- * §FR-C1).
+ * Escape literal U+0000..U+001F bytes that appear inside JSON string
+ * contexts in `raw`. Returns a string that's compliant JSON.
  *
- * Returns the parsed object on success, or null when both parsers reject.
+ * Why this exists: Claude Code's hook harness emits `tool_input.command`
+ * with raw newlines / tabs / etc. inside the string value. The JSON spec
+ * requires those bytes to be escaped (\\n, \\t, \\u0000…). Native
+ * `JSON.parse` rejects raw control chars, so we pre-process the bytes:
+ * walk a tiny state machine that tracks whether we're currently inside
+ * a string value, and rewrite any unescaped control char to its JSON
+ * escape sequence. Outside strings, control bytes are passed through
+ * unchanged (legal as inter-token whitespace).
+ *
+ * This replaces the previous python3 strict=False fallback — wheel now
+ * has zero runtime python dependency.
+ */
+function escapeJsonStringControlChars(raw: string): string {
+  let inString = false;
+  let escape = false;
+  let out = '';
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    const code = raw.charCodeAt(i);
+    if (escape) {
+      out += c;
+      escape = false;
+      continue;
+    }
+    if (c === '\\') {
+      out += c;
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      out += c;
+      inString = !inString;
+      continue;
+    }
+    if (inString && code < 0x20) {
+      switch (code) {
+        case 0x08: out += '\\b'; break;
+        case 0x09: out += '\\t'; break;
+        case 0x0a: out += '\\n'; break;
+        case 0x0c: out += '\\f'; break;
+        case 0x0d: out += '\\r'; break;
+        default:   out += '\\u' + code.toString(16).padStart(4, '0');
+      }
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
+/**
+ * FR-C1 fallback: parse hook stdin into a full object. Tries native
+ * JSON.parse first; falls back to a pure-node relaxed parser that
+ * escapes literal control chars inside string contexts (the actual
+ * hook payload shape Claude Code's harness emits — see
+ * specs/wheel-as-runtime §FR-C1). Pure-node — no python dependency.
+ *
+ * Returns the parsed object on success, or null when both parses reject.
  */
 export async function parseHookInputWithFallback(rawInput: string): Promise<unknown | null> {
   try {
     return JSON.parse(rawInput);
-  } catch { /* JSON.parse failed, try python3 */ }
-
-  const { execSync } = await import('child_process');
+  } catch { /* fall through to relaxed parse */ }
   try {
-    // Re-emit the parsed object as compliant JSON so the JS side can JSON.parse it.
-    const out = execSync(
-      'python3 -c "import json,sys;print(json.dumps(json.loads(sys.stdin.read(),strict=False)))"',
-      { input: rawInput, encoding: 'utf-8', timeout: 5000 },
-    );
-    return JSON.parse(out);
+    return JSON.parse(escapeJsonStringControlChars(rawInput));
   } catch {
     return null;
   }
@@ -60,8 +107,8 @@ export async function parseHookInputWithFallback(rawInput: string): Promise<unkn
 
 /**
  * FR-C1 fallback: parse hook stdin and extract `tool_input.command`.
- * Tries native JSON.parse first; falls back to python3 with strict=False
- * for inputs containing literal control chars that JSON rejects.
+ * Tries native JSON.parse first; falls back to the relaxed parser
+ * above for inputs containing literal control chars.
  */
 export async function extractCommandWithFallback(rawInput: string): Promise<string> {
   const parsed = await parseHookInputWithFallback(rawInput);
@@ -70,7 +117,7 @@ export async function extractCommandWithFallback(rawInput: string): Promise<stri
     if (typeof cmd === 'string') return cmd;
   }
   if (parsed === null) {
-    console.error('wheel post-tool-use: FR-C1 command extraction failed (jq + python3 both rejected hook input)');
+    console.error('wheel post-tool-use: FR-C1 command extraction failed (both strict and relaxed JSON parsers rejected hook input)');
   }
   return '';
 }

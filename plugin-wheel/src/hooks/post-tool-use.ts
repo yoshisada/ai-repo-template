@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     const command = await extractCommandWithFallback(rawInput);
     // FR-C1 fallback: rawInput may contain literal control chars (the actual
     // hook payload shape Claude Code's harness emits) — JSON.parse rejects,
-    // python3 strict=False accepts. Use the same fallback both extractors share.
+    // the pure-node relaxed parser accepts. Same fallback both extractors share.
     const parsed = await parseHookInputWithFallback(rawInput);
     if (!parsed || typeof parsed !== 'object') {
       // Both parsers failed — emit empty hook output and exit gracefully.

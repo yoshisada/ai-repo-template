@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Shell shim: delegates to TypeScript implementation
-# FR-007: SessionStart hook entry point
-# T020: Phase 4 fallback - invokes native node binary
+# SessionStart hook shim. Fast-paths the no-active-workflow case (the
+# primary purpose of session-start is workflow resume; without a .wheel/
+# dir there's nothing to resume).
+# FR-007: SessionStart hook entry point.
 set -euo pipefail
+
+if [[ ! -d .wheel ]]; then
+  cat >/dev/null
+  echo '{}'
+  exit 0
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_HOOK="$PLUGIN_ROOT/dist/hooks/session-start.js"
 
-# Execute from plugin directory so node can resolve tsx from plugin-wheel/node_modules
 exec node "$DIST_HOOK" "$@"
