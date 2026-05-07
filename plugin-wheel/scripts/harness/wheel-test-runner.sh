@@ -218,6 +218,34 @@ for test_dir in "${discovered_tests[@]}"; do
   expected_exit=$(extract_yaml_scalar "expected-exit" "$test_dir/test.yaml")
   : "${expected_exit:=0}"
 
+  # --- 2b. Resolve test.yaml `env:` + `require-env:` blocks ------------------
+  # Parses optional schema fields that let a fixture inject custom env vars
+  # into the claude --print subprocess (e.g. Bedrock / Vertex / OpenRouter
+  # configs). Per-test scope: each iteration of this loop reads its own
+  # fixture's env block and applies it ONLY to its own substrate subshell
+  # (step 7 below), so different fixtures in the same run can target
+  # different providers without env leaking between them.
+  if env_parse_out=$(node "$harness_dir/parse-test-yaml-env.mjs" "$test_dir/test.yaml" 2>/dev/null); then
+    test_yaml_env_json="$env_parse_out"
+  else
+    test_yaml_env_json='{"env":{},"missingRequiredEnvs":[]}'
+  fi
+  # Extract missing-required list (one var per line). Skip the test if any
+  # caller-env requirement is unset — gives clean CI behavior on machines
+  # without 3rd-party provider creds.
+  missing_required_envs=$(printf '%s' "$test_yaml_env_json" | jq -r '.missingRequiredEnvs[]?' 2>/dev/null || true)
+  if [[ -n "$missing_required_envs" ]]; then
+    diag=$(mktemp)
+    {
+      echo "skipped: test.yaml require-env vars unset in caller environment:"
+      printf '%s' "$missing_required_envs" | sed 's/^/  - /'
+    } > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag"
+    any_skip=1
+    continue
+  fi
+
   # --- 3. Check required inputs ----------------------------------------------
   if [[ ! -f "$test_dir/inputs/initial-message.txt" ]]; then
     diag=$(mktemp); echo "missing required inputs/initial-message.txt" > "$diag"
@@ -266,8 +294,25 @@ for test_dir in "${discovered_tests[@]}"; do
   # --- 7. Background the substrate; foreground the watcher ------------------
   # Substrate runs in background so watcher can monitor. Watcher exits when
   # subprocess exits naturally OR when it SIGTERMs on stall.
+  #
+  # Per-test env scoping (FR — third-party model support): the substrate
+  # is invoked from a SUBSHELL that exports any test.yaml `env:` vars
+  # locally. Subshell exit cleans up the env additions, so test N+1's
+  # substrate starts from the parent shell's env unaltered. This is what
+  # lets a single test run mix Anthropic-default fixtures and 3rd-party-
+  # provider fixtures without one polluting the other.
   set +e
-  "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root" &
+  (
+    while IFS= read -r kv; do
+      [[ -z "$kv" ]] && continue
+      # `kv` is a single line of the form "KEY=value". Use eval to make
+      # it a real export — but only after splitting safely.
+      key="${kv%%=*}"
+      val="${kv#*=}"
+      export "$key=$val"
+    done < <(printf '%s' "$test_yaml_env_json" | jq -r '.env | to_entries[]? | "\(.key)=\(.value)"' 2>/dev/null || true)
+    "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root"
+  ) &
   substrate_pid=$!
 
   "$harness_dir/watcher-runner.sh" "$scratch_dir" "$substrate_pid" "$transcript_path" \

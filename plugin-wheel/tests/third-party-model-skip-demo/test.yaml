@@ -1,0 +1,23 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "3rd-party model skip-demo — proves require-env gate routes the test to TAP SKIP when caller env lacks the declared provider creds. Always skips in CI; flip the env vars locally to convert it into a live Bedrock probe."
+timeout-override: 120
+
+# Custom env vars injected into the claude --print subprocess. Each
+# fixture's env block is per-test scoped — a subshell exports these
+# vars only for THIS substrate invocation, and they don't leak into
+# other fixtures in the same run.
+env:
+  ANTHROPIC_BASE_URL: "${WHEEL_TEST_THIRD_PARTY_DEMO_BASE_URL}"
+  ANTHROPIC_AUTH_TOKEN: "${WHEEL_TEST_THIRD_PARTY_DEMO_TOKEN}"
+  ANTHROPIC_MODEL: "bedrock:anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+# Caller-env vars that MUST be set for this test to run. Missing → SKIP
+# (TAP `ok N # SKIP <reason>`), not FAIL — devs without provider creds
+# see clean output, not red flakes. The two names below are deliberately
+# pathological so this fixture always skips in CI; they're never set
+# anywhere.
+require-env:
+  - WHEEL_TEST_THIRD_PARTY_DEMO_BASE_URL
+  - WHEEL_TEST_THIRD_PARTY_DEMO_TOKEN

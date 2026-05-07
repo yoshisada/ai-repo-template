@@ -34,8 +34,9 @@ if [[ ! -f $yaml_path ]]; then
   exit 2
 fi
 
-# Accepted keys (contracts §1).
-known_keys=(harness-type skill-under-test expected-exit description timeout-override)
+# Accepted keys (contracts §1). `env` and `require-env` are extension
+# fields for 3rd-party-model fixtures — see parse-test-yaml-env.mjs.
+known_keys=(harness-type skill-under-test expected-exit description timeout-override env require-env)
 
 # Required keys (contracts §1).
 required_keys=(harness-type skill-under-test description)
