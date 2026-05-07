@@ -1,1 +1,12 @@
-Run `/wheel:wheel-run happy-path` against the fixture workflow in workflows/happy-path.json. The workflow has one agent step that permits user input (allow_user_input: true). Follow the step instruction exactly: invoke `wheel flag-needs-input` to pause (or try to), then write the output file. Do not skip the pause.
+Drive a wheel workflow. Strict order — execute every step; do NOT ask for permission or confirmation. If something looks missing, fix it yourself by following the steps below. The workflow file is workflows/happy-path.json — it has one agent step with `allow_user_input: true` and `output: .wheel/outputs/ask.json`.
+
+1. Run /wheel:wheel-run happy-path. If it reports the wheel plugin or its binaries are not initialized in this scratch, run /wheel:wheel-init FIRST and then retry /wheel:wheel-run happy-path. Do not stop and ask whether to initialize — just initialize.
+
+2. The agent step's `instruction` field has two parts:
+     part A:  bash command — `wheel flag-needs-input "need user choice"`
+     part B:  produce a JSON file at `.wheel/outputs/ask.json` containing `{"user_choice": "option-alpha"}`
+   Execute part A as a Bash tool call (it pauses the workflow on the flag — that's expected; it's fine if the command exits non-zero with "no active workflow"). Then execute part B as a Write tool call writing the literal JSON `{"user_choice": "option-alpha"}` to that path.
+
+3. End your turn after the Write. Do not call /wheel:wheel-stop, /wheel:wheel-status, or any other wheel skill. Do not ask the user any questions. The wheel auto-clears the flag and advances on the Write event.
+
+The single hard requirement of this test is that .wheel/outputs/ask.json exists and is non-empty when your turn ends. Everything else is best-effort.

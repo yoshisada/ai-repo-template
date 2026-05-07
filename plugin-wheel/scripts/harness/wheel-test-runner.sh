@@ -87,12 +87,46 @@ check_claude_on_path() {
 # -----------------------------------------------------------------------------
 repo_root=${KILN_TEST_REPO_ROOT:-$(pwd)}
 
-if [[ $# -gt 2 ]]; then
-  bail_out "too many arguments: expected 0, 1, or 2 (got $#)"
+# Optional `--env-file <path>` flag: explicitly opt in to loading a
+# KEY=VALUE env file before discovery. Default behavior is to load NO
+# env file — fixtures with `require-env:` declarations cleanly SKIP
+# unless the caller either (a) exports the required vars in their
+# shell or (b) passes --env-file to source them. Mere presence of a
+# `.env.test` next to the plugin does NOT alter test behavior; the
+# loading is always an explicit caller decision.
+env_file_arg=""
+positional=()
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --env-file)
+      if [[ $# -lt 2 ]]; then
+        bail_out "--env-file requires a path argument"
+      fi
+      env_file_arg=$2
+      shift 2
+      ;;
+    --env-file=*)
+      env_file_arg=${1#--env-file=}
+      shift
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do positional+=("$1"); shift; done
+      break
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if (( ${#positional[@]} > 2 )); then
+  bail_out "too many positional arguments: expected 0, 1, or 2 (got ${#positional[@]})"
 fi
 
-plugin_name=${1:-}
-test_name=${2:-}
+plugin_name=${positional[0]:-}
+test_name=${positional[1]:-}
 
 # Resolve plugin root.
 if [[ -z $plugin_name ]]; then
@@ -112,18 +146,29 @@ else
   fi
 fi
 
-# Auto-load test credentials from `<plugin>/.env.test` if present.
-# Lets fixtures with `require-env:` blocks pick up provider creds (e.g.
-# Bifrost / Bedrock / Vertex tokens) without the developer having to
-# `source` the env file manually before every harness run. The path is
-# gitignored repo-wide via the `.env.*` rule; a sibling `.env.example`
-# (committed) documents the schema. Auto-export is set/unset around the
-# source so existing shell vars stay untouched.
-env_file="$plugin_root/.env.test"
-if [[ -f "$env_file" ]]; then
+# Optional env-file load (only if --env-file was passed).
+#
+# Loading is ALWAYS explicit — the harness does not check for any
+# default file path on its own. This guarantees a fixture's "should I
+# run or SKIP?" decision depends only on the caller's explicit
+# instructions (caller-shell exports + the --env-file argument), never
+# on whether some file happens to sit next to the plugin. Same fixture
+# can therefore be exercised against (a) the caller's default models
+# with `bash wheel-test-runner.sh wheel`, and (b) a 3rd-party
+# deployment with `bash wheel-test-runner.sh --env-file
+# plugin-wheel/.env.test wheel` — the fixture's `require-env:` gate
+# decides which path it ends up on each time.
+#
+# Auto-export is bracketed so the env additions live only for the
+# runner's process tree; existing exported vars in the caller's shell
+# are unaffected.
+if [[ -n "$env_file_arg" ]]; then
+  if [[ ! -f "$env_file_arg" ]]; then
+    bail_out "--env-file path does not exist: $env_file_arg"
+  fi
   set -a
   # shellcheck disable=SC1090
-  source "$env_file"
+  source "$env_file_arg"
   set +a
 fi
 
