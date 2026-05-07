@@ -151,7 +151,7 @@ async function _stopBlock(stateFile: string, teamRef: string): Promise<HookOutpu
   return {
     decision: 'block',
     additionalContext:
-      `${snapshot}\n\nNot all teammates are terminal yet. End your turn so the wheel hooks can fire on the next teammate idle/stop event. Do NOT wheel-stop unless this exact progress snapshot has been unchanged for 5+ consecutive turns AND there are no live child workflow state changes — silence between turns is normal as sub-agents work.`,
+      `${snapshot}\n\nNot all teammates are terminal yet. **End your turn now** so the wheel hooks can fire on the next teammate idle/stop event. Do NOT take any action this turn — no tool calls, no investigation, no \`cat .wheel/.next-instruction.md\` re-reads, no re-spawning workers. Silence between turns is normal while sub-agents work; the wheel coordinates progress on hook events, NOT on orchestrator turns. If you re-read or retry, you waste budget without advancing the workflow. Only take action when the progress snapshot above CHANGES on a future turn. (Wheel-stop is reserved for the snapshot remaining unchanged for 5+ consecutive turns AND zero live child workflow state changes — that's the genuine stuck signal.)`,
   };
 }
 

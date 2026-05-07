@@ -143,7 +143,9 @@ export async function _teammateFlushFromState(
       `Forbidden:\n` +
       `  - Do NOT call /wheel:wheel-stop — let the workflow archive naturally.\n` +
       `  - Do NOT investigate wheel internals (\`dist/\`, \`hooks/\`, plugin source). The hooks are authoritative; if they say wait, wait.\n` +
-      `  - Do NOT batch tool calls or skip turn boundaries. The hooks need turn ends to fire.`;
+      `  - Do NOT batch tool calls or skip turn boundaries. The hooks need turn ends to fire.\n` +
+      `  - Do NOT repeat a tool call you've already done. If a Stop hook re-shows the same instruction text on a later turn (same content, same timestamp on \`.wheel/.next-instruction.md\`), end your turn — the wheel needs the turn boundary to coordinate, retrying wastes budget without progress. Only act when the instruction CHANGES.\n` +
+      `  - Do NOT poll \`.wheel/.next-instruction.md\` repeatedly. Read it ONCE per fresh "Blocked by hook" notice; if the timestamp matches your last read, the wheel hasn't emitted new instructions and you should just end your turn.`;
     lines.push('```');
     lines.push('Agent({');
     // Agent-type-agnostic — the prompt above carries the drive-loop
@@ -180,6 +182,8 @@ export async function _teammateFlushFromState(
     lines.push('');
   }
   lines.push(`Issue all ${names.length} Agent calls in PARALLEL — single assistant message with ${names.length} tool_use blocks. Do NOT include run_in_background; we want each Agent to run to completion (drive its sub-workflow until archive) before returning. Parallelism comes from multi-tool-use, not from backgrounding. After the message returns ${names.length} tool_results, end your turn. The wheel hooks handle the rest; do not inspect state files.`);
+  lines.push('');
+  lines.push(`IMPORTANT — anti-duplicate-spawn rule: each Agent({...}) block above is for a UNIQUE registered teammate slot. After you issue these ${names.length} calls and see "Spawned successfully" tool_results for them, the slots are LIVE. Do NOT spawn the same names again on later turns even if a subsequent Stop hook re-shows this same instruction — that would create duplicate workers competing for the same slot. The wheel may re-emit this block while it waits for slot completions; recognize a repeat by the identical agent_ids, end your turn, and let the hooks coordinate.`);
   return { instructions: lines.join('\n'), spawned };
 }
 

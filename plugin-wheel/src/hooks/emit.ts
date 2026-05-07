@@ -46,11 +46,28 @@ export async function emitHookOutput(output: EmittableHookOutput): Promise<void>
   console.log(JSON.stringify(output));
 
   // 2. Mirror additionalContext to the sentinel file when present.
+  //
+  // Stable timestamp behaviour: if the new additionalContext body is
+  // BYTE-IDENTICAL to the previous sentinel body (same stuck-state),
+  // do NOT rewrite the file. This keeps mtime stable across repeated
+  // identical hook fires so an orchestrator polling the sentinel can
+  // detect "nothing has changed since my last read" by mtime check
+  // alone. Without this, every Stop hook re-emits the file with a
+  // fresh timestamp even when the content is unchanged, and the
+  // orchestrator can't tell repeats from progress.
   const ctx = output.additionalContext;
   if (typeof ctx !== 'string' || ctx.length === 0) return;
   try {
     const dir = path.dirname(SENTINEL);
     await fs.mkdir(dir, { recursive: true });
+    let priorBody = '';
+    try { priorBody = await fs.readFile(SENTINEL, 'utf-8'); } catch { /* missing — first write */ }
+    // Strip the timestamp line from the prior body for comparison;
+    // we only care about whether the INSTRUCTION TEXT is the same.
+    const priorWithoutStamp = priorBody.replace(/^<!-- wheel hook instruction — [^>]+ -->\n\n/, '');
+    const newWithoutStamp = `${ctx}\n`;
+    if (priorWithoutStamp === newWithoutStamp) return; // no change — skip write
+
     const stamp = new Date().toISOString();
     const body = `<!-- wheel hook instruction — ${stamp} -->\n\n${ctx}\n`;
     await fs.writeFile(SENTINEL, body);

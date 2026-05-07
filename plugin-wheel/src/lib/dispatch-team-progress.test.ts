@@ -110,7 +110,7 @@ describe('dispatchTeamWait stop branch — progress visibility (bug #21)', () =>
     expect(result.additionalContext).toContain('slot "w2@tt"');
   });
 
-  it('block message includes a "do NOT wheel-stop" hint when no pending slots needing re-spawn', async () => {
+  it('block message includes anti-wheel-stop guidance when no pending slots needing re-spawn', async () => {
     const stateFile = await setupParentWithTeammates([
       { id: 'w1', status: 'running' },
     ]);
@@ -119,8 +119,13 @@ describe('dispatchTeamWait stop branch — progress visibility (bug #21)', () =>
       'stop', {}, stateFile, 2,
     );
     expect(result.decision).toBe('block');
-    expect(result.additionalContext).toContain('Do NOT wheel-stop');
-    expect(result.additionalContext).toContain('silence between turns is normal');
+    // Anti-wheel-stop guidance — orchestrator must not bail on the
+    // workflow during routine wait gaps. Wording was tightened to
+    // also explicitly forbid re-reads / re-spawns / sentinel polling
+    // during waits (Phase 4 prompt-engineering improvements).
+    expect(result.additionalContext).toContain('Wheel-stop is reserved');
+    expect(result.additionalContext).toContain('Silence between turns is normal');
+    expect(result.additionalContext).toContain('Do NOT take any action this turn');
   });
 });
 
