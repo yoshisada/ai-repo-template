@@ -133,6 +133,55 @@ describe('handleNormalPath archive trigger (P1 round-3)', () => {
     expect(success.some(f => f.startsWith('chain-'))).toBe(true);
   });
 
+  it('agent step pending: PostToolUse keeps the just-written output file (regression)', async () => {
+    // The bug fixed in fd1dba36: handle-normal-path used to force
+    // hookType='stop' for agent steps, which routed PostToolUse events
+    // through dispatchAgent's stop+pending branch — and that branch
+    // unlinks the step's declared output file before transitioning to
+    // working (the "wipe stale leftovers from prior runs" intent).
+    //
+    // When the orchestrator's tool call IS the Write that creates the
+    // output file (the common case for a single-turn agent step), the
+    // unlink ran on the just-written file. The workflow then sat at
+    // working with no output forever; the orchestrator wake-spammed.
+    //
+    // Post-fix, handle-normal-path routes pending agent steps via
+    // hookType='post_tool_use' instead, which transitions to working
+    // WITHOUT unlinking. This test pins that invariant: with cursor on
+    // a pending agent step and the output file already present on disk,
+    // a PostToolUse fire MUST leave the file intact.
+    const outFile = path.join(activeDir, '.wheel', 'outputs', 'ask.json');
+    await fs.mkdir(path.dirname(outFile), { recursive: true });
+    await fs.writeFile(outFile, '{"user_choice":"option-alpha"}');
+    const sf = path.join('.wheel', 'state_pending.json');
+    const steps = [
+      { id: 's1', type: 'agent', instruction: 'write ask.json', output: outFile, terminal: true },
+    ];
+    await stateInit({
+      stateFile: sf,
+      workflow: { name: 'pending-test', version: '1.0', steps: steps as any },
+      sessionId: 's',
+      agentId: 'a',
+    });
+    {
+      const s = await stateRead(sf);
+      (s as any).workflow_definition = { name: 'pending-test', version: '1.0', steps };
+      s.cursor = 0;
+      s.steps[0].status = 'pending';
+      await stateWrite(sf, s);
+    }
+
+    await handleNormalPath({} as any, sf);
+
+    // The just-written output file MUST still exist. Pre-fix, dispatchAgent
+    // stop+pending would have deleted it.
+    await expect(fs.access(outFile)).resolves.toBeUndefined();
+    // Step status should have advanced to working (the post_tool_use branch
+    // transitions without unlinking).
+    const after = await stateRead(sf);
+    expect(after.steps[0].status).toBe('working');
+  });
+
   it('composition: child state cursor advances when parent + child share session_id', async () => {
     // P3 regression — pre-fix the post-tool-use main() resolved a SINGLE
     // state file via resolveStateFile, which returned the FIRST match.
