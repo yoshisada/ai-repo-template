@@ -80,21 +80,42 @@ export async function handleNormalPath(
   const wfDef = state.workflow_definition;
   const wfSteps: ReadonlyArray<WorkflowStep | Step> = wfDef?.steps ?? state.steps;
   const step = wfSteps[cursor] ?? state.steps[cursor];
-  const stepType = step?.type ?? '';
 
   // Step | WorkflowStep widen to WorkflowStep at the dispatch boundary.
   // The runtime shape is identical for the dispatcher's reads — `agents`
   // (the only nominal-difference field) is consumed only by `parallel`
   // and that dispatcher narrows the field locally.
   const dispatchInput = step as unknown as WorkflowStep;
+  const stepType = step?.type ?? '';
+  const stepStatus = state.steps[cursor]?.status ?? 'pending';
   let result: HookOutput;
   try {
+    // Hook routing for agent / teammate steps depends on stepStatus:
+    //
+    //   pending  → dispatch as 'post_tool_use'. The agent dispatcher's
+    //              post_tool_use+pending branch transitions to working
+    //              WITHOUT unlinking the declared output file. This is
+    //              critical when the orchestrator's PostToolUse event is
+    //              the Write that creates the output file — pre-fix, this
+    //              path forced 'stop', which fired the stop+pending unlink
+    //              that deleted the just-written file, leaving the
+    //              workflow stuck at working with no output forever.
+    //
+    //   working  → dispatch as 'stop'. The agent dispatcher's stop+working
+    //              branch checks for the declared output file's presence
+    //              and, if present, marks the step done + advances cursor.
+    //              This is what archives terminal agent steps in the same
+    //              hook fire (covered by hook-deactivate.test.ts'
+    //              "terminal agent step archives to history/success/" case).
+    //
+    // Non-agent/teammate steps continue to dispatch as 'post_tool_use'.
+    let hookForDispatch: 'stop' | 'post_tool_use';
     if (stepType === 'agent' || stepType === 'teammate') {
-      // Agent + teammate dispatchers only respond to 'stop' hooks.
-      result = await dispatchStep(dispatchInput, 'stop', hookInput, stateFile, cursor);
+      hookForDispatch = stepStatus === 'working' ? 'stop' : 'post_tool_use';
     } else {
-      result = await dispatchStep(dispatchInput, 'post_tool_use', hookInput, stateFile, cursor);
+      hookForDispatch = 'post_tool_use';
     }
+    result = await dispatchStep(dispatchInput, hookForDispatch, hookInput, stateFile, cursor);
   } catch (err) {
     console.error('Engine error:', err);
     return { decision: 'approve' };
