@@ -125,20 +125,29 @@ describe('dispatchTeamWait stop branch (FR-003)', () => {
     expect(state.steps[1].status).toBe('done');
   });
 
-  it('keeps step working when teammate still running', async () => { // AC US1.2
+  it('keeps step working when teammate still pending (no live, no archive)', async () => { // AC US1.2
     const { stateFile, step } = await setupParent({
       teammates: [
         { name: 'a', agent_id: 'a@t', status: 'completed' },
-        { name: 'b', agent_id: 'b@t', status: 'running' },
+        { name: 'b', agent_id: 'b@t', status: 'pending' },
       ],
     });
     await dispatchStep(step, 'stop', {}, stateFile, 1);
     const state = await stateRead(stateFile);
     // pending → working transition still happens.
+    // 'b' slot stays pending (fix #9: not pre-emptively marked failed
+    // when the spawn hasn't activated yet).
     expect(state.steps[1].status).toBe('working');
+    expect(state.teams['wait'].teammates['b@t'].status).toBe('pending');
   });
 
-  it('does not mutate teammate slots in stop branch (FR-003)', async () => {
+  it('reconciles orphan running slots in stop branch (post-fix runPollingBackstop on stop)', async () => {
+    // After fix #11 (run polling backstop on stop hooks too — Read tool
+    // is not in PostToolUse matcher so backstop only ran during cascade),
+    // a slot in artificial 'running' status with no live child + no
+    // archive resolves to 'failed:state-file-disappeared'. Real workflow
+    // never sets slot.status='running' (transitions are
+    // pending→completed/failed), so this is the orphan-cleanup case.
     const { stateFile, step } = await setupParent({
       teammates: [
         { name: 'a', agent_id: 'a@t', status: 'running' },
@@ -152,7 +161,7 @@ describe('dispatchTeamWait stop branch (FR-003)', () => {
       1
     );
     const state = await stateRead(stateFile);
-    expect(state.teams['wait'].teammates['a@t'].status).toBe('running');
+    expect(state.teams['wait'].teammates['a@t'].status).toBe('failed');
   });
 
   // Fix B — soundness gate: 0 teammates only short-circuits to done

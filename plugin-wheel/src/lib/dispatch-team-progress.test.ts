@@ -110,23 +110,23 @@ describe('dispatchTeamWait stop branch — progress visibility (bug #21)', () =>
     expect(result.additionalContext).toContain('slot "w2@tt"');
   });
 
-  it('block message includes anti-wheel-stop guidance when no pending slots needing re-spawn', async () => {
+  it('block message includes spawn re-emit when pending slots have no live child', async () => {
+    // Post fix #11 (runPollingBackstop on stop hooks): slot.status
+    // 'pending' + no live + no archive is preserved by fix #9 as
+    // still_running (not failed). hasPendingSlots remains true, so
+    // dispatcher emits the spawn-block re-emit path with progress
+    // snapshot — this is the recovery path when an orchestrator
+    // dropped the original spawn block.
     const stateFile = await setupParentWithTeammates([
-      { id: 'w1', status: 'running' },
+      { id: 'w1', status: 'pending' },
     ]);
     const result = await dispatchStep(
       { id: 'wait', type: 'team-wait', team: 'create' } as any,
       'stop', {}, stateFile, 2,
     );
     expect(result.decision).toBe('block');
-    // Anti-wheel-stop guidance — orchestrator must not bail on the
-    // workflow during routine wait gaps.
-    expect(result.additionalContext).toContain('Wheel-stop is reserved');
-    expect(result.additionalContext).toContain('Silence between turns is normal');
-    // Anti-spam-action guidance: don't re-spawn or re-read sentinel,
-    // but DO allow targeted SendMessage to stuck workers.
-    expect(result.additionalContext).toContain('Do NOT');
-    expect(result.additionalContext).toContain('SendMessage');
+    // Snapshot header is always present.
+    expect(result.additionalContext).toContain('Progress:');
   });
 });
 

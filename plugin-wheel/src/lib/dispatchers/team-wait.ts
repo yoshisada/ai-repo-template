@@ -45,6 +45,16 @@ export async function dispatchTeamWait(
     if (stepStatus === 'pending') {
       await stateSetStepStatus(stateFile, stepIndex, 'working');
     }
+    // Run polling backstop on every Stop fire — the orchestrator's
+    // sentinel-poll loop uses Read, which is NOT in the PostToolUse
+    // matcher (`Bash|Write|Edit|TeamCreate|TaskCreate|TaskList|TaskUpdate|
+    // TaskGet|Agent|SendMessage|TeamDelete`). Without this, on a
+    // workflow whose orchestrator turns are dominated by Read polls,
+    // runPollingBackstop only fires once (during the post-TeamCreate
+    // cascade) and the never_activated / stuck_worker reconciliation
+    // paths are unreachable thereafter. Stop hooks fire on every
+    // turn-end regardless of which tool was last used.
+    await runPollingBackstop(stateFile, teamRef);
     const done = await _recheckAndCompleteIfDone(stateFile, stepIndex, teamRef, step as { output?: string; collect_to?: string });
     if (done) return { decision: 'approve' };
     return _stopBlock(stateFile, teamRef);
