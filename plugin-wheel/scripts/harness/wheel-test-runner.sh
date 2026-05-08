@@ -400,7 +400,18 @@ for test_dir in "${discovered_tests[@]}"; do
   fi
 
   # --- 9. Check subprocess exit matches expected-exit ------------------------
-  if [[ $subprocess_exit -ne $expected_exit ]]; then
+  #
+  # SIGTERM exit (143) is acceptable when the watcher early-terminated
+  # because the workflow had archived (verdict "exited"). The
+  # assertions phase below is the source of truth for that path —
+  # if the archived state matches the assertions, the test passes
+  # regardless of the (forcibly-terminated) subprocess exit code.
+  watcher_early_terminate=0
+  if [[ -f $verdict_json_path ]] && grep -q '"classification": "exited"' "$verdict_json_path" \
+      && [[ $subprocess_exit -eq 143 ]]; then
+    watcher_early_terminate=1
+  fi
+  if [[ $subprocess_exit -ne $expected_exit ]] && [[ $watcher_early_terminate -eq 0 ]]; then
     diag=$(mktemp)
     {
       echo "classification: \"failed\""
