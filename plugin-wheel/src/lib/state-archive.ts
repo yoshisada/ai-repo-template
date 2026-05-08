@@ -12,6 +12,7 @@
 // FR-001 / FR-002 / FR-006 / FR-009.
 
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
 import { stateRead, stateWrite } from '../shared/state.js';
 import type { WheelState, TeammateEntry } from '../shared/state.js';
@@ -120,6 +121,82 @@ export async function maybeAdvanceParentTeamWaitCursor(
 }
 
 /**
+ * Always-run cleanup contract: when a workflow archives (success,
+ * failure, or stopped), every team registered via this workflow's
+ * `team-create` steps gets its `~/.claude/teams/<name>/` directory
+ * removed. Mirrors what TeamDelete would do on the happy path, but
+ * fires regardless of how we got to terminal — including:
+ *
+ *   - mid-workflow step failure (engine archives to history/failure/)
+ *   - user-invoked /wheel:wheel-stop (handle-deactivate archives to
+ *     history/stopped/)
+ *   - polling-backstop reconciliation that flips a teammate slot to
+ *     failed (engine then archives the parent normally)
+ *
+ * Without this contract, a workflow that crashes mid-flight leaves
+ * its team configs behind in `~/.claude/teams/`, and the next run of
+ * the same workflow fails immediately on TeamCreate with
+ * `Team "<name>" already exists`. That's the failure mode that hit
+ * bifrost-minimax-team-{single-haiku, mixed-model} on 2026-05-08.
+ *
+ * Best-effort: each team cleanup is wrapped in its own try/catch so
+ * a single rm failure can't block other team cleanups or the archive
+ * itself. Errors are logged via wheelLog.
+ *
+ * Idempotent: if the team dir is already gone (happy path completed
+ * normally), `fs.rm({ force: true })` is a no-op.
+ */
+export async function runArchiveFinalizers(child: WheelState): Promise<void> {
+  const wfDef = child.workflow_definition;
+  if (!wfDef?.steps) return;
+
+  // Collect team names referenced by this workflow's team-create
+  // steps. Workflow JSON shape: { type: "team-create", team_name: "..." }.
+  const teamNames = new Set<string>();
+  for (const step of wfDef.steps) {
+    const stepObj = step as { type?: string; team_name?: string; finalizer?: boolean };
+    if (stepObj.type === 'team-create' && typeof stepObj.team_name === 'string') {
+      teamNames.add(stepObj.team_name);
+    }
+    // Future extension: respect a generic `"finalizer": true` flag on
+    // arbitrary steps so workflows can declare custom cleanup. For
+    // v1, only team-create has well-defined wheel-side cleanup
+    // semantics (rm -rf ~/.claude/teams/<name>/), so we restrict to
+    // that path. Generic finalizers requiring orchestrator-mediated
+    // tool calls (e.g. SendMessage to a still-running teammate) need
+    // a separate design and are out of scope for this fix.
+  }
+  if (teamNames.size === 0) return;
+
+  const teamsRoot = path.join(os.homedir(), '.claude', 'teams');
+  for (const teamName of teamNames) {
+    // Defensive validation: team_name should never contain path
+    // separators, but check anyway so a malformed workflow can't
+    // escape the teams root via "../etc/passwd"-shaped names.
+    if (teamName.includes('/') || teamName.includes('\\') || teamName === '..' || teamName === '.') {
+      await wheelLog('archive_finalizer_skipped_invalid_name', {
+        team_name: teamName,
+      });
+      continue;
+    }
+    const teamDir = path.join(teamsRoot, teamName);
+    try {
+      await fs.rm(teamDir, { recursive: true, force: true });
+      await wheelLog('archive_finalizer_team_cleanup', {
+        team_name: teamName,
+        team_dir: teamDir,
+      });
+    } catch (err) {
+      await wheelLog('archive_finalizer_team_cleanup_error', {
+        team_name: teamName,
+        team_dir: teamDir,
+        error: String(err instanceof Error ? err.message : err),
+      });
+    }
+  }
+}
+
+/**
  * Single deterministic call path for archiving a workflow's state file
  * to `.wheel/history/<bucket>/`. Updates the parent slot first (when
  * applicable), then renames the child state file.
@@ -201,6 +278,16 @@ export async function archiveWorkflow(
       }
     } catch { /* non-fatal: dispatch failure during preemptive write */ }
   }
+
+  // Run always-on finalizers (team-config cleanup, etc.) BEFORE the
+  // rename. Doing this before the archive means: (a) the state file
+  // is still readable for the finalizer's workflow_definition lookup
+  // — actually we already have `child` in scope, so the lookup
+  // doesn't depend on the file; (b) if a finalizer fails AND the
+  // archive fails, we don't end up with a finalized-but-not-archived
+  // workflow that re-runs finalizers on a retry. Idempotency makes
+  // ordering safe either way; we pick "before" for clarity.
+  await runArchiveFinalizers(child);
 
   // FR-009: rename child to history bucket.
   const archivedPath = await renameToHistory(stateFile, child, bucket);

@@ -70,6 +70,19 @@ async function archiveOne(sf: string, stoppedDir: string): Promise<void> {
   const ts = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*Z$/, '').replace('T', '-');
   const fname = path.basename(sf, '.json');
   const target = path.join(stoppedDir, `${fname}-${ts}.json`);
+
+  // Run always-on finalizers (team-config cleanup, etc.) BEFORE the
+  // copy+unlink. handleDeactivate uses copyFile+unlink rather than
+  // the engine's archiveWorkflow path, so we need to invoke
+  // runArchiveFinalizers directly here. Without this, /wheel:wheel-
+  // stop leaves orphaned `~/.claude/teams/<name>/` configs behind
+  // and breaks the next run of the same workflow.
+  try {
+    const child = JSON.parse(await fs.readFile(sf, 'utf-8'));
+    const archiveModule = await import('../../lib/state-archive.js');
+    await archiveModule.runArchiveFinalizers(child);
+  } catch { /* non-fatal — finalizer failure must not block archive */ }
+
   try {
     await fs.copyFile(sf, target);
     await fs.unlink(sf);
