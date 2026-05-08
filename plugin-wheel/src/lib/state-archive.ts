@@ -147,6 +147,61 @@ export async function archiveWorkflow(
     await maybeAdvanceParentCompositionStep(parentPath);
   }
 
+  // Preemptive parent-sentinel write after a parent cursor advance.
+  //
+  // Why: when archiveWorkflow advances the parent past its team-wait
+  // step, the parent's NEW cursor step (typically team-delete cleanup)
+  // never gets dispatched-and-emitted in this hook fire because we're
+  // running inside the SUB-AGENT'S session's hook handler. The parent's
+  // own session won't dispatch the new step until its NEXT Stop hook
+  // fires, but in `claude --print` mode the parent's polling-Read on a
+  // file with unchanged mtime returns "Wasted call — file unchanged"
+  // and the orchestrator decides nothing changed and ends the run
+  // without ever triggering a fresh hook.
+  //
+  // Write the parent's new cursor step's instruction to
+  // `.wheel/.next-instruction.md` directly here, mirroring
+  // handle-activate.ts's preemptive-write pattern. The orchestrator's
+  // next sentinel read sees the new instruction's mtime change → fresh
+  // content → executes team-delete → workflow archives cleanly.
+  if (parentPath && cursorAdvanced) {
+    try {
+      const parent = await stateRead(parentPath);
+      const cursor = parent.cursor ?? 0;
+      const wfDef = parent.workflow_definition;
+      const step = wfDef?.steps?.[cursor] ?? parent.steps?.[cursor];
+      const totalSteps = wfDef?.steps?.length ?? parent.steps.length;
+      if (step && cursor < totalSteps) {
+        // dispatchStep is in lib/dispatch.ts — dynamic import to avoid
+        // a static cycle with archive (state-archive ← dispatch ← engine
+        // ← state-archive).
+        const dispatchModule = await import('./dispatch.js');
+        const out = await dispatchModule.dispatchStep(
+          step as import('../shared/state.js').WorkflowStep,
+          'stop',
+          { session_id: parent.owner_session_id ?? '' } as import('./dispatch-types.js').HookInput,
+          parentPath,
+          cursor,
+          0,
+        );
+        if (out.decision === 'block' && typeof out.additionalContext === 'string' && out.additionalContext.length > 0) {
+          const stateDir = path.dirname(parentPath);
+          const sentinelPath = path.join(stateDir, '.next-instruction.md');
+          // Only write if content differs (mirrors emit.ts byte-identity skip).
+          let priorBody = '';
+          try { priorBody = await fs.readFile(sentinelPath, 'utf-8'); } catch { /* missing */ }
+          const priorWithoutStamp = priorBody.replace(/^<!-- wheel hook instruction — [^>]+ -->\n\n/, '');
+          const newWithoutStamp = `${out.additionalContext}\n`;
+          if (priorWithoutStamp !== newWithoutStamp) {
+            const stamp = new Date().toISOString();
+            const body = `<!-- wheel hook instruction — ${stamp} -->\n\n${out.additionalContext}\n`;
+            await fs.writeFile(sentinelPath, body, 'utf-8');
+          }
+        }
+      }
+    } catch { /* non-fatal: dispatch failure during preemptive write */ }
+  }
+
   // FR-009: rename child to history bucket.
   const archivedPath = await renameToHistory(stateFile, child, bucket);
 
