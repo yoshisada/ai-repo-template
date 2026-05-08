@@ -199,7 +199,7 @@ async function scanBucket(
 }
 
 function classifyRunningSlots(
-  runningSlots: Array<[string, { agent_id?: string } | undefined]>,
+  runningSlots: Array<[string, { agent_id?: string; status?: string } | undefined]>,
   liveAgentIds: ReadonlySet<string>,
   bucketArchives: BucketArchives,
   stuckAgentIds: ReadonlySet<string>,
@@ -208,11 +208,8 @@ function classifyRunningSlots(
   let stillRunning = 0;
   for (const [name, slot] of runningSlots) {
     const aid = slot?.agent_id ?? '';
+    const slotStatus = slot?.status ?? 'pending';
     if (aid && stuckAgentIds.has(aid)) {
-      // Idea 4: live child has been idle at the same cursor too long
-      // → mark slot failed with explicit reason. Caps the maximum
-      // coordination time per fixture without depending on the
-      // orchestrator to wheel-stop.
       resolutions.push({ name, newStatus: 'failed', failureReason: 'stuck_worker' });
       continue;
     }
@@ -224,6 +221,19 @@ function classifyRunningSlots(
       ?? null;
     if (resolved !== null) {
       resolutions.push({ name, newStatus: resolved });
+      continue;
+    }
+    // Slot has no live child, no archive. Distinguish:
+    //   - status='running' → child existed and disappeared; mark failed
+    //   - status='pending' → child hasn't started yet; treat as still running
+    //     (don't pre-emptively fail before the orchestrator's Agent call
+    //     even fires). This is critical for the very first poll right
+    //     after wait-all begins polling but before the orchestrator
+    //     issues the spawn — pre-fix, those pending slots got marked
+    //     'state-file-disappeared' on the first tick, advancing wait-all
+    //     before any teammate could run.
+    if (slotStatus === 'pending') {
+      stillRunning++;
     } else {
       resolutions.push({ name, newStatus: 'failed', failureReason: 'state-file-disappeared' });
     }
