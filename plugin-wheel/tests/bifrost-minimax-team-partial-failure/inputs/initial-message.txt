@@ -2,19 +2,37 @@ Drive a wheel team workflow end-to-end. Strict order — execute every step; do 
 
 The workflow is workflows/team-partial-failure.json. It uses the Phase 4 team primitives (team-create, teammate, team-wait, team-delete).
 
-1. Run `/wheel:wheel-run team-partial-failure-test`. If the wheel reports it isn't initialized, run `/wheel:wheel-init` first then retry. Do not stop and ask whether to initialize — just initialize.
+== Important: tool availability ==
 
-2. The wheel hook system will drive the team ceremony turn-by-turn via stop-hook prompts. Follow the hook's instructions verbatim each turn:
-     - When the hook says the team-create step is `working`, call `TeamCreate({team_name: "<exact name from the step>"})`. Use the EXACT team_name the hook gives you — do not improvise.
-     - When the hook lists teammates to spawn, call `Agent({subagent_type: "general-purpose", name: "<short-name>", team_name: "<team>", prompt: "<the prompt the hook gave you>", run_in_background: true})` for each one. One Agent call per teammate; spawn them in parallel via multiple Agent tool calls in a single message.
-     - When teammates send messages or terminate, the system delivers them automatically as new turns. Don't poll for them; just wait.
-     - When all teammates are reported complete, send `SendMessage({to: "<short-name>", message: {type: "shutdown_request"}})` once per teammate. Then wait for `teammate_terminated` notifications.
-     - When all teammates have terminated, call `TeamDelete()`.
+The team primitives (TeamCreate, Agent, SendMessage, TeamDelete) are deferred tools — they aren't loaded by default. Before doing anything else, run this exact ToolSearch call to load all four:
 
-3. End your turn after `TeamDelete`. Do not call `/wheel:wheel-stop`, `/wheel:wheel-status`, or any other wheel skill — the wheel auto-archives once the terminal team-delete step completes.
+  ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
 
-Hard rules:
-- Use the EXACT team_name and teammate names the hook gives you. Do not invent or paraphrase.
-- Do NOT call TeamCreate, Agent, or TeamDelete BEFORE the hook tells you to. If you act ahead of the hook, the wheel state diverges from the harness reality and the workflow stalls.
-- If the hook reports `Stop hook feedback: Blocked by hook` with no instruction body, end the turn immediately — the next turn will receive the actual instruction.
-- Never spawn the same teammate twice. The duplicate-spawn guard will block the second call and you'll waste a turn.
+Do this first, on your very first turn, before invoking any wheel skill.
+
+== Important: hook output in --print mode ==
+
+The Stop hook's `additionalContext` is dropped in `claude --print` mode (a Claude Code limitation). The wheel writes its next-step instruction to `.wheel/.next-instruction.md` instead.
+
+Whenever you see `Stop hook feedback: Blocked by hook` with no instruction text, immediately read `.wheel/.next-instruction.md` (use the Read tool) — that file contains the literal tool call you need to issue (typically a TeamCreate, Agent, SendMessage, or TeamDelete invocation). Do NOT end your turn waiting; do NOT call /wheel:wheel-status; just READ that file and issue the call it asks for.
+
+== Procedure ==
+
+1. Run ToolSearch as described above to load the team primitives.
+
+2. Run `/wheel:wheel-run team-partial-failure-test`. If the wheel reports it isn't initialized, run `/wheel:wheel-init` first then retry. Do not stop and ask whether to initialize — just initialize.
+
+3. After the workflow activates, the wheel hook will park at the team-create step. You'll see `Stop hook feedback: Blocked by hook`. Read `.wheel/.next-instruction.md` — it contains the exact `TeamCreate({...})` call. Issue it.
+
+4. After TeamCreate returns, the hook will park at the teammate step. Read `.wheel/.next-instruction.md` again — it contains an `Agent({...})` call (one per teammate). Issue all the Agent calls in parallel via multiple tool-use blocks in a single message. Use `run_in_background: true` per the file's instructions.
+
+5. Background teammates will send messages or terminate; the system delivers them as new turns automatically. When all are reported complete, the wheel will park at team-wait → team-delete. Each park parks the cursor; each park has an instruction in `.wheel/.next-instruction.md` (typically `SendMessage` shutdown_request per teammate, then `TeamDelete()`).
+
+6. End your turn after the final TeamDelete. Do not call `/wheel:wheel-stop`, `/wheel:wheel-status`, or any other wheel skill — the wheel auto-archives once the terminal team-delete step completes.
+
+== Hard rules ==
+
+- Use the EXACT team_name, agent names, and prompts the `.next-instruction.md` file gives you. Do not invent or paraphrase.
+- Do NOT call TeamCreate, Agent, or TeamDelete BEFORE the wheel asks for it. Read the sentinel file first.
+- Never spawn the same teammate twice. The duplicate-spawn guard will block the second call.
+- If two consecutive sentinel reads return the SAME instruction, just re-issue the call exactly as written — the wheel didn't observe your last attempt.
