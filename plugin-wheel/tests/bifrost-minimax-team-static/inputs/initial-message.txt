@@ -4,16 +4,15 @@ You are driving a wheel team workflow. The wheel writes its next tool call to `.
 
 Issue these tool calls one per turn-message, in order. Do NOT use any /wheel:wheel-* skill — call the binaries directly via Bash.
 
-  1. ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
-     Loads the team primitives so you can call them later.
+  1. Bash({ command: "mkdir -p .wheel && /Users/ryansuematsu/Documents/github/personal/ai-repo-template/plugin-wheel/bin/activate.sh team-static" })
+     Activates the workflow. The wheel's PostToolUse hook intercepts this exact Bash call and creates `.wheel/state_<id>.json`. The hook also writes the first instruction to `.wheel/.next-instruction.md` preemptively.
 
-  2. Bash({ command: "mkdir -p .wheel && /Users/ryansuematsu/Documents/github/personal/ai-repo-template/plugin-wheel/bin/activate.sh team-static" })
-     Activates the workflow. The wheel's PostToolUse hook intercepts this exact Bash call and creates `.wheel/state_<id>.json`.
+  2. Read({ file_path: ".wheel/.next-instruction.md" })
+     Reads the wheel's first instruction. The body contains an EXACT tool call to make (typically `TeamCreate({...})`).
 
-  3. Read({ file_path: ".wheel/.next-instruction.md" })
-     Reads the wheel's next instruction.
+  3. Issue the tool call(s) the file's body requests, verbatim — copy-paste, do not paraphrase.
 
-  4. Whatever tool call(s) the file's body says to make — issue them. Then end your turn.
+  4. End your turn.
 
 == Every subsequent turn (no exceptions, no triggers) ==
 
@@ -41,3 +40,4 @@ When all three are true, end your turn — you are done. Do not summarize. Do no
   - If two consecutive sentinel reads return the same timestamp at the top, do NOT re-issue the call — just end your turn. The wheel needs a turn boundary.
   - Never spawn the same teammate twice. Never call TeamDelete more than once.
   - Never investigate `.wheel/state_*.json`, the plugin source, or the wheel hooks. The sentinel is the only source of truth.
+  - Do NOT invoke any wheel:wheel-* skill (wheel-run, wheel-test, wheel-init, wheel-stop, wheel-status). Use the direct Bash activate.sh on the first turn only; everything after is sentinel-driven.
