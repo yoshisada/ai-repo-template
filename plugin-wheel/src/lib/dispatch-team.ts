@@ -239,29 +239,40 @@ export async function _teammateFlushFromState(
     // dropping --as via paraphrasing no longer breaks parent-child link.
     lines.push(`  name: "${shortName}",`);
     lines.push(`  team_name: "${teamName}",`);
-    // Per-spawn model resolution. Priority order:
-    //   1. process.env.ANTHROPIC_MODEL — when set, it wins. The user has
-    //      configured a gateway (Bifrost, OpenRouter, custom proxy) and
-    //      wants ALL traffic — parent + sub-agents — routed to a single
-    //      gateway-known model. The gateway's catalog dictates what
-    //      models exist; per-step tier preferences (haiku/sonnet) become
-    //      advisory because the gateway may not carry those tier ids.
-    //      Empirically: with Bifrost routing minimax/MiniMax-M2.7,
-    //      teammate steps with `model: haiku` would emit `model:"haiku"`
-    //      and Bifrost would reject (no such model in catalog), causing
-    //      sub-agents to silently fail. Pinning to ANTHROPIC_MODEL
-    //      forces all teammates onto the gateway's actual model.
-    //   2. slot.model — explicit per-step `model:` from the workflow's
-    //      teammate JSON field. Used in default-Anthropic flows where
-    //      ANTHROPIC_MODEL is unset.
-    //   3. otherwise: omit — Claude Code uses its hardcoded default.
+    // Per-spawn model resolution.
     //
-    // The hardcoded default is `claude-opus-4-7` — fine for default
-    // Anthropic routing, but rejected by gateways without that model
-    // in catalog. That's why we set the env override to win for
-    // gateway users.
-    const envModel = process.env.ANTHROPIC_MODEL ?? '';
-    const spawnModel = envModel || slot.model;
+    // The Agent tool's `model` field is constrained by Claude Code to
+    // exactly one of: "sonnet" | "opus" | "haiku". Passing a raw model
+    // id (e.g. "claude-opus-4-7", or a gateway id like
+    // "minimax/MiniMax-M2.7") triggers an InputValidationError and the
+    // teammate spawn never starts.
+    //
+    // Resolution rules:
+    //   1. If slot.model is a valid alias (sonnet/opus/haiku), emit it.
+    //      This is the default-Anthropic flow — the workflow author
+    //      picked a tier per teammate.
+    //   2. If ANTHROPIC_MODEL is set to a valid alias, emit it (overrides
+    //      slot.model so a gateway routing the alias can take over).
+    //   3. Otherwise (ANTHROPIC_MODEL unset, OR set to a non-alias
+    //      gateway id like "minimax/MiniMax-M2.7"): OMIT the `model:`
+    //      field entirely. Claude Code falls back to its default model
+    //      tier; ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN env inheritance
+    //      still routes the spawned sub-agent through the configured
+    //      gateway. The gateway translates the tier id to its catalog.
+    //
+    // Empirical: with Bifrost+MiniMax, emitting
+    // `model: "minimax/MiniMax-M2.7"` produced
+    // `InputValidationError: expected one of "sonnet"|"opus"|"haiku"`,
+    // blocking teammate spawn entirely. Omitting the field lets the
+    // gateway env vars do their job.
+    const aliases = new Set(['sonnet', 'opus', 'haiku']);
+    const envModel = (process.env.ANTHROPIC_MODEL ?? '').trim();
+    let spawnModel = '';
+    if (envModel && aliases.has(envModel)) {
+      spawnModel = envModel;
+    } else if (slot.model && aliases.has(slot.model)) {
+      spawnModel = slot.model;
+    }
     if (spawnModel) {
       lines.push(`  model: "${spawnModel}",`);
     }
