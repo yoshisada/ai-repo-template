@@ -36,10 +36,54 @@ afterEach(async () => {
   await fs.rm(activeDir, { recursive: true, force: true });
 });
 
+/**
+ * Helper: write a fake parent state file claiming a teammate slot
+ * with the given agent_id. Required for teammate-style activations
+ * after the orphan-prevention guard landed — without a matching
+ * parent slot, handleActivation refuses the spawn.
+ */
+async function writeFakeParentClaiming(agentId: string): Promise<void> {
+  const teamMatch = agentId.split('@');
+  const team = teamMatch[1] ?? 'unknown-team';
+  const parentState = {
+    workflow_name: 'parent-wf',
+    workflow_version: '1.0.0',
+    workflow_file: 'workflows/parent.json',
+    workflow_definition: null,
+    status: 'running',
+    cursor: 0,
+    owner_session_id: 'parent-session',
+    owner_agent_id: 'parent-agent',
+    alternate_agent_id: null,
+    parent_workflow: null,
+    started_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    steps: [],
+    teams: {
+      'parent-team': {
+        team_name: team,
+        teammates: {
+          [agentId.split('@')[0]]: {
+            task_id: '',
+            status: 'pending',
+            agent_id: agentId,
+            output_dir: '',
+            assign: {},
+            started_at: null,
+            completed_at: null,
+          },
+        },
+      },
+    },
+  };
+  await fs.writeFile('.wheel/state_fake-parent.json', JSON.stringify(parentState));
+}
+
 describe('handleActivation alt_agent_id resolution', () => {
   it('uses hookInput.agent_id as alt_id when --as is absent and agent_id has @<team>', async () => {
     // Spawned sub-agent: no --as in command, but Claude Code populates
     // hookInput.agent_id with the canonical `<short>@<team>` form.
+    await writeFakeParentClaiming('worker-1@test-team');
     const activateLine = 'bash plugin-wheel/bin/activate.sh dummy';
     const hookInput = {
       session_id: 'sub-session-1',
@@ -50,7 +94,7 @@ describe('handleActivation alt_agent_id resolution', () => {
 
     // The new state file should carry alternate_agent_id from
     // hookInput.agent_id since --as was absent.
-    const files = (await fs.readdir('.wheel')).filter(f => f.startsWith('state_'));
+    const files = (await fs.readdir('.wheel')).filter(f => f.startsWith('state_') && f !== 'state_fake-parent.json');
     expect(files.length).toBe(1);
     const state = await stateRead(`.wheel/${files[0]}`);
     expect(state.alternate_agent_id).toBe('worker-1@test-team');
@@ -58,6 +102,7 @@ describe('handleActivation alt_agent_id resolution', () => {
 
   it('--as in command takes priority over hookInput.agent_id', async () => {
     // Both sources present; --as wins (legacy contract preserved).
+    await writeFakeParentClaiming('legacy@team');
     const activateLine = 'bash plugin-wheel/bin/activate.sh dummy --as legacy@team';
     const hookInput = {
       session_id: 'sub-session-2',
@@ -66,7 +111,7 @@ describe('handleActivation alt_agent_id resolution', () => {
     const { activated } = await handleActivation(activateLine, hookInput);
     expect(activated).toBe(true);
 
-    const files = (await fs.readdir('.wheel')).filter(f => f.startsWith('state_'));
+    const files = (await fs.readdir('.wheel')).filter(f => f.startsWith('state_') && f !== 'state_fake-parent.json');
     const state = await stateRead(`.wheel/${files[0]}`);
     expect(state.alternate_agent_id).toBe('legacy@team');
   });

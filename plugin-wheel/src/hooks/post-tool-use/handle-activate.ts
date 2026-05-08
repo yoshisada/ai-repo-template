@@ -59,6 +59,16 @@ export async function handleActivation(
       : null);
   if (!workflowName) return { output: { decision: 'approve' }, activated: false };
 
+  // FR (orphan-prevention): a teammate-style spawn (`--as name@team`)
+  // whose parent slot doesn't exist in any LIVE state file is an
+  // orphan-in-the-making (parent already archived or never existed).
+  // Refuse activation rather than creating an unlinked state file
+  // that no archive path can reach.
+  if (await isOrphanedTeammateSpawn(alternateAgentId)) {
+    console.error(`wheel post-tool-use: activate-rejected workflow=${workflowName} reason=orphaned_teammate_spawn alt_agent_id=${alternateAgentId}`);
+    return { output: { hookEventName: 'PostToolUse' }, activated: false };
+  }
+
   const workflowFile = await resolveWorkflowFile(workflowName);
   if (!workflowFile) {
     console.error(`wheel post-tool-use: activate-failed workflow=${workflowName} reason=unresolved-or-invalid`);
@@ -239,3 +249,38 @@ async function linkToParent(stateFile: string, alternateAgentId: string): Promis
   }
   await stateWrite(stateFile, state);
 }
+
+/**
+ * Detect teammate-style spawns whose parent has already archived (or
+ * never existed in this session). Returns true when the alt id is
+ * teammate-format (`name@team`) AND no live state file claims a slot
+ * with this agent_id. The caller should refuse activation in this
+ * case — otherwise the spawn produces an orphaned state file with
+ * `parent_workflow=null` that no archive path can reach, and the
+ * harness's "no live state files" assertion fails.
+ *
+ * Symptom: bifrost-minimax-team-mixed-model 2026-05-08T15:21 —
+ * smart-worker archived to success at 15:21:20, parent archived
+ * at 15:21:48, then a duplicate Agent spawn for smart-worker fired
+ * at 15:21:56 (orchestrator stale-tool-use under rate-limit
+ * pressure). The duplicate created `state_<id>.json` with no parent
+ * link, leaving an orphan that violated the harness assertion.
+ */
+async function isOrphanedTeammateSpawn(alternateAgentId: string | null): Promise<boolean> {
+  if (!alternateAgentId || !alternateAgentId.includes('@')) return false;
+  for (const { path: candidate } of await listLiveStateFiles()) {
+    try {
+      const parent = await stateRead(candidate);
+      const teams = parent.teams ?? {};
+      for (const team of Object.values(teams)) {
+        const teammates = team.teammates ?? {};
+        for (const slot of Object.values(teammates)) {
+          if (slot.agent_id === alternateAgentId) return false;
+        }
+      }
+    } catch { /* skip unreadable */ }
+  }
+  return true;
+}
+
+export { isOrphanedTeammateSpawn };
