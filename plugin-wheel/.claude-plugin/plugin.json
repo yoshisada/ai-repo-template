@@ -1,6 +1,6 @@
 {
   "name": "wheel",
-  "version": "000.001.009.2051",
+  "version": "000.001.009.2054",
   "description": "Hook-based workflow engine for Claude Code agent pipelines",
   "author": {
     "name": "yoshisada"

@@ -112,7 +112,7 @@ export async function dispatchTeammate(
     return { decision: 'approve' };
   }
 
-  return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads, sf.model);
+  return spawnTeammates(step, stateFile, stepIndex, teamRef, teamName, subWorkflow, state, slotPayloads, sf.model, hookInput);
 }
 
 /**
@@ -213,6 +213,7 @@ async function spawnTeammates(
   state: WheelState,
   slots: SlotPayload[],
   model: TeammateModel | undefined,
+  hookInput: HookInput,
 ): Promise<HookOutput> {
   const contextModule = await import('../context.js');
   const teamModule = await import('../dispatch-team.js');
@@ -247,7 +248,30 @@ async function spawnTeammates(
   // Fix B: chainResult === null means we're chaining (next step is also
   // teammate for this team). Don't finalize yet — finalize on the LAST
   // teammate step that emits the spawn block.
-  if (chainResult === null) return { decision: 'approve' };
+  //
+  // Inline-recurse instead of returning approve, otherwise:
+  //   1. dispatcher returns approve, sentinel NOT updated
+  //   2. engineHandleHook advances cursor → next teammate
+  //   3. orchestrator reads stale sentinel ("Wasted call — file unchanged")
+  //   4. orchestrator never gets the batched spawn instruction
+  // Recursing advances cursor + processes the next teammate in the SAME
+  // hook fire, which lets the chain accumulate all slots and emit the
+  // single batched block at the LAST teammate step.
+  if (chainResult === null) {
+    const dispatchModule = await import('../dispatch.js');
+    const nextIndex = stepIndex + 1;
+    if (nextIndex < state.steps.length) {
+      // Advance cursor inline so the next dispatchStep call sees the
+      // correct state. engineHandleHook's post-dispatch cursor advance
+      // would otherwise advance from the OLD cursor (this step), not
+      // skipping the chain we just inlined.
+      const stateModule = await import('../state.js');
+      await stateModule.stateSetCursor(stateFile, nextIndex);
+      const nextStep = (wfDef?.steps?.[nextIndex] ?? state.steps[nextIndex]) as WorkflowStep;
+      return dispatchModule.dispatchStep(nextStep, 'stop', hookInput, stateFile, nextIndex, 0);
+    }
+    return { decision: 'approve' };
+  }
   // We're at the last teammate step in the chain (chainResult emitted
   // a flush). Stamp spawn_finalized so team-wait's 0-teammate gate can
   // distinguish "spawn ran" from "spawn bypassed".
