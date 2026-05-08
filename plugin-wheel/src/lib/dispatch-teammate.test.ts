@@ -229,9 +229,11 @@ describe('dispatchTeammate FR-006 parity', () => {
 
       const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
       expect(result.decision).toBe('block');
-      // Concrete instructions should appear in the spawn block.
-      expect(result.additionalContext).toContain('Step ID: do-x');
-      expect(result.additionalContext).toContain('Pretend to do X.');
+      // The poll-every-turn spawn template includes the first agent
+      // step's output path in a single line ("On turn 2 you'll typically
+      // need to write content to <path>"). The full ceremony detail
+      // lives in the wheel's per-park sentinel; the spawn-template just
+      // hints at it. Verify the path made it through.
       expect(result.additionalContext).toContain('.wheel/outputs/x.txt');
     } finally {
       process.chdir(cwd);
@@ -266,8 +268,8 @@ describe('dispatchTeammate FR-006 parity', () => {
 
       const result = await dispatchStep(step as any, 'stop', {}, statePath, 0);
       expect(result.decision).toBe('block');
-      // No "Step ID:" preload header when there's no agent step.
-      expect(result.additionalContext).not.toContain('Step ID: cmd');
+      // No first-step output-path hint when there's no agent step.
+      expect(result.additionalContext).not.toContain('On turn 2 you\'ll typically need to write');
     } finally {
       process.chdir(cwd);
     }

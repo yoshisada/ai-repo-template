@@ -184,31 +184,37 @@ export async function _teammateFlushFromState(
     // signals to interpret. Falls back gracefully when we can't resolve
     // the workflow on disk (consumer install paths vary).
     const firstAgentStep = await _resolveFirstAgentStep(wf);
-    const concreteInstructions = firstAgentStep
-      ? `\n\nYour FIRST agent step (after activate.sh runs) — you can act on this immediately:\n` +
-        `  Step ID: ${firstAgentStep.id}\n` +
-        (firstAgentStep.instruction ? `  Instruction: ${firstAgentStep.instruction}\n` : '') +
-        (firstAgentStep.output ? `  Required output path: ${firstAgentStep.output}\n` : '') +
-        `\nOn the turn AFTER activate.sh, use the Write tool to write content to the output path. Stub content (any plausible text matching the instruction) is fine. Then end your turn so the wheel advances the cursor.`
+    // The "drive loop" was originally trigger-based ("when you see a Stop
+    // hook block, read the sentinel"). On 3rd-party / non-Anthropic models
+    // (verified empirically with MiniMax-M2.7 routed via Bifrost) the
+    // trigger is invisible — `claude --print` drops the Stop-hook
+    // additionalContext entirely, and the sub-agent has no signal to react
+    // to. Symptom: sub-agent activates the sub-workflow but never advances
+    // past the first agent step; parent's team-wait polls forever; total
+    // run cost spirals into 5-figure dollar territory.
+    //
+    // Fix: replace the trigger-based loop with an UNCONDITIONAL
+    // poll-every-turn obligation. The sentinel file is the only signal;
+    // every turn reads it; every turn does what it says. This is the same
+    // pattern the harness fixture prompts use for the parent orchestrator
+    // and is what works cross-model.
+    const concreteFirstStep = firstAgentStep
+      ? ` On turn 2 you'll typically need to write content to ${firstAgentStep.output ?? '<output path>'} (the wheel asks for this via the sentinel).`
       : '';
     const promptText =
       `${activate}\n\n` +
-      `^^ Step 1: run the bash command above VERBATIM in a single tool call, then end your turn.\n\n` +
-      `You are spawned to drive a wheel sub-workflow. The wheel hooks fire in your session automatically; you don't need to do anything special — just respond to their signals.` +
-      concreteInstructions +
-      `\n\nDrive loop (one tool call per turn, then END YOUR TURN):\n` +
-      `  - The wheel Stop hook will block your turn with an \`additionalContext\` instruction. Make exactly the tool call it asks for. (Common cases: Write a file at the exact path the hook specifies; Bash a command verbatim; SendMessage to a peer.)\n` +
-      `  - PostToolUse hooks intercept Bash/Write/Edit tool calls and auto-advance the workflow cursor. You don't see those — they just work.\n` +
-      `  - For agent-type steps you'll be asked to write an output file. Use the EXACT path. Stub content is fine if you can't tell what to write.\n` +
-      `  - End your turn after each tool call so the next Stop hook can fire.\n` +
-      `  - Repeat until the wheel emits no more block instructions and your \`.wheel/state_*.json\` file is gone (archived). Then SendMessage("team-lead", "<short status>") and end your turn.\n\n` +
-      `If a Stop hook blocks but the message you see is just "Blocked by hook" with no actionable content (this happens in \`--print\` mode), recover by running \`cat .wheel/.next-instruction.md\` — the wheel mirrors the instruction to that file. Then follow it.\n\n` +
-      `Forbidden:\n` +
-      `  - Do NOT call /wheel:wheel-stop — let the workflow archive naturally.\n` +
-      `  - Do NOT investigate wheel internals (\`dist/\`, \`hooks/\`, plugin source). The hooks are authoritative; if they say wait, wait.\n` +
-      `  - Do NOT batch tool calls or skip turn boundaries. The hooks need turn ends to fire.\n` +
-      `  - Do NOT repeat a tool call you've already done. If a Stop hook re-shows the same instruction text on a later turn (same content, same timestamp on \`.wheel/.next-instruction.md\`), end your turn — the wheel needs the turn boundary to coordinate, retrying wastes budget without progress. Only act when the instruction CHANGES.\n` +
-      `  - Do NOT poll \`.wheel/.next-instruction.md\` repeatedly. Read it ONCE per fresh "Blocked by hook" notice; if the timestamp matches your last read, the wheel hasn't emitted new instructions and you should just end your turn.`;
+      `^^ Turn 1: run the bash command above VERBATIM in a single tool call, then end your turn.\n\n` +
+      `You are spawned to drive a wheel sub-workflow. After turn 1, the wheel writes the next tool call to .wheel/.next-instruction.md after every turn.${concreteFirstStep}\n\n` +
+      `Every turn after turn 1 (no exceptions, no triggers):\n` +
+      `  1. Read({ file_path: ".wheel/.next-instruction.md" })\n` +
+      `  2. The file's body contains an EXACT tool-call block, or an instruction like "write {content} to {path}". Issue that call (or write that file) verbatim — copy-paste, don't paraphrase.\n` +
+      `  3. End your turn.\n\n` +
+      `Termination: stop polling when (a) the sentinel content has the same timestamp as your previous read, AND (b) no .wheel/state_*.json file exists. Then SendMessage("team-lead", "<short status>") and end your turn.\n\n` +
+      `Hard rules:\n` +
+      `  - Read the sentinel EVERY turn after turn 1, unconditionally. Don't wait for a "trigger" — the sentinel IS the signal.\n` +
+      `  - Do NOT call /wheel:wheel-stop or /wheel:wheel-status.\n` +
+      `  - Do NOT investigate wheel internals or batch tool calls.\n` +
+      `  - If two consecutive sentinel reads return the same timestamp at the top, do NOT re-issue the call — just end your turn.`;
     lines.push('```');
     lines.push('Agent({');
     // Agent-type-agnostic — the prompt above carries the drive-loop
@@ -233,11 +239,26 @@ export async function _teammateFlushFromState(
     // dropping --as via paraphrasing no longer breaks parent-child link.
     lines.push(`  name: "${shortName}",`);
     lines.push(`  team_name: "${teamName}",`);
-    if (slot.model) {
-      // Per-slot model override from the `teammate` step's `model` JSON
-      // field. Without this, the spawned sub-agent inherits the parent
-      // orchestrator's model (Claude Code Agent-tool default).
-      lines.push(`  model: "${slot.model}",`);
+    // Per-spawn model resolution. Priority order:
+    //   1. slot.model — set explicitly via the `teammate` step's `model:`
+    //      JSON field (per-step override).
+    //   2. process.env.ANTHROPIC_MODEL — the parent orchestrator's model.
+    //      Sub-agents (in_process_teammate task type) DO NOT
+    //      automatically inherit ANTHROPIC_MODEL from the parent's env;
+    //      they fall back to Claude Code's hardcoded default
+    //      (`claude-opus-4-7`). When the user routes through a gateway
+    //      that doesn't carry that default model — Bifrost, OpenRouter,
+    //      a custom proxy — the gateway returns 400 and the sub-agent
+    //      silently fails before producing any output. Empirically
+    //      verified by inserting a logging proxy between Claude Code
+    //      and Bifrost: parent requests went `model:"<env>"` and
+    //      succeeded, sub-agent requests went `model:"claude-opus-4-7"`
+    //      and got HTTP 400 from Bifrost.
+    //   3. otherwise: omit — Claude Code uses its hardcoded default.
+    const fallbackModel = process.env.ANTHROPIC_MODEL ?? '';
+    const spawnModel = slot.model || fallbackModel;
+    if (spawnModel) {
+      lines.push(`  model: "${spawnModel}",`);
     }
     lines.push(`  mode: "bypassPermissions"`);
     lines.push('})');

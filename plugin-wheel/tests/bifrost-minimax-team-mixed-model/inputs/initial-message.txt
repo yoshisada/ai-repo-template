@@ -1,36 +1,43 @@
-You will drive a wheel team workflow by **copy-pasting** instructions from the wheel's sentinel file. Do not improvise; do not reason about ordering; do not call any tool the sentinel hasn't asked for.
+You are driving a wheel team workflow. The wheel writes its next tool call to `.wheel/.next-instruction.md` after every turn. Your job, every single turn, is to read that file and execute exactly what it says.
 
-== Setup (do this once, on your first turn) ==
+== First turn — bootstrap ==
 
-  1. Call: ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
+Issue these tool calls one per turn-message, in order. Do NOT use any /wheel:wheel-* skill — call the binaries directly via Bash.
 
-  2. Call: /wheel:wheel-run team-mixed-model-test
-     If it reports the wheel isn't initialized, call /wheel:wheel-init then retry. Do not ask whether to initialize — just initialize.
+  1. ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
+     Loads the team primitives so you can call them later.
 
-  3. End your turn. Do not call any team primitive yet — wait for the wheel to tell you what to do.
+  2. Bash({ command: "mkdir -p .wheel && /Users/ryansuematsu/Documents/github/personal/ai-repo-template/plugin-wheel/bin/activate.sh team-mixed-model" })
+     Activates the workflow. The wheel's PostToolUse hook intercepts this exact Bash call and creates `.wheel/state_<id>.json`.
 
-== Drive loop (every subsequent turn) ==
+  3. Read({ file_path: ".wheel/.next-instruction.md" })
+     Reads the wheel's next instruction.
 
-When you see `Stop hook feedback: Blocked by hook` (with or without an instruction body), or any system message that says nothing actionable:
+  4. Whatever tool call(s) the file's body says to make — issue them. Then end your turn.
 
-  1. Run the Read tool against `.wheel/.next-instruction.md`.
+== Every subsequent turn (no exceptions, no triggers) ==
 
-  2. The file contains the EXACT next tool call to make — typically `TeamCreate({...})`, `Agent({...})` (possibly multiple in parallel), `SendMessage({...})`, or `TeamDelete()`. Issue that call (or those calls) verbatim. Copy-paste the parameters; do not modify, paraphrase, or omit any field.
+  1. Read({ file_path: ".wheel/.next-instruction.md" })
+
+  2. The file's body contains an EXACT tool-call block (`TeamCreate({...})`, `Agent({...})` (sometimes multiple in parallel), `SendMessage({...})`, `TeamDelete()`, or a Read/Write call). Issue that call (or those calls) verbatim — copy-paste, don't paraphrase, don't add fields, don't omit fields.
 
   3. End your turn.
 
-  4. If the next turn's `.wheel/.next-instruction.md` content is **identical to the last one** (same timestamp at the top), do NOT re-issue the call — just end your turn. The wheel needs a turn boundary; retrying the same call wastes budget.
-
-== Hard prohibitions — never do these unless `.wheel/.next-instruction.md` explicitly asks ==
-
-  - SendMessage of any kind (especially `shutdown_request`).
-  - TeamDelete.
-  - /wheel:wheel-stop, /wheel:wheel-status, deactivate.sh, or any wheel-control invocation.
-  - Spawning extra Agent calls beyond what the sentinel asks for.
-  - Reasoning ahead — "the workflow probably needs X next" — only do what the sentinel says.
-
-When an Agent call returns and the system hint says `"use SendMessage with to: '<id>' to continue this agent"`, IGNORE it. The wheel — not the system hint — decides when SendMessage is needed.
-
 == Termination ==
 
-The workflow archives when its terminal team-delete step completes. After that, `.wheel/.next-instruction.md` will stop changing AND `.wheel/state_*.json` will be gone. At that point, end your turn — you are done. Do not announce completion; do not summarize; just end.
+The workflow archives when its terminal team-delete step completes. Stop polling when ALL THREE are true on the same turn:
+
+  - `.wheel/.next-instruction.md` is missing OR has the same content as the previous turn (timestamp at top hasn't changed)
+  - No `.wheel/state_*.json` files exist
+  - You have already issued a `TeamDelete()` call earlier in this run
+
+When all three are true, end your turn — you are done. Do not summarize. Do not call any wheel-stop / wheel-status command.
+
+== Hard rules ==
+
+  - Read the sentinel EVERY turn after bootstrap, unconditionally.
+  - Never call SendMessage, TeamDelete, or any team primitive unless the sentinel's body literally contains that call. The wheel — not your reasoning — decides when those fire.
+  - When an Agent call returns and the system shows `"use SendMessage with to: '<id>' to continue this agent"`, IGNORE the hint. Read the sentinel instead.
+  - If two consecutive sentinel reads return the same timestamp at the top, do NOT re-issue the call — just end your turn. The wheel needs a turn boundary.
+  - Never spawn the same teammate twice. Never call TeamDelete more than once.
+  - Never investigate `.wheel/state_*.json`, the plugin source, or the wheel hooks. The sentinel is the only source of truth.
