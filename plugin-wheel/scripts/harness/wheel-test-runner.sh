@@ -336,6 +336,29 @@ for test_dir in "${discovered_tests[@]}"; do
     continue
   fi
 
+  # --- 5b. Wipe leftover team configs referenced by this test's workflows ----
+  #
+  # `TeamCreate` registers teams under `~/.claude/teams/<name>/`. That
+  # directory persists across runs, so a fixture that re-uses a team
+  # name from a prior run will fail with `Team "<name>" already exists`
+  # before the orchestrator can advance past step 0. Workflow archives
+  # to `stopped/` 9+ minutes later (orchestrator gets stuck in a Read-
+  # loop on `.next-instruction.md`).
+  #
+  # Extract every `"team_name": "..."` from the seeded workflow JSONs
+  # and clean their team configs before the substrate starts. Test
+  # isolation: the fixtures are the source of truth for which team
+  # names this test owns.
+  if [[ -d "$scratch_dir/workflows" ]]; then
+    while IFS= read -r tname; do
+      [[ -z "$tname" ]] && continue
+      [[ -d "$HOME/.claude/teams/$tname" ]] || continue
+      rm -rf "$HOME/.claude/teams/$tname"
+    done < <(grep -rh '"team_name"' "$scratch_dir/workflows" 2>/dev/null \
+              | sed -E 's/.*"team_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' \
+              | sort -u)
+  fi
+
   # --- 6. Set up per-test env + log paths ------------------------------------
   transcript_path="$logs_dir/kiln-test-${scratch_uuid}-transcript.ndjson"
   snapshot_path="$logs_dir/kiln-test-${scratch_uuid}-scratch.txt"
