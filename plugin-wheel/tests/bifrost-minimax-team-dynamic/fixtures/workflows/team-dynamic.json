@@ -1,0 +1,47 @@
+{
+  "name": "team-dynamic-test",
+  "description": "Test dynamic fan-out — partition step generates work items, loop_from spawns agents",
+  "steps": [
+    {
+      "id": "generate-work",
+      "type": "command",
+      "command": "echo '[{\"page\": \"home\", \"route\": \"/\"}, {\"page\": \"about\", \"route\": \"/about\"}, {\"page\": \"settings\", \"route\": \"/settings\"}, {\"page\": \"profile\", \"route\": \"/profile\"}, {\"page\": \"dashboard\", \"route\": \"/dashboard\"}]' > .wheel/outputs/work-items.json && cat .wheel/outputs/work-items.json | jq length && echo 'items generated'",
+      "output": ".wheel/outputs/work-items.json"
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "team_name": "test-dynamic-team"
+    },
+    {
+      "id": "spawn-workers",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "loop_from": "generate-work",
+      "max_agents": 3,
+      "context_from": [
+        "generate-work"
+      ]
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "team": "create-team",
+      "collect_to": ".wheel/outputs/dynamic-results/",
+      "output": ".wheel/outputs/dynamic-summary.json"
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "command": "echo '## Dynamic Team Test Results' && echo '' && echo 'Work items: 5, Max agents: 3' && echo 'Expected: 3 agents with round-robin distribution (2+2+1)' && echo '' && echo 'Summary:' && cat .wheel/outputs/dynamic-summary.json 2>/dev/null | jq '.' && echo '' && echo 'Collected:' && find .wheel/outputs/dynamic-results/ -type f 2>/dev/null | sort",
+      "output": ".wheel/outputs/dynamic-report.txt"
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "team": "create-team",
+      "terminal": true
+    }
+  ]
+}

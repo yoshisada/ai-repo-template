@@ -1,0 +1,18 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "Bifrost+MiniMax team-haiku-fanout — Phase 4 ceremony via Bifrost+MiniMax. 1 teammate(s); team-wait emits .wheel/outputs/haiku-fanout-summary.json."
+timeout-override: 900
+
+env:
+  ANTHROPIC_BASE_URL: "${BIFROST_ENDPOINT}"
+  ANTHROPIC_AUTH_TOKEN: "${BIFROST_API_KEY}"
+  ANTHROPIC_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_SONNET_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_OPUS_MODEL: "${BIFROST_MODEL_ID}"
+
+require-env:
+  - BIFROST_ENDPOINT
+  - BIFROST_API_KEY
+  - BIFROST_MODEL_ID

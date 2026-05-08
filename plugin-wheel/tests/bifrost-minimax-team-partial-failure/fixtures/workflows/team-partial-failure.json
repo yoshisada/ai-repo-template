@@ -1,0 +1,49 @@
+{
+  "name": "team-partial-failure-test",
+  "description": "Test that team-wait handles partial failures — one worker succeeds, one is designed to fail",
+  "steps": [
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "team_name": "test-failure-team"
+    },
+    {
+      "id": "good-worker",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "assign": {
+        "worker_id": 1,
+        "task": "Write the word SUCCESS to your output file"
+      }
+    },
+    {
+      "id": "bad-worker",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-fail",
+      "assign": {
+        "worker_id": 2,
+        "task": "This worker is expected to fail"
+      }
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "team": "create-team",
+      "output": ".wheel/outputs/failure-test-summary.json"
+    },
+    {
+      "id": "verify",
+      "type": "command",
+      "command": "echo '## Partial Failure Test' && echo '' && SUMMARY=$(cat .wheel/outputs/failure-test-summary.json 2>/dev/null) && COMPLETED=$(echo \"$SUMMARY\" | jq -r '.completed_count // 0') && FAILED=$(echo \"$SUMMARY\" | jq -r '.failed_count // 0') && echo \"Completed: $COMPLETED\" && echo \"Failed: $FAILED\" && if [ \"$COMPLETED\" -ge 1 ] && [ \"$FAILED\" -ge 1 ]; then echo 'PASS: team-wait correctly reported partial results'; else echo 'FAIL: expected 1 completed + 1 failed'; fi",
+      "output": ".wheel/outputs/failure-test-result.txt"
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "team": "create-team",
+      "terminal": true
+    }
+  ]
+}

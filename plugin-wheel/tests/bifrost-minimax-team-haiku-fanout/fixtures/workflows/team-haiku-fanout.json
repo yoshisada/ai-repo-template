@@ -1,0 +1,47 @@
+{
+  "name": "team-haiku-fanout-test",
+  "description": "Wider fan-out stress test — 10 work items distributed across 5 haiku agents (round-robin → 2 items each). Cheap variant that exercises the distribute_agent_assign code path with a non-trivial slot count, using haiku to keep cost minimal.",
+  "steps": [
+    {
+      "id": "generate-work",
+      "type": "command",
+      "command": "echo '[{\"id\": 1}, {\"id\": 2}, {\"id\": 3}, {\"id\": 4}, {\"id\": 5}, {\"id\": 6}, {\"id\": 7}, {\"id\": 8}, {\"id\": 9}, {\"id\": 10}]' > .wheel/outputs/haiku-fanout-items.json && cat .wheel/outputs/haiku-fanout-items.json | jq length",
+      "output": ".wheel/outputs/haiku-fanout-items.json"
+    },
+    {
+      "id": "create-team",
+      "type": "team-create",
+      "team_name": "test-haiku-fanout-team"
+    },
+    {
+      "id": "spawn-workers",
+      "type": "teammate",
+      "team": "create-team",
+      "workflow": "tests/team-sub-worker",
+      "loop_from": "generate-work",
+      "max_agents": 5,
+      "context_from": [
+        "generate-work"
+      ]
+    },
+    {
+      "id": "wait-all",
+      "type": "team-wait",
+      "team": "create-team",
+      "collect_to": ".wheel/outputs/haiku-fanout-results/",
+      "output": ".wheel/outputs/haiku-fanout-summary.json"
+    },
+    {
+      "id": "report",
+      "type": "command",
+      "command": "echo '## Haiku Fan-out Test' && echo 'Items: 10, Agents: 5, expected distribution: 2+2+2+2+2' && echo '' && echo 'Summary:' && cat .wheel/outputs/haiku-fanout-summary.json 2>/dev/null | jq '.' && echo '' && echo 'Collected:' && find .wheel/outputs/haiku-fanout-results/ -type f 2>/dev/null | sort",
+      "output": ".wheel/outputs/haiku-fanout-report.txt"
+    },
+    {
+      "id": "cleanup",
+      "type": "team-delete",
+      "team": "create-team",
+      "terminal": true
+    }
+  ]
+}

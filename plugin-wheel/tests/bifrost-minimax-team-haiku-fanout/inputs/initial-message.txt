@@ -1,0 +1,20 @@
+Drive a wheel team workflow end-to-end. Strict order — execute every step; do NOT ask for permission, confirmation, or "would you like me to". If something looks missing, fix it yourself.
+
+The workflow is workflows/team-haiku-fanout.json. It uses the Phase 4 team primitives (team-create, teammate, team-wait, team-delete).
+
+1. Run `/wheel:wheel-run team-haiku-fanout-test`. If the wheel reports it isn't initialized, run `/wheel:wheel-init` first then retry. Do not stop and ask whether to initialize — just initialize.
+
+2. The wheel hook system will drive the team ceremony turn-by-turn via stop-hook prompts. Follow the hook's instructions verbatim each turn:
+     - When the hook says the team-create step is `working`, call `TeamCreate({team_name: "<exact name from the step>"})`. Use the EXACT team_name the hook gives you — do not improvise.
+     - When the hook lists teammates to spawn, call `Agent({subagent_type: "general-purpose", name: "<short-name>", team_name: "<team>", prompt: "<the prompt the hook gave you>", run_in_background: true})` for each one. One Agent call per teammate; spawn them in parallel via multiple Agent tool calls in a single message.
+     - When teammates send messages or terminate, the system delivers them automatically as new turns. Don't poll for them; just wait.
+     - When all teammates are reported complete, send `SendMessage({to: "<short-name>", message: {type: "shutdown_request"}})` once per teammate. Then wait for `teammate_terminated` notifications.
+     - When all teammates have terminated, call `TeamDelete()`.
+
+3. End your turn after `TeamDelete`. Do not call `/wheel:wheel-stop`, `/wheel:wheel-status`, or any other wheel skill — the wheel auto-archives once the terminal team-delete step completes.
+
+Hard rules:
+- Use the EXACT team_name and teammate names the hook gives you. Do not invent or paraphrase.
+- Do NOT call TeamCreate, Agent, or TeamDelete BEFORE the hook tells you to. If you act ahead of the hook, the wheel state diverges from the harness reality and the workflow stalls.
+- If the hook reports `Stop hook feedback: Blocked by hook` with no instruction body, end the turn immediately — the next turn will receive the actual instruction.
+- Never spawn the same teammate twice. The duplicate-spawn guard will block the second call and you'll waste a turn.

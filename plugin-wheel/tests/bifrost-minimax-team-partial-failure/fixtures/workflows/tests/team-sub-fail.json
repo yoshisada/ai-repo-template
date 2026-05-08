@@ -1,0 +1,13 @@
+{
+  "name": "team-sub-fail",
+  "description": "Sub-workflow that intentionally fails — for testing partial failure handling",
+  "steps": [
+    {
+      "id": "fail-step",
+      "type": "command",
+      "command": "echo 'This worker is about to fail intentionally' && exit 1",
+      "output": ".wheel/outputs/fail-output.txt",
+      "terminal": true
+    }
+  ]
+}
