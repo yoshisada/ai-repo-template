@@ -247,31 +247,36 @@ export async function _teammateFlushFromState(
     // "minimax/MiniMax-M2.7") triggers an InputValidationError and the
     // teammate spawn never starts.
     //
-    // Resolution rules:
-    //   1. If slot.model is a valid alias (sonnet/opus/haiku), emit it.
-    //      This is the default-Anthropic flow — the workflow author
-    //      picked a tier per teammate.
-    //   2. If ANTHROPIC_MODEL is set to a valid alias, emit it (overrides
-    //      slot.model so a gateway routing the alias can take over).
-    //   3. Otherwise (ANTHROPIC_MODEL unset, OR set to a non-alias
-    //      gateway id like "minimax/MiniMax-M2.7"): OMIT the `model:`
-    //      field entirely. Claude Code falls back to its default model
-    //      tier; ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN env inheritance
-    //      still routes the spawned sub-agent through the configured
-    //      gateway. The gateway translates the tier id to its catalog.
+    // Resolution rules (first match wins):
+    //   1. slot.model is a valid alias       → emit it.
+    //   2. ANTHROPIC_MODEL is a valid alias  → emit it.
+    //   3. ANTHROPIC_MODEL is set (non-alias = gateway routing active)
+    //      → emit "haiku" as a safe default. Without this, Claude Code
+    //      falls back to "claude-opus-4-7" which is NOT in any
+    //      mainstream gateway's catalog (Bifrost, OpenRouter), so every
+    //      sub-agent API call fails silently and the sub-workflow never
+    //      activates. Picking "haiku" + relying on
+    //      ANTHROPIC_DEFAULT_HAIKU_MODEL to translate to the actual
+    //      gateway model id is the only working route.
+    //   4. Otherwise (default Anthropic, no env override) → omit. Claude
+    //      Code's default tier is fine for direct anthropic.com routing.
     //
-    // Empirical: with Bifrost+MiniMax, emitting
-    // `model: "minimax/MiniMax-M2.7"` produced
-    // `InputValidationError: expected one of "sonnet"|"opus"|"haiku"`,
-    // blocking teammate spawn entirely. Omitting the field lets the
-    // gateway env vars do their job.
+    // Empirical history:
+    //   - Emitting raw gateway ids → InputValidationError on Agent call.
+    //   - Omitting model under gateway routing → sub-agent silently
+    //     calls "claude-opus-4-7" which Bifrost rejects, sub-workflow
+    //     never starts (single-haiku run 2026-05-08T10:48 — slot stuck
+    //     pending for 14m, parent polled until stall window).
     const aliases = new Set(['sonnet', 'opus', 'haiku']);
     const envModel = (process.env.ANTHROPIC_MODEL ?? '').trim();
+    const gatewayActive = envModel.length > 0 && !aliases.has(envModel);
     let spawnModel = '';
-    if (envModel && aliases.has(envModel)) {
-      spawnModel = envModel;
-    } else if (slot.model && aliases.has(slot.model)) {
+    if (slot.model && aliases.has(slot.model)) {
       spawnModel = slot.model;
+    } else if (envModel && aliases.has(envModel)) {
+      spawnModel = envModel;
+    } else if (gatewayActive) {
+      spawnModel = 'haiku';
     }
     if (spawnModel) {
       lines.push(`  model: "${spawnModel}",`);
