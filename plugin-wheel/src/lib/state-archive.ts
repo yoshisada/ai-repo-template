@@ -148,7 +148,32 @@ export async function archiveWorkflow(
   }
 
   // FR-009: rename child to history bucket.
-  return renameToHistory(stateFile, child, bucket);
+  const archivedPath = await renameToHistory(stateFile, child, bucket);
+
+  // Sentinel cleanup: if no live state files remain after this archive,
+  // delete `.wheel/.next-instruction.md` so the orchestrator's next
+  // poll-read sees "file not found" (the unambiguous termination signal
+  // per the harness fixture's Hard Rule: "stop polling when sentinel is
+  // missing OR has same timestamp"). Less-reliable orchestrators that
+  // can't reason about same-timestamp equality (MiniMax-M2.7 et al.)
+  // need the missing-file path to terminate cleanly.
+  //
+  // Why guarded by "no other live state files": multiple workflows can
+  // share a single `.wheel/` directory (e.g. a sub-workflow archiving
+  // while the parent is still alive). Deleting the sentinel while a
+  // parent still expects to read it would break parent progression.
+  // Only when ZERO state_*.json remain is the sentinel guaranteed
+  // unused.
+  try {
+    const stateDir = path.dirname(stateFile);
+    const entries = await fs.readdir(stateDir).catch(() => [] as string[]);
+    const liveStateFiles = entries.filter((e) => e.startsWith('state_') && e.endsWith('.json'));
+    if (liveStateFiles.length === 0) {
+      await fs.unlink(path.join(stateDir, '.next-instruction.md')).catch(() => undefined);
+    }
+  } catch { /* non-fatal */ }
+
+  return archivedPath;
 }
 
 // =============================================================================
