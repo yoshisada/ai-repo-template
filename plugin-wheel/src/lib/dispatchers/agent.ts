@@ -87,9 +87,24 @@ export async function dispatchAgent(
           // Output file not yet present, still waiting
         }
       }
+      // Re-emit the step's instruction + declared output path so the
+      // sentinel file (mirrored from this additionalContext per emit.ts)
+      // always carries the actionable instruction. Pre-fix this branch
+      // returned only "Still waiting for agent step to complete..."
+      // which overwrote the activation-time sentinel populated with the
+      // agent's full instruction. Models that polled the sentinel
+      // (especially in --print mode) saw the uninformative message and
+      // had no way to recover.
+      const outputPath = (step.output as string | undefined) ?? '<unknown>';
+      const instruction = (step as { instruction?: string }).instruction ?? '';
+      const stillWaitingBlock =
+        `Agent step \`${step.id}\` is parked at status=working but the declared output file is not yet present.\n\n` +
+        (instruction ? `Instruction:\n${instruction}\n\n` : '') +
+        `Required output path: ${outputPath}\n\n` +
+        `Use the Write tool to create that file with content matching the instruction. Then end your turn — the wheel auto-advances on the Write event.`;
       return {
         decision: 'block',
-        additionalContext: 'Still waiting for agent step to complete...',
+        additionalContext: stillWaitingBlock,
       };
     }
   }
