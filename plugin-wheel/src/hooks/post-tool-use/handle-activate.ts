@@ -16,6 +16,7 @@
 
 import path from 'path';
 import { stateRead, stateWrite, listLiveStateFiles } from '../../shared/state.js';
+import type { WorkflowStep } from '../../shared/state.js';
 import { stateInit } from '../../lib/state.js';
 import { dispatchStep, isAutoExecutable, type HookInput, type HookOutput } from '../../lib/dispatch.js';
 import { maybeArchiveAfterActivation } from '../../lib/engine.js';
@@ -130,6 +131,45 @@ export async function handleActivation(
   }
   // FR-005 — terminal-cursor archive after cascade.
   await maybeArchiveAfterActivation(stateFile);
+
+  // Preemptive sentinel write for the just-activated cursor's first
+  // blocking step.
+  //
+  // Why: in claude --print mode the orchestrator routinely sequences
+  // `bash activate.sh; Read .wheel/.next-instruction.md` on the SAME
+  // turn (per the harness fixture prompt's bootstrap). Without this
+  // preemptive write, the Read fails with "file does not exist"
+  // because the sentinel only gets written when the NEXT PostToolUse
+  // hook fires (i.e. the Read's own PostToolUse, which is too late
+  // because the Read tool already returned an error). Default
+  // Anthropic recovers by ending the turn and retrying; less-reliable
+  // models (MiniMax-M2.7 et al.) spiral into multi-turn debugging.
+  // Writing the sentinel here closes that race — the Read on the
+  // SAME turn finds the file populated.
+  //
+  // The dispatch below is read-only-ish: dispatchers' stop+pending
+  // branches typically transition pending→working and emit the
+  // step's instruction. For team-create / agent / teammate steps
+  // that emits the canonical "call X" block. Wrapped in try/catch
+  // because cascade-halt may have left state at terminal cursor,
+  // in which case there's nothing to dispatch.
+  try {
+    const post = await stateRead(stateFile);
+    const cursor = post.cursor ?? 0;
+    const wfDef = post.workflow_definition;
+    const step = wfDef?.steps?.[cursor] ?? post.steps?.[cursor];
+    if (step && cursor < (wfDef?.steps?.length ?? post.steps.length)) {
+      const out = await dispatchStep(step as WorkflowStep, 'stop', hookInput, stateFile, cursor, 0);
+      if (out.decision === 'block' && out.additionalContext) {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const ts = new Date().toISOString();
+        const sentinelBody = `<!-- wheel hook instruction — ${ts} -->\n\n${out.additionalContext}\n`;
+        await fs.writeFile(path.join('.wheel', '.next-instruction.md'), sentinelBody, 'utf-8');
+      }
+    }
+  } catch { /* non-fatal: preemptive write failure doesn't break activation */ }
+
   return { output: { hookEventName: 'PostToolUse' }, activated: true };
 }
 
