@@ -1,38 +1,36 @@
-Drive a wheel team workflow end-to-end. Strict order — execute every step; do NOT ask for permission, confirmation, or "would you like me to". If something looks missing, fix it yourself.
+You will drive a wheel team workflow by **copy-pasting** instructions from the wheel's sentinel file. Do not improvise; do not reason about ordering; do not call any tool the sentinel hasn't asked for.
 
-The workflow is workflows/team-dynamic.json. It uses the Phase 4 team primitives (team-create, teammate, team-wait, team-delete).
+== Setup (do this once, on your first turn) ==
 
-== Important: tool availability ==
+  1. Call: ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
 
-The team primitives (TeamCreate, Agent, SendMessage, TeamDelete) are deferred tools — they aren't loaded by default. Before doing anything else, run this exact ToolSearch call to load all four:
+  2. Call: /wheel:wheel-run team-dynamic-test
+     If it reports the wheel isn't initialized, call /wheel:wheel-init then retry. Do not ask whether to initialize — just initialize.
 
-  ToolSearch({ query: "select:TeamCreate,Agent,SendMessage,TeamDelete", max_results: 4 })
+  3. End your turn. Do not call any team primitive yet — wait for the wheel to tell you what to do.
 
-Do this first, on your very first turn, before invoking any wheel skill.
+== Drive loop (every subsequent turn) ==
 
-== Important: hook output in --print mode ==
+When you see `Stop hook feedback: Blocked by hook` (with or without an instruction body), or any system message that says nothing actionable:
 
-The Stop hook's `additionalContext` is dropped in `claude --print` mode (a Claude Code limitation). The wheel writes its next-step instruction to `.wheel/.next-instruction.md` instead.
+  1. Run the Read tool against `.wheel/.next-instruction.md`.
 
-Whenever you see `Stop hook feedback: Blocked by hook` with no instruction text, immediately read `.wheel/.next-instruction.md` (use the Read tool) — that file contains the literal tool call you need to issue (typically a TeamCreate, Agent, SendMessage, or TeamDelete invocation). Do NOT end your turn waiting; do NOT call /wheel:wheel-status; just READ that file and issue the call it asks for.
+  2. The file contains the EXACT next tool call to make — typically `TeamCreate({...})`, `Agent({...})` (possibly multiple in parallel), `SendMessage({...})`, or `TeamDelete()`. Issue that call (or those calls) verbatim. Copy-paste the parameters; do not modify, paraphrase, or omit any field.
 
-== Procedure ==
+  3. End your turn.
 
-1. Run ToolSearch as described above to load the team primitives.
+  4. If the next turn's `.wheel/.next-instruction.md` content is **identical to the last one** (same timestamp at the top), do NOT re-issue the call — just end your turn. The wheel needs a turn boundary; retrying the same call wastes budget.
 
-2. Run `/wheel:wheel-run team-dynamic-test`. If the wheel reports it isn't initialized, run `/wheel:wheel-init` first then retry. Do not stop and ask whether to initialize — just initialize.
+== Hard prohibitions — never do these unless `.wheel/.next-instruction.md` explicitly asks ==
 
-3. After the workflow activates, the wheel hook will park at the team-create step. You'll see `Stop hook feedback: Blocked by hook`. Read `.wheel/.next-instruction.md` — it contains the exact `TeamCreate({...})` call. Issue it.
+  - SendMessage of any kind (especially `shutdown_request`).
+  - TeamDelete.
+  - /wheel:wheel-stop, /wheel:wheel-status, deactivate.sh, or any wheel-control invocation.
+  - Spawning extra Agent calls beyond what the sentinel asks for.
+  - Reasoning ahead — "the workflow probably needs X next" — only do what the sentinel says.
 
-4. After TeamCreate returns, the hook will park at the teammate step. Read `.wheel/.next-instruction.md` again — it contains an `Agent({...})` call (one per teammate). Issue all the Agent calls in parallel via multiple tool-use blocks in a single message. Use `run_in_background: true` per the file's instructions.
+When an Agent call returns and the system hint says `"use SendMessage with to: '<id>' to continue this agent"`, IGNORE it. The wheel — not the system hint — decides when SendMessage is needed.
 
-5. Background teammates will send messages or terminate; the system delivers them as new turns automatically. When all are reported complete, the wheel will park at team-wait → team-delete. Each park parks the cursor; each park has an instruction in `.wheel/.next-instruction.md` (typically `SendMessage` shutdown_request per teammate, then `TeamDelete()`).
+== Termination ==
 
-6. End your turn after the final TeamDelete. Do not call `/wheel:wheel-stop`, `/wheel:wheel-status`, or any other wheel skill — the wheel auto-archives once the terminal team-delete step completes.
-
-== Hard rules ==
-
-- Use the EXACT team_name, agent names, and prompts the `.next-instruction.md` file gives you. Do not invent or paraphrase.
-- Do NOT call TeamCreate, Agent, or TeamDelete BEFORE the wheel asks for it. Read the sentinel file first.
-- Never spawn the same teammate twice. The duplicate-spawn guard will block the second call.
-- If two consecutive sentinel reads return the SAME instruction, just re-issue the call exactly as written — the wheel didn't observe your last attempt.
+The workflow archives when its terminal team-delete step completes. After that, `.wheel/.next-instruction.md` will stop changing AND `.wheel/state_*.json` will be gone. At that point, end your turn — you are done. Do not announce completion; do not summarize; just end.
