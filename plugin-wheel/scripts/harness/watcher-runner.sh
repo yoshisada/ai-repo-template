@@ -257,6 +257,32 @@ while :; do
     exit 0
   fi
 
+  # Workflow-archived early-terminate check.
+  #
+  # Symptom this addresses: orchestrator's claude --print keeps running
+  # in a gateway-retry storm (api_retry envelopes flood the transcript)
+  # AFTER the wheel has already archived the workflow to history/. The
+  # watcher's stall heuristic doesn't fire because the transcript is
+  # still advancing on retry events. But the workflow IS done — its
+  # state file is gone and a success/failure archive exists.
+  #
+  # Detect that condition: when scratch_dir/.wheel/ has zero live
+  # state_*.json files AND at least one history/<bucket>/*.json
+  # archive exists, treat as terminated. Classify as "exited" so the
+  # downstream substrate runs assertions against the archived state.
+  if [[ -d "$scratch_dir/.wheel" ]]; then
+    live_states=$(find "$scratch_dir/.wheel" -maxdepth 1 -name 'state_*.json' 2>/dev/null | head -1)
+    if [[ -z "$live_states" ]]; then
+      archive_exists=$(find "$scratch_dir/.wheel/history" -maxdepth 2 -name '*.json' 2>/dev/null | head -1)
+      if [[ -n "$archive_exists" ]]; then
+        final_classification="exited"
+        write_verdict "exited"
+        terminate_subprocess "$subprocess_pid"
+        exit 0
+      fi
+    fi
+  fi
+
   # Stall check.
   idle_secs=$((now_epoch - last_advance_epoch))
   if (( idle_secs >= stall_window )); then
