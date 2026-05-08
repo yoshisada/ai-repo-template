@@ -89,8 +89,37 @@ export async function runPollingBackstop(
   const bucketArchives = await collectBucketArchives(parentStateFile);
   const stuckAgentIds = await collectStuckAgentIds(parentStateFile);
 
+  // FR-orphan-spawn-failed: detect slots that have been pending for too
+  // long with no live child state file. Symptom: in_process_teammate
+  // spawned successfully (Agent call returned "Spawned successfully")
+  // but the sub-agent's first API call was rate-limited / silenced by
+  // the gateway, so it never ran activate.sh, never produced a child
+  // state file, and never wrote to its transcript. Without this
+  // detection, parent waits indefinitely.
+  //
+  // Uses the wait-all step's started_at as the reference clock: when
+  // (now - wait_all.started_at) exceeds the threshold AND a slot is
+  // still pending AND has no live child AND no archive entry, mark
+  // it failed. The threshold is generous (10 min) to avoid false
+  // positives under legitimate rate-limit retries.
+  const NEVER_ACTIVATED_MS = 10 * 60 * 1000;
+  const cursor = preState.cursor ?? 0;
+  const waitAllStep = preState.steps?.[cursor];
+  const waitAllStartedAt = waitAllStep?.started_at ? Date.parse(waitAllStep.started_at) : NaN;
+  const neverActivatedSlots = new Set<string>();
+  if (Number.isFinite(waitAllStartedAt) && (Date.now() - waitAllStartedAt) > NEVER_ACTIVATED_MS) {
+    for (const [, slot] of runningSlots) {
+      const aid = slot?.agent_id ?? '';
+      if (!aid) continue;
+      if (slot?.status !== 'pending') continue;
+      if (liveAgentIds.has(aid)) continue;
+      if (bucketArchives.success.has(aid) || bucketArchives.failure.has(aid) || bucketArchives.stopped.has(aid)) continue;
+      neverActivatedSlots.add(aid);
+    }
+  }
+
   const { resolutions, stillRunning } =
-    classifyRunningSlots(runningSlots, liveAgentIds, bucketArchives, stuckAgentIds);
+    classifyRunningSlots(runningSlots, liveAgentIds, bucketArchives, stuckAgentIds, neverActivatedSlots);
 
   const reconciledCount = resolutions.length > 0
     ? await applyResolutions(parentStateFile, teamRef, resolutions)
@@ -203,12 +232,17 @@ function classifyRunningSlots(
   liveAgentIds: ReadonlySet<string>,
   bucketArchives: BucketArchives,
   stuckAgentIds: ReadonlySet<string>,
+  neverActivatedSlots: ReadonlySet<string> = new Set<string>(),
 ): { resolutions: Resolution[]; stillRunning: number } {
   const resolutions: Resolution[] = [];
   let stillRunning = 0;
   for (const [name, slot] of runningSlots) {
     const aid = slot?.agent_id ?? '';
     const slotStatus = slot?.status ?? 'pending';
+    if (aid && neverActivatedSlots.has(aid)) {
+      resolutions.push({ name, newStatus: 'failed', failureReason: 'never_activated' });
+      continue;
+    }
     if (aid && stuckAgentIds.has(aid)) {
       resolutions.push({ name, newStatus: 'failed', failureReason: 'stuck_worker' });
       continue;
