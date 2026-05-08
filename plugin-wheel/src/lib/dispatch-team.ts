@@ -240,23 +240,28 @@ export async function _teammateFlushFromState(
     lines.push(`  name: "${shortName}",`);
     lines.push(`  team_name: "${teamName}",`);
     // Per-spawn model resolution. Priority order:
-    //   1. slot.model — set explicitly via the `teammate` step's `model:`
-    //      JSON field (per-step override).
-    //   2. process.env.ANTHROPIC_MODEL — the parent orchestrator's model.
-    //      Sub-agents (in_process_teammate task type) DO NOT
-    //      automatically inherit ANTHROPIC_MODEL from the parent's env;
-    //      they fall back to Claude Code's hardcoded default
-    //      (`claude-opus-4-7`). When the user routes through a gateway
-    //      that doesn't carry that default model — Bifrost, OpenRouter,
-    //      a custom proxy — the gateway returns 400 and the sub-agent
-    //      silently fails before producing any output. Empirically
-    //      verified by inserting a logging proxy between Claude Code
-    //      and Bifrost: parent requests went `model:"<env>"` and
-    //      succeeded, sub-agent requests went `model:"claude-opus-4-7"`
-    //      and got HTTP 400 from Bifrost.
+    //   1. process.env.ANTHROPIC_MODEL — when set, it wins. The user has
+    //      configured a gateway (Bifrost, OpenRouter, custom proxy) and
+    //      wants ALL traffic — parent + sub-agents — routed to a single
+    //      gateway-known model. The gateway's catalog dictates what
+    //      models exist; per-step tier preferences (haiku/sonnet) become
+    //      advisory because the gateway may not carry those tier ids.
+    //      Empirically: with Bifrost routing minimax/MiniMax-M2.7,
+    //      teammate steps with `model: haiku` would emit `model:"haiku"`
+    //      and Bifrost would reject (no such model in catalog), causing
+    //      sub-agents to silently fail. Pinning to ANTHROPIC_MODEL
+    //      forces all teammates onto the gateway's actual model.
+    //   2. slot.model — explicit per-step `model:` from the workflow's
+    //      teammate JSON field. Used in default-Anthropic flows where
+    //      ANTHROPIC_MODEL is unset.
     //   3. otherwise: omit — Claude Code uses its hardcoded default.
-    const fallbackModel = process.env.ANTHROPIC_MODEL ?? '';
-    const spawnModel = slot.model || fallbackModel;
+    //
+    // The hardcoded default is `claude-opus-4-7` — fine for default
+    // Anthropic routing, but rejected by gateways without that model
+    // in catalog. That's why we set the env override to win for
+    // gateway users.
+    const envModel = process.env.ANTHROPIC_MODEL ?? '';
+    const spawnModel = envModel || slot.model;
     if (spawnModel) {
       lines.push(`  model: "${spawnModel}",`);
     }
