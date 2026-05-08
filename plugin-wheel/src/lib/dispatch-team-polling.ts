@@ -62,8 +62,21 @@ export async function runPollingBackstop(
     return { reconciledCount: 0, stillRunningCount: 0 };
   }
 
+  // Treat both 'running' and 'pending' (non-terminal) slots as candidates
+  // for backstop reconciliation. Slot status never transitions through
+  // 'running' in the current pipeline (archiveWorkflow's
+  // maybeUpdateParentSlot writes 'completed'/'failed' directly from
+  // 'pending'), so a 'running'-only filter excludes EVERY slot and
+  // collectStuckAgentIds is never reached.
+  //
+  // Verified failure: bifrost-minimax-team-mixed-model 2026-05-08 14:24
+  // — fast-worker child workflow stalled at do-work agent step
+  // status=working, parent slot remained at 'pending' for 11+ minutes,
+  // wait_all_polling logged still_running_count=0 every tick (because
+  // the early return fired), polling backstop never marked the slot
+  // failed, parent never advanced past wait-all.
   const runningSlots = Object.entries(team.teammates ?? {})
-    .filter(([, slot]) => slot?.status === 'running');
+    .filter(([, slot]) => slot?.status === 'running' || slot?.status === 'pending');
   if (runningSlots.length === 0) {
     await wheelLog('wait_all_polling', {
       parent_state_file: parentStateFile, team_id: teamRef,
