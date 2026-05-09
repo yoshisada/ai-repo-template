@@ -11,6 +11,10 @@ export interface DiscoveredWorkflow {
   stepCount: number
   steps: unknown[]
   localOverride: boolean
+  // FR-6.3 — discovery origin tag mirrors `Workflow.discoveryMode`.
+  // Omitted on legacy callers; set to 'installed' / 'source' by the
+  // discoverPluginWorkflows path that produces the entry. See FR-6.1, FR-6.2.
+  discoveryMode?: 'installed' | 'source' | 'local'
 }
 
 function homeDir(): string {

@@ -26,8 +26,8 @@ description: "Task list for wheel-viewer-definition-quality"
 
 **⚠️ CRITICAL**: impl-graph and impl-shell are blocked on T001+T002 completion. Confirm via SendMessage to team-lead when this checkpoint passes.
 
-- [ ] T001 [US1] Extend `StepType` in `plugin-wheel/viewer/src/lib/types.ts` to include `'team-create' | 'team-wait' | 'team-delete' | 'teammate'` (FR-2.1). Add `discoveryMode?: 'installed' | 'source' | 'local'` to `Workflow` (FR-6.3). Add `team_name?`, `team?`, `workflow?`, `assign?`, `workflow_definition?` to `Step` (FR-2.3). Match contracts/interfaces.md exactly.
-- [ ] T002 [US2] Extend `DiscoveredWorkflow` in `plugin-wheel/viewer/src/lib/discover.ts` with the same `discoveryMode?` field (FR-6.3). No behavior changes yet — type-only.
+- [X] T001 [US1] Extend `StepType` in `plugin-wheel/viewer/src/lib/types.ts` to include `'team-create' | 'team-wait' | 'team-delete' | 'teammate'` (FR-2.1). Add `discoveryMode?: 'installed' | 'source' | 'local'` to `Workflow` (FR-6.3). Add `team_name?`, `team?`, `workflow?`, `assign?`, `workflow_definition?` to `Step` (FR-2.3). Match contracts/interfaces.md exactly.
+- [X] T002 [US2] Extend `DiscoveredWorkflow` in `plugin-wheel/viewer/src/lib/discover.ts` with the same `discoveryMode?` field (FR-6.3). No behavior changes yet — type-only.
 
 **Checkpoint**: Type extensions land. impl-graph + impl-shell can now reference team-step types. impl-data-layer continues into Phase 2A (lint, diff, discover.ts behavior changes).
 
