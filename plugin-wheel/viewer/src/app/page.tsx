@@ -4,15 +4,19 @@
 //   - Owns selectedForDiff (Set of workflow keys) so DiffView can consume two workflows.
 //   - Owns diffPair → when set, renders DiffView in place of FlowDiagram + RightPanel.
 //   - Tracks loaded workflows for empty-state UX (FR-7.2 — "no workflows discovered").
+//   - Renders FR-7.1 onboarding panel when no projects are registered.
+//   - Renders FR-7.3 lint-error banner above FlowDiagram.
 
 import { useState, useEffect, useMemo } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import Sidebar, { workflowKey } from '@/components/Sidebar'
 import FlowDiagram from '@/components/FlowDiagram'
 import RightPanel, { type RightPanelTab } from '@/components/RightPanel'
+import DiffView from '@/components/DiffView'
 import type { Project, Workflow } from '@/lib/types'
-import { apiListProjects, apiListWorkflows, apiGetWorkflow } from '@/lib/api'
+import { apiListProjects, apiListWorkflows, apiGetWorkflow, apiRegisterProject } from '@/lib/api'
 import { lintWorkflow } from '@/lib/lint'
+import { diffWorkflows } from '@/lib/diff'
 
 export default function Page() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -28,6 +32,13 @@ export default function Page() {
   const [diffPair, setDiffPair] = useState<[Workflow, Workflow] | null>(null)
   // FR-4.2 — RightPanel active tab lifted here so the lint banner can flip it.
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('detail')
+  // FR-7.1 — onboarding form state for the zero-projects panel.
+  const [onboardingPath, setOnboardingPath] = useState('')
+  const [onboardingError, setOnboardingError] = useState<string | null>(null)
+  const [onboardingBusy, setOnboardingBusy] = useState(false)
+  // FR-7 — once we've completed at least one workflow load, we know if the active
+  // project's workflows/ directory was empty. Distinguishes "loading" from "empty".
+  const [hasFetchedWorkflows, setHasFetchedWorkflows] = useState(false)
 
   const activeProject = projects.find(p => p.id === activeProjectId)
 
@@ -39,6 +50,12 @@ export default function Page() {
 
   const activeWorkflowHasLintErrors = activeWorkflowLint.some(i => i.severity === 'error')
 
+  // FR-5 — diff between the two pinned workflows. Pure module, recomputed on pair change.
+  const diff = useMemo(() => {
+    if (!diffPair) return null
+    return diffWorkflows(diffPair[0], diffPair[1])
+  }, [diffPair])
+
   useEffect(() => {
     apiListProjects()
       .then(p => {
@@ -48,10 +65,15 @@ export default function Page() {
         }
       })
       .catch(console.error)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (!activeProjectId) return
+    if (!activeProjectId) {
+      setHasFetchedWorkflows(false)
+      return
+    }
+    setHasFetchedWorkflows(false)
     apiListWorkflows(activeProjectId)
       .then(({ local, plugin }) => {
         const all = [...local, ...plugin]
@@ -59,8 +81,13 @@ export default function Page() {
           setActiveWorkflow(all[0])
           setSelectedStepId(null)
         }
+        setHasFetchedWorkflows(true)
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error(err)
+        setHasFetchedWorkflows(true)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId])
 
   const handleSelectWorkflow = (wf: Workflow) => {
@@ -96,6 +123,83 @@ export default function Page() {
     setDiffPair(null)
   }
 
+  // FR-7.1 — onboarding-panel project registration.
+  const handleOnboardingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!onboardingPath.trim() || onboardingBusy) return
+    setOnboardingBusy(true)
+    setOnboardingError(null)
+    try {
+      const p = await apiRegisterProject(onboardingPath.trim())
+      setProjects(prev => (prev.find(x => x.id === p.id) ? prev : [...prev, p]))
+      setActiveProjectId(p.id)
+      setOnboardingPath('')
+    } catch (err) {
+      console.error('Failed to register project', err)
+      setOnboardingError('Could not register that path. Check it exists and is readable.')
+    } finally {
+      setOnboardingBusy(false)
+    }
+  }
+
+  // FR-7.1 — when no projects are registered, show the onboarding panel
+  // INSTEAD OF rendering Sidebar + main content. The sidebar's existing
+  // add-project form is preserved when projects exist (different UX).
+  if (projects.length === 0) {
+    return (
+      <>
+        <Sidebar
+          activeProjectId={null}
+          activeWorkflow={null}
+          projectId={null}
+          selectedForDiff={new Set()}
+          onSelectProject={id => setActiveProjectId(id)}
+          onSelectWorkflow={() => {}}
+          onWorkflowsLoaded={setLoadedWorkflows}
+          onToggleDiffSelection={() => {}}
+          onRequestDiff={() => {}}
+          onClearDiffSelection={() => {}}
+        />
+        <div className="main-content">
+          <div className="onboarding-panel" role="main" aria-labelledby="onboarding-title">
+            <svg className="onboarding-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+            <h2 id="onboarding-title">Add a project to get started</h2>
+            <p className="onboarding-explanation">
+              Add a project path to view its workflows.
+            </p>
+            <form className="onboarding-form" onSubmit={handleOnboardingSubmit}>
+              <input
+                type="text"
+                className="onboarding-input"
+                placeholder="/Users/you/projects/my-app"
+                value={onboardingPath}
+                onChange={e => setOnboardingPath(e.target.value)}
+                aria-label="Absolute path to a project directory"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="onboarding-submit"
+                disabled={onboardingBusy || !onboardingPath.trim()}
+              >
+                {onboardingBusy ? 'Adding…' : 'Add project'}
+              </button>
+            </form>
+            {onboardingError && (
+              <p className="onboarding-error" role="alert">{onboardingError}</p>
+            )}
+            <p className="onboarding-hint">
+              The path should be the root of a repo containing <code>workflows/</code> or
+              <code> plugin-*/</code> directories.
+            </p>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Sidebar
@@ -117,21 +221,14 @@ export default function Page() {
         onClearDiffSelection={handleClearDiffSelection}
       />
       <div className="main-content">
-      {diffPair ? (
-        // FR-5.2 — DiffView placeholder; full component lands when lib/diff.ts ships (T026).
-        <div className="diff-view-placeholder">
-          <div className="flow-header">
-            <div className="flow-header-info">
-              <h2>Diff: {diffPair[0].name} ↔ {diffPair[1].name}</h2>
-              <span className="repo-path">DiffView component coming next commit</span>
-            </div>
-            <div className="meta">
-              <button type="button" className="diff-btn" onClick={handleClearDiffSelection}>
-                Close diff
-              </button>
-            </div>
-          </div>
-        </div>
+      {diffPair && diff ? (
+        // FR-5 — DiffView replaces FlowDiagram + RightPanel.
+        <DiffView
+          left={diffPair[0]}
+          right={diffPair[1]}
+          diff={diff}
+          onClose={handleClearDiffSelection}
+        />
       ) : activeWorkflow ? (
         <>
           <div className="flow-header">
@@ -228,6 +325,29 @@ export default function Page() {
             />
           </div>
         </>
+      ) : hasFetchedWorkflows && loadedWorkflows.length === 0 && activeProject ? (
+        // FR-7.2 — project registered but workflows/ directory missing or empty.
+        <div className="empty-workflows-panel" role="status">
+          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M3 7h18M3 12h18M3 17h18" />
+          </svg>
+          <h2>No workflows discovered</h2>
+          <p>
+            <code>{activeProject.path}</code> has no workflows registered yet.
+          </p>
+          <ul className="empty-workflows-hints">
+            <li>
+              Run <code>/wheel:wheel-init</code> in this project to scaffold a <code>workflows/</code> directory.
+            </li>
+            <li>
+              Or check that <code>{activeProject.path}/workflows/</code> exists and contains <code>.json</code> files.
+            </li>
+            <li>
+              For source-checkout authors: add this project's repo root and we&apos;ll auto-discover sibling
+              <code> plugin-*/</code> directories.
+            </li>
+          </ul>
+        </div>
       ) : (
         <div className="empty-state">
           <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

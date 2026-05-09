@@ -1,0 +1,136 @@
+# impl-shell — agent friction notes
+
+Pipeline: wheel-viewer-definition-quality (build/wheel-viewer-definition-quality-20260509)
+Owner role: impl-shell (T018–T029)
+Filed: 2026-05-09
+
+## What worked well
+
+- **Contracts/interfaces.md was load-bearing context.** Reading it ahead of the
+  "Spec ready" broadcast let me pre-design DiffView's component shape against
+  the exact `WorkflowDiff`/`FieldDiff`/`ModifiedStep` types, so when impl-data-layer
+  shipped `lib/diff.ts` the only integration step was a plain `import`. No
+  re-design loop.
+- **Phase signals via SendMessage to qa-engineer were cheap and high-value.**
+  Sent four fine-grained signals (search+filter, multi-select+DiffView, lint
+  badge, empty-state) so qa-engineer could parallelize screenshot capture
+  against partial deliveries instead of waiting for the full PR.
+- **Plain client-side URL-state via `window.history.replaceState`.** Avoided
+  Next.js 15 `useSearchParams` Suspense boundary requirements by reading
+  `window.location.search` once on mount and writing back via
+  `replaceState`. ~12 lines for shareable `?q=...&types=...` filter links.
+- **State shape lifted to page.tsx for diff/lint/tab.** `selectedForDiff` (Set
+  of workflow keys), `diffPair`, and `rightPanelTab` all live in page.tsx
+  rather than scattered across Sidebar/RightPanel. Made the lint banner →
+  Lint tab flip a one-line setter call instead of imperative ref-passing.
+
+## What was friction
+
+### F-1 — Shared git index between concurrent implementer agents (HIGH PRIORITY)
+
+We are three implementer agents (impl-data-layer, impl-graph, impl-shell) all
+running in the same git checkout against the same `.git/index`. When I ran
+`git add <my-files>`, my staged changes sat in the shared index alongside
+impl-graph's already-staged-but-not-yet-committed FlowDiagram + StepRow +
+WorkflowNode files. impl-graph then ran `git commit` and accidentally bundled
+my T021/T024/T025 work (Sidebar lint badge, RightPanel team-step sections +
+Lint tab) under their commit message subject "feat(viewer): FlowDiagram +
+WorkflowNode + StepRow renderer (T013-T015)".
+
+The commit (5d2473a8) is functionally correct — my files made it to HEAD —
+but the git history is mislabeled and impl-graph's actual file changes ended
+up unstaged in the working tree. Net effect: one commit containing my work
+under another agent's subject; impl-graph's work remained in the working
+tree until they re-committed.
+
+**Mitigations the runtime should consider:**
+- Use `git worktree add` per implementer so each agent has an isolated index.
+- Or have agents `git stash push <my-files>` before working, `git stash pop`
+  before commit, so the index only ever contains the current agent's work.
+- Or surface a "last commit subject doesn't match staged files" warning hook.
+
+For this PR I added a clarifying note in the commit message of the next
+commit covering my T026 (DiffView) + T027(banner) + T028 (empty-state) work.
+The team retro should pick this up as a structural improvement target —
+it's the kind of bug that silently produces wrong-attribution commits and is
+invisible without git-archaeology.
+
+### F-2 — RightPanel quality gate vs spec growth
+
+RightPanel was already at 498 LOC pre-PRD (the original step-list +
+StepDetail in one file). My team-step + Lint tab additions would have pushed
+it past 700 LOC. Extracting `StepDetail` to its own file dropped RightPanel
+to ~280 LOC and StepDetail to ~400 LOC, both comfortably under 500. This
+was the right call but it costs one extra import + one extra file, which a
+size-blind audit could flag as "over-decomposition." If a future PR wants to
+ship even more step-detail field types (e.g. live-state overlays in the
+runtime-ops PRD), StepDetail itself will need a similar split.
+
+### F-3 — DiffView and StepRow's diffStatus prop arrived in the same window
+
+T026 (DiffView) consumed StepRow's new `diffStatus` + `fieldDiff` props,
+which were T015 (impl-graph). I had to verify T015 had landed before
+finishing T026, but the team-lead's spawn brief gave me an explicit fallback
+("Use existing StepRow with new diffStatus prop OR a new DiffStepRow if
+cleaner"). The ordering worked because T015 landed in the same git window;
+if it hadn't, I'd have built a local DiffStepRow inside DiffView. Worth
+noting for future cross-implementer dependencies — keep that fallback in
+the spawn briefs.
+
+### F-4 — `WorkflowDetail.tsx` extraction skipped
+
+T027 told me to "Extend `WorkflowDetail.tsx`" but no such file exists in the
+viewer scaffold. I read this as "create OR inline" and chose to inline the
+lint banner + diff/detail mode switch in page.tsx. page.tsx ended at ~340
+LOC after empty-state UX additions — well under the 500-LOC quality gate.
+The cleaner long-term refactor is to extract WorkflowDetail.tsx as a
+sibling of DiffView; deferring that to a follow-up. The audit may flag this
+as "T027 not at the file the task names" — note the inline implementation
+in page.tsx + this friction entry.
+
+### F-5 — Task numbering drift between team-lead spawn brief and tasks.md
+
+Team-lead's spawn brief had multi-select as T020 ("Sidebar — multi-select
+for diff (FR-5.1)"); tasks.md numbered it T022 with T020 being the
+clear-all + group-counts task. Same FRs in both, just shifted IDs. I
+trusted tasks.md as the source of truth and noted the drift here.
+
+## Coordination
+
+- Sent four phase signals to qa-engineer:
+  1. "Search + filter shipped — AC-5 + AC-6 ready" (commit 385f6822).
+  2. "Multi-select shift-click + (source) tag shipped — AC-9 partial,
+     AC-10 partial" (same commit).
+  3. "Lint badge + Lint tab + team-step sections shipped — AC-7 + AC-8
+     ready" (commit 5d2473a8 — see F-1 about commit-attribution drift).
+  4. "DiffView + empty-state shipped — AC-9 + AC-11 + AC-12 ready"
+     (the commit that ships this friction note).
+- Did not need to coordinate viewer.css collisions with impl-graph — the
+  node-rule vs shell-rule split held. impl-graph added their team-step
+  node colors in the lower section; my shell rules (filter strip, chips,
+  diff layout, onboarding panel, empty-workflows panel, Lint tab,
+  lint banner) clustered in the upper sidebar/right-panel sections.
+
+## Files I shipped
+
+- `plugin-wheel/viewer/src/components/Sidebar.tsx` — search, chips,
+  multi-select, lint badge, (source) tag, diff affordance.
+- `plugin-wheel/viewer/src/components/RightPanel.tsx` — Detail/Lint tabs,
+  jump-to-step, team-step section delegation to StepDetail.
+- `plugin-wheel/viewer/src/components/StepDetail.tsx` (NEW) — extracted
+  from RightPanel; team-create / team-wait / team-delete / teammate
+  detail sections per FR-2.3 / FR-2.4.
+- `plugin-wheel/viewer/src/components/DiffView.tsx` (NEW) — side-by-side
+  step lists with StepRow + diffStatus, summary header, close affordance.
+- `plugin-wheel/viewer/src/app/page.tsx` — orchestrator: diff mode switch,
+  lint banner, onboarding panel (FR-7.1), empty-workflows panel (FR-7.2).
+- `plugin-wheel/viewer/src/styles/viewer.css` — shell rules for filter
+  strip, chips, multi-select, source tag, lint badge, tab strip, lint
+  tab, lint banner, terminal badge, DiffView columns + summary, step-row
+  diff tints, onboarding panel, empty-workflows panel.
+
+## Tasks I marked completed in tasks.md
+
+T018, T019, T020, T021, T022, T023, T024, T025, T026, T028, T027 (banner +
+mode switch — banner inline in page.tsx, see F-4), T029 (CSS rules
+distributed across feature commits, not a separate commit).

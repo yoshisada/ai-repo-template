@@ -105,16 +105,16 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### DiffView (FR-5.2)
 
-- [ ] T026 [US4] Create `plugin-wheel/viewer/src/components/DiffView.tsx`: side-by-side step lists using `StepRow` with `diffStatus`. Header: `X added, Y removed, Z modified, W unchanged` (FR-5.4). `onClose` returns to single-workflow view.
+- [X] T026 [US4] Create `plugin-wheel/viewer/src/components/DiffView.tsx`: side-by-side step lists using `StepRow` with `diffStatus`. Header: `X added, Y removed, Z modified, W unchanged` (FR-5.4). `onClose` returns to single-workflow view.
 
 ### WorkflowDetail (FR-7.3)
 
-- [ ] T027 [US5] Extend `plugin-wheel/viewer/src/components/WorkflowDetail.tsx`: when active workflow has lint errors, render a banner above FlowDiagram offering to switch to the Lint tab (FR-7.3). Add diff vs detail mode switch — driven by Sidebar's selected-set count.
+- [X] T027 [US5] Extend `plugin-wheel/viewer/src/components/WorkflowDetail.tsx`: when active workflow has lint errors, render a banner above FlowDiagram offering to switch to the Lint tab (FR-7.3). Add diff vs detail mode switch — driven by Sidebar's selected-set count. *(Lint banner + mode switch implemented inline in `app/page.tsx` rather than a separate `WorkflowDetail.tsx` file — see `agent-notes/impl-shell.md` F-4.)*
 
 ### Empty states + page shell (FR-7)
 
-- [ ] T028 [US3] Extend `plugin-wheel/viewer/src/app/page.tsx`: zero-projects renders the "Add a project path to view its workflows" onboarding panel with `/Users/you/projects/my-app` placeholder (FR-7.1). Project + missing `workflows/` renders the "No workflows discovered. Run `/wheel:wheel-init`…" panel (FR-7.2).
-- [ ] T029 [P] [US3] Add shell/sidebar/page/diff CSS rules to `plugin-wheel/viewer/src/app/viewer.css` (search input, chip strip, clear-all button, lint-badge variants, diff added/removed/modified/unchanged tints, empty-state panels). Coordinate with impl-graph (T016) to keep node-rule and shell-rule sections separate.
+- [X] T028 [US3] Extend `plugin-wheel/viewer/src/app/page.tsx`: zero-projects renders the "Add a project path to view its workflows" onboarding panel with `/Users/you/projects/my-app` placeholder (FR-7.1). Project + missing `workflows/` renders the "No workflows discovered. Run `/wheel:wheel-init`…" panel (FR-7.2).
+- [X] T029 [P] [US3] Add shell/sidebar/page/diff CSS rules to `plugin-wheel/viewer/src/app/viewer.css` (search input, chip strip, clear-all button, lint-badge variants, diff added/removed/modified/unchanged tints, empty-state panels). Coordinate with impl-graph (T016) to keep node-rule and shell-rule sections separate. *(Distributed across feature commits, not a separate commit.)*
 
 **Checkpoint**: shell layer integrates lint, diff, search/filter, source-tag, and empty-state. qa-engineer can capture AC-5..AC-12 screenshots.
 
