@@ -91,12 +91,12 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Sidebar (FR-3 + FR-4.1 + FR-5.1)
 
-- [ ] T018 [US3] Extend `plugin-wheel/viewer/src/components/Sidebar.tsx`: add `<input type="search">` above the workflow list (FR-3.1, real-time substring filter, case-insensitive).
-- [ ] T019 [US3] Add step-type filter chip strip below search input (FR-3.2). Chips dedupe across all discovered workflows. Click toggles filter. Multi-chip filters are AND.
-- [ ] T020 [US3] Compose search + chip filters as intersect; render "clear all" button when ≥1 filter is active (FR-3.3). Group counts reflect post-filter visible counts: `kiln (12 of 27)` (FR-3.4).
+- [X] T018 [US3] Extend `plugin-wheel/viewer/src/components/Sidebar.tsx`: add `<input type="search">` above the workflow list (FR-3.1, real-time substring filter, case-insensitive).
+- [X] T019 [US3] Add step-type filter chip strip below search input (FR-3.2). Chips dedupe across all discovered workflows. Click toggles filter. Multi-chip filters are AND.
+- [X] T020 [US3] Compose search + chip filters as intersect; render "clear all" button when ≥1 filter is active (FR-3.3). Group counts reflect post-filter visible counts: `kiln (12 of 27)` (FR-3.4).
 - [ ] T021 [US5] Render lint badge next to workflow name: green check (clean), yellow triangle (warnings), red X (errors). Consume `workflowLintBadge` from `lib/lint` (FR-4.1).
-- [ ] T022 [US4] Add shift-click multi-select for workflow rows. Track selected set. With exactly two selected, expose a "Diff" affordance (FR-5.1).
-- [ ] T023 [US2] Render `(source)` suffix tag on workflow rows when `discoveryMode === 'source'` (FR-6.3). Source AND installed both visible — group by plugin name, distinguish by tag.
+- [X] T022 [US4] Add shift-click multi-select for workflow rows. Track selected set. With exactly two selected, expose a "Diff" affordance (FR-5.1).
+- [X] T023 [US2] Render `(source)` suffix tag on workflow rows when `discoveryMode === 'source'` (FR-6.3). Source AND installed both visible — group by plugin name, distinguish by tag.
 
 ### RightPanel (FR-2.4 + FR-4.2 + FR-7.3)
 
