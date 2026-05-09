@@ -71,8 +71,13 @@ export default function RightPanel({
   onToggleExpand,
   tab,
   onTabChange,
-  lintIssues,
+  lintIssues = [],
 }: RightPanelProps) {
+  // FR-4.2 — defensive guard: parent should always pass an array, but during
+  // build-order races (lint module ships AFTER UI consumer commit) `lintIssues`
+  // could land as undefined. Coalesce + use a safe array reference everywhere.
+  // See specs/wheel-viewer-definition-quality/agent-notes/impl-shell.md (F-6).
+  const safeLintIssues = lintIssues ?? []
   const selectedStep = selectedStepId
     ? workflow.steps.find((s: unknown) => (s as { id?: string }).id === selectedStepId) as Step | undefined
     : null
@@ -144,9 +149,9 @@ export default function RightPanel({
         onClick={() => onTabChange('lint')}
       >
         Lint
-        {lintIssues.length > 0 && (
-          <span className={`tab-badge ${lintIssues.some(i => i.severity === 'error') ? 'error' : 'warning'}`}>
-            {lintIssues.length}
+        {safeLintIssues.length > 0 && (
+          <span className={`tab-badge ${safeLintIssues.some(i => i.severity === 'error') ? 'error' : 'warning'}`}>
+            {safeLintIssues.length}
           </span>
         )}
       </button>
@@ -159,13 +164,13 @@ export default function RightPanel({
       <div className="right-panel">
         {tabStrip}
         <div className="lint-tab">
-          {lintIssues.length === 0 ? (
+          {safeLintIssues.length === 0 ? (
             <div className="lint-empty">
               <p>Lint clean — no issues found.</p>
             </div>
           ) : (
             <ul className="lint-issue-list" role="list">
-              {lintIssues.map((issue, i) => (
+              {safeLintIssues.map((issue, i) => (
                 <li key={`${issue.ruleId}-${issue.stepId}-${i}`} className={`lint-issue ${issue.severity}`}>
                   <span className={`lint-severity ${issue.severity}`} aria-label={issue.severity}>
                     {severityGlyph(issue.severity)}
@@ -228,7 +233,13 @@ export default function RightPanel({
           const s = step as { id?: string; type?: string; description?: string; instruction?: string; command?: string; prompt?: string; workflow_name?: string; workflow?: string }
           const stepId = s.id || `step-${i}`
           const stepType = s.type || 'command'
-          const isExpandable = stepType === 'workflow' && (s.workflow_name || s.workflow)
+          // FR-1.6 / FR-2.4 — sub-workflow expansion gate. `teammate` steps
+          // also point at a sub-workflow via the `workflow` field (FR-2.3),
+          // so they MUST surface the +/− affordance too. The auto-expand
+          // path in app/page.tsx mirrors this widening.
+          const isExpandable =
+            (stepType === 'workflow' || stepType === 'teammate') &&
+            (s.workflow_name || s.workflow)
           const isExpanded = expandedWorkflows.has(stepId)
           const subWf = expandedWorkflows.get(stepId)
 

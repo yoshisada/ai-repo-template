@@ -295,7 +295,10 @@ export default function Page() {
                 // Auto-expand sub-workflow on double-click if not already expanded
                 if (!expandedWorkflows.has(id)) {
                   const step = activeWorkflow.steps.find((s: unknown) => (s as { id?: string }).id === id) as { type?: string; workflow_name?: string; workflow?: string } | undefined
-                  if (step?.type === 'workflow' && (step.workflow_name || step.workflow)) {
+                  // FR-1.6 / FR-2.4 — `teammate` steps reference a sub-workflow
+                  // via `workflow` and must auto-expand alongside `workflow`-typed
+                  // steps. Mirrors RightPanel.tsx's isExpandable widening.
+                  if ((step?.type === 'workflow' || step?.type === 'teammate') && (step.workflow_name || step.workflow)) {
                     const wfName = (step.workflow_name || step.workflow) as string
                     apiGetWorkflow(wfName, activeProjectId ?? undefined).then(subWf => {
                       if (subWf) {

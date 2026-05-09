@@ -88,6 +88,61 @@ sibling of DiffView; deferring that to a follow-up. The audit may flag this
 as "T027 not at the file the task names" — note the inline implementation
 in page.tsx + this friction entry.
 
+### F-6 — Build-order race produced runtime crash on `lintIssues.length`
+
+qa-engineer caught a transient `TypeError: Cannot read properties of
+undefined (reading 'length')` at `RightPanel.tsx:147` during the AC-5
+capture pass. Cause: my Sidebar/RightPanel commit (385f6822 + 5d2473a8)
+shipped BEFORE impl-data-layer's lint module commit (2f8afdb2). When
+qa-engineer first opened the page mid-build, `lintWorkflow`'s import
+wasn't resolvable yet → `lintIssues` arrived as undefined → `.length`
+crashed.
+
+The error self-resolved when 2f8afdb2 landed, but I added defensive
+coalescing as cheap insurance:
+
+- `lintIssues = []` destructure default
+- Local `safeLintIssues = lintIssues ?? []` reference used at all three
+  call sites in RightPanel.tsx (tab-badge, lint-tab body empty check,
+  lint-issue map).
+
+Belt-and-suspenders for both:
+1. Future build-order races where the lint module ships after a UI
+   consumer commit.
+2. Any future code path where `lintWorkflow` could throw or return
+   undefined (it shouldn't per contracts, but the prop type still
+   declares non-undefined).
+
+Filed in this iteration as polish, not a bug — qa-engineer didn't
+escalate because the runtime symptom was already gone by AC-7 capture.
+
+### F-7 — AC-2 blocker: teammate steps weren't expandable
+
+qa-engineer flagged AC-2 capture (FR-1.6 + spec acceptance scenario
+"the analyst expands the worker-1 teammate's sub-workflow link") was
+blocked because the +/− affordance gate excluded `teammate`-typed steps.
+
+Two call sites needed widening:
+- `RightPanel.tsx` — `isExpandable` in step-list rendering: now
+  `(stepType === 'workflow' || stepType === 'teammate') && (s.workflow_name || s.workflow)`.
+- `app/page.tsx` — `onSelectStep` auto-expand path: same widening.
+
+Also added an "Expand teammate sub-workflow" button inside StepDetail's
+teammate detail section so analysts can drill in from the right-panel
+detail view, not just the step-list +/− affordance.
+
+Root cause: the step-list `isExpandable` check was inherited from the
+pre-PRD scaffold which only knew about `workflow`-typed steps. The
+PRD's FR-2.x extensions added new step types but the expand gate was
+never widened. The fix is a one-line widening in two places + the
+StepDetail addition. AC-2 should now be capturable.
+
+This is the third instance in this PR of "old narrow check needs
+widening for new step types" — also visible in StepDetail's body-field
+sections where `workflow` and `teammate` overlapped. Worth a retro
+note: when a `StepType` union is widened, every callsite that
+type-narrows on the old union members is a candidate for a hidden bug.
+
 ### F-5 — Task numbering drift between team-lead spawn brief and tasks.md
 
 Team-lead's spawn brief had multi-select as T020 ("Sidebar — multi-select

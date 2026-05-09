@@ -139,6 +139,28 @@ export default function StepDetail({
               </div>
             </div>
           )}
+          {/* FR-1.6 / FR-2.4 — teammate sub-workflow expansion: matches the
+             behavior of the `workflow` step type so analysts can drill into
+             a teammate's inlined sub-DAG from the detail view, not just the
+             step-list +/− affordance. */}
+          {expandedWorkflows.has(stepId) && (
+            <div className="step-field">
+              <div className="step-field-label">expanded workflow</div>
+              <div className="step-field-value nested-steps">
+                <em>Expanded inline - see flow diagram</em>
+              </div>
+            </div>
+          )}
+          {!expandedWorkflows.has(stepId) && step.workflow && (
+            <div className="step-field">
+              <button
+                className="expand-btn"
+                onClick={() => onToggleExpand(stepId, {} as Workflow)}
+              >
+                + Expand teammate sub-workflow
+              </button>
+            </div>
+          )}
         </>
       )}
 
