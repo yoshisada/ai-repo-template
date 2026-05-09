@@ -84,6 +84,38 @@ describe('handleDeactivate FR-008 A1 parity', () => {
     const stopped = await fs.readdir('.wheel/history/stopped');
     expect(stopped.length).toBe(1);
   });
+
+  // Canonical archive naming — assertion-discoverability invariant.
+  // Downstream test fixtures (e.g. bifrost-minimax-team-partial-failure
+  // assertions.sh) glob for `<workflow_name>-*.json` to locate archives
+  // regardless of bucket. Pre-fix, handle-deactivate's archiveOne wrote
+  // raw `state_<id>-<ts>.json` filenames and those globs returned empty,
+  // causing assertions to FAIL even when the workflow had archived
+  // correctly. Verify both --all (multi-file) and self-only paths
+  // emit the workflow-name-prefixed pattern.
+  it('archive filenames use canonical <workflow_name>-<ts>-<state_id>.json pattern', async () => {
+    // Custom writeStateFile variant that lets us pin workflow_name —
+    // the helper above hardcodes 'wf', which is fine for count
+    // assertions but not for naming-pattern verification.
+    const sf = path.join('.wheel', 'state_naming.json');
+    await fs.writeFile(sf, JSON.stringify({
+      workflow_name: 'team-partial-failure-test',
+      cursor: 0,
+      steps: [],
+      owner_session_id: '',
+      owner_agent_id: '',
+      parent_workflow: null,
+      teams: {},
+    }));
+
+    await handleDeactivate('/usr/local/bin/deactivate.sh --all', {});
+
+    const archived = await fs.readdir('.wheel/history/stopped');
+    expect(archived.length).toBe(1);
+    const fname = archived[0];
+    // Pattern: workflow_name + '-' + 8-digit-date + '-' + 6-digit-time + '-' + state_id + '.json'
+    expect(fname).toMatch(/^team-partial-failure-test-\d{8}-\d{6}-naming\.json$/);
+  });
 });
 
 // P1 round-3 regression — handleNormalPath calls maybeArchiveAfterActivation

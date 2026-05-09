@@ -409,7 +409,37 @@ async function maybeAdvanceParentCompositionStep(parentPath: string): Promise<vo
   } catch { /* parent missing/unreadable — already logged above */ }
 }
 
-async function renameToHistory(
+/**
+ * Canonical archive filename pattern:
+ *   `<workflow_name>-<compact_ts>-<state_id>.json`
+ *
+ * Used by every archive code path (engine success/failure path AND
+ * handle-deactivate's stopped path). Centralizing the naming means
+ * downstream tooling — assertions, history scanners, observability
+ * dashboards — can use a single workflow-name-prefixed glob to find
+ * a workflow's archive regardless of which path archived it.
+ *
+ * Pre-fix history: `archiveWorkflow` (engine) used this pattern, but
+ * `handle-deactivate.archiveOne` used `<state-file-basename>-<ts>.json`,
+ * meaning a workflow that ended via /wheel:wheel-stop OR via natural
+ * Stop-hook (orchestrator retry-exhaustion) couldn't be located by
+ * `find .wheel/history -name '<workflow_name>-*.json'`. The
+ * bifrost-minimax-team-partial-failure assertion hit this on
+ * 2026-05-08 — the parent workflow archived to stopped/ with the
+ * raw state-file name and the assertion grep returned empty.
+ *
+ * Inputs:
+ *   - stateFile: absolute or relative path to the live state file
+ *     about to be archived. Used to extract the state-id suffix.
+ *   - child: parsed state contents — supplies workflow_name.
+ *   - bucket: target history bucket ('success' | 'failure' | 'stopped').
+ *
+ * Returns: target archive path (caller is responsible for the
+ * actual move/copy).
+ *
+ * Side effect: ensures the bucket directory exists (mkdirp).
+ */
+export async function buildArchiveTargetPath(
   stateFile: string,
   child: WheelState,
   bucket: 'success' | 'failure' | 'stopped',
@@ -422,7 +452,15 @@ async function renameToHistory(
   const compactTs = ts.replace(/Z$/, '');
   const stateBasename = path.basename(stateFile, '.json');
   const stateId = stateBasename.replace(/^state_/, '');
-  const target = path.join(archiveDir, `${workflowName}-${compactTs}-${stateId}.json`);
+  return path.join(archiveDir, `${workflowName}-${compactTs}-${stateId}.json`);
+}
+
+async function renameToHistory(
+  stateFile: string,
+  child: WheelState,
+  bucket: 'success' | 'failure' | 'stopped',
+): Promise<string> {
+  const target = await buildArchiveTargetPath(stateFile, child, bucket);
 
   try {
     await fs.rename(stateFile, target);

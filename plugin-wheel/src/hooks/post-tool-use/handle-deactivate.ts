@@ -18,7 +18,9 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { listLiveStateFiles } from '../../shared/state.js';
+import type { WheelState } from '../../shared/state.js';
 import type { HookInput, HookOutput } from '../../lib/dispatch.js';
+import { buildArchiveTargetPath, runArchiveFinalizers } from '../../lib/state-archive.js';
 
 export async function handleDeactivate(
   command: string,
@@ -67,9 +69,15 @@ function parseDeactivateArg(command: string): string {
 }
 
 async function archiveOne(sf: string, stoppedDir: string): Promise<void> {
-  const ts = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*Z$/, '').replace('T', '-');
-  const fname = path.basename(sf, '.json');
-  const target = path.join(stoppedDir, `${fname}-${ts}.json`);
+  // Read child state once — needed for both the canonical naming
+  // (workflow_name → archive prefix) and the finalizer dispatch.
+  // Tolerate missing/unreadable: fall back to legacy raw-state-file
+  // naming so the file at least gets archived to stopped/ rather
+  // than leaking as a live state file.
+  let child: WheelState | null = null;
+  try {
+    child = JSON.parse(await fs.readFile(sf, 'utf-8')) as WheelState;
+  } catch { /* non-fatal */ }
 
   // Run always-on finalizers (team-config cleanup, etc.) BEFORE the
   // copy+unlink. handleDeactivate uses copyFile+unlink rather than
@@ -77,11 +85,32 @@ async function archiveOne(sf: string, stoppedDir: string): Promise<void> {
   // runArchiveFinalizers directly here. Without this, /wheel:wheel-
   // stop leaves orphaned `~/.claude/teams/<name>/` configs behind
   // and breaks the next run of the same workflow.
-  try {
-    const child = JSON.parse(await fs.readFile(sf, 'utf-8'));
-    const archiveModule = await import('../../lib/state-archive.js');
-    await archiveModule.runArchiveFinalizers(child);
-  } catch { /* non-fatal — finalizer failure must not block archive */ }
+  if (child) {
+    try {
+      await runArchiveFinalizers(child);
+    } catch { /* non-fatal — finalizer failure must not block archive */ }
+  }
+
+  // Canonical archive naming — `<workflow_name>-<compact_ts>-<state_id>.json`,
+  // matching archiveWorkflow's renameToHistory output via the shared
+  // buildArchiveTargetPath helper. Without this, downstream tooling
+  // (assertions, history scanners) that globs for
+  // `<workflow_name>-*.json` can't locate workflows that ended via
+  // the deactivate path. (Verified failure mode: bifrost-minimax-
+  // team-partial-failure on 2026-05-08, where the parent state
+  // archived as `state_85fcf916-…json` instead of
+  // `team-partial-failure-test-…json`.)
+  let target: string;
+  if (child) {
+    target = await buildArchiveTargetPath(sf, child, 'stopped');
+  } else {
+    // Legacy fallback: state file unreadable → preserve archive
+    // operation but with raw state-file naming. This path is
+    // best-effort recovery, not the canonical one.
+    const ts = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*Z$/, '').replace('T', '-');
+    const fname = path.basename(sf, '.json');
+    target = path.join(stoppedDir, `${fname}-${ts}.json`);
+  }
 
   try {
     await fs.copyFile(sf, target);
