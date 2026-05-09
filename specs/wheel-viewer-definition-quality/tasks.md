@@ -72,10 +72,10 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### FlowDiagram + WorkflowNode rewrite
 
-- [ ] T013 [US1] Rewrite `plugin-wheel/viewer/src/components/FlowDiagram.tsx`: replace `buildGraphLayout` with `buildLayout(workflow, expandedWorkflows)`. Pass through React Flow nodes/edges from the result. Preserve existing `expanded-` dashed-cyan edge handling.
-- [ ] T014 [P] [US1] Extend `plugin-wheel/viewer/src/components/WorkflowNode.tsx`: add icons (`team-create: ⊕`, `team-wait: ⊞`, `team-delete: ⊖`, `teammate: ◐`) + colors (team-color-family from existing palette) + body fields per type (FR-2.2, FR-2.3).
-- [ ] T015 [P] [US4] Extend `plugin-wheel/viewer/src/components/StepRow.tsx`: add `diffStatus?` and `fieldDiff?` props (FR-5.2). Render diff highlighting (added/removed/modified/unchanged) + expand-on-click for fieldDiff. Default behavior unchanged when props omitted.
-- [ ] T016 [P] [US1] Add team-step CSS rules to `plugin-wheel/viewer/src/app/viewer.css`: team-* node colors, fan-in edge styling, expanded sub-DAG cluster boundaries. Coordinate with impl-shell to avoid clobbering shell rules.
+- [X] T013 [US1] Rewrite `plugin-wheel/viewer/src/components/FlowDiagram.tsx`: replace `buildGraphLayout` with `buildLayout(workflow, expandedWorkflows)`. Pass through React Flow nodes/edges from the result. Preserve existing `expanded-` dashed-cyan edge handling.
+- [X] T014 [P] [US1] Extend `plugin-wheel/viewer/src/components/WorkflowNode.tsx`: add icons (`team-create: ⊕`, `team-wait: ⊞`, `team-delete: ⊖`, `teammate: ◐`) + colors (team-color-family from existing palette) + body fields per type (FR-2.2, FR-2.3).
+- [X] T015 [P] [US4] Extend `plugin-wheel/viewer/src/components/StepRow.tsx`: add `diffStatus?` and `fieldDiff?` props (FR-5.2). Render diff highlighting (added/removed/modified/unchanged) + expand-on-click for fieldDiff. Default behavior unchanged when props omitted.
+- [X] T016 [P] [US1] Add team-step CSS rules to `plugin-wheel/viewer/src/app/viewer.css`: team-* node colors, fan-in edge styling, expanded sub-DAG cluster boundaries. Coordinate with impl-shell to avoid clobbering shell rules.
 
 ### Hygiene (FR-8)
 
@@ -94,14 +94,14 @@ description: "Task list for wheel-viewer-definition-quality"
 - [X] T018 [US3] Extend `plugin-wheel/viewer/src/components/Sidebar.tsx`: add `<input type="search">` above the workflow list (FR-3.1, real-time substring filter, case-insensitive).
 - [X] T019 [US3] Add step-type filter chip strip below search input (FR-3.2). Chips dedupe across all discovered workflows. Click toggles filter. Multi-chip filters are AND.
 - [X] T020 [US3] Compose search + chip filters as intersect; render "clear all" button when ≥1 filter is active (FR-3.3). Group counts reflect post-filter visible counts: `kiln (12 of 27)` (FR-3.4).
-- [ ] T021 [US5] Render lint badge next to workflow name: green check (clean), yellow triangle (warnings), red X (errors). Consume `workflowLintBadge` from `lib/lint` (FR-4.1).
+- [X] T021 [US5] Render lint badge next to workflow name: green check (clean), yellow triangle (warnings), red X (errors). Consume `workflowLintBadge` from `lib/lint` (FR-4.1).
 - [X] T022 [US4] Add shift-click multi-select for workflow rows. Track selected set. With exactly two selected, expose a "Diff" affordance (FR-5.1).
 - [X] T023 [US2] Render `(source)` suffix tag on workflow rows when `discoveryMode === 'source'` (FR-6.3). Source AND installed both visible — group by plugin name, distinguish by tag.
 
 ### RightPanel (FR-2.4 + FR-4.2 + FR-7.3)
 
-- [ ] T024 [US1] Extend `plugin-wheel/viewer/src/components/RightPanel.tsx`: render type-specific sections for `team-create` / `team-wait` / `team-delete` / `teammate` (FR-2.3, FR-2.4). Show full `assign` JSON for teammate. Show inline `workflow_definition` when present.
-- [ ] T025 [US5] Add Lint tab to RightPanel (alongside Detail). Render LintIssue[] rows: severity icon, step ID, message, "jump to step" affordance (FR-4.2). Empty state: "No lint issues."
+- [X] T024 [US1] Extend `plugin-wheel/viewer/src/components/RightPanel.tsx`: render type-specific sections for `team-create` / `team-wait` / `team-delete` / `teammate` (FR-2.3, FR-2.4). Show full `assign` JSON for teammate. Show inline `workflow_definition` when present.
+- [X] T025 [US5] Add Lint tab to RightPanel (alongside Detail). Render LintIssue[] rows: severity icon, step ID, message, "jump to step" affordance (FR-4.2). Empty state: "No lint issues."
 
 ### DiffView (FR-5.2)
 

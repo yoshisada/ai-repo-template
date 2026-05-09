@@ -5,13 +5,14 @@
 //   - Owns diffPair → when set, renders DiffView in place of FlowDiagram + RightPanel.
 //   - Tracks loaded workflows for empty-state UX (FR-7.2 — "no workflows discovered").
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import Sidebar, { workflowKey } from '@/components/Sidebar'
 import FlowDiagram from '@/components/FlowDiagram'
-import RightPanel from '@/components/RightPanel'
+import RightPanel, { type RightPanelTab } from '@/components/RightPanel'
 import type { Project, Workflow } from '@/lib/types'
 import { apiListProjects, apiListWorkflows, apiGetWorkflow } from '@/lib/api'
+import { lintWorkflow } from '@/lib/lint'
 
 export default function Page() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -25,8 +26,18 @@ export default function Page() {
   const [selectedForDiff, setSelectedForDiff] = useState<Set<string>>(new Set())
   // FR-5 — when set, page renders DiffView in place of FlowDiagram + RightPanel.
   const [diffPair, setDiffPair] = useState<[Workflow, Workflow] | null>(null)
+  // FR-4.2 — RightPanel active tab lifted here so the lint banner can flip it.
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('detail')
 
   const activeProject = projects.find(p => p.id === activeProjectId)
+
+  // FR-4 — compute lint issues for the active workflow once. Pure module, cheap.
+  const activeWorkflowLint = useMemo(() => {
+    if (!activeWorkflow) return []
+    return lintWorkflow(activeWorkflow)
+  }, [activeWorkflow])
+
+  const activeWorkflowHasLintErrors = activeWorkflowLint.some(i => i.severity === 'error')
 
   useEffect(() => {
     apiListProjects()
@@ -57,6 +68,8 @@ export default function Page() {
     setActiveWorkflow(wf)
     // Selecting a workflow exits diff mode (FR-5).
     setDiffPair(null)
+    // Reset to Detail tab — the new workflow's Lint state is fresh.
+    setRightPanelTab('detail')
   }
 
   // FR-5.1 — toggle a workflow into/out of the diff selection.
@@ -144,6 +157,25 @@ export default function Page() {
             </div>
           </div>
 
+          {/* FR-7.3 — lint-error banner above FlowDiagram offering to switch to Lint tab. */}
+          {activeWorkflowHasLintErrors && rightPanelTab !== 'lint' && (
+            <div className="lint-banner" role="alert">
+              <span className="lint-banner-icon" aria-hidden="true">✕</span>
+              <span className="lint-banner-message">
+                {activeWorkflowLint.filter(i => i.severity === 'error').length} lint error
+                {activeWorkflowLint.filter(i => i.severity === 'error').length === 1 ? '' : 's'}
+                {' '}detected on this workflow.
+              </span>
+              <button
+                type="button"
+                className="lint-banner-action"
+                onClick={() => setRightPanelTab('lint')}
+              >
+                View in Lint tab →
+              </button>
+            </div>
+          )}
+
           <div className="content-area">
             <ReactFlowProvider>
               <FlowDiagram
@@ -158,6 +190,9 @@ export default function Page() {
               workflow={activeWorkflow}
               projectId={activeProjectId}
               selectedStepId={selectedStepId}
+              tab={rightPanelTab}
+              onTabChange={setRightPanelTab}
+              lintIssues={activeWorkflowLint}
               onSelectStep={(id) => {
                 setSelectedStepId(id)
                 // Auto-expand sub-workflow on double-click if not already expanded

@@ -512,6 +512,34 @@ html, body {
   letter-spacing: 0.02em;
 }
 
+/* FR-4.1 — per-workflow lint badge: green check (clean) / yellow triangle (warnings) / red X (errors). */
+.workflow-item .lint-badge {
+  font-size: 10px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.workflow-item .lint-badge.clean {
+  color: var(--accent-green);
+  background: var(--glow-green);
+}
+
+.workflow-item .lint-badge.warning {
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.workflow-item .lint-badge.error {
+  color: var(--accent-red);
+  background: rgba(248, 81, 73, 0.15);
+}
+
 /* Main content */
 .main-content {
   flex: 1;
@@ -661,6 +689,254 @@ html, body {
 .right-panel .back-btn::before {
   content: '←';
   font-size: 14px;
+}
+
+/* ============================================================
+ * FR-4.2 — RightPanel tab strip: Detail | Lint.
+ * ============================================================ */
+
+.right-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.right-panel-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.right-panel-tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.right-panel-tab.active {
+  color: var(--accent-cyan);
+  border-bottom-color: var(--accent-cyan);
+}
+
+.right-panel-tab .tab-badge {
+  display: inline-block;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  padding: 0 4px;
+}
+
+.right-panel-tab .tab-badge.error {
+  background: var(--accent-red);
+  color: var(--bg);
+}
+
+.right-panel-tab .tab-badge.warning {
+  background: var(--accent-amber);
+  color: var(--bg);
+}
+
+/* ============================================================
+ * FR-4.2 — Lint tab body.
+ * ============================================================ */
+
+.lint-tab {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.lint-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--accent-green);
+  font-size: 11px;
+}
+
+.lint-empty p {
+  margin: 0;
+}
+
+.lint-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lint-issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lint-issue.error {
+  background: rgba(248, 81, 73, 0.05);
+  border-left: 2px solid var(--accent-red);
+}
+
+.lint-issue.warning {
+  background: rgba(245, 158, 11, 0.05);
+  border-left: 2px solid var(--accent-amber);
+}
+
+.lint-severity {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.lint-severity.error {
+  background: var(--accent-red);
+  color: var(--bg);
+}
+
+.lint-severity.warning {
+  background: var(--accent-amber);
+  color: var(--bg);
+}
+
+.lint-issue-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.lint-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.lint-rule-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.lint-step-jump {
+  background: transparent;
+  border: 1px dashed var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.lint-step-jump:hover {
+  background: var(--accent-cyan);
+  color: var(--bg);
+}
+
+.lint-step-id.workflow-level {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.lint-message {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* ============================================================
+ * FR-7.3 — lint-error banner above FlowDiagram.
+ * ============================================================ */
+
+.lint-banner {
+  padding: 10px 16px;
+  background: rgba(248, 81, 73, 0.10);
+  border-bottom: 1px solid var(--accent-red);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.lint-banner-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--accent-red);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.lint-banner-message {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.lint-banner-action {
+  background: transparent;
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.lint-banner-action:hover {
+  background: var(--accent-red);
+  color: var(--bg);
+}
+
+/* ============================================================
+ * FR-2.3 — terminal badge for team-delete step detail.
+ * ============================================================ */
+
+.terminal-badge {
+  display: inline-block;
+  background: var(--accent-amber);
+  color: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .right-panel-header {
@@ -826,6 +1102,44 @@ html, body {
   color: var(--muted);
 }
 
+/* FR-2.2 — team-step badges share a color family (cyan/blue) distinct from agent/command/workflow.
+ * These rules apply to RightPanel step list + step-detail badges (shell-side rules).
+ * Node-level styling is owned by impl-graph in WorkflowNode.tsx + viewer.css node-rule sections. */
+.step-type-badge.team-create {
+  background: var(--accent-cyan);
+  color: var(--bg);
+}
+
+.step-type-badge.team-wait {
+  background: #0ea5e9;
+  color: var(--bg);
+}
+
+.step-type-badge.team-delete {
+  background: #0369a1;
+  color: var(--bg);
+}
+
+.step-type-badge.teammate {
+  background: #06b6d4;
+  color: var(--bg);
+}
+
+.step-type-badge.loop {
+  background: #ec4899;
+  color: var(--bg);
+}
+
+.step-type-badge.parallel {
+  background: #06b6d4;
+  color: var(--bg);
+}
+
+.step-type-badge.approval {
+  background: #8b5cf6;
+  color: var(--bg);
+}
+
 .expand-btn {
   width: 22px;
   height: 22px;
@@ -976,6 +1290,27 @@ html, body {
 
 .step-detail-type.approval {
   background: #8b5cf6;
+  color: var(--bg);
+}
+
+/* FR-2.2 — team-step detail-type pills (shell-side; matches step-list badges). */
+.step-detail-type.team-create {
+  background: var(--accent-cyan);
+  color: var(--bg);
+}
+
+.step-detail-type.team-wait {
+  background: #0ea5e9;
+  color: var(--bg);
+}
+
+.step-detail-type.team-delete {
+  background: #0369a1;
+  color: var(--bg);
+}
+
+.step-detail-type.teammate {
+  background: #06b6d4;
   color: var(--bg);
 }
 
@@ -1170,6 +1505,235 @@ html, body {
 .node-tag.if-nonzero {
   background: rgba(245, 158, 11, 0.25);
   color: var(--accent-amber);
+}
+
+.node-tag.terminal {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--accent-red);
+}
+
+/* === FR-2.2: Team-step node color family ===
+   Cyan/blue family — distinct from agent purple, command green, branch amber.
+   Loop pink (#ec4899) and parallel cyan-teal (#06b6d4) already defined upstream
+   (workflow-node.loop / workflow-node.parallel).
+*/
+
+.workflow-node.team-create {
+  border-color: rgba(14, 165, 233, 0.55);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.18);
+}
+
+.workflow-node.team-wait {
+  border-color: rgba(14, 165, 233, 0.7);
+  box-shadow: 0 0 14px rgba(14, 165, 233, 0.22);
+}
+
+.workflow-node.team-delete {
+  border-color: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.14);
+  opacity: 0.95;
+}
+
+.workflow-node.teammate {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.18);
+}
+
+/* FR-2.2 — type-icon palette for the four team primitives. */
+.node-type-icon.team-create {
+  background: #0ea5e9;
+  color: var(--bg);
+}
+
+.node-type-icon.team-wait {
+  background: #0ea5e9;
+  color: var(--bg);
+}
+
+.node-type-icon.team-delete {
+  background: #0369a1;
+  color: var(--bg);
+}
+
+.node-type-icon.teammate {
+  background: #22d3ee;
+  color: var(--bg);
+}
+
+.node-type-icon.loop {
+  background: #ec4899;
+  color: var(--bg);
+}
+
+.node-type-icon.parallel {
+  background: #06b6d4;
+  color: var(--bg);
+}
+
+.node-type-icon.approval {
+  background: #8b5cf6;
+  color: var(--bg);
+}
+
+/* node-tag matches each color so the type chip reads consistently. */
+.node-tag.team-create,
+.node-tag.team-wait {
+  background: rgba(14, 165, 233, 0.18);
+  color: #38bdf8;
+}
+
+.node-tag.team-delete {
+  background: rgba(3, 105, 161, 0.22);
+  color: #7dd3fc;
+}
+
+.node-tag.teammate {
+  background: rgba(34, 211, 238, 0.18);
+  color: #67e8f9;
+}
+
+.node-tag.loop {
+  background: rgba(236, 72, 153, 0.18);
+  color: #f472b6;
+}
+
+.node-tag.parallel {
+  background: rgba(6, 182, 212, 0.18);
+  color: #67e8f9;
+}
+
+.node-tag.approval {
+  background: rgba(139, 92, 246, 0.18);
+  color: #c4b5fd;
+}
+
+/* FR-2.3 — body field rendering for team primitives. */
+.node-team-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 10px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-team-label {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.node-team-value {
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* FR-1.7 — fan-in edge styling (rendered via inline styles in FlowDiagram,
+   but a class hook is provided here so future selectors can target it). */
+.react-flow__edge-team-fan-in .react-flow__edge-path {
+  stroke: #0ea5e9;
+}
+
+/* FR-1.6 — expanded sub-DAG cluster boundary (visual hint when nodes carry
+   data.isSubDAGChild === true). The renderer applies the dashed-cyan edge
+   styling per-edge; this rule adds a subtle node-edge tint. */
+.workflow-node.sub-dag-child {
+  border-style: dashed;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+/* FR-5.2 — diff-status row tints for StepRow inside DiffView. Default
+   styling unchanged when diffStatus is omitted. */
+.step-row.diff-added {
+  background: rgba(63, 185, 80, 0.08);
+  border-left: 2px solid var(--accent-green);
+}
+
+.step-row.diff-removed {
+  background: rgba(248, 81, 73, 0.08);
+  border-left: 2px solid var(--accent-red);
+}
+
+.step-row.diff-modified {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 2px solid var(--accent-amber);
+}
+
+.step-row.diff-unchanged {
+  opacity: 0.6;
+}
+
+.step-diff-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+
+.step-diff-badge.diff-added {
+  background: var(--glow-green);
+  color: var(--accent-green);
+}
+
+.step-diff-badge.diff-removed {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--accent-red);
+}
+
+.step-diff-badge.diff-modified {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+
+.step-diff-badge.diff-unchanged {
+  background: var(--border);
+  color: var(--muted);
+}
+
+.step-field-diff {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-field-diff li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  flex-wrap: wrap;
+}
+
+.step-field-diff-path {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.step-field-diff-arrow {
+  color: var(--muted);
+}
+
+.step-field-diff-left {
+  color: var(--accent-red);
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.step-field-diff-right {
+  color: var(--accent-green);
 }
 
 /* Edge styles */

@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import type { Project, Workflow, WorkflowsResponse, WorkflowGroup } from '@/lib/types'
+import type { LintBadge } from '@/lib/lint'
+import { lintWorkflow, workflowLintBadge } from '@/lib/lint'
 import { apiListProjects, apiRegisterProject, apiUnregisterProject, apiListWorkflows } from '@/lib/api'
 
 interface SidebarProps {
@@ -161,6 +163,26 @@ export default function Sidebar({
     () => collectStepTypes([...workflows.local, ...workflows.plugin]),
     [workflows],
   )
+
+  // FR-4.1 — compute lint badge per workflow at load time. Pure module, cheap.
+  // Lint runs without LintContext here — L-007 (requires_plugins ref check) is
+  // a warning rule that stays silent without context, which is the correct
+  // behavior at sidebar-render time (the registry isn't loaded into the client).
+  const lintBadgeByKey = useMemo(() => {
+    const map = new Map<string, LintBadge>()
+    const all = [...workflows.local, ...workflows.plugin]
+    for (const w of all) {
+      try {
+        const issues = lintWorkflow(w)
+        map.set(workflowKey(w), workflowLintBadge(issues))
+      } catch (err) {
+        // Defensive: a lint failure shouldn't block the sidebar from rendering.
+        console.error('Lint failed for workflow', w.name, err)
+        map.set(workflowKey(w), 'clean')
+      }
+    }
+    return map
+  }, [workflows])
 
   // FR-3.3, FR-3.4 — per-group filtered view + post-filter counts.
   const filteredView = useMemo(() => {
@@ -391,6 +413,13 @@ export default function Sidebar({
                     const inDiff = selectedForDiff.has(key)
                     // FR-6.3 — surface (source) suffix when discoveryMode === 'source'.
                     const isSource = w.discoveryMode === 'source'
+                    // FR-4.1 — lint badge: green check / yellow triangle / red X.
+                    const badge = lintBadgeByKey.get(key) ?? 'clean'
+                    const badgeGlyph = badge === 'error' ? '✕' : badge === 'warning' ? '⚠' : '✓'
+                    const badgeTitle =
+                      badge === 'error' ? 'Lint errors detected'
+                      : badge === 'warning' ? 'Lint warnings only'
+                      : 'Lint clean'
                     return (
                       <div
                         key={key}
@@ -404,6 +433,9 @@ export default function Sidebar({
                         <span className="name">
                           {w.name}
                           {isSource && <span className="source-tag" title="Discovered from source checkout (plugin-*/)">(source)</span>}
+                        </span>
+                        <span className={`lint-badge ${badge}`} title={badgeTitle} aria-label={badgeTitle}>
+                          {badgeGlyph}
                         </span>
                         <span className="step-count">{w.stepCount}</span>
                       </div>
