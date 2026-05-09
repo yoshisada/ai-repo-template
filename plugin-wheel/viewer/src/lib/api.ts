@@ -25,7 +25,11 @@ export async function apiRegisterProject(
 }
 
 export async function apiUnregisterProject(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/projects/${id}`, { method: 'DELETE' })
+  // Route handler at app/api/projects/route.ts reads `id` from the query string,
+  // not from a dynamic path segment. Aligning client to that contract.
+  // (qa-engineer caught the path/query mismatch — the project remove "×"
+  // button was silently 404-ing.)
+  const res = await fetch(`${BASE}/api/projects?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
   if (res.status !== 204) throw new Error(`Unregister project failed: ${res.status}`)
 }
 

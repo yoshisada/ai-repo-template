@@ -1,0 +1,37 @@
+{
+  "name": "lint-fixture-broken",
+  "description": "Deliberately-broken workflow that triggers L-001, L-003, L-005, L-008. Consumed by viewer/src/lib/lint.test.ts and qa-engineer's AC-8 capture (FR-4.3, SC-008). NOT registered for /wheel:wheel-test — this file is never executed; only structurally inspected.",
+  "version": "0.0.0",
+  "steps": [
+    {
+      "type": "command",
+      "description": "L-001 trigger — this step has no `id`",
+      "command": "echo first"
+    },
+    {
+      "id": "branch-bad-target",
+      "type": "branch",
+      "description": "L-003 trigger — if_zero target 'does-not-exist' is not a sibling step id",
+      "condition": "true",
+      "if_zero": "does-not-exist",
+      "if_nonzero": "echo-after"
+    },
+    {
+      "id": "loop-no-substep",
+      "type": "loop",
+      "description": "L-005 trigger — loop step with no `substep` defined",
+      "max_iterations": 3
+    },
+    {
+      "id": "team-create-no-name",
+      "type": "team-create",
+      "description": "L-008 trigger — team-create step missing `team_name`"
+    },
+    {
+      "id": "echo-after",
+      "type": "command",
+      "description": "Resolution target for branch-bad-target.if_nonzero — keeps L-003 fixture surgical (only the if_zero leg is broken)",
+      "command": "echo done"
+    }
+  ]
+}
