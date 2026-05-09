@@ -147,10 +147,10 @@ description: "Task list for wheel-viewer-definition-quality"
 
 **Owner**: prd-auditor → smoke-tester → team-lead (PR)
 
-- [ ] T042 PRD audit: every PRD requirement mapped to an FR; every FR mapped to ≥1 implementation file + ≥1 test (or screenshot). Document blockers in `specs/wheel-viewer-definition-quality/blockers.md` if any.
+- [X] T042 PRD audit: every PRD requirement mapped to an FR; every FR mapped to ≥1 implementation file + ≥1 test (or screenshot). Document blockers in `specs/wheel-viewer-definition-quality/blockers.md` if any. *(Completed by audit-compliance — 0 open blockers; report at `specs/wheel-viewer-definition-quality/audit-compliance.md`.)*
 - [ ] T043 Smoke test: build the viewer Docker image, start the container on port 3847, hit `http://localhost:3847`, confirm onboarding panel renders. Tear down. Pass/fail report.
-- [ ] T044 Coverage gate: re-run `vitest run --coverage` from `viewer/`; confirm ≥80% on `lib/*.ts`.
-- [ ] T045 Hygiene gate: `git grep -F viewer.html plugin-wheel/` returns zero matches (SC-013).
+- [X] T044 Coverage gate: re-run `vitest run --coverage` from `viewer/`; confirm ≥80% on `lib/*.ts`. *(audit-compliance §3 — 99/99 tests; lib/* 97.96% lines / 87.91% branches.)*
+- [X] T045 Hygiene gate: `git grep -F viewer.html plugin-wheel/` returns zero matches (SC-013). *(audit-compliance §6 — exit code 1, zero matches.)*
 - [ ] T046 Create PR with `build-prd` label. Body embeds all 12 screenshots inline. Title: `wheel-viewer: definition-quality pass (FR-1..FR-8)`.
 
 ---
