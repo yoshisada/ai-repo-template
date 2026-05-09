@@ -39,9 +39,9 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Tests for User Story 5 (Lint) — write FIRST, expect FAIL
 
-- [ ] T003 [P] [US5] Write `plugin-wheel/viewer/src/lib/lint.test.ts` covering all 10 rules (L-001…L-010), one positive + one negative case per rule. Reference SC-014. Reference `plugin-wheel/tests/lint-fixture-broken.json` (created in T005) for the multi-rule positive fixture. Tests MUST fail until T004 lands.
-- [ ] T004 [US5] Implement `plugin-wheel/viewer/src/lib/lint.ts` matching `contracts/interfaces.md` exactly: `lintWorkflow`, `workflowLintBadge`, `LintIssue`, `LintContext`, `LintBadge`, `LintSeverity`. FR-4.4 — pure, deterministic, no I/O. Sort: errors before warnings, then by step index, then by ruleId.
-- [ ] T005 [US5] Create `plugin-wheel/tests/lint-fixture-broken.json` — a deliberately-broken workflow that triggers L-001 (step missing id), L-003 (branch target unresolved), L-005 (loop without substep), L-008 (team-create without team_name). One workflow, ≥4 issues. NOT registered for `/wheel:wheel-test`.
+- [X] T003 [P] [US5] Write `plugin-wheel/viewer/src/lib/lint.test.ts` covering all 10 rules (L-001…L-010), one positive + one negative case per rule. Reference SC-014. Reference `plugin-wheel/tests/lint-fixture-broken.json` (created in T005) for the multi-rule positive fixture. Tests MUST fail until T004 lands.
+- [X] T004 [US5] Implement `plugin-wheel/viewer/src/lib/lint.ts` matching `contracts/interfaces.md` exactly: `lintWorkflow`, `workflowLintBadge`, `LintIssue`, `LintContext`, `LintBadge`, `LintSeverity`. FR-4.4 — pure, deterministic, no I/O. Sort: errors before warnings, then by step index, then by ruleId.
+- [X] T005 [US5] Create `plugin-wheel/tests/lint-fixture-broken.json` — a deliberately-broken workflow that triggers L-001 (step missing id), L-003 (branch target unresolved), L-005 (loop without substep), L-008 (team-create without team_name). One workflow, ≥4 issues. NOT registered for `/wheel:wheel-test`.
 
 ### Tests for User Story 4 (Diff) — write FIRST, expect FAIL
 
