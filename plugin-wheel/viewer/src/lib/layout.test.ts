@@ -274,6 +274,144 @@ describe('buildLayout — FR-1.8 no-overlap invariant on every fixture', () => {
   }
 })
 
+// FR-1.1: skip jump ------------------------------------------------------
+
+describe('buildLayout — skip jump (FR-1.1)', () => {
+  it('emits a skip-kind edge to the resolved target and suppresses default fall-through', () => {
+    const w = wf('skip-jump', [
+      { id: 'a', type: 'command' },
+      { id: 'b', type: 'command', skip: 'd' }, // skip default forward, jump to 'd'
+      { id: 'c', type: 'command' }, // never connected from 'b'
+      { id: 'd', type: 'command', terminal: true },
+    ])
+    const { edges } = buildLayout(w)
+    const skipEdge = edges.find((e) => e.data?.kind === 'skip')
+    expect(skipEdge).toBeDefined()
+    expect(skipEdge!.source).toBe('b')
+    expect(skipEdge!.target).toBe('d')
+    // No default forward from b → c.
+    expect(edges.some((e) => e.source === 'b' && e.target === 'c' && e.data?.kind === 'next')).toBe(
+      false,
+    )
+  })
+
+  it('drops the skip edge when the target id does not resolve (lint catches via L-004)', () => {
+    const w = wf('skip-orphan', [
+      { id: 'a', type: 'command', skip: 'nonexistent' },
+      { id: 'b', type: 'command', terminal: true },
+    ])
+    const { edges } = buildLayout(w)
+    expect(edges.some((e) => e.data?.kind === 'skip')).toBe(false)
+  })
+})
+
+// FR-1.3: branch-target orphan handling ---------------------------------
+
+describe('buildLayout — branch with unresolved target (FR-1.3)', () => {
+  it('drops the if_zero edge when the target does not resolve to a sibling step', () => {
+    const w = wf('branch-orphan', [
+      { id: 'root', type: 'command' },
+      { id: 'br', type: 'branch', if_zero: 'nope', if_nonzero: 'nope2' },
+      { id: 'after', type: 'command', terminal: true },
+    ])
+    const { edges } = buildLayout(w)
+    expect(edges.some((e) => e.data?.kind === 'branch-zero')).toBe(false)
+    expect(edges.some((e) => e.data?.kind === 'branch-nonzero')).toBe(false)
+  })
+})
+
+// FR-1.7: team-create with a non-teammate next step ---------------------
+
+describe('buildLayout — team-create with non-teammate next (FR-1.7)', () => {
+  it('emits the default forward to a non-teammate next step', () => {
+    const w = wf('lone-team-create', [
+      { id: 'create', type: 'team-create', team_name: 'solo' },
+      { id: 'after', type: 'command', terminal: true }, // not a teammate, not a branch target
+    ])
+    const { edges } = buildLayout(w)
+    expect(
+      edges.some((e) => e.source === 'create' && e.target === 'after' && e.data?.kind === 'next'),
+    ).toBe(true)
+  })
+
+  it('suppresses the default forward when the next step is a branch target', () => {
+    const w = wf('team-create-then-branch-target', [
+      { id: 'create', type: 'team-create', team_name: 'solo' },
+      { id: 'leg', type: 'command' }, // branch target
+      { id: 'br', type: 'branch', if_zero: 'leg', if_nonzero: 'leg2' },
+      { id: 'leg2', type: 'command', terminal: true },
+    ])
+    const { edges } = buildLayout(w)
+    // FR-1.3: 'leg' is a branch target → no default chain create → leg.
+    expect(
+      edges.some((e) => e.source === 'create' && e.target === 'leg' && e.data?.kind === 'next'),
+    ).toBe(false)
+  })
+})
+
+// FR-1.4: loop substep coverage edge cases ------------------------------
+
+describe('buildLayout — loop without substep (FR-1.4)', () => {
+  it('does not inject a substep node when the loop step has no substep', () => {
+    const w = wf('bare-loop', [
+      { id: 'init', type: 'command' },
+      { id: 'l', type: 'loop', max_iterations: 3 },
+      { id: 'after', type: 'command', terminal: true },
+    ])
+    const { nodes } = buildLayout(w)
+    expect(nodes.find((n) => n.id === 'l-substep')).toBeUndefined()
+  })
+})
+
+// FR-1.6: expanded sub-workflow with empty steps ------------------------
+
+describe('buildLayout — expanded sub-workflow edge cases (FR-1.6)', () => {
+  it('skips a sub-workflow with no steps', () => {
+    const parent = wf('parent', [
+      { id: 'a', type: 'command' },
+      { id: 'sub-step', type: 'teammate', team: 'create' },
+      { id: 'b', type: 'command', terminal: true },
+    ])
+    const empty: Workflow = wf('empty-sub', [])
+    const expanded = new Map<string, Workflow>([['sub-step', empty]])
+    const { nodes } = buildLayout(parent, expanded)
+    // Only the 3 parent nodes — no sub-DAG children injected.
+    expect(nodes.filter((n) => n.data.isSubDAGChild).length).toBe(0)
+  })
+
+  it('skips when the parentId does not match any node', () => {
+    const parent = wf('parent', [{ id: 'a', type: 'command', terminal: true }])
+    const sub = wf('sub', [{ id: 's1', type: 'command' }])
+    const expanded = new Map<string, Workflow>([['no-such-id', sub]])
+    const { nodes } = buildLayout(parent, expanded)
+    expect(nodes.filter((n) => n.data.isSubDAGChild).length).toBe(0)
+  })
+})
+
+// FR-1.7: team-wait with no matching teammates --------------------------
+
+describe('buildLayout — team-wait with empty teammate set (FR-1.7)', () => {
+  it('does not emit fan-in edges when no teammates reference the team', () => {
+    const w = wf('lonely-wait', [
+      { id: 'create', type: 'team-create', team_name: 'lonely' },
+      { id: 'wait', type: 'team-wait', team: 'create', terminal: true },
+    ])
+    const { edges } = buildLayout(w)
+    expect(edges.some((e) => e.data?.kind === 'team-fan-in')).toBe(false)
+  })
+})
+
+// Workflow with empty steps (defensive) ---------------------------------
+
+describe('buildLayout — empty workflow', () => {
+  it('returns an empty layout for a workflow with no steps', () => {
+    const w: Workflow = wf('empty', [])
+    const { nodes, edges } = buildLayout(w)
+    expect(nodes).toHaveLength(0)
+    expect(edges).toHaveLength(0)
+  })
+})
+
 // Determinism (per contract: byte-identical output for byte-identical input)
 
 describe('buildLayout — determinism', () => {
