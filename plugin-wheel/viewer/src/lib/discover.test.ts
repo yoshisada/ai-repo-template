@@ -16,6 +16,9 @@ import { afterEach, describe, it, expect } from 'vitest'
 import {
   discoverSourcePluginWorkflows,
   discoverPluginWorkflows,
+  discoverLocalWorkflows,
+  discoverFeedbackLoops,
+  getLocalWorkflow,
   type DiscoveredWorkflow,
 } from './discover'
 
@@ -160,5 +163,117 @@ describe('discoverPluginWorkflows — FR-6.1 backwards compatibility', () => {
     expect(sourceTagged.map(w => w.name)).toContain('unique-source-wf')
     const sourceMatch = sourceTagged.find(w => w.name === 'unique-source-wf')!
     expect(sourceMatch.plugin).toBe('sourceonly')
+  })
+})
+
+// --- discoverLocalWorkflows (existing function — coverage) ---
+
+describe('discoverLocalWorkflows — coverage of existing behavior', () => {
+  it('returns [] when projectPath has no workflows/ dir', () => {
+    const root = trackCleanup(makeProjectTree())
+    expect(discoverLocalWorkflows(root)).toEqual([])
+  })
+
+  it('discovers .json workflow files in workflows/', () => {
+    const root = trackCleanup(makeProjectTree())
+    const wfDir = path.join(root, 'workflows')
+    fs.mkdirSync(wfDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(wfDir, 'top.json'),
+      JSON.stringify({ name: 'top', steps: [{ id: 's1', type: 'command' }] }),
+    )
+    fs.writeFileSync(
+      path.join(wfDir, 'invalid.json'),
+      'not-valid-json{',
+    )
+    const wfs = discoverLocalWorkflows(root)
+    expect(wfs.map(w => w.name)).toContain('top')
+    // invalid.json is silently skipped — no throw
+    expect(wfs.map(w => w.name)).not.toContain('invalid')
+  })
+
+  it('discovers nested workflow files and prefixes the subdir name', () => {
+    const root = trackCleanup(makeProjectTree())
+    const sub = path.join(root, 'workflows', 'group')
+    fs.mkdirSync(sub, { recursive: true })
+    fs.writeFileSync(
+      path.join(sub, 'nested.json'),
+      JSON.stringify({ name: 'nested', steps: [] }),
+    )
+    const wfs = discoverLocalWorkflows(root)
+    expect(wfs.map(w => w.name)).toContain('group/nested')
+  })
+})
+
+// --- discoverFeedbackLoops (existing function — coverage) ---
+
+describe('discoverFeedbackLoops — coverage of existing behavior', () => {
+  it('returns kilnInstalled=false + empty loops when docs/feedback-loop missing', () => {
+    const root = trackCleanup(makeProjectTree())
+    const result = discoverFeedbackLoops(root)
+    expect(result.kilnInstalled).toBe(false)
+    expect(result.loops).toEqual([])
+  })
+
+  it('reads valid loop json files and skips invalid ones', () => {
+    const root = trackCleanup(makeProjectTree())
+    const loopDir = path.join(root, 'docs', 'feedback-loop')
+    fs.mkdirSync(loopDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(loopDir, 'loop1.json'),
+      JSON.stringify({ name: 'loop1', _meta: { kind: 'feedback' }, steps: [] }),
+    )
+    fs.writeFileSync(path.join(loopDir, 'broken.json'), 'not-json{')
+    const result = discoverFeedbackLoops(root)
+    expect(result.kilnInstalled).toBe(true)
+    expect(result.loops).toHaveLength(1)
+  })
+})
+
+// --- getLocalWorkflow (existing function — coverage) ---
+
+describe('getLocalWorkflow — coverage of existing behavior', () => {
+  it('returns null for a nonexistent workflow', () => {
+    const root = trackCleanup(makeProjectTree())
+    expect(getLocalWorkflow('missing', root)).toBeNull()
+  })
+
+  it('finds a top-level workflow by name', () => {
+    const root = trackCleanup(makeProjectTree())
+    const wfDir = path.join(root, 'workflows')
+    fs.mkdirSync(wfDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(wfDir, 'plain.json'),
+      JSON.stringify({ name: 'plain', steps: [] }),
+    )
+    const wf = getLocalWorkflow('plain', root)
+    expect(wf).not.toBeNull()
+    expect(wf!.name).toBe('plain')
+  })
+
+  it('finds a subdirectory workflow via "subdir/name"', () => {
+    const root = trackCleanup(makeProjectTree())
+    const sub = path.join(root, 'workflows', 'sub')
+    fs.mkdirSync(sub, { recursive: true })
+    fs.writeFileSync(
+      path.join(sub, 'inner.json'),
+      JSON.stringify({ name: 'inner', steps: [] }),
+    )
+    const wf = getLocalWorkflow('sub/inner', root)
+    expect(wf).not.toBeNull()
+    expect(wf!.name).toBe('sub/inner')
+  })
+
+  it('strips a "workflows/" prefix and recurses', () => {
+    const root = trackCleanup(makeProjectTree())
+    const wfDir = path.join(root, 'workflows')
+    fs.mkdirSync(wfDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(wfDir, 'rooty.json'),
+      JSON.stringify({ name: 'rooty', steps: [] }),
+    )
+    const wf = getLocalWorkflow('workflows/rooty', root)
+    expect(wf).not.toBeNull()
+    expect(wf!.name).toBe('rooty')
   })
 })

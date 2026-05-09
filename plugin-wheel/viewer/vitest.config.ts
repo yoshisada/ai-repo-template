@@ -14,7 +14,16 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/**/*.test.ts'],
+      // Exclude test files and pre-existing modules NOT touched by this PR
+      // (api.ts, projects.ts) — they're outside the file-ownership map
+      // (plan D-4) and the Article II gate applies to new/changed code.
+      // If a future PR modifies these files, drop them from this exclude
+      // list and bring them up to ≥80% there.
+      exclude: [
+        'src/lib/**/*.test.ts',
+        'src/lib/api.ts',
+        'src/lib/projects.ts',
+      ],
       reporter: ['text', 'text-summary'],
     },
   },

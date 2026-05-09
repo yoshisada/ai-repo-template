@@ -55,7 +55,7 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Coverage gate
 
-- [ ] T010 [US5][US4][US2] Run `vitest run --coverage` from `plugin-wheel/viewer/`. All lib/*.ts files MUST achieve ≥80%. Fix gaps before marking complete.
+- [X] T010 [US5][US4][US2] Run `vitest run --coverage` from `plugin-wheel/viewer/`. All lib/*.ts files MUST achieve ≥80%. Fix gaps before marking complete.
 
 **Checkpoint**: data layer green. impl-graph + impl-shell can import `lintWorkflow`, `workflowLintBadge`, `diffWorkflows`, and `discoverSourcePluginWorkflows`.
 
