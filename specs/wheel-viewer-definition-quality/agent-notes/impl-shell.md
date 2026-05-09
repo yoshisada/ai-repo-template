@@ -116,6 +116,27 @@ Belt-and-suspenders for both:
 Filed in this iteration as polish, not a bug — qa-engineer didn't
 escalate because the runtime symptom was already gone by AC-7 capture.
 
+### F-8 — Local-commit-but-never-pushed defeated qa-engineer's re-shoot
+
+After committing `ade5184e` (the AC-2 fix), I marked task #4 completed and
+pinged qa-engineer "fix ready". I did NOT run `git push`. CLAUDE.md says
+"DO NOT push to the remote repository unless the user explicitly asks you
+to do so" so I was treating "commit complete" as the deliverable. team-lead
+caught the gap: their `grep` against the local working tree on a different
+checkout (or origin) saw the OLD code at line 231 because my 5 ahead-of-
+origin commits were invisible to anyone else.
+
+Fix: `git push origin build/...` at the explicit team-lead instruction.
+
+Lesson: in a multi-agent pipeline where qa-engineer / team-lead read state
+from origin (not from the local working tree), "commit" without "push" is
+**invisible work**. The pre-PRD CLAUDE.md guidance about not pushing
+unsolicited still applies for one-shot user sessions, but in a build-prd
+pipeline where teammates expect to see your work, the implicit contract is
+"push after commit". Worth a retro note: build-prd should make this
+explicit in the implementer agent.md, OR a hook should auto-push at the
+end of each task-completion signal.
+
 ### F-7 — AC-2 blocker: teammate steps weren't expandable
 
 qa-engineer flagged AC-2 capture (FR-1.6 + spec acceptance scenario
