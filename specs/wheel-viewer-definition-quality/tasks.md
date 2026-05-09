@@ -50,8 +50,8 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Source-checkout discovery (US2)
 
-- [ ] T008 [P] [US2] Write `plugin-wheel/viewer/src/lib/discover.test.ts` (or extend if exists): cases for `discoverPluginWorkflows()` (no projectPath, baseline preserved), `discoverPluginWorkflows(projectPath)` with `plugin-*/` siblings present and absent, `discoverSourcePluginWorkflows(projectPath)`. Tests MUST fail until T009 lands.
-- [ ] T009 [US2] Extend `plugin-wheel/viewer/src/lib/discover.ts`: add optional `projectPath` param to `discoverPluginWorkflows`; tag `discoveryMode='installed'` on the existing path; add `discoverSourcePluginWorkflows` exported helper that scans `<projectPath>/plugin-*/` and tags `discoveryMode='source'` (FR-6.1, FR-6.2). Backwards-compat: legacy callers without `projectPath` get the same result as today.
+- [X] T008 [P] [US2] Write `plugin-wheel/viewer/src/lib/discover.test.ts` (or extend if exists): cases for `discoverPluginWorkflows()` (no projectPath, baseline preserved), `discoverPluginWorkflows(projectPath)` with `plugin-*/` siblings present and absent, `discoverSourcePluginWorkflows(projectPath)`. Tests MUST fail until T009 lands.
+- [X] T009 [US2] Extend `plugin-wheel/viewer/src/lib/discover.ts`: add optional `projectPath` param to `discoverPluginWorkflows`; tag `discoveryMode='installed'` on the existing path; add `discoverSourcePluginWorkflows` exported helper that scans `<projectPath>/plugin-*/` and tags `discoveryMode='source'` (FR-6.1, FR-6.2). Backwards-compat: legacy callers without `projectPath` get the same result as today.
 
 ### Coverage gate
 
