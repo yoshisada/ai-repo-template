@@ -36,7 +36,24 @@ npm-debug.log*
 .wheel/state.json
 .wheel/.locks/
 .wheel/history/
+.wheel/archive/
 .wheel/.next-instruction.md
+
+# Consumer-side workflow scratch dir — `/wheel:wheel-init` scaffolds
+# `workflows/` at repo root for local `/wheel:wheel-run` testing.
+# Canonical workflow fixtures live under each plugin's `workflows/` or
+# `tests/` subdir, which IS tracked. The repo-root `workflows/` is local
+# scratch only.
+/workflows/
+
+# Local Claude Code hook overrides — users may drop hooks under
+# `.claude/hooks/` to wire personal automations. These are personal
+# overrides, never plugin-shipped; do not commit.
+.claude/hooks/
+
+# Local scheduled-task lock used by /loop / /schedule skills — transient,
+# never commit.
+.claude/scheduled_tasks.lock
 
 # Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
 .shelf-config.lock
