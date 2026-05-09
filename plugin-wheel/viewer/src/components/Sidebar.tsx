@@ -18,7 +18,7 @@ interface SidebarProps {
   selectedForDiff: Set<string>
   onSelectProject: (id: string) => void
   onSelectWorkflow: (wf: Workflow) => void
-  onWorkflowsLoaded?: (wfs: Workflow[]) => void
+  onWorkflowsLoaded?: (wfs: Workflow[], localCount: number) => void
   onToggleDiffSelection: (wf: Workflow) => void
   onRequestDiff: () => void
   onClearDiffSelection: () => void
@@ -142,7 +142,7 @@ export default function Sidebar({
     if (!activeProjectId) {
       setWorkflows({ local: [], plugin: [] })
       setGroups([])
-      onWorkflowsLoaded?.([])
+      onWorkflowsLoaded?.([], 0)
       return
     }
     apiListWorkflows(activeProjectId)
@@ -152,7 +152,11 @@ export default function Sidebar({
         setGroups(g)
         // Expand all groups by default
         setExpandedGroups(new Set(g.map(x => x.name)))
-        onWorkflowsLoaded?.([...w.local, ...w.plugin])
+        // FR-7.2 — emit local-only count separately so page.tsx can gate the
+        // "No workflows discovered" panel on it. Plugin workflows come from
+        // installed_plugins.json (globally available) so they shouldn't satisfy
+        // "this project has workflows".
+        onWorkflowsLoaded?.([...w.local, ...w.plugin], w.local.length)
       })
       .catch(console.error)
     // eslint-disable-next-line react-hooks/exhaustive-deps

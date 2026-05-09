@@ -26,6 +26,12 @@ export default function Page() {
   const [expandedWorkflows, setExpandedWorkflows] = useState<Map<string, Workflow>>(new Map())
   // FR-7 — track loaded workflows for empty-state detection.
   const [loadedWorkflows, setLoadedWorkflows] = useState<Workflow[]>([])
+  // FR-7.2 — local-only count for the active project. Plugin workflows are
+  // global from installed_plugins.json, so they don't satisfy "this project
+  // has workflows". The empty-workflows panel gates on this counter being 0
+  // (qa-engineer flagged that the previous loadedWorkflows.length === 0 gate
+  // never fired because installed plugins always populated the list).
+  const [activeProjectLocalCount, setActiveProjectLocalCount] = useState(0)
   // FR-5.1 — workflows selected for diff (shift-click). Stored by stable key.
   const [selectedForDiff, setSelectedForDiff] = useState<Set<string>>(new Set())
   // FR-5 — when set, page renders DiffView in place of FlowDiagram + RightPanel.
@@ -71,20 +77,31 @@ export default function Page() {
   useEffect(() => {
     if (!activeProjectId) {
       setHasFetchedWorkflows(false)
+      setActiveProjectLocalCount(0)
       return
     }
     setHasFetchedWorkflows(false)
     apiListWorkflows(activeProjectId)
       .then(({ local, plugin }) => {
-        const all = [...local, ...plugin]
-        if (all.length > 0 && !activeWorkflow) {
-          setActiveWorkflow(all[0])
+        // FR-7.2 — only auto-select if the project has its OWN workflows.
+        // Auto-selecting from `plugin` (global installed workflows) hides the
+        // FR-7.2 "No workflows discovered" panel for projects that have no
+        // workflows/ directory.
+        if (local.length > 0 && !activeWorkflow) {
+          setActiveWorkflow(local[0])
           setSelectedStepId(null)
         }
+        setActiveProjectLocalCount(local.length)
+        // Best-effort: keep loadedWorkflows in sync even if Sidebar's onLoad
+        // hasn't fired yet (page.tsx and Sidebar both call apiListWorkflows
+        // due to legacy parallel state — should be consolidated in a future
+        // PR). Diff lookup uses loadedWorkflows so it must include plugins.
+        setLoadedWorkflows(prev => prev.length === 0 ? [...local, ...plugin] : prev)
         setHasFetchedWorkflows(true)
       })
       .catch(err => {
         console.error(err)
+        setActiveProjectLocalCount(0)
         setHasFetchedWorkflows(true)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,7 +172,10 @@ export default function Page() {
           selectedForDiff={new Set()}
           onSelectProject={id => setActiveProjectId(id)}
           onSelectWorkflow={() => {}}
-          onWorkflowsLoaded={setLoadedWorkflows}
+          onWorkflowsLoaded={(wfs, localCount) => {
+          setLoadedWorkflows(wfs)
+          setActiveProjectLocalCount(localCount)
+        }}
           onToggleDiffSelection={() => {}}
           onRequestDiff={() => {}}
           onClearDiffSelection={() => {}}
@@ -215,7 +235,10 @@ export default function Page() {
           setDiffPair(null)
         }}
         onSelectWorkflow={handleSelectWorkflow}
-        onWorkflowsLoaded={setLoadedWorkflows}
+        onWorkflowsLoaded={(wfs, localCount) => {
+          setLoadedWorkflows(wfs)
+          setActiveProjectLocalCount(localCount)
+        }}
         onToggleDiffSelection={handleToggleDiffSelection}
         onRequestDiff={handleRequestDiff}
         onClearDiffSelection={handleClearDiffSelection}
@@ -328,8 +351,11 @@ export default function Page() {
             />
           </div>
         </>
-      ) : hasFetchedWorkflows && loadedWorkflows.length === 0 && activeProject ? (
+      ) : hasFetchedWorkflows && activeProjectLocalCount === 0 && activeProject ? (
         // FR-7.2 — project registered but workflows/ directory missing or empty.
+        // Gates on local-only count (NOT loadedWorkflows.length) because plugin
+        // workflows are global from installed_plugins.json — they don't count
+        // as "this project has workflows."
         <div className="empty-workflows-panel" role="status">
           <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M3 7h18M3 12h18M3 17h18" />

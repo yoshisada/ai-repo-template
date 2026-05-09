@@ -116,6 +116,50 @@ Belt-and-suspenders for both:
 Filed in this iteration as polish, not a bug — qa-engineer didn't
 escalate because the runtime symptom was already gone by AC-7 capture.
 
+### F-9 — Three latent integration bugs surfaced post-implementation by qa
+
+After my T018-T029 work was "complete" + qa-engineer's first AC pass, three
+new defects surfaced in cross-module integration that no per-module check
+could have caught:
+
+**AC-10 (route.ts didn't pass projectPath to discoverPluginWorkflows)**:
+The Sidebar's `(source)` tag rendering (FR-6.3) was correct on my side —
+but `app/api/workflows/route.ts` was calling `discoverPluginWorkflows()`
+bare (without the new optional `projectPath` parameter that impl-data-layer
+added in T009). Net effect: the route only ever returned `discoveryMode:
+'installed'` workflows; `discoveryMode: 'source'` never reached the client.
+My UI was right. The data-layer's pure function was right. The wiring
+between them was wrong. No single owner — `app/api/*/route.ts` doesn't
+appear in plan.md's D-4 file ownership map. The fix landed on me because
+I was the most recent owner-adjacent context.
+
+**AC-12 (loadedWorkflows.length was the wrong gate)**: The FR-7.2 "No
+workflows discovered" panel gated on `loadedWorkflows.length === 0`. But
+loadedWorkflows is `[...local, ...plugin]`. Plugin workflows come from
+`installed_plugins.json` — globally available, populated whenever the user
+has any plugins installed. So registering a project with no `workflows/`
+dir would auto-select the first plugin workflow (e.g. `kiln-mistake`)
+instead of triggering the FR-7.2 panel. The fix: thread a `localCount`
+parameter through Sidebar's onWorkflowsLoaded callback + page.tsx's own
+apiListWorkflows useEffect, gate the empty-state on
+`activeProjectLocalCount === 0`. The bug shipped because my T028 testing
+register-then-empty-state used a shellfork that happened to have no
+plugins; in-the-wild containers have a populated installed_plugins.json.
+
+**DELETE /api/projects path/query mismatch**: `lib/api.ts:apiUnregisterProject`
+called `DELETE /api/projects/${id}` (path style); the route handler reads
+`?id=...` (query style). The "×" remove button silently 404'd. Both files
+are shared (lib/api.ts noted as "coordinate with impl-data-layer first" in
+my spawn brief) so the misalignment is a coordination gap. Fixed by
+aligning api.ts to query style — single line.
+
+Pattern: every defect in this round was a **cross-file integration miss**,
+not a within-file bug. Each implementer's owned files were internally
+consistent. The bugs lived in the seams. qa-engineer found them all. Worth
+a retro note: define explicit ownership for `app/api/*/route.ts` files in
+the plan.md D-4 ownership matrix, and a "wiring smoke test" step before
+qa screenshot capture would have caught these earlier.
+
 ### F-8 — Local-commit-but-never-pushed defeated qa-engineer's re-shoot
 
 After committing `ade5184e` (the AC-2 fix), I marked task #4 completed and
