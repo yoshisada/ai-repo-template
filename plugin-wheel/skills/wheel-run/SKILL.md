@@ -30,12 +30,9 @@ On success it prints a JSON object like:
 
 ## Step 2: Activate
 
-Run activate.sh in a Bash call using the `activate_name` and `plugin_dir` from Step 1's output. Substitute the actual literal values — no shell variables — so the PostToolUse hook's regex can match the literal path.
-
-Since FR-C1 (specs/wheel-as-runtime) landed, the hook preserves newlines in `tool_input.command` and scans the *entire* command body for `activate.sh`, not just the last line. Multi-line Bash calls that invoke `activate.sh` from any line (middle line, last line, or inside a heredoc) activate successfully. You can bundle `mkdir -p .wheel` and the activation in the same Bash call if you prefer.
+Run activate.sh directly in its own Bash call. The hook intercepts it and creates the state file. Do not combine it with other commands (e.g., `mkdir -p .wheel && activate.sh`) — the hook's regex for detecting activate.sh expects the command to start with `activate.sh` or a path prefix, not with other commands chained before it.
 
 ```bash
-mkdir -p .wheel
 <plugin_dir>/bin/activate.sh <activate_name>
 ```
 
@@ -60,9 +57,34 @@ That's it. Do NOT read the state file or workflow file — the hooks will tell y
 
 After activation, **all workflow progression happens through hooks**. Do not manually advance the cursor, update step statuses, or modify state files yourself.
 
-- **Do NOT read the workflow JSON file.** The validation script handles that. You don't need to know step details — hooks will instruct you.
-- **Do NOT read state files.** Use `/wheel:wheel-status` if you need to check progress.
+### The driving loop
+
+Drive the workflow turn-by-turn. Each turn does exactly ONE of:
+
+1. **Call the tool the hook just told you to call** (TeamCreate, Agent spawn, SendMessage, TeamDelete, …) — then end the turn. The PostToolUse hook will advance the cursor.
+2. **End the turn** so the Stop hook can flip a `pending` step to `working` and emit instructions for the next call.
+
+That's the entire loop: one tool call → end turn → read the hook's next instruction → repeat. Multiple cursor advances per turn are the hook's job, not yours.
+
+### Trust the hooks (NON-NEGOTIABLE)
+
+Hooks are authoritative. If a step seems stuck, **end your turn** — the Stop hook fires at turn boundaries and is the ONLY thing that transitions `pending` → `working`. Spinning more tool calls in the same turn cannot unstick a stop-gated transition; only ending the turn can.
+
+Specifically, you MUST NOT:
+- **Investigate wheel internals.** No reading `dist/lib/dispatch.js`, no grep of `post-tool-use.js`, no sed/cat of plugin source. The hooks are a black box. If they appear broken, that's a bug to file, NOT something for you to debug mid-run.
+- **Manually invoke hooks** with simulated stdin to "test" them. Hook execution is the harness's job.
+- **Run wheel-stop because a step looks stuck.** A `pending` step at end of turn is normal — the Stop hook will flip it next turn. Don't preempt it.
+- **Re-call a tool that "didn't seem to work."** If TeamCreate succeeded, it succeeded. The cursor advances on the NEXT hook fire — usually after your turn ends. Calling TeamCreate again or TeamDelete-then-TeamCreate produces a worse state, not a better one.
+- **Read the workflow JSON file or state files directly.** Use `/wheel:wheel-status` if you need to check progress; the hook's `additionalContext` text is the only progression signal you should act on.
+
+### What "the hook told you to call" means
+
+The PostToolUse / Stop hook returns `{"decision": "block", "additionalContext": "<instructions>"}` when it needs you to do something. The `additionalContext` text is the directive — read it once, do exactly what it says, end your turn. No paraphrasing, no "I'll also check X first," no follow-up verification calls.
+
+If the hook returns `{"decision": "approve"}` and you didn't get an `additionalContext`, the workflow is either advancing automatically (commands/loops/branches handle themselves) or waiting on a Stop-hook transition — end your turn.
+
+### Other invariants
+
 - **Do NOT spawn sub-agents** for any workflow step — including `"type": "workflow"` steps. Workflow steps are like function calls: the referenced workflow runs inline in the same conversation, dispatched by the hook system.
-- **Do NOT manually stop workflows.** Use `/wheel:wheel-stop` and let the hook handle archival.
 - **Do NOT manually archive or delete state files.** The hook system owns the workflow lifecycle.
-- Your only job after activation is to **execute the current step's work** as instructed by hooks, and let hooks handle progression to the next step.
+- **Do NOT batch multiple tool calls in one turn** trying to "make progress faster." One tool call per turn, then end. The hooks' Stop transitions need turn boundaries to fire.

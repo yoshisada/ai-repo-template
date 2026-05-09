@@ -54,6 +54,26 @@ jobs:
           bats --version
           bash --version | head -1
 
+      # Wheel TS rewrite (PR #202) — every shell hook is a shim that
+      # delegates to plugin-wheel/dist/hooks/<event>.js. dist/ is
+      # gitignored as a build artifact, so CI must compile TS BEFORE
+      # any test that fires a hook (which is all of them below).
+      # Without this step the FR-C2/F4 tests fail with
+      # `Cannot find module '…/plugin-wheel/dist/hooks/post-tool-use.js'`.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build wheel TypeScript
+        working-directory: plugin-wheel
+        run: |
+          set -e
+          npm ci
+          npm run build
+          test -f dist/hooks/post-tool-use.js \
+            || { echo "FAIL: dist build did not produce hooks/post-tool-use.js"; exit 1; }
+
       - name: FR-C2 multi-line activation
         run: bash plugin-wheel/tests/activate-multiline/run.sh
 

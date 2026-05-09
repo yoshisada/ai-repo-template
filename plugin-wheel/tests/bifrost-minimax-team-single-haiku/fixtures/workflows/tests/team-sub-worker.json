@@ -1,0 +1,26 @@
+{
+  "name": "team-sub-worker",
+  "description": "Simple sub-workflow for team tests — reads assignment, does work, writes output",
+  "steps": [
+    {
+      "id": "read-assignment",
+      "type": "command",
+      "command": "echo '## Worker Assignment' && cat assignment.json 2>/dev/null || echo '{\"task\": \"default task\"}'",
+      "output": ".wheel/outputs/worker-assignment.txt"
+    },
+    {
+      "id": "do-work",
+      "type": "agent",
+      "instruction": "You are a test worker agent. Read your assignment from context (_assignment). Do the task described in the assignment (it will be something simple like writing a haiku). Write your result to your output file. Keep it brief — this is a test.",
+      "context_from": ["_assignment"],
+      "output": ".wheel/outputs/worker-result.md"
+    },
+    {
+      "id": "done",
+      "type": "command",
+      "command": "echo 'Worker complete' && date -u +%Y-%m-%dT%H:%M:%SZ",
+      "output": ".wheel/outputs/worker-done.txt",
+      "terminal": true
+    }
+  ]
+}

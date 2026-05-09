@@ -1,0 +1,14 @@
+{
+  "name": "noop",
+  "version": "1.0.0",
+  "_doc": "Trivial single-command workflow used by the third-party-model-skip-demo fixture. Real test exercise happens via the env-var-driven model routing, not via workflow complexity.",
+  "steps": [
+    {
+      "id": "echo-ok",
+      "type": "command",
+      "command": "echo ok",
+      "output": ".wheel/outputs/echo-ok.txt",
+      "terminal": true
+    }
+  ]
+}

@@ -87,12 +87,46 @@ check_claude_on_path() {
 # -----------------------------------------------------------------------------
 repo_root=${KILN_TEST_REPO_ROOT:-$(pwd)}
 
-if [[ $# -gt 2 ]]; then
-  bail_out "too many arguments: expected 0, 1, or 2 (got $#)"
+# Optional `--env-file <path>` flag: explicitly opt in to loading a
+# KEY=VALUE env file before discovery. Default behavior is to load NO
+# env file — fixtures with `require-env:` declarations cleanly SKIP
+# unless the caller either (a) exports the required vars in their
+# shell or (b) passes --env-file to source them. Mere presence of a
+# `.env.test` next to the plugin does NOT alter test behavior; the
+# loading is always an explicit caller decision.
+env_file_arg=""
+positional=()
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --env-file)
+      if [[ $# -lt 2 ]]; then
+        bail_out "--env-file requires a path argument"
+      fi
+      env_file_arg=$2
+      shift 2
+      ;;
+    --env-file=*)
+      env_file_arg=${1#--env-file=}
+      shift
+      ;;
+    --)
+      shift
+      while [[ $# -gt 0 ]]; do positional+=("$1"); shift; done
+      break
+      ;;
+    *)
+      positional+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if (( ${#positional[@]} > 2 )); then
+  bail_out "too many positional arguments: expected 0, 1, or 2 (got ${#positional[@]})"
 fi
 
-plugin_name=${1:-}
-test_name=${2:-}
+plugin_name=${positional[0]:-}
+test_name=${positional[1]:-}
 
 # Resolve plugin root.
 if [[ -z $plugin_name ]]; then
@@ -110,6 +144,32 @@ else
   if [[ ! -d $plugin_root ]]; then
     bail_out "plugin dir does not exist: $plugin_root"
   fi
+fi
+
+# Optional env-file load (only if --env-file was passed).
+#
+# Loading is ALWAYS explicit — the harness does not check for any
+# default file path on its own. This guarantees a fixture's "should I
+# run or SKIP?" decision depends only on the caller's explicit
+# instructions (caller-shell exports + the --env-file argument), never
+# on whether some file happens to sit next to the plugin. Same fixture
+# can therefore be exercised against (a) the caller's default models
+# with `bash wheel-test-runner.sh wheel`, and (b) a 3rd-party
+# deployment with `bash wheel-test-runner.sh --env-file
+# plugin-wheel/.env.test wheel` — the fixture's `require-env:` gate
+# decides which path it ends up on each time.
+#
+# Auto-export is bracketed so the env additions live only for the
+# runner's process tree; existing exported vars in the caller's shell
+# are unaffected.
+if [[ -n "$env_file_arg" ]]; then
+  if [[ ! -f "$env_file_arg" ]]; then
+    bail_out "--env-file path does not exist: $env_file_arg"
+  fi
+  set -a
+  # shellcheck disable=SC1090
+  source "$env_file_arg"
+  set +a
 fi
 
 # Check claude CLI present (only needed once per invocation).
@@ -218,6 +278,34 @@ for test_dir in "${discovered_tests[@]}"; do
   expected_exit=$(extract_yaml_scalar "expected-exit" "$test_dir/test.yaml")
   : "${expected_exit:=0}"
 
+  # --- 2b. Resolve test.yaml `env:` + `require-env:` blocks ------------------
+  # Parses optional schema fields that let a fixture inject custom env vars
+  # into the claude --print subprocess (e.g. Bedrock / Vertex / OpenRouter
+  # configs). Per-test scope: each iteration of this loop reads its own
+  # fixture's env block and applies it ONLY to its own substrate subshell
+  # (step 7 below), so different fixtures in the same run can target
+  # different providers without env leaking between them.
+  if env_parse_out=$(node "$harness_dir/parse-test-yaml-env.mjs" "$test_dir/test.yaml" 2>/dev/null); then
+    test_yaml_env_json="$env_parse_out"
+  else
+    test_yaml_env_json='{"env":{},"missingRequiredEnvs":[]}'
+  fi
+  # Extract missing-required list (one var per line). Skip the test if any
+  # caller-env requirement is unset — gives clean CI behavior on machines
+  # without 3rd-party provider creds.
+  missing_required_envs=$(printf '%s' "$test_yaml_env_json" | jq -r '.missingRequiredEnvs[]?' 2>/dev/null || true)
+  if [[ -n "$missing_required_envs" ]]; then
+    diag=$(mktemp)
+    {
+      echo "skipped: test.yaml require-env vars unset in caller environment:"
+      printf '%s' "$missing_required_envs" | sed 's/^/  - /'
+    } > "$diag"
+    "$harness_dir/tap-emit.sh" "$i" "$basename" skip "$diag"
+    rm -f "$diag"
+    any_skip=1
+    continue
+  fi
+
   # --- 3. Check required inputs ----------------------------------------------
   if [[ ! -f "$test_dir/inputs/initial-message.txt" ]]; then
     diag=$(mktemp); echo "missing required inputs/initial-message.txt" > "$diag"
@@ -248,6 +336,29 @@ for test_dir in "${discovered_tests[@]}"; do
     continue
   fi
 
+  # --- 5b. Wipe leftover team configs referenced by this test's workflows ----
+  #
+  # `TeamCreate` registers teams under `~/.claude/teams/<name>/`. That
+  # directory persists across runs, so a fixture that re-uses a team
+  # name from a prior run will fail with `Team "<name>" already exists`
+  # before the orchestrator can advance past step 0. Workflow archives
+  # to `stopped/` 9+ minutes later (orchestrator gets stuck in a Read-
+  # loop on `.next-instruction.md`).
+  #
+  # Extract every `"team_name": "..."` from the seeded workflow JSONs
+  # and clean their team configs before the substrate starts. Test
+  # isolation: the fixtures are the source of truth for which team
+  # names this test owns.
+  if [[ -d "$scratch_dir/workflows" ]]; then
+    while IFS= read -r tname; do
+      [[ -z "$tname" ]] && continue
+      [[ -d "$HOME/.claude/teams/$tname" ]] || continue
+      rm -rf "$HOME/.claude/teams/$tname"
+    done < <(grep -rh '"team_name"' "$scratch_dir/workflows" 2>/dev/null \
+              | sed -E 's/.*"team_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' \
+              | sort -u)
+  fi
+
   # --- 6. Set up per-test env + log paths ------------------------------------
   transcript_path="$logs_dir/kiln-test-${scratch_uuid}-transcript.ndjson"
   snapshot_path="$logs_dir/kiln-test-${scratch_uuid}-scratch.txt"
@@ -266,8 +377,25 @@ for test_dir in "${discovered_tests[@]}"; do
   # --- 7. Background the substrate; foreground the watcher ------------------
   # Substrate runs in background so watcher can monitor. Watcher exits when
   # subprocess exits naturally OR when it SIGTERMs on stall.
+  #
+  # Per-test env scoping (FR — third-party model support): the substrate
+  # is invoked from a SUBSHELL that exports any test.yaml `env:` vars
+  # locally. Subshell exit cleans up the env additions, so test N+1's
+  # substrate starts from the parent shell's env unaltered. This is what
+  # lets a single test run mix Anthropic-default fixtures and 3rd-party-
+  # provider fixtures without one polluting the other.
   set +e
-  "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root" &
+  (
+    while IFS= read -r kv; do
+      [[ -z "$kv" ]] && continue
+      # `kv` is a single line of the form "KEY=value". Use eval to make
+      # it a real export — but only after splitting safely.
+      key="${kv%%=*}"
+      val="${kv#*=}"
+      export "$key=$val"
+    done < <(printf '%s' "$test_yaml_env_json" | jq -r '.env | to_entries[]? | "\(.key)=\(.value)"' 2>/dev/null || true)
+    "$harness_dir/dispatch-substrate.sh" "$harness_type" "$scratch_dir" "$test_dir" "$plugin_root"
+  ) &
   substrate_pid=$!
 
   "$harness_dir/watcher-runner.sh" "$scratch_dir" "$substrate_pid" "$transcript_path" \
@@ -295,7 +423,18 @@ for test_dir in "${discovered_tests[@]}"; do
   fi
 
   # --- 9. Check subprocess exit matches expected-exit ------------------------
-  if [[ $subprocess_exit -ne $expected_exit ]]; then
+  #
+  # SIGTERM exit (143) is acceptable when the watcher early-terminated
+  # because the workflow had archived (verdict "exited"). The
+  # assertions phase below is the source of truth for that path —
+  # if the archived state matches the assertions, the test passes
+  # regardless of the (forcibly-terminated) subprocess exit code.
+  watcher_early_terminate=0
+  if [[ -f $verdict_json_path ]] && grep -q '"classification": "exited"' "$verdict_json_path" \
+      && [[ $subprocess_exit -eq 143 ]]; then
+    watcher_early_terminate=1
+  fi
+  if [[ $subprocess_exit -ne $expected_exit ]] && [[ $watcher_early_terminate -eq 0 ]]; then
     diag=$(mktemp)
     {
       echo "classification: \"failed\""

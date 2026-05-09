@@ -36,6 +36,17 @@ npm-debug.log*
 .wheel/state.json
 .wheel/.locks/
 .wheel/history/
+.wheel/archive/
+.wheel/.next-instruction.md
+
+# Local Claude Code hook overrides — users may drop hooks under
+# `.claude/hooks/` to wire personal automations. These are personal
+# overrides, never plugin-shipped; do not commit.
+.claude/hooks/
+
+# Local scheduled-task lock used by /loop / /schedule skills — transient,
+# never commit.
+.claude/scheduled_tasks.lock
 
 # Transient lockfile used by plugin-shelf/scripts/shelf-counter.sh — never commit
 .shelf-config.lock

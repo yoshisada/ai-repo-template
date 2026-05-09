@@ -1,0 +1,8 @@
+Drive a wheel workflow end-to-end. Strict order — do not deviate:
+
+1. FIRST run /wheel:wheel-run minimax-smoke. Wait for the hook to confirm the workflow is active. Do NOT touch any files before this step.
+2. The workflow has a single agent step. Read its instruction from workflows/minimax-smoke.json.
+3. Use the Write tool to create the output file at the path the step declares (.wheel/outputs/minimax-haiku.md). The Write tool call must happen AFTER step 1 — the wheel's hook detects the agent step's completion by observing the Write event AFTER the cursor has been parked there.
+4. End your turn. Do not call /wheel:wheel-stop, /wheel:wheel-status, or any other wheel skill — the wheel auto-advances on the Write event from step 3 and will archive on its own.
+
+If you accidentally write the output file before step 1, the wheel will not detect the (now-stale) file and the workflow will hang. In that case, your only correct response is to write a NEW Write call to the same path AFTER /wheel:wheel-run has run — same content is fine, the wheel only needs the Write event mtime to land after the cursor parks at the agent step.

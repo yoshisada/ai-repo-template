@@ -1,4 +1,74 @@
-Branch: build/mistake-capture-20260416
+Branch: wheel-debug
 Last 5 commits:
-abc123 test
+df81b25c add: wheel-view skill + HTML viewer for workflow inspection
+f1df95f9 roadmap: phase 11 (roadmap-intelligence) + phase 12 (loop-and-workflow-design) + 4 promotions + 1 fresh capture in active phase 10
+0764372a chore: commit working changes before pipeline branch
+fc20f456 distill: manifest-evolution-ledger PRD + state-flip to distilled
+31df71c7 chore: commit working changes before pipeline branch
 ---
+Open issues: 100
+Backlog: 62 items
+PRDs: 61
+---
+Task progress:
+  001-kiln-polish: 13/13
+  agent-prompt-composition: 38/38
+  analyze-issues: 11/11
+  claude-audit-quality: 48/50
+  claude-md-audit-reframe: 78/79
+  clay-idea-entrypoint: 14/14
+  clay-ideation-polish: 26/26
+  coach-driven-capture-ergonomics: 58/58
+  continuance-agent: 15/15
+  cross-plugin-resolver-and-preflight-registry: 45/48
+  developer-tooling-polish: 16/18
+  escalation-audit: 49/49
+  first-class-skill-prefixes: 113/132
+  fix-skill-with-recording-teams: 18/21
+  kiln-capture-fix-polish: 24/24
+  kiln-rebrand-and-qa: 39/39
+  kiln-self-maintenance: 22/23
+  kiln-structural-hygiene: 19/19
+  kiln-wheel-polish: 11/11
+  manifest-improvement-subroutine: 37/37
+  merge-pr-and-sc-grep-guidance: 54/59
+  mistake-capture: 39/39
+  pipeline-input-completeness: 14/14
+  pipeline-reliability: 20/20
+  pipeline-workflow-polish: 17/19
+  plugin-clay: 14/18
+  plugin-naming-consistency: 147/148
+  plugin-polish-and-skill-ux: 16/16
+  plugin-skill-test-harness: 22/22
+  prd-derived-from-frontmatter: 16/16
+  qa-tooling-templates: 36/38
+  report-issue-speedup: 27/27
+  research-first-axis-enrichment: 26/30
+  research-first-completion: 26/26
+  research-first-foundation: 32/32
+  research-first-plan-time-agents: 23/23
+  shelf-config-artifact: 10/10
+  shelf-skills-polish: 23/23
+  shelf-sync-efficiency: 35/35
+  shelf-sync-v2: 17/17
+  shelf: 12/12
+  structured-roadmap: 64/69
+  trim-design-lifecycle: 12/12
+  trim-penpot-layout: 20/20
+  trim: 19/19
+  wheel-as-runtime: 55/57
+  wheel-create-workflow: 18/18
+  wheel-per-agent-state: 12/12
+  wheel-session-guard: 11/11
+  wheel-skill-activation: 12/12
+  wheel-step-input-output-schema: 49/55
+  wheel-team-primitives: 24/26
+  wheel-test-runner-extraction: 28/38
+  wheel-test-skill: 31/31
+  wheel-typed-schema-locality: 26/36
+  wheel-user-input: 35/38
+  wheel-view-api: 29/29
+  wheel-workflow-composition: 19/19
+  wheel: 31/31
+  workflow-governance: 42/43
+VERSION: 000.001.009.1003

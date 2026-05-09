@@ -1,0 +1,32 @@
+harness-type: plugin-skill
+skill-under-test: wheel:wheel-run
+expected-exit: 0
+description: "Bifrost-routed MiniMax 2.7 smoke. Verifies claude --print -> Bifrost gateway -> MiniMax round-trips correctly: the orchestrator runs /wheel:wheel-run against a single-agent-step workflow, the agent step's instruction makes the model write a tiny artifact to a declared output path, and the assertions confirm the file landed."
+timeout-override: 600
+
+# Per-fixture env injection. Values resolve from plugin-wheel/.env.test
+# (auto-loaded by the runner) via ${VAR} substitution. The three names
+# below match the .env.example schema for the Bifrost provider family.
+env:
+  ANTHROPIC_BASE_URL: "${BIFROST_ENDPOINT}"
+  ANTHROPIC_AUTH_TOKEN: "${BIFROST_API_KEY}"
+  # Set the per-tier defaults too so any wheel agent step using
+  # `model: haiku|sonnet|opus` clauses also routes via Bifrost (the
+  # wheel resolver translates the tier to a literal claude-* id, which
+  # Claude Code then forwards along with ANTHROPIC_BASE_URL — and the
+  # default-tier env vars override the tier-id mapping at the API
+  # layer). For this smoke the workflow has no tier clause, so only
+  # ANTHROPIC_MODEL is strictly needed; the per-tier defaults are
+  # belt-and-suspenders for fixtures the future may add.
+  ANTHROPIC_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_SONNET_MODEL: "${BIFROST_MODEL_ID}"
+  ANTHROPIC_DEFAULT_OPUS_MODEL: "${BIFROST_MODEL_ID}"
+
+# Caller-env requirements. All three must be present in the merged
+# environment (caller shell + plugin-wheel/.env.test) for the test to
+# run. Missing → TAP SKIP.
+require-env:
+  - BIFROST_ENDPOINT
+  - BIFROST_API_KEY
+  - BIFROST_MODEL_ID

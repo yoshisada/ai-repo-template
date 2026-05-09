@@ -15,11 +15,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-REAL_HOOK="${REPO_ROOT}/plugin-wheel/hooks/post-tool-use.sh"
+REAL_EXTRACTORS="${REPO_ROOT}/plugin-wheel/dist/hooks/post-tool-use/extractors.js"
 ACTIVATE_TEST="${REPO_ROOT}/plugin-wheel/tests/activate-multiline/run.sh"
 
-if [[ ! -f "$REAL_HOOK" ]]; then
-  echo "FAIL: real hook missing: $REAL_HOOK" >&2
+if [[ ! -f "$REAL_EXTRACTORS" ]]; then
+  echo "FAIL: compiled extractors missing: $REAL_EXTRACTORS — run \`npm run build\` first" >&2
   exit 1
 fi
 if [[ ! -x "$ACTIVATE_TEST" ]]; then
@@ -27,33 +27,60 @@ if [[ ! -x "$ACTIVATE_TEST" ]]; then
   exit 1
 fi
 
-# Work in a disposable hooks-dir that the activate-multiline test can be
-# pointed at via a patched copy of the hook.
+# Work in a disposable stage. We back up the compiled extractor module,
+# patch it to simulate the pre-FR-C1 regression (flatten newlines before
+# scanning), run the activate-multiline test against the regressed dist,
+# and restore the original on exit.
 STAGE="$(mktemp -d -t preflatten-tripwire-XXXXXX)"
-trap 'rm -rf "$STAGE"; cp "${STAGE}/real-hook.bak" "$REAL_HOOK" 2>/dev/null || true' EXIT
+cp "$REAL_EXTRACTORS" "${STAGE}/extractors.js.bak"
+trap 'cp "${STAGE}/extractors.js.bak" "$REAL_EXTRACTORS" 2>/dev/null || true; rm -rf "$STAGE"' EXIT
 
-# Back up the real hook so we can restore if anything goes wrong
-cp "$REAL_HOOK" "${STAGE}/real-hook.bak"
-
-# Patch the real hook to re-insert the pre-flatten bug shape. We rewrite the
-# command-extraction line to pipe through `tr '\n' ' '` before jq — the exact
-# regression shape FR-C1 removed.
-python3 - <<PY
-p = "${REAL_HOOK}"
+# Patch the compiled extractor to simulate the pre-FR-C1 regression by
+# replacing detectActivateLine's body with a flatten-first scan: collapse
+# newlines to spaces BEFORE matching. This is the exact shape FR-C1 removed
+# — when the command has activate.sh on a non-last line, the flatten makes
+# the line-by-line scan miss the activate token's position context, and
+# downstream `extractWorkflowName` extracts garbage from the merged blob.
+#
+# Marker: literal string `function detectActivateLine`. If the marker
+# disappears (refactor), the patcher fails loudly so the maintainer knows
+# to update the patch site rather than ship a blind tripwire.
+PATCHER="${STAGE}/patch.py"
+cat > "$PATCHER" <<'PY'
+import re, sys
+p = sys.argv[1]
 with open(p) as f:
     src = f.read()
-# Replace the call to _extract_command with a pre-flatten extractor. If the
-# hook refactors and this marker disappears, the tripwire fails loudly (the
-# sed finds no match and we catch that below).
-marker = "COMMAND=\$(_extract_command)"
-patch  = 'COMMAND=\$(printf "%s" "\$RAW_INPUT" | tr "\\n" " " | jq -r ".tool_input.command // empty" 2>/dev/null || echo "")'
+marker = "export function detectActivateLine"
 if marker not in src:
-    import sys
-    sys.stderr.write("tripwire: marker '_extract_command' not found in hook — FR-C1 refactor detected, tripwire needs update\n")
+    sys.stderr.write("tripwire: marker 'function detectActivateLine' not found in compiled extractors — FR-C1 refactor detected, tripwire needs update\n")
+    sys.exit(2)
+# Regression body: returns a flattened blob that includes activate.sh but
+# whose tokens-after-activate.sh are scrambled by the original newlines
+# (now spaces). extractWorkflowName picks the wrong token, activation
+# attempts the wrong workflow, and FR-C2 invariant breaks.
+regression = (
+    "export function detectActivateLine(command) {\n"
+    "    const flat = command.split('\\n').join(' ');\n"
+    "    if (flat.indexOf('plugin-wheel/bin/activate.sh') === -1) return null;\n"
+    "    return flat;\n"
+    "}"
+)
+# Replace from `export function detectActivateLine` up to (but not
+# including) the next top-level `export function ` declaration.
+patched = re.sub(
+    r"export function detectActivateLine[\s\S]*?(?=\nexport function )",
+    regression + "\n",
+    src,
+    count=1,
+)
+if patched == src:
+    sys.stderr.write("tripwire: regex replacement failed — extractors.js layout changed, tripwire needs update\n")
     sys.exit(2)
 with open(p, "w") as f:
-    f.write(src.replace(marker, patch))
+    f.write(patched)
 PY
+python3 "$PATCHER" "$REAL_EXTRACTORS"
 
 # Run the FR-C2 test against the regressed hook. We expect:
 #   - exit non-zero
@@ -63,8 +90,8 @@ regressed_output=$(bash "$ACTIVATE_TEST" 2>&1)
 regressed_exit=$?
 set -e
 
-# Restore the real hook before we make any assertions
-cp "${STAGE}/real-hook.bak" "$REAL_HOOK"
+# Restore the real extractors before we make any assertions
+cp "${STAGE}/extractors.js.bak" "$REAL_EXTRACTORS"
 
 if [[ "$regressed_exit" -eq 0 ]]; then
   echo "FAIL: with pre-flatten re-inserted, the FR-C2 test still passed — NFR-2 tripwire is blind" >&2

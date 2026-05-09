@@ -13,36 +13,30 @@ fi
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null || true)
 
-# FR-C1 / R-004: the pre-existing `jq ... 2>/dev/null || true` pattern silently
-# returned an empty COMMAND when jq choked on literal control characters in
-# tool_input.command (Claude Code's harness emits these). Empty COMMAND → the
-# state-write regex below never matched → state-file writes slipped through
-# this hook undetected. NFR-2 forbids silent-drop; extract via jq first and
-# fall back to python3 json.loads(strict=False) which accepts literal control
-# characters. If BOTH fail, emit an identifiable stderr diagnostic (not silent)
-# and proceed with empty COMMAND — this hook's job is to block on positive
-# match, so the remaining open question is "did we miss a match?" which the
-# tripwire test in `plugin-wheel/tests/hook-no-preflatten-tripwire/` covers.
+# FR-C1 / R-004: the pre-existing `jq ... 2>/dev/null || true` pattern
+# silently returned an empty COMMAND when jq choked on literal control
+# characters in tool_input.command (Claude Code's harness emits these).
+# Empty COMMAND → the state-write regex below never matched → state-file
+# writes slipped through this hook undetected. NFR-2 forbids silent-drop;
+# extract via jq first and fall back to a pure-node relaxed parser
+# (_extract-command.mjs) which escapes literal control chars inside string
+# contexts. If BOTH fail, emit an identifiable stderr diagnostic (not
+# silent) and proceed with empty COMMAND. The relaxed parser replaces the
+# previous python3 strict=False fallback — wheel has zero runtime python
+# dependency. Tripwire coverage:
+# `plugin-wheel/tests/hook-no-preflatten-tripwire/`.
 COMMAND=""
 if _tmp=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null); then
   COMMAND="$_tmp"
-elif command -v python3 >/dev/null 2>&1; then
-  if _tmp=$(printf '%s' "$INPUT" | python3 -c '
-import json, sys
-try:
-    d = json.loads(sys.stdin.read(), strict=False)
-except Exception as e:
-    sys.stderr.write("wheel block-state-write: python3 JSON fallback failed: " + str(e) + "\n")
-    sys.exit(2)
-ti = d.get("tool_input") or {}
-sys.stdout.write(ti.get("command") or "")
-' 2>/dev/null); then
+elif command -v node >/dev/null 2>&1; then
+  _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if _tmp=$(printf '%s' "$INPUT" | node "${_SCRIPT_DIR}/_extract-command.mjs" 2>/dev/null); then
     COMMAND="$_tmp"
   else
-    echo "wheel block-state-write: FR-C1 command extraction failed (jq + python3 both rejected hook input)" >&2
+    echo "wheel block-state-write: FR-C1 command extraction failed (jq + node relaxed parser both rejected hook input)" >&2
   fi
 else
-  echo "wheel block-state-write: FR-C1 command extraction failed (jq rejected input, python3 unavailable)" >&2
+  echo "wheel block-state-write: FR-C1 command extraction failed (jq rejected input, node unavailable)" >&2
 fi
 
 # Check Bash commands that write/delete state files
