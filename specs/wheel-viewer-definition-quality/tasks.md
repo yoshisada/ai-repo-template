@@ -45,8 +45,8 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Tests for User Story 4 (Diff) — write FIRST, expect FAIL
 
-- [ ] T006 [P] [US4] Write `plugin-wheel/viewer/src/lib/diff.test.ts`: cases for all-added, all-removed, mixed modifications, unchanged passthrough, ID-collision pairing, and unidentified-step index pairing. Tests MUST fail until T007 lands.
-- [ ] T007 [US4] Implement `plugin-wheel/viewer/src/lib/diff.ts` matching `contracts/interfaces.md`: `diffWorkflows`, `WorkflowDiff`, `ModifiedStep`, `FieldDiff`. FR-5.3 — id-keyed alignment with index fallback for unidentified steps.
+- [X] T006 [P] [US4] Write `plugin-wheel/viewer/src/lib/diff.test.ts`: cases for all-added, all-removed, mixed modifications, unchanged passthrough, ID-collision pairing, and unidentified-step index pairing. Tests MUST fail until T007 lands.
+- [X] T007 [US4] Implement `plugin-wheel/viewer/src/lib/diff.ts` matching `contracts/interfaces.md`: `diffWorkflows`, `WorkflowDiff`, `ModifiedStep`, `FieldDiff`. FR-5.3 — id-keyed alignment with index fallback for unidentified steps.
 
 ### Source-checkout discovery (US2)
 
