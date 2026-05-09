@@ -67,8 +67,8 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Tests for FR-1 (layout) — write FIRST, expect FAIL
 
-- [ ] T011 [P] [US1] Write `plugin-wheel/viewer/src/lib/layout.test.ts`: cases for linear chain, branch fan-out + rejoin, loop substep cluster + back-edge, parallel siblings, expanded sub-DAG offset, team-step fan-in, no-overlap invariant on every fixture under `plugin-wheel/tests/*.json`. Tests MUST fail until T012 lands.
-- [ ] T012 [US1] Implement `plugin-wheel/viewer/src/lib/layout.ts` matching `contracts/interfaces.md`: `buildLayout`, `GraphNode`, `GraphEdge`, `LayoutResult`, the three layout constants. Hand-rolled layered topological-rank — NO new npm dep. Algorithm sketch in plan.md D-1.
+- [X] T011 [P] [US1] Write `plugin-wheel/viewer/src/lib/layout.test.ts`: cases for linear chain, branch fan-out + rejoin, loop substep cluster + back-edge, parallel siblings, expanded sub-DAG offset, team-step fan-in, no-overlap invariant on every fixture under `plugin-wheel/tests/*.json`. Tests MUST fail until T012 lands.
+- [X] T012 [US1] Implement `plugin-wheel/viewer/src/lib/layout.ts` matching `contracts/interfaces.md`: `buildLayout`, `GraphNode`, `GraphEdge`, `LayoutResult`, the three layout constants. Hand-rolled layered topological-rank — NO new npm dep. Algorithm sketch in plan.md D-1.
 
 ### FlowDiagram + WorkflowNode rewrite
 
@@ -79,7 +79,7 @@ description: "Task list for wheel-viewer-definition-quality"
 
 ### Hygiene (FR-8)
 
-- [ ] T017 [US1] Delete `plugin-wheel/skills/wheel-view/viewer.html` (FR-8.1). Verify no other file references it: `git grep -F viewer.html plugin-wheel/` returns zero matches (FR-8.2 / SC-013).
+- [X] T017 [US1] Delete `plugin-wheel/skills/wheel-view/viewer.html` (FR-8.1). Verify no other file references it: `git grep -F viewer.html plugin-wheel/` returns zero matches (FR-8.2 / SC-013).
 
 **Checkpoint**: graph layer renders all step types with no overlap. qa-engineer can capture AC-1, AC-2, AC-3, AC-4 screenshots.
 
