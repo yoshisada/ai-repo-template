@@ -154,10 +154,12 @@ export default function StepDetail({
           {!expandedWorkflows.has(stepId) && step.workflow && (
             <div className="step-field">
               <button
-                className="expand-btn"
+                className="expand-inline-btn"
                 onClick={() => onToggleExpand(stepId, {} as Workflow)}
               >
-                + Expand teammate sub-workflow
+                <span className="expand-inline-btn-icon">＋</span>
+                <span className="expand-inline-btn-label">Expand sub-workflow</span>
+                <span className="expand-inline-btn-target">{step.workflow}</span>
               </button>
             </div>
           )}
@@ -336,10 +338,15 @@ export default function StepDetail({
           {!expandedWorkflows.has(stepId) && ((step as { workflow_name?: string }).workflow_name || (step as { workflow?: string }).workflow) && (
             <div className="step-field">
               <button
-                className="expand-btn"
+                className="expand-inline-btn"
                 onClick={() => onToggleExpand(stepId, {} as Workflow)}
               >
-                + Expand nested workflow
+                <span className="expand-inline-btn-icon">＋</span>
+                <span className="expand-inline-btn-label">Expand nested workflow</span>
+                <span className="expand-inline-btn-target">
+                  {(step as { workflow_name?: string; workflow?: string }).workflow_name
+                    || (step as { workflow?: string }).workflow}
+                </span>
               </button>
             </div>
           )}

@@ -3,32 +3,63 @@
 // Implements FR-1.1 through FR-1.8 of wheel-viewer-definition-quality:
 //   FR-1.1: Identify the workflow's logical DAG by following next-step (default),
 //           if_zero / if_nonzero (branch), skip (jump), and substep (loop body).
-//   FR-1.2: Compute node positions via a layered topological-rank algorithm
-//           (longest-path layering — hand-rolled, NO dagre dep per plan D-1).
-//   FR-1.3: Branch targets that join back render at the rejoin point (longest-path
-//           ranking naturally produces this).
+//   FR-1.2: Compute node positions via dagre's Sugiyama layered layout
+//           (revised from plan.md D-1's hand-rolled approach — see positionByRank
+//           comment for the why). dagre handles crossing minimization + edge
+//           routing through dummy nodes, which hand-rolling cannot guarantee.
+//   FR-1.3: Branch targets that join back render at the rejoin point (dagre's
+//           network-simplex ranker naturally produces this).
 //   FR-1.4: Loop substeps render as a nested node anchored to the loop step
 //           with a labeled back-edge.
 //   FR-1.5: Parallel children render as siblings at the same rank.
-//   FR-1.6: Expanded sub-workflows render below their parent as a self-contained
-//           sub-DAG with its own layered layout (isSubDAGChild = true).
+//   FR-1.6: Expanded sub-workflows render INLINE below their parent (push down
+//           subsequent main-DAG ranks; isSubDAGChild = true for cluster styling).
 //   FR-1.7: Team-step fan-out / fan-in — team-create → all teammates,
 //           teammates → team-wait via 'team-fan-in' edges.
-//   FR-1.8: No two nodes overlap (sibling spread + rank stacking ensure this).
+//   FR-1.8: No two nodes overlap AND no edges cross node bodies (dagre's
+//           coordinate assignment with edge-aware separation guarantees this).
 //
 // Pure: identical input → byte-identical (nodes, edges). No I/O, no Date.now,
-// no Math.random. See plan.md D-1 + contracts/interfaces.md for the algorithm
-// sketch and exported signatures.
+// no Math.random. dagre's `layout(g)` is deterministic given identical input.
 
 import type { Step, Workflow } from './types'
+import * as dagreModule from '@dagrejs/dagre'
 
-// FR-1.2 — Layout grid constants. Exposed for FlowDiagram fitView and tests.
+// FR-1.2 — Legacy rank-height constant. Retained for FlowDiagram fitView
+// math + tests that assert relative y-spacing. dagre now drives actual
+// positions, but downstream code still references LAYOUT_RANK_HEIGHT as a
+// nominal rank step.
 export const LAYOUT_RANK_HEIGHT = 160
 export const LAYOUT_NODE_SPACING_X = 240
 export const LAYOUT_SUB_DAG_OFFSET_Y = 200
 
+// FR-1.2 — dagre tuning. Node box size is the canvas the React-Flow node
+// occupies (must match WorkflowNode.tsx's intrinsic width × height so
+// dagre's collision math reflects the actual rendered DOM).
+const LAYOUT_NODE_WIDTH = 240
+const LAYOUT_NODE_HEIGHT = 90
+// Sep values control gutters between dagre-laid-out elements. Generous
+// values reduce visual cramming + give edges more bend room.
+const LAYOUT_NODE_SEP = 80   // horizontal gap between siblings at same rank
+const LAYOUT_RANK_SEP = 110  // vertical gap between consecutive ranks
+const LAYOUT_EDGE_SEP = 30   // gap between parallel edges in same channel
+
+// Sub-DAG group container — bounding-box padding around children + title
+// bar height. Both are referenced when sizing the group node AND when
+// translating child coordinates to be relative to the group origin.
+export const LAYOUT_GROUP_PAD = 24
+export const LAYOUT_GROUP_TITLE_H = 32
+
 // FR-1.2 — A positioned graph node. Shape matches contracts/interfaces.md
 // (React-Flow native: position.x/y + data payload).
+//
+// Sub-DAG group nodes (`type: 'subDAGGroup'`) carry width/height directly
+// so React Flow renders the bounding box at the correct size. Their
+// `data.subWorkflowName` becomes the title rendered at the top of the box.
+//
+// Sub-DAG children carry `parentId` referencing their group node so React
+// Flow's parent-child semantics (drag-as-one, extent-clip) apply. Their
+// `position` is RELATIVE to the parent (group-origin coordinates).
 export interface GraphNode {
   id: string
   position: { x: number; y: number }
@@ -37,8 +68,15 @@ export interface GraphNode {
     rank: number
     isExpanded?: boolean
     isSubDAGChild?: boolean
+    subWorkflowName?: string
+    subDAGGroupId?: string
   }
   type?: string
+  parentId?: string
+  extent?: 'parent'
+  width?: number
+  height?: number
+  zIndex?: number
 }
 
 // FR-1.1 — A typed edge. The renderer chooses visual treatment by `data.kind`.
@@ -270,39 +308,84 @@ function injectLoopSubsteps(
   })
 }
 
-// FR-1.2 / FR-1.5 / FR-1.8 — Position each node by its rank (y) and by its
-// horizontal index among siblings (x). Sibling order preserves the order
-// in which nodes were added so the layout is deterministic.
-function positionByRank(nodes: GraphNode[], rank: Map<string, number>): void {
-  const byRank = new Map<number, GraphNode[]>()
+// FR-1.2 / FR-1.5 / FR-1.8 — Delegate positioning to dagre's Sugiyama
+// layered layout. Handles rank assignment, sibling ordering to minimize
+// crossings, and edge routing — the three things the hand-rolled
+// implementation could not do without obstacle avoidance.
+//
+// Why dagre over a richer hand-roll: layered DAGs without obstacle
+// avoidance fundamentally cannot guarantee "no edges crossing nodes" in
+// the presence of fan-in (team-wait), fan-out (team-create), branches,
+// loops, and expanded sub-DAGs simultaneously. Dagre (1.4MB on disk,
+// ~40KB minified+gzipped) implements the standard Sugiyama pipeline:
+// rank assignment → crossing minimization → coordinate assignment with
+// dummy-node-augmented edge routing.
+//
+// FR-1.4 loop-back edges are EXCLUDED from the dagre graph (dagre would
+// rank-tangle them); they're rendered visually but don't influence layout.
+function positionByRank(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  rank: Map<string, number>,
+): void {
+  // Record rank on each node for renderer hooks that key off it (e.g.
+  // alternating-rank background bands). We compute the rank ourselves
+  // so we don't depend on dagre's internal rank labels.
   nodes.forEach((n) => {
-    const r = rank.get(n.id) ?? 0
-    n.data.rank = r
-    const list = byRank.get(r) ?? []
-    list.push(n)
-    byRank.set(r, list)
+    n.data.rank = rank.get(n.id) ?? 0
   })
-  byRank.forEach((siblings, r) => {
-    const total = siblings.length
-    const startX = -((total - 1) * LAYOUT_NODE_SPACING_X) / 2
-    siblings.forEach((n, i) => {
-      n.position = { x: startX + i * LAYOUT_NODE_SPACING_X, y: r * LAYOUT_RANK_HEIGHT }
+
+  const g = new dagreModule.graphlib.Graph()
+  g.setGraph({
+    rankdir: 'TB',           // top-to-bottom layered
+    align: 'UL',             // upper-left alignment within rank
+    nodesep: LAYOUT_NODE_SEP,
+    ranksep: LAYOUT_RANK_SEP,
+    edgesep: LAYOUT_EDGE_SEP,
+    marginx: 20,
+    marginy: 20,
+    acyclicer: 'greedy',
+    ranker: 'tight-tree',
+  })
+  g.setDefaultEdgeLabel(() => ({}))
+
+  nodes.forEach((n) => {
+    g.setNode(n.id, {
+      width: LAYOUT_NODE_WIDTH,
+      height: LAYOUT_NODE_HEIGHT,
     })
+  })
+
+  edges.forEach((e) => {
+    // Skip loop-back so dagre doesn't try to flatten the cycle.
+    if (e.data?.kind === 'loop-back') return
+    g.setEdge(e.source, e.target)
+  })
+
+  dagreModule.layout(g)
+
+  // Dagre reports centers; React Flow expects top-left of the node box.
+  nodes.forEach((n) => {
+    const dn = g.node(n.id)
+    if (!dn) return
+    n.position = {
+      x: dn.x - LAYOUT_NODE_WIDTH / 2,
+      y: dn.y - LAYOUT_NODE_HEIGHT / 2,
+    }
   })
 }
 
-// FR-1.6 — Append expanded sub-workflows below the parent flow as their own
-// layered sub-DAG. Each sub-node carries `isSubDAGChild: true` so the
-// renderer can apply cluster styling.
+// FR-1.6 — Inline expanded sub-workflows directly under their parent step.
+// Pushes down all main-DAG nodes whose y is below the parent so the
+// sub-DAG renders IN-FLOW (between the parent and the next rank) rather
+// than dangling below the entire main DAG. Each sub-node carries
+// `isSubDAGChild: true` so the renderer can apply cluster styling.
 function appendExpandedSubWorkflows(
   parentNodes: GraphNode[],
   parentEdges: GraphEdge[],
   expanded: Map<string, Workflow>,
 ): void {
   if (expanded.size === 0) return
-
-  const parentMaxY = parentNodes.reduce((m, n) => Math.max(m, n.position.y), 0)
-  let baseY = parentMaxY + LAYOUT_SUB_DAG_OFFSET_Y
 
   for (const [parentId, subWf] of expanded) {
     const parent = parentNodes.find((n) => n.id === parentId)
@@ -313,9 +396,7 @@ function appendExpandedSubWorkflows(
     const sub = buildLayout(subWf)
     if (sub.nodes.length === 0) continue
 
-    // Translate sub-coordinates so the sub-DAG is centered under the parent
-    // and below `baseY`. We compute the sub's bounding box from the recurse
-    // output and pick the dx/dy that places its top centered under parent.x.
+    // Bounding box of the recursed sub-DAG.
     const subXs = sub.nodes.map((n) => n.position.x)
     const subYs = sub.nodes.map((n) => n.position.y)
     const subMinX = Math.min(...subXs)
@@ -323,8 +404,59 @@ function appendExpandedSubWorkflows(
     const subCenter = (subMinX + subMaxX) / 2
     const subMinY = Math.min(...subYs)
     const subMaxY = Math.max(...subYs)
-    const dx = parent.position.x - subCenter
-    const dy = baseY - subMinY
+    const subHeight = subMaxY - subMinY + LAYOUT_RANK_HEIGHT
+
+    // Insertion strategy: sub-DAG goes IMMEDIATELY BELOW the parent step
+    // (parent.y + RANK_HEIGHT * 0.75 — slightly less than a full rank so
+    // the visual nesting reads as "inside" rather than "next step").
+    const subTopY = parent.position.y + LAYOUT_RANK_HEIGHT * 0.75
+    const totalHeightConsumed = subHeight + LAYOUT_RANK_HEIGHT * 0.5
+
+    // Push down every main-DAG node strictly below the parent so the
+    // sub-DAG has its own y-space. Operate ONLY on non-sub-DAG nodes
+    // (sub-DAG children added by earlier iterations stay in their slot).
+    parentNodes.forEach((n) => {
+      if (n.id === parentId) return
+      if (n.data.isSubDAGChild) return
+      if (n.position.y > parent.position.y) {
+        n.position = { x: n.position.x, y: n.position.y + totalHeightConsumed }
+      }
+    })
+
+    // Group bounding box — sub-DAG content + padding for the title bar +
+    // breathing room. Group's top-left in absolute (canvas) coords.
+    const subContentWidth = subMaxX - subMinX + LAYOUT_NODE_WIDTH
+    const subContentHeight = subMaxY - subMinY + LAYOUT_NODE_HEIGHT
+    const groupW = subContentWidth + LAYOUT_GROUP_PAD * 2
+    const groupH = subContentHeight + LAYOUT_GROUP_PAD * 2 + LAYOUT_GROUP_TITLE_H
+    // Center group horizontally under the parent step's x-center.
+    const parentCenterX = parent.position.x + LAYOUT_NODE_WIDTH / 2
+    const groupX = parentCenterX - groupW / 2
+    const groupY = subTopY
+
+    // Emit the group node. Renders as a bounding box with the sub-workflow
+    // name at the top — see GroupNode.tsx for the visual treatment.
+    const groupId = `expanded-group-${parentId}`
+    parentNodes.push({
+      id: groupId,
+      position: { x: groupX, y: groupY },
+      width: groupW,
+      height: groupH,
+      data: {
+        step: parent.data.step,           // for type-color theming on the group
+        rank: parent.data.rank + 0.5,
+        subWorkflowName: subWf.name,
+        isSubDAGChild: false,
+      },
+      type: 'subDAGGroup',
+      zIndex: -1,                          // sit behind children
+    })
+
+    // Children's positions are RELATIVE to the group origin. Translate the
+    // dagre-computed absolute coords into group-local coords by subtracting
+    // (subMinX, subMinY) and adding the inner padding + title bar offset.
+    const childDx = LAYOUT_GROUP_PAD - subMinX
+    const childDy = LAYOUT_GROUP_PAD + LAYOUT_GROUP_TITLE_H - subMinY
 
     const idMap = new Map<string, string>()
     sub.nodes.forEach((n) => {
@@ -332,13 +464,16 @@ function appendExpandedSubWorkflows(
       idMap.set(n.id, newId)
       parentNodes.push({
         id: newId,
-        position: { x: n.position.x + dx, y: n.position.y + dy },
+        position: { x: n.position.x + childDx, y: n.position.y + childDy },
         data: {
           step: n.data.step,
           rank: n.data.rank,
           isSubDAGChild: true,
+          subDAGGroupId: groupId,
         },
         type: n.type,
+        parentId: groupId,
+        extent: 'parent',
       })
     })
     sub.edges.forEach((e) => {
@@ -366,7 +501,53 @@ function appendExpandedSubWorkflows(
       })
     })
 
-    baseY += subMaxY - subMinY + LAYOUT_SUB_DAG_OFFSET_Y
+    // FR-1.6 + visual-fidelity fix — when a parent expands, its OUTGOING
+    // main-DAG edges (next, team-fan-in, etc.) MUST originate from the
+    // sub-DAG's EXIT nodes instead of from the parent, otherwise those
+    // edges visually overlap the freshly-inserted sub-DAG box. The
+    // semantic chain becomes:  parent → sub-DAG entry … sub-DAG exit →
+    // next main step. Preserves the dashed-cyan parent→entry edge from
+    // above as the "this opens here" affordance.
+    //
+    // Identify sub-DAG exits = nodes with no outgoing edges within the sub.
+    const subSourceIds = new Set(sub.edges.map((e) => e.source))
+    const exits = sub.nodes
+      .filter((n) => !subSourceIds.has(n.id))
+      .map((n) => idMap.get(n.id) as string)
+
+    if (exits.length > 0) {
+      // Find main-DAG edges that originated FROM the parent step and
+      // that target nodes outside this sub-DAG. Reroute their source
+      // to the sub-DAG's (single, or first) exit node.
+      const exitId = exits[0]
+      const newEdges: GraphEdge[] = []
+      for (const e of parentEdges) {
+        // Leave expansion-internal edges alone; only reroute main-DAG
+        // edges whose source is the parent and whose target is NOT a
+        // sub-DAG child we just added.
+        const targetIsSubChild =
+          e.target.startsWith(`expanded-${parentId}-`) ||
+          e.id.startsWith(`expanded-${parentId}-`)
+        const isExpandedKindFromParent =
+          e.data?.kind === 'expanded' && e.source === parentId
+        if (
+          e.source === parentId &&
+          !targetIsSubChild &&
+          !isExpandedKindFromParent
+        ) {
+          newEdges.push({
+            ...e,
+            id: `${e.id}-rerouted-via-${exitId}`,
+            source: exitId,
+          })
+        } else {
+          newEdges.push(e)
+        }
+      }
+      // Mutate in place — preserve identity of the array the caller passed in.
+      parentEdges.length = 0
+      parentEdges.push(...newEdges)
+    }
   }
 }
 
@@ -416,7 +597,7 @@ export function buildLayout(
   })
 
   // FR-1.5 / FR-1.8: position by rank.
-  positionByRank(nodes, rerank)
+  positionByRank(nodes, edges, rerank)
 
   // FR-1.6: append expanded sub-workflows below.
   if (expandedWorkflows && expandedWorkflows.size > 0) {

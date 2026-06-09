@@ -20,7 +20,8 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import WorkflowNode from './WorkflowNode'
-import { buildLayout, type GraphEdge } from '@/lib/layout'
+import SubDAGGroupNode from './SubDAGGroupNode'
+import { buildLayout, LAYOUT_GROUP_PAD, LAYOUT_GROUP_TITLE_H, type GraphEdge } from '@/lib/layout'
 import type { Workflow } from '@/lib/types'
 
 interface FlowDiagramProps {
@@ -123,14 +124,33 @@ export default function FlowDiagram({
 }: FlowDiagramProps) {
   // FR-1.1..1.8 — delegate ALL positioning to the pure-functional layout
   // engine. This component just adapts the result for React Flow.
+  // Sub-DAG group nodes carry width/height + parentId/extent → propagated
+  // both at the top level AND inside `style` so React Flow v12 actually
+  // renders the group at the declared size (style-side is what the DOM
+  // measures; node-side feeds layout math).
   const { nodes: rfNodes, edges: rfEdges } = useMemo(() => {
     const layout = buildLayout(workflow, expandedWorkflows)
-    const nodes = layout.nodes.map((n) => ({
-      id: n.id,
-      type: n.type ?? 'workflowNode',
-      position: n.position,
-      data: { step: n.data.step, type: n.data.step.type ?? 'command' },
-    }))
+    const nodes = layout.nodes.map((n) => {
+      const baseStyle: React.CSSProperties = {}
+      if (n.width !== undefined) baseStyle.width = n.width
+      if (n.height !== undefined) baseStyle.height = n.height
+      return {
+        id: n.id,
+        type: n.type ?? 'workflowNode',
+        position: n.position,
+        data: {
+          step: n.data.step,
+          type: n.data.step?.type ?? 'command',
+          subWorkflowName: n.data.subWorkflowName,
+        },
+        ...(n.parentId ? { parentId: n.parentId } : {}),
+        ...(n.extent ? { extent: n.extent } : {}),
+        ...(n.width !== undefined ? { width: n.width } : {}),
+        ...(n.height !== undefined ? { height: n.height } : {}),
+        ...(n.zIndex !== undefined ? { zIndex: n.zIndex } : {}),
+        ...(Object.keys(baseStyle).length > 0 ? { style: baseStyle } : {}),
+      }
+    })
     const edges = layout.edges.map((e) => ({
       id: e.id,
       source: e.source,
@@ -198,6 +218,108 @@ export default function FlowDiagram({
     [onSelectStep],
   )
 
+  // FR-1.6 visual-fidelity — recompute the group box ONLY on drag-stop.
+  // Per-frame recompute (onNodeDrag) caused two visible bugs: (a) the box
+  // jittered as it tracked each cursor frame, (b) the translate-children-
+  // back logic shifted siblings out from under the cursor mid-drag.
+  //
+  // Drag-stop semantics:
+  //   1. Take children's CURRENT positions (relative to group origin)
+  //   2. Compute the snug bounding box that contains every child +
+  //      padding + title-bar height
+  //   3. If any child went LEFT or UP of the title-bar origin (impossible
+  //      under extent:'parent' clipping, but defensive), shift the group's
+  //      absolute position back by that delta AND shift children forward
+  //      by the same delta so they look unmoved
+  //   4. Apply new width/height to the group node
+  //
+  // The box NEVER shrinks below the original layout-computed size — it
+  // only grows to encompass children that have wandered outward. Shrinking
+  // would mean clipping children that aren't currently at the edge.
+  // FR-1.6 visual-fidelity — recompute every group's bounding box on
+  // drag-stop. Walking ALL groups (rather than only the one inferred
+  // from draggedNode.parentId) is defensive against React Flow handler
+  // signature variance and works for both child-drag (the typical case)
+  // AND for group-drag (no-op since children are relative-positioned).
+  const onNodeDragStop = useCallback(
+    () => {
+      setNodes((nds) => {
+        const NODE_W = 240
+        const NODE_H = 90
+        // Collect every group node + its children.
+        const groups = nds.filter((n) => n.type === 'subDAGGroup')
+        if (groups.length === 0) return nds
+        const childrenByGroup = new Map<string, typeof nds>()
+        for (const n of nds) {
+          if (n.parentId) {
+            const list = childrenByGroup.get(n.parentId) ?? []
+            list.push(n)
+            childrenByGroup.set(n.parentId, list)
+          }
+        }
+
+        // For each group: compute the bbox of its children + decide if
+        // (a) the box needs to grow / shrink and (b) the box origin
+        // needs to shift to keep children inside (PAD, PAD+TITLE_H+).
+        const groupUpdates = new Map<
+          string,
+          { width: number; height: number; shiftX: number; shiftY: number }
+        >()
+        for (const g of groups) {
+          const children = childrenByGroup.get(g.id) ?? []
+          if (children.length === 0) continue
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+          for (const c of children) {
+            minX = Math.min(minX, c.position.x)
+            minY = Math.min(minY, c.position.y)
+            maxX = Math.max(maxX, c.position.x + NODE_W)
+            maxY = Math.max(maxY, c.position.y + NODE_H)
+          }
+          const shiftX = Math.max(0, LAYOUT_GROUP_PAD - minX)
+          const shiftY = Math.max(0, (LAYOUT_GROUP_PAD + LAYOUT_GROUP_TITLE_H) - minY)
+          const shiftedMaxX = maxX + shiftX
+          const shiftedMaxY = maxY + shiftY
+          const width = shiftedMaxX + LAYOUT_GROUP_PAD
+          const height = shiftedMaxY + LAYOUT_GROUP_PAD
+          groupUpdates.set(g.id, { width, height, shiftX, shiftY })
+        }
+
+        if (groupUpdates.size === 0) return nds
+
+        return nds.map((n) => {
+          const update = groupUpdates.get(n.id)
+          if (update) {
+            const baseStyle = (n.style ?? {}) as React.CSSProperties
+            return {
+              ...n,
+              position: {
+                x: n.position.x - update.shiftX,
+                y: n.position.y - update.shiftY,
+              },
+              width: update.width,
+              height: update.height,
+              style: { ...baseStyle, width: update.width, height: update.height },
+            }
+          }
+          if (n.parentId) {
+            const parentUpdate = groupUpdates.get(n.parentId)
+            if (parentUpdate && (parentUpdate.shiftX !== 0 || parentUpdate.shiftY !== 0)) {
+              return {
+                ...n,
+                position: {
+                  x: n.position.x + parentUpdate.shiftX,
+                  y: n.position.y + parentUpdate.shiftY,
+                },
+              }
+            }
+          }
+          return n
+        })
+      })
+    },
+    [setNodes],
+  )
+
   return (
     <div className="flow-container">
       <ReactFlow
@@ -212,7 +334,11 @@ export default function FlowDiagram({
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
-        nodeTypes={{ workflowNode: WorkflowNode as never }}
+        onNodeDragStop={onNodeDragStop}
+        nodeTypes={{
+          workflowNode: WorkflowNode as never,
+          subDAGGroup: SubDAGGroupNode as never,
+        }}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
