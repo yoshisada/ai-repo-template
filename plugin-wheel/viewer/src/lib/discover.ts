@@ -11,6 +11,10 @@ export interface DiscoveredWorkflow {
   stepCount: number
   steps: unknown[]
   localOverride: boolean
+  // FR-6.3 — discovery origin tag mirrors `Workflow.discoveryMode`.
+  // Omitted on legacy callers; set to 'installed' / 'source' by the
+  // discoverPluginWorkflows path that produces the entry. See FR-6.1, FR-6.2.
+  discoveryMode?: 'installed' | 'source' | 'local'
 }
 
 function homeDir(): string {
@@ -155,27 +159,101 @@ function discoverPluginWorkflowsFromDir(
   return workflows
 }
 
-export function discoverPluginWorkflows(): DiscoveredWorkflow[] {
+/**
+ * FR-6.1 — Discover plugin workflows.
+ *
+ * Behavior:
+ *   1. Reads ~/.claude/plugins/installed_plugins.json — workflows tagged
+ *      `discoveryMode='installed'`.
+ *   2. If `projectPath` is provided, ALSO scans `<projectPath>/plugin-* /` for
+ *      sibling plugin checkouts (FR-6.2). Each result tagged
+ *      `discoveryMode='source'`.
+ *   3. Both versions of the same workflow may appear in the result —
+ *      callers (e.g. the Sidebar) decide whether to dedupe or render both
+ *      with a `(source)` tag (FR-6.4).
+ *
+ * Backwards-compatible: when `projectPath` is omitted, the result is
+ * functionally unchanged from the prior release (every entry tagged
+ * `discoveryMode='installed'`; legacy callers ignoring that field still see
+ * the same shape).
+ */
+export function discoverPluginWorkflows(projectPath?: string): DiscoveredWorkflow[] {
+  const allWorkflows: DiscoveredWorkflow[] = []
+
+  // --- 1. installed_plugins.json scan (existing behavior, now tagged) ---
   const installedPluginsPath = path.join(homeDir(), '.claude', 'plugins', 'installed_plugins.json')
-  if (!fs.existsSync(installedPluginsPath)) return []
+  if (fs.existsSync(installedPluginsPath)) {
+    try {
+      const installed = JSON.parse(fs.readFileSync(installedPluginsPath, 'utf8'))
+      const plugins = installed.plugins as Record<string, Array<{ installPath: string }>>
 
-  try {
-    const installed = JSON.parse(fs.readFileSync(installedPluginsPath, 'utf8'))
-    const plugins = installed.plugins as Record<string, Array<{ installPath: string }>>
-    const allWorkflows: DiscoveredWorkflow[] = []
-
-    for (const [pluginFullName, entries] of Object.entries(plugins)) {
-      const pluginShort = pluginFullName.split('@')[0]
-      for (const entry of entries) {
-        const workflows = discoverPluginWorkflowsFromDir(entry.installPath, pluginShort)
-        allWorkflows.push(...workflows)
+      for (const [pluginFullName, entries] of Object.entries(plugins)) {
+        const pluginShort = pluginFullName.split('@')[0]
+        for (const entry of entries) {
+          const workflows = discoverPluginWorkflowsFromDir(entry.installPath, pluginShort)
+          for (const wf of workflows) {
+            wf.discoveryMode = 'installed'
+          }
+          allWorkflows.push(...workflows)
+        }
       }
+    } catch {
+      // installed_plugins.json malformed — fall through; source scan may still succeed.
     }
+  }
 
-    return allWorkflows
+  // --- 2. FR-6.2 source-checkout scan (only if projectPath provided) ---
+  if (typeof projectPath === 'string' && projectPath.length > 0) {
+    const sourceWorkflows = discoverSourcePluginWorkflows(projectPath)
+    allWorkflows.push(...sourceWorkflows)
+  }
+
+  return allWorkflows
+}
+
+/**
+ * FR-6.2 — Scan `<projectPath>/plugin-* /` for plugin source checkouts.
+ *
+ * For each direct child directory matching `plugin-*`:
+ *   - Skip if no `<dir>/.claude-plugin/plugin.json` exists.
+ *   - Skip if no `<dir>/workflows/` directory exists.
+ *   - Otherwise feed it to `discoverPluginWorkflowsFromDir` (manifest +
+ *     auto-scan logic), then tag every result `discoveryMode='source'`.
+ *
+ * Exported for unit testing; primary call site is `discoverPluginWorkflows`.
+ */
+export function discoverSourcePluginWorkflows(projectPath: string): DiscoveredWorkflow[] {
+  if (!fs.existsSync(projectPath)) return []
+
+  const out: DiscoveredWorkflow[] = []
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(projectPath, { withFileTypes: true })
   } catch {
     return []
   }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue
+    if (!entry.name.startsWith('plugin-')) continue
+
+    const pluginDir = path.join(projectPath, entry.name)
+    const manifestPath = path.join(pluginDir, '.claude-plugin', 'plugin.json')
+    const workflowsDir = path.join(pluginDir, 'workflows')
+
+    // FR-6.2 — both .claude-plugin/plugin.json AND workflows/ must exist.
+    if (!fs.existsSync(manifestPath)) continue
+    if (!fs.existsSync(workflowsDir)) continue
+
+    const pluginShort = entry.name.replace(/^plugin-/, '')
+    const found = discoverPluginWorkflowsFromDir(pluginDir, pluginShort)
+    for (const wf of found) {
+      wf.discoveryMode = 'source'
+    }
+    out.push(...found)
+  }
+
+  return out
 }
 
 export function discoverFeedbackLoops(projectPath: string): {

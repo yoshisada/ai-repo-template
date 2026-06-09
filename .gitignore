@@ -66,3 +66,13 @@ reports/
 # Research-first runner reports (NFR-S-004) — per-run ephemeral comparative
 # reports. Maintainers may copy into PR descriptions manually.
 .kiln/logs/research-*
+
+# QA — never commit live test credentials
+.kiln/qa/.env.test
+.kiln/qa/config/.env.test
+
+# QA results — generated test artifacts (videos, traces, JSON reports). Never commit.
+.kiln/qa/results/
+
+# TypeScript incremental-build artifacts. Never commit.
+*.tsbuildinfo
