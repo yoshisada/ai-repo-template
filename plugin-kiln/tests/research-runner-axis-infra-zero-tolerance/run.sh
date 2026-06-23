@@ -14,8 +14,8 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-evaluator="$repo_root/plugin-wheel/scripts/harness/evaluate-direction.sh"
-renderer="$repo_root/plugin-wheel/scripts/harness/render-research-report.sh"
+evaluator="$repo_root/plugin-kiln/scripts/research/evaluate-direction.sh"
+renderer="$repo_root/plugin-kiln/scripts/research/render-research-report.sh"
 
 assertions=0
 fail() { echo "FAIL: $*"; exit 1; }

@@ -177,7 +177,7 @@ If `ROUTE == skip`: return immediately. NO spawn. NO net-new subprocess. NO furt
    ```bash
    SPEC_JSON=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/resolve.sh" kiln:fixture-synthesizer)
    SUBAGENT_TYPE=$(jq -r .subagent_type <<<"$SPEC_JSON")
-   PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
+   PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/../plugin-kiln/scripts/agents/compose-context.sh" \
      --agent-name fixture-synthesizer \
      --plugin-id kiln \
      --task-spec /tmp/fixture-synth-spec.json \
@@ -202,7 +202,7 @@ If `ROUTE == skip`: return immediately. NO spawn. NO net-new subprocess. NO furt
 
 **Step 3 — Judge path** (when `ROUTE` ∈ {`judge`, `both`}, i.e. PRD declares an `empirical_quality[].metric: output_quality` axis):
 
-The judge is NOT spawned by `/plan` directly. The judge spawn happens INSIDE `plugin-wheel/scripts/harness/evaluate-output-quality.sh` (which is invoked downstream by the per-axis gate in `specs/research-first-axis-enrichment/contracts/interfaces.md §4`). `/plan`'s job at this phase is to ensure the orchestrator's prerequisites are in place:
+The judge is NOT spawned by `/plan` directly. The judge spawn happens INSIDE `plugin-kiln/scripts/research/evaluate-output-quality.sh` (which is invoked downstream by the per-axis gate in `specs/research-first-axis-enrichment/contracts/interfaces.md §4`). `/plan`'s job at this phase is to ensure the orchestrator's prerequisites are in place:
 
 1. **Resolve `judge-config.yaml` (FR-014, two-path resolution per Decision 4)**:
    1. `<repo-root>/.kiln/research/judge-config.yaml` (per-developer override; gitignored).

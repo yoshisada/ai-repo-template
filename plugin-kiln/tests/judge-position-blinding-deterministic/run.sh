@@ -10,7 +10,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-EVALUATOR="$REPO_ROOT/plugin-wheel/scripts/harness/evaluate-output-quality.sh"
+EVALUATOR="$REPO_ROOT/plugin-kiln/scripts/research/evaluate-output-quality.sh"
 
 [[ -x "$EVALUATOR" ]] || { echo "FAIL: evaluator not at $EVALUATOR"; exit 2; }
 

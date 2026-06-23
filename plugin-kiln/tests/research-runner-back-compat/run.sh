@@ -86,11 +86,11 @@ assertions=$((assertions + 1))
 
 # A4: parity invariant — verify research-runner.sh exists as a NET-NEW file
 # (i.e. not in the allowlist). Anchors the "extension, not fork" discipline.
-[[ -f "$repo_root/plugin-wheel/scripts/harness/research-runner.sh" ]] || \
+[[ -f "$repo_root/plugin-kiln/scripts/research/research-runner.sh" ]] || \
   fail "research-runner.sh missing — extension not landed"
-[[ -f "$repo_root/plugin-wheel/scripts/harness/parse-token-usage.sh" ]] || \
+[[ -f "$repo_root/plugin-kiln/scripts/research/parse-token-usage.sh" ]] || \
   fail "parse-token-usage.sh missing — extension not landed"
-[[ -f "$repo_root/plugin-wheel/scripts/harness/render-research-report.sh" ]] || \
+[[ -f "$repo_root/plugin-kiln/scripts/research/render-research-report.sh" ]] || \
   fail "render-research-report.sh missing — extension not landed"
 assertions=$((assertions + 1))
 

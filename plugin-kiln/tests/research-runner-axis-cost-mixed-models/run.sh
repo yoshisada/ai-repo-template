@@ -15,9 +15,9 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-costcalc="$repo_root/plugin-wheel/scripts/harness/compute-cost-usd.sh"
+costcalc="$repo_root/plugin-kiln/scripts/research/compute-cost-usd.sh"
 pricing="$repo_root/plugin-kiln/lib/pricing.json"
-renderer="$repo_root/plugin-wheel/scripts/harness/render-research-report.sh"
+renderer="$repo_root/plugin-kiln/scripts/research/render-research-report.sh"
 
 assertions=0
 fail() { echo "FAIL: $*"; exit 1; }

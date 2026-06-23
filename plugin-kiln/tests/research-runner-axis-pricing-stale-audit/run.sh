@@ -93,7 +93,7 @@ assertions=$((assertions + 1))
 # We verify by: the runner already runs against the (fresh) committed pricing.json
 # without checking its mtime. This is a structural property — there's no
 # `bail_out` invocation tied to mtime in research-runner.sh.
-runner="$repo_root/plugin-wheel/scripts/harness/research-runner.sh"
+runner="$repo_root/plugin-kiln/scripts/research/research-runner.sh"
 if grep -nE 'bail_out.*pricing.*stale|pricing-table-stale' "$runner" >/dev/null 2>&1; then
   fail "FORBIDDEN: research-runner.sh references pricing staleness — must be audit-time only"
 fi

@@ -14,7 +14,7 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-parser="$repo_root/plugin-wheel/scripts/harness/parse-token-usage.sh"
+parser="$repo_root/plugin-kiln/scripts/research/parse-token-usage.sh"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 

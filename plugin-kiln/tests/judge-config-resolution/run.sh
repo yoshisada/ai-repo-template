@@ -15,7 +15,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-EVALUATOR="$REPO_ROOT/plugin-wheel/scripts/harness/evaluate-output-quality.sh"
+EVALUATOR="$REPO_ROOT/plugin-kiln/scripts/research/evaluate-output-quality.sh"
 SKILL="$REPO_ROOT/plugin-kiln/skills/plan/SKILL.md"
 EXAMPLE="$REPO_ROOT/plugin-kiln/lib/judge-config.yaml.example"
 

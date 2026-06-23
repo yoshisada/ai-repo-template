@@ -7,7 +7,7 @@ description: "Run the baseline-vs-candidate research substrate against a declare
 
 **Purpose**: Drive the existing `kiln-test` substrate twice per fixture (baseline arm + candidate arm) and emit a comparative report. v1 declared-corpus only — no synthesizer, no per-axis direction, no judge.
 
-**Non-negotiable**: this skill MUST delegate to wheel's `scripts/harness/research-runner.sh`, resolved via the dual-layout sibling traversal shown in "What to do" below. No repo-relative `plugin-kiln/scripts/...` or `plugin-wheel/scripts/...` path may appear in this file.
+**Non-negotiable**: this skill MUST delegate to kiln's `scripts/research/research-runner.sh`, resolved via the plugin-dir variable shown in "What to do" below. No repo-relative `plugin-kiln/scripts/...` or `plugin-wheel/scripts/...` path may appear in this file.
 
 ## Invocation forms (FR-S-007)
 
@@ -19,15 +19,13 @@ description: "Run the baseline-vs-candidate research substrate against a declare
 
 ## What to do
 
-Resolve the wheel install dir, then invoke the runner:
+The runner now lives in kiln itself, so it resolves directly from this plugin's
+dir — no cross-plugin traversal. `WORKFLOW_PLUGIN_DIR` is kiln's plugin dir in both
+the source-repo (`plugin-kiln/`) and installed (`.../kiln/<version>/`) layouts, and
+`scripts/research/research-runner.sh` is the same relative path under each:
 
 ```bash
-if [ -d "${WORKFLOW_PLUGIN_DIR}/../plugin-wheel" ]; then
-  WHEEL_DIR="${WORKFLOW_PLUGIN_DIR}/../plugin-wheel"
-else
-  WHEEL_DIR=$(ls -d "${WORKFLOW_PLUGIN_DIR}/../../wheel"/*/ 2>/dev/null | sort -V | tail -1)
-fi
-bash "${WHEEL_DIR}/scripts/harness/research-runner.sh" $ARGUMENTS
+bash "${WORKFLOW_PLUGIN_DIR}/scripts/research/research-runner.sh" $ARGUMENTS
 ```
 
 That's the entire skill. The runner emits TAP v14 on stdout, writes the comparative report to `.kiln/logs/research-<uuid>.md`, and retains per-arm scratch dirs under `/tmp/kiln-test-<uuid>/` on failure for post-mortem.
@@ -44,4 +42,4 @@ A PRD that opts into research-first MAY declare `fixture_corpus: <path>` in its 
 
 ## Full how-to
 
-See `plugin-wheel/scripts/harness/README-research-runner.md` for the one-page how-to with worked example using the seed corpus at `plugin-kiln/fixtures/research-first-seed/corpus/`.
+See `plugin-kiln/scripts/research/README-research-runner.md` for the one-page how-to with worked example using the seed corpus at `plugin-kiln/fixtures/research-first-seed/corpus/`.

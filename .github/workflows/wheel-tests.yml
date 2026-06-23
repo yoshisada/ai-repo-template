@@ -1,138 +1,60 @@
 name: wheel-tests
 
-# NFR-4 (specs/wheel-as-runtime/spec.md): the consumer-install smoke test
-# (FR-D2) MUST run in CI on every PR touching plugin-wheel/ or any plugin
-# workflow JSON. Local-only runs do not count — the bug shape is
-# "works locally, breaks in consumer install."
+# plugin-wheel is now a git submodule (github.com/yoshisada/wheel) with its OWN
+# CI (build + vitest, and — follow-up — the bash/bats hook + preprocessor
+# tests). Wheel-internal jobs that used to live here moved to that repo.
 #
-# Also runs the FR-C2 multi-line activation test and the FR-C1 fuzz test
-# plus their NFR-2 tripwires (ensuring silent-green regression ship is
-# impossible by construction).
+# What remains here are the cross-plugin canaries that operate on MONOREPO
+# files and therefore need no submodule checkout / Node / PAT:
+#   - SC-007 / SC-F-6 / FR-G3-5: regression-fingerprint + residual-token grep
+#     over .kiln/logs/ and .wheel/history/ added lines.
 #
-# Note: .wheel/history/ is now gitignored — its session-archive contents
-# are no longer tracked and therefore no longer subject to the SC-F-6 +
-# FR-G3-5 grep tripwires below. The tripwires remain as a backstop
-# against the (rare) case that a state archive is intentionally added.
+# Dropped on extraction:
+#   - Wheel TS build + FR-C2/FR-C1/preprocessor tests → now in the wheel repo CI.
+#   - The NFR-G-6 atomic-migration guard referenced plugin-wheel/lib/resolve_inputs.sh,
+#     which now lives in the wheel repo — the in-monorepo invariant no longer applies.
+# See docs/features/2026-06-22-wheel-submodule-extraction/PLAN.md (two-repo CI split).
 
 on:
   pull_request:
     paths:
-      - 'plugin-wheel/**'
-      - 'plugin-*/workflows/**'
+      - '.kiln/logs/**'
+      - '.wheel/history/**'
       - '.github/workflows/wheel-tests.yml'
   push:
     branches:
       - main
     paths:
-      - 'plugin-wheel/**'
-      - 'plugin-*/workflows/**'
+      - '.kiln/logs/**'
+      - '.wheel/history/**'
 
 permissions:
   contents: read
 
 jobs:
-  hook-and-env-invariants:
-    name: Hook newline preservation + WORKFLOW_PLUGIN_DIR env parity
+  cross-plugin-canaries:
+    name: SC-007 regression-fingerprint + residual-token log grep
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install prerequisites
+      - name: SC-007 + SC-F-6 + FR-G3-5 log grep assertions
         run: |
-          set -e
-          sudo apt-get update
-          # bats-core is required by the FR-F4 preprocessor / FR-F3 resolver
-          # bats suites added under specs/cross-plugin-resolver-and-preflight-
-          # registry. Per NFR-F-3 / Constitution Article II, the wheel-tests
-          # job must run them on every PR touching plugin-wheel/.
-          sudo apt-get install -y jq bats
-          # python3 ships on ubuntu-latest by default
-          jq --version
-          python3 --version
-          bats --version
-          bash --version | head -1
-
-      # Wheel TS rewrite (PR #202) — every shell hook is a shim that
-      # delegates to plugin-wheel/dist/hooks/<event>.js. dist/ is
-      # gitignored as a build artifact, so CI must compile TS BEFORE
-      # any test that fires a hook (which is all of them below).
-      # Without this step the FR-C2/F4 tests fail with
-      # `Cannot find module '…/plugin-wheel/dist/hooks/post-tool-use.js'`.
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build wheel TypeScript
-        working-directory: plugin-wheel
-        run: |
-          set -e
-          npm ci
-          npm run build
-          test -f dist/hooks/post-tool-use.js \
-            || { echo "FAIL: dist build did not produce hooks/post-tool-use.js"; exit 1; }
-
-      - name: FR-C2 multi-line activation
-        run: bash plugin-wheel/tests/activate-multiline/run.sh
-
-      - name: FR-C1 fuzz test (NFR-3)
-        run: bash plugin-wheel/tests/hook-input-fuzz/run.sh
-
-      - name: FR-C1 NFR-2 tripwire
-        run: bash plugin-wheel/tests/hook-no-preflatten-tripwire/run.sh
-
-      - name: Theme F4 / T042 — context_build no-runtime-env-header invariant
-        # Repurposed from the FR-D1 Runtime Environment unit test. Theme F4
-        # superseded Option B by templating literal abs paths into agent
-        # `.instruction` BEFORE state_init; this test now guards the inverse:
-        # context_build must NOT re-introduce the runtime-env header.
-        run: bash plugin-wheel/tests/context-runtime-env/run.sh
-
-      - name: Theme F4 — consumer-install smoke test
-        # Repurposed from the FR-D2 smoke test. Asserts the preprocessor
-        # substitutes `${WORKFLOW_PLUGIN_DIR}` to a literal install-cache
-        # path (NFR-F-5 back-compat) and that no residual plugin-path
-        # tokens remain (FR-F4-6).
-        run: bash plugin-wheel/tests/workflow-plugin-dir-bg/run.sh
-
-      - name: Theme F4 — NFR-F-2 silent-failure tripwire (preprocess.sh)
-        # Repurposed from the FR-D1 NFR-2 tripwire. Now neutralizes the
-        # FR-F4-5 narrowed-pattern grep in preprocess.sh and asserts that
-        # preprocess-tripwire.bats fails loudly. By construction a silent-
-        # green Theme F4 regression cannot ship.
-        run: bash plugin-wheel/tests/workflow-plugin-dir-tripwire/run.sh
-
-      - name: FR-F4 preprocessor unit suites (bats)
-        # specs/cross-plugin-resolver-and-preflight-registry T025 + T026.
-        run: |
-          bats plugin-wheel/tests/preprocess-substitution.bats
-          bats plugin-wheel/tests/preprocess-tripwire.bats
-
-      - name: SC-007 + SC-F-6 log grep assertions
-        run: |
-          # Any log line ADDED on this branch MUST NOT contain the original
-          # regression fingerprint OR a residual plugin-path token. Stale
-          # pre-PRD log lines (real historical incidents already fixed by
-          # earlier PRs) are exempt by construction — we diff against the
-          # base branch and only check newly added lines, matching the
-          # comment's stated intent.
+          # Any log/state line ADDED on this branch MUST NOT contain the
+          # regression fingerprint OR a residual plugin-path / {{VAR}} token.
+          # Stale pre-existing lines are exempt — we diff against the merge base.
           BASE_REF="${GITHUB_BASE_REF:-main}"
-          # GHA actions/checkout defaults to depth=1 — fetch the base branch
-          # with full history so the diff has a merge base. `--unshallow` is
-          # safe to ignore-fail when the repo is already complete.
           git fetch --no-tags origin "$BASE_REF" --unshallow 2>/dev/null \
             || git fetch --no-tags origin "$BASE_REF" 2>/dev/null \
             || true
           MERGE_BASE=$(git merge-base "origin/${BASE_REF}" HEAD 2>/dev/null) || MERGE_BASE=""
           if [ -z "$MERGE_BASE" ]; then
-            echo "::warning::Could not determine merge base with origin/${BASE_REF}; falling back to HEAD~1 for diff scope"
+            echo "::warning::Could not determine merge base with origin/${BASE_REF}; falling back to HEAD~1"
             MERGE_BASE="HEAD~1"
           fi
 
-          # `+` lines = additions on this branch. Exclude the diff hunk
-          # header `+++` so the file path itself doesn't match.
           if [ -d .kiln/logs ]; then
             if git diff "$MERGE_BASE"..HEAD -- '.kiln/logs/report-issue-bg-*.md' \
                 | grep -E '^\+[^+].*WORKFLOW_PLUGIN_DIR was unset' >/dev/null 2>&1; then
@@ -140,59 +62,18 @@ jobs:
               exit 1
             fi
           fi
-          # SC-F-6: zero residual plugin-path tokens in completed-workflow
-          # state archives ADDED on this branch. Same merge-base scoping —
-          # historical archives that documented past regressions are exempt.
+
           if [ -d .wheel/history/success ]; then
             if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
                 | grep -E '^\+[^+].*\$\{(WHEEL_PLUGIN_|WORKFLOW_PLUGIN_DIR)' >/dev/null 2>&1; then
-              echo "::error::SC-F-6 regression: a line added on this branch contains a residual plugin-path token in .wheel/history/success/*.json"
+              echo "::error::SC-F-6 regression: residual plugin-path token added in .wheel/history/success/*.json"
               exit 1
             fi
-          fi
-          # SC-G-1 recalibrated: zero residual `{{VAR}}` placeholders in any
-          # archived workflow state ADDED on this branch. The hydration
-          # tripwire (FR-G3-5) aborts dispatch before state advance; a new
-          # state archive holding a residual `{{VAR}}` is structural evidence
-          # the tripwire was bypassed.
-          if [ -d .wheel/history/success ]; then
             if git diff "$MERGE_BASE"..HEAD -- '.wheel/history/success/*.json' \
                 | grep -E '^\+[^+].*\{\{[A-Z][A-Z0-9_]*\}\}' >/dev/null 2>&1; then
-              echo "::error::FR-G3-5 regression: a line added on this branch contains a residual {{VAR}} placeholder in .wheel/history/success/*.json (hydration tripwire bypassed)"
+              echo "::error::FR-G3-5 regression: residual {{VAR}} placeholder added in .wheel/history/success/*.json"
               exit 1
             fi
           fi
-          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean (merge-base: $MERGE_BASE)"
 
-      - name: NFR-G-6 atomic-migration guard (wheel-step-input-output-schema)
-        # specs/wheel-step-input-output-schema NFR-G-6: the runtime change
-        # (plugin-wheel/lib/resolve_inputs.sh) and the migrated workflow
-        # (plugin-kiln/workflows/kiln-report-issue.json) MUST land together
-        # on the feature branch — squash-merge produces a single merge
-        # commit touching BOTH paths. Per plan §3.E, the guard verifies
-        # both files appear in `git log --name-only` over the PR's commit
-        # range. Two adjacent commits in the same PR satisfy the invariant.
-        if: github.event_name == 'pull_request'
-        run: |
-          PR_RANGE="origin/${{ github.base_ref }}...HEAD"
-          # Collect the union of files touched by every commit in the PR.
-          touched=$(git log --name-only --pretty=format: "$PR_RANGE" 2>/dev/null | sort -u)
-          # Decide if this is a wheel-step-input-output-schema PR (i.e. the
-          # validator + the workflow JSON both moved). If neither moved, the
-          # guard is a no-op (NFR-G-3 backward-compat — unrelated PRs unaffected).
-          touched_resolver=$(printf '%s\n' "$touched" | grep -E '^plugin-wheel/lib/resolve_inputs\.sh$' || true)
-          touched_workflow=$(printf '%s\n' "$touched" | grep -E '^plugin-kiln/workflows/kiln-report-issue\.json$' || true)
-          if [ -z "$touched_resolver" ] && [ -z "$touched_workflow" ]; then
-            echo "NFR-G-6 guard: PR does not touch resolver or migrated workflow — guard is a no-op"
-            exit 0
-          fi
-          # Once either side has moved, both MUST be in the PR.
-          if [ -z "$touched_resolver" ]; then
-            echo "::error::NFR-G-6 regression: PR touches plugin-kiln/workflows/kiln-report-issue.json but not plugin-wheel/lib/resolve_inputs.sh. Atomic-migration invariant violated — workflow uses inputs:/output_schema: but the resolver runtime is not in this PR."
-            exit 1
-          fi
-          if [ -z "$touched_workflow" ]; then
-            echo "::warning::NFR-G-6 advisory: PR touches plugin-wheel/lib/resolve_inputs.sh without the migrated workflow. Acceptable for resolver-only follow-up PRs (e.g. perf tweaks); reviewer should confirm intent."
-            exit 0
-          fi
-          echo "NFR-G-6 guard: BOTH plugin-wheel/lib/resolve_inputs.sh AND plugin-kiln/workflows/kiln-report-issue.json appear in this PR's commit range — atomic-migration invariant satisfied"
+          echo "SC-007 + SC-F-6 + FR-G3-5 grep clean (merge-base: $MERGE_BASE)"
