@@ -1,7 +1,0 @@
-{
-  "listed": false,
-  "categories": ["workflow", "automation", "agent-orchestration"],
-  "tags": ["workflow-engine", "hooks", "deterministic", "pipeline"],
-  "repository": "https://github.com/yoshisada/wheel",
-  "homepage": "https://github.com/yoshisada/wheel"
-}

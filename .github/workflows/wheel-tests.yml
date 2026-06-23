@@ -38,6 +38,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # plugin-wheel is a git submodule (github.com/yoshisada/wheel); the
+          # wheel build + test steps below need its working tree checked out.
+          submodules: recursive
 
       - name: Install prerequisites
         run: |
