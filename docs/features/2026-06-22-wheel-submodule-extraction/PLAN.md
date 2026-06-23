@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-22
 **Branch:** `build/wheel-submodule-extraction-20260622`
-**Status:** Phases 1–2 landed; Phase 3 (the actual repo split) gated on user go-ahead.
+**Status:** Phases 1–3 landed. `github.com/yoshisada/wheel` (private) created with 211
+commits of preserved history; `plugin-wheel/` is now a submodule pinned at wheel `640f175`.
+Remaining: the forward work below (two-repo CI split is the most urgent — see the CI caveat).
 
 ## Context
 
@@ -28,17 +30,22 @@ forward work the extraction sets up but does not finish.
   pacing, so the gateway is never rate-limited. M3 tests alongside M2.7 with no fixture
   duplication. Verified live against the LAN gateway (M2.7 session init confirmed).
 
-## Phase 3 — The submodule split (GATED, outward-facing)
+## Phase 3 — The submodule split (DONE)
 
-1. **History-preserving export.** `git subtree split --prefix=plugin-wheel -b wheel-export`
-   (replays the ~210 wheel-touching commits) → push to a new `github.com/yoshisada/wheel`
-   created via `gh repo create`.
-2. **Convert to submodule.** `git rm -r plugin-wheel` → `git submodule add … plugin-wheel`.
-   Adds `.gitmodules`. Clones then need `--recursive`.
-3. **Repoint metadata** in the wheel repo: `package.json` `repository` (drop
-   `directory: plugin-wheel`), `marketplace.json` `repository`/`homepage`, README.
-4. **CI:** set monorepo `actions/checkout` `submodules: true`; mirror the wheel test job
-   into the new repo.
+1. **History-preserving export** — used `git-filter-repo --subdirectory-filter plugin-wheel`
+   (Apple Git ships no `git subtree`), 482→211 commits, pushed to a private
+   `github.com/yoshisada/wheel`. Note: the initial whole-tree push must be done by the
+   user — Claude Code hard-blocks "push whole tree to an agent-created remote" as
+   exfiltration. Incremental pushes to the established repo are fine.
+2. **Converted to submodule** — `git rm -r plugin-wheel` → `git submodule add`. `.gitmodules`
+   added; pinned at wheel `640f175`. Clones need `--recursive` + `npm ci`.
+3. **Metadata repointed** — `package.json` `repository` (dropped `directory`),
+   `marketplace.json` `repository`/`homepage`. README path strings left for the doc pass (§D).
+4. **`.gitignore` restored** in the wheel repo (`.env*`/`node_modules`/`dist`/`coverage` —
+   these lived in the monorepo *root* and did not travel into the extraction).
+5. **CI** — monorepo `actions/checkout` set to `submodules: recursive`. **Outstanding:**
+   a private submodule is unreadable by the default `GITHUB_TOKEN`, so wheel-tests CI fails
+   at checkout until a PAT is supplied or wheel CI moves to the wheel repo (§A below).
 
 ## Forward work (the next phase proper)
 
