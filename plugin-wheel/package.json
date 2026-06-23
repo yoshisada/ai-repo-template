@@ -51,6 +51,7 @@
     "test": "vitest run",
     "test:unit": "vitest run src/shared/ src/lib/",
     "test:harness": "bash tests/harness/run.sh",
+    "test:minimax-matrix": "bash scripts/harness/minimax-matrix-runner.sh",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
