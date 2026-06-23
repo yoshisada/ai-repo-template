@@ -61,10 +61,13 @@ done
 
 # --- Path anchoring ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WHEEL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-PLUGINS_PARENT="$(cd "${WHEEL_ROOT}/.." && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PLUGINS_PARENT="$(cd "${PLUGIN_ROOT}/.." && pwd)"
 
-VERBS_INDEX="${SCRIPT_DIR}/verbs/_index.json"
+# The verb namespace is wheel's shared agent-bindings vocabulary (also read by
+# plugin-wheel/scripts/agents/validate-bindings.sh), so it remains in wheel.
+# This composer now lives in plugin-kiln but resolves the index from wheel.
+VERBS_INDEX="${PLUGINS_PARENT}/plugin-wheel/scripts/agents/verbs/_index.json"
 SHAPES_INDEX="${PLUGINS_PARENT}/plugin-kiln/lib/task-shapes/_index.json"
 SHAPES_DIR="${PLUGINS_PARENT}/plugin-kiln/lib/task-shapes"
 COORD_PROTO="${PLUGINS_PARENT}/plugin-kiln/agents/_shared/coordination-protocol.md"

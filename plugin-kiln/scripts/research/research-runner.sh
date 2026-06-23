@@ -42,6 +42,12 @@ export LC_ALL
 
 harness_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$harness_dir/../../.." && pwd )
+# scratch-create.sh and claude-invoke.sh are SHARED generic test-harness
+# helpers that remain in plugin-wheel (used by wheel-test-runner.sh too).
+# This research runner lives in plugin-kiln but resolves those two siblings
+# from wheel's harness dir — kiln depends on wheel as a runtime, so a
+# kiln→wheel reference is the allowed coupling direction.
+wheel_harness_dir="$repo_root/plugin-wheel/scripts/harness"
 
 bail_out() {
   printf 'Bail out! %s\n' "$1"
@@ -279,7 +285,7 @@ run_arm() {
 
   # 1. Create scratch via existing helper (NFR-S-002 — invoked, not modified).
   local scratch_dir scratch_uuid
-  if ! scratch_dir=$("$harness_dir/scratch-create.sh" 2>/dev/null); then
+  if ! scratch_dir=$("$wheel_harness_dir/scratch-create.sh" 2>/dev/null); then
     jq -nc '{assertion_pass:false, exit_code:2, stalled:false, scratch_uuid:"", scratch_dir:"", transcript_path:"", verdict_report_path:"", inconclusive_reason:"scratch-create-failed", tokens:{input:0,output:0,cached_creation:0,cached_read:0,total:0}, time_seconds:0, cost_usd:null, model_id:null}'
     return 0
   fi
@@ -305,7 +311,7 @@ run_arm() {
   t0=$(mono_read)
   set +e
   ( cd "$scratch_dir" && \
-    "$harness_dir/claude-invoke.sh" "$plugin_dir" "$scratch_dir" "$initial_msg_file" \
+    "$wheel_harness_dir/claude-invoke.sh" "$plugin_dir" "$scratch_dir" "$initial_msg_file" \
       > "$transcript_path" 2>/dev/null )
   local subprocess_exit=$?
   set -e

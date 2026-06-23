@@ -7,7 +7,7 @@
 #
 # Satisfies: FR-013, FR-014, FR-015, FR-016 + plan.md Decision 6 + 7.
 # Contract:  specs/research-first-plan-time-agents/contracts/interfaces.md §4.
-# Sibling:   plugin-wheel/scripts/harness/evaluate-direction.sh (same stdout
+# Sibling:   plugin-kiln/scripts/research/evaluate-direction.sh (same stdout
 #            contract: pass | regression — consumed by the per-axis gate from
 #            specs/research-first-axis-enrichment/contracts/interfaces.md §4).
 #

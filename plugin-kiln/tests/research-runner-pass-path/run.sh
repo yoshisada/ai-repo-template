@@ -18,9 +18,9 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-runner="$repo_root/plugin-wheel/scripts/harness/research-runner.sh"
+runner="$repo_root/plugin-kiln/scripts/research/research-runner.sh"
 seed_corpus="$repo_root/plugin-kiln/fixtures/research-first-seed/corpus"
-readme="$repo_root/plugin-wheel/scripts/harness/README-research-runner.md"
+readme="$repo_root/plugin-kiln/scripts/research/README-research-runner.md"
 
 assertions=0
 fail() { echo "FAIL: $*"; exit 1; }

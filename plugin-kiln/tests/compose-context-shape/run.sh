@@ -9,7 +9,7 @@ export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-COMPOSER="${REPO_ROOT}/plugin-wheel/scripts/agents/compose-context.sh"
+COMPOSER="${REPO_ROOT}/plugin-kiln/scripts/agents/compose-context.sh"
 COORD_PROTO="${REPO_ROOT}/plugin-kiln/agents/_shared/coordination-protocol.md"
 
 [[ ! -x "$COMPOSER" ]] && { echo "FAIL: composer not executable at $COMPOSER" >&2; exit 1; }

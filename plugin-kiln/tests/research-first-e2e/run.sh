@@ -28,7 +28,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 PARSER="$REPO_ROOT/plugin-kiln/scripts/research/parse-research-block.sh"
-PRD_PARSER="$REPO_ROOT/plugin-wheel/scripts/harness/parse-prd-frontmatter.sh"
+PRD_PARSER="$REPO_ROOT/plugin-kiln/scripts/research/parse-prd-frontmatter.sh"
 HELPER="$REPO_ROOT/plugin-kiln/scripts/research/validate-research-block.sh"
 
 [[ -x "$PARSER" ]]     || { echo "FAIL: parse-research-block.sh missing"; exit 2; }

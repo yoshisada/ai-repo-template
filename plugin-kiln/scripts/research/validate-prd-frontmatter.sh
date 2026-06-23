@@ -24,7 +24,7 @@ set -u
 
 PRD="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PARSER="$SCRIPT_DIR/../../../plugin-wheel/scripts/harness/parse-prd-frontmatter.sh"
+PARSER="$SCRIPT_DIR/../../../plugin-kiln/scripts/research/parse-prd-frontmatter.sh"
 HELPER="$SCRIPT_DIR/validate-research-block.sh"
 
 emit() {

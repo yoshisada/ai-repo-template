@@ -13,7 +13,7 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-runner="$repo_root/plugin-wheel/scripts/harness/research-runner.sh"
+runner="$repo_root/plugin-kiln/scripts/research/research-runner.sh"
 
 assertions=0
 fail() { echo "FAIL: $*"; exit 1; }

@@ -13,7 +13,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-PRD_PARSER="$REPO_ROOT/plugin-wheel/scripts/harness/parse-prd-frontmatter.sh"
+PRD_PARSER="$REPO_ROOT/plugin-kiln/scripts/research/parse-prd-frontmatter.sh"
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT

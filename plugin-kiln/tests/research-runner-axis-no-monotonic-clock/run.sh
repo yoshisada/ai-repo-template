@@ -13,7 +13,7 @@ set -euo pipefail
 
 here=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )
 repo_root=$( cd -- "$here/../../.." && pwd )
-clock="$repo_root/plugin-wheel/scripts/harness/resolve-monotonic-clock.sh"
+clock="$repo_root/plugin-kiln/scripts/research/resolve-monotonic-clock.sh"
 
 assertions=0
 fail() { echo "FAIL: $*"; exit 1; }

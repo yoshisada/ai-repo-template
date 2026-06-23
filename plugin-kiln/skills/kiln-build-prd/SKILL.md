@@ -337,7 +337,7 @@ implementer in Step 3). The team-lead orchestrates the variant inline; NO
 new wheel workflow JSON is shipped (Decision 2):
 
 1. **establish-baseline** — invoke
-   `plugin-wheel/scripts/harness/research-runner.sh` against the declared
+   `plugin-kiln/scripts/research/research-runner.sh` against the declared
    corpus (`fixture_corpus: declared|promoted` → use `fixture_corpus_path`)
    OR the synthesizer's accepted output (`fixture_corpus: synthesized` →
    coordinate with the fixture-synthesizer agent shipped per plan-time-
@@ -361,9 +361,9 @@ new wheel workflow JSON is shipped (Decision 2):
    Capture metrics to `.kiln/research/<prd-slug>/candidate-metrics.json`.
 
 4. **gate** — invoke
-   `plugin-wheel/scripts/harness/evaluate-direction.sh` for mechanical
+   `plugin-kiln/scripts/research/evaluate-direction.sh` for mechanical
    axes (per axis-enrichment §4); invoke
-   `plugin-wheel/scripts/harness/evaluate-output-quality.sh` for the
+   `plugin-kiln/scripts/research/evaluate-output-quality.sh` for the
    `output_quality` axis (per plan-time-agents §4). Capture per-axis
    verdicts to `.kiln/research/<prd-slug>/per-axis-verdicts.json`. (This
    PR does NOT modify the per-axis verdicts JSON shape — foundation

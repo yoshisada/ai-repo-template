@@ -255,12 +255,14 @@ The directive is HTML-comment-shaped (markdown-rendering-safe). Path is relative
 A skill that spawns a team-mode agent SHOULD use the runtime composer like this:
 
 ```bash
-# 1. Resolve agent identity (existing resolve.sh).
+# 1. Resolve agent identity (resolve.sh — generic agent resolver, lives in wheel).
 SPEC_JSON=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/resolve.sh" kiln:research-runner)
 SUBAGENT_TYPE=$(jq -r .subagent_type <<<"$SPEC_JSON")
 
-# 2. Compose runtime context block.
-PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/scripts/agents/compose-context.sh" \
+# 2. Compose runtime context block. compose-context.sh injects kiln task-shapes +
+#    coordination protocol, so it lives in plugin-kiln (reached via the cross-plugin
+#    `/../plugin-kiln/` pattern; WORKFLOW_PLUGIN_DIR is the wheel dir in this context).
+PREFIX=$(bash "$WORKFLOW_PLUGIN_DIR/../plugin-kiln/scripts/agents/compose-context.sh" \
   --agent-name research-runner \
   --plugin-id kiln \
   --task-spec /tmp/task-spec.json \

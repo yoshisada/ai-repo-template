@@ -44,7 +44,7 @@ prd=$1
 [[ -f $prd ]] || bail "prd path not found: $prd"
 
 # Hand-rolled YAML frontmatter parsing via python3 stdlib (re + json). Mirrors
-# plugin-wheel/scripts/agents/compose-context.sh precedent — PyYAML is NOT a
+# plugin-kiln/scripts/agents/compose-context.sh precedent — PyYAML is NOT a
 # kiln dependency.
 #
 # Additive validator stanza for FR-010 (research-first-plan-time-agents):

@@ -63,7 +63,7 @@ The runner ignores this file. Reviewers read it.
 ### 5. Invoke the runner
 
 ```bash
-bash plugin-wheel/scripts/harness/research-runner.sh \
+bash plugin-kiln/scripts/research/research-runner.sh \
   --baseline /abs/path/to/baseline-plugin-dir \
   --candidate /abs/path/to/candidate-plugin-dir \
   --corpus /abs/path/to/plugin-<name>/fixtures/<skill>/corpus
@@ -109,7 +109,7 @@ The runner emits TAP v14 on stdout + writes a markdown report to `.kiln/logs/res
 A 3-fixture seed corpus ships at `plugin-kiln/fixtures/research-first-seed/corpus/`. To smoke the runner against itself:
 
 ```bash
-bash plugin-wheel/scripts/harness/research-runner.sh \
+bash plugin-kiln/scripts/research/research-runner.sh \
   --baseline "$PWD/plugin-kiln" \
   --candidate "$PWD/plugin-kiln" \
   --corpus "$PWD/plugin-kiln/fixtures/research-first-seed/corpus"
@@ -199,12 +199,12 @@ The runner always measures `time_seconds` (wall-clock subprocess duration via mo
 ## Pointers
 
 - Skill wrapper: `plugin-kiln/skills/kiln-research/SKILL.md`
-- Token parser helper: `plugin-wheel/scripts/harness/parse-token-usage.sh`
-- Report renderer helper: `plugin-wheel/scripts/harness/render-research-report.sh`
-- PRD frontmatter parser: `plugin-wheel/scripts/harness/parse-prd-frontmatter.sh`
-- Per-axis direction evaluator: `plugin-wheel/scripts/harness/evaluate-direction.sh`
-- Cost deriver: `plugin-wheel/scripts/harness/compute-cost-usd.sh`
-- Monotonic-clock probe: `plugin-wheel/scripts/harness/resolve-monotonic-clock.sh`
+- Token parser helper: `plugin-kiln/scripts/research/parse-token-usage.sh`
+- Report renderer helper: `plugin-kiln/scripts/research/render-research-report.sh`
+- PRD frontmatter parser: `plugin-kiln/scripts/research/parse-prd-frontmatter.sh`
+- Per-axis direction evaluator: `plugin-kiln/scripts/research/evaluate-direction.sh`
+- Cost deriver: `plugin-kiln/scripts/research/compute-cost-usd.sh`
+- Monotonic-clock probe: `plugin-kiln/scripts/research/resolve-monotonic-clock.sh`
 - Rigor config: `plugin-kiln/lib/research-rigor.json`
 - Pricing config: `plugin-kiln/lib/pricing.json`
 - Foundation spec / contracts: `specs/research-first-foundation/`

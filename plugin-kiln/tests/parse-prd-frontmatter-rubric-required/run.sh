@@ -12,7 +12,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-PARSER="$REPO_ROOT/plugin-wheel/scripts/harness/parse-prd-frontmatter.sh"
+PARSER="$REPO_ROOT/plugin-kiln/scripts/research/parse-prd-frontmatter.sh"
 
 [[ -x "$PARSER" ]] || { echo "FAIL: parser not executable at $PARSER"; exit 2; }
 
