@@ -44,6 +44,7 @@ AGENT_NAME=""
 PLUGIN_ID=""
 TASK_SPEC=""
 PRD_PATH=""
+STANDARDS_PATH=""
 
 while (( $# > 0 )); do
   case "$1" in
@@ -51,6 +52,7 @@ while (( $# > 0 )); do
     --plugin-id)  PLUGIN_ID="${2:-}";  shift 2 ;;
     --task-spec)  TASK_SPEC="${2:-}";  shift 2 ;;
     --prd-path)   PRD_PATH="${2:-}";   shift 2 ;;
+    --standards)  STANDARDS_PATH="${2:-}"; shift 2 ;;
     *) die 1 "unknown argument: $1" ;;
   esac
 done
@@ -245,6 +247,16 @@ fi
 
 # --- Assemble prompt_prefix ---
 {
+  # Coding standards block — prepended first so plan/implement spawns are held to the
+  # project's standards before anything else (Phase 0). Resolved from --standards path
+  # (typically .kiln/standards.md); silently omitted if unset or the file is absent.
+  if [[ -n "$STANDARDS_PATH" && -f "$STANDARDS_PATH" ]]; then
+    printf '## Coding Standards\n\n'
+    printf 'Follow these for every interface, function, and test you produce:\n\n'
+    cat "$STANDARDS_PATH"
+    printf '\n\n'
+  fi
+
   printf '## Runtime Environment\n\n'
   printf 'WORKFLOW_PLUGIN_DIR=%s\n\n' "$WORKFLOW_PLUGIN_DIR"
   printf '### Task\n\n'
