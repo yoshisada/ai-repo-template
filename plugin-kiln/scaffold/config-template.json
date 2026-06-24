@@ -1,0 +1,34 @@
+{
+  "config_version": "1.0.0",
+  "review_mode": "standard",
+  "review_checkpoints": ["post-spec", "pre-pr"],
+  "auto_build": false,
+  "auto_pr": false,
+  "auto_merge": false,
+  "pi_apply_threshold": "none",
+  "issue_batch_threshold": 5,
+  "distill_threshold": 3,
+  "standards": ".kiln/standards.md",
+  "design_first": false,
+  "branching": {
+    "style": "github-flow",
+    "integration_branch": "dev",
+    "per_feature": true
+  },
+  "models": {
+    "validator": "claude-haiku-4-5-20251001",
+    "researcher": "claude-sonnet-4-6",
+    "implementer": "claude-sonnet-4-6",
+    "auditor": "claude-sonnet-4-6",
+    "oracle": "claude-sonnet-4-6"
+  },
+  "notifications": {
+    "on": ["failure", "complete", "checkpoint"],
+    "channels": {
+      "email": null,
+      "slack_webhook": null,
+      "webhook": null,
+      "macos": true
+    }
+  }
+}

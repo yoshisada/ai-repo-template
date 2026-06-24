@@ -143,6 +143,26 @@ function scaffoldProject() {
     join(PROJECT_DIR, ".kiln", "roadmap.md"),
     ".kiln/roadmap.md (roadmap)"
   );
+
+  // Phase 0 (kiln-autonomous): config foundation. Defaults the consumer can edit;
+  // the kiln-init wizard customizes review_mode / design_first / branching after.
+  // doctor-manifest.json is intentionally NOT copied — kiln-doctor reads it from the
+  // plugin install path so new version entries ship without touching consumers.
+  copyIfMissing(
+    join(scaffold, "config-template.json"),
+    join(PROJECT_DIR, ".kiln", "config.json"),
+    ".kiln/config.json (review + standards + model config)"
+  );
+  copyIfMissing(
+    join(scaffold, "standards-template.md"),
+    join(PROJECT_DIR, ".kiln", "standards.md"),
+    ".kiln/standards.md (coding standards)"
+  );
+  copyIfMissing(
+    join(scaffold, "test-strategy-template.json"),
+    join(PROJECT_DIR, ".kiln", "test-strategy.json"),
+    ".kiln/test-strategy.json (coverage gate + smoke config)"
+  );
 }
 
 // ── Sync: plugin workflows to consumer project (FR-002) ──

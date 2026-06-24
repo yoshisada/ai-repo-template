@@ -1,0 +1,11 @@
+{
+  "coverage_gate": 80,
+  "test": "npm test",
+  "smoke": {
+    "start": "npm run dev",
+    "ready": "http://localhost:3000",
+    "probe": "curl -fsS http://localhost:3000 > /dev/null",
+    "teardown": "pkill -f 'npm run dev' || true"
+  },
+  "design_verify": false
+}

@@ -1,0 +1,17 @@
+{
+  "_comment": "Read from the plugin install path by kiln-doctor — NOT copied into consumer projects. Version-keyed health checks. kiln-doctor merges entries from 1.0.0 through the current config_version, runs each, and renders a | Check | Status | Fix | table. New system components ship as new version entries here — no kiln-doctor code change needed. Order: required -> version_checks -> optional. Required failures are errors (non-zero exit); optional failures are warnings (exit 0).",
+  "1.0.0": {
+    "required": [
+      { "path": ".kiln/config.json",        "check": "valid-json", "fix": "/kiln:kiln-init" },
+      { "path": ".kiln/test-strategy.json", "check": "valid-json", "fix": "/kiln:kiln-init" },
+      { "path": ".kiln/standards.md",       "check": "exists",     "fix": "/kiln:kiln-init", "if_config_key": "standards" }
+    ],
+    "optional": [
+      { "check": "obsidian-reachable", "severity": "warning", "fix": "Open Obsidian + enable MCP plugin" },
+      { "check": "stale-worktrees",    "severity": "warning", "fix": "kiln-doctor --clean-worktrees" }
+    ],
+    "version_checks": [
+      { "path": ".kiln/config.json", "field": "config_version", "fix": "/kiln:kiln-init" }
+    ]
+  }
+}
