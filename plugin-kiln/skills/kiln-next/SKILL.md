@@ -35,7 +35,19 @@ echo "Branch: $BRANCH"
 # Version
 VERSION=$(cat VERSION 2>/dev/null || echo "no version")
 echo "Version: $VERSION"
+
+# Kiln config (Phase 0) — review mode, batch/distill thresholds, checkpoints.
+# These drive the priority stack in Step 4. Defaults match config-template.json.
+REVIEW_MODE=$(jq -r '.review_mode // "standard"' .kiln/config.json 2>/dev/null || echo "standard")
+REVIEW_CHECKPOINTS=$(jq -r '.review_checkpoints // [] | join(",")' .kiln/config.json 2>/dev/null)
+ISSUE_BATCH_THRESHOLD=$(jq -r '.issue_batch_threshold // 5' .kiln/config.json 2>/dev/null || echo 5)
+DISTILL_THRESHOLD=$(jq -r '.distill_threshold // 3' .kiln/config.json 2>/dev/null || echo 3)
+echo "Review mode: $REVIEW_MODE  (checkpoints: ${REVIEW_CHECKPOINTS:-none})"
+echo "Thresholds: issue_batch=$ISSUE_BATCH_THRESHOLD distill=$DISTILL_THRESHOLD"
 ```
+
+Surface `review_mode` and any pending checkpoint state in the project-state line of the
+final summary so the human knows the current autonomy posture at a glance.
 
 Read:
 - `.specify/memory/constitution.md` — governing principles (quick skim)
@@ -236,6 +248,33 @@ This entry is surfaced in the "## What's Next" Low section (or omitted if a high
 <!-- FR-002: Prioritized recommendation list -->
 <!-- FR-003: Each recommendation includes description, command, priority, source -->
 <!-- FR-012: Every recommendation maps to a valid kiln command -->
+
+### Priority Stack (authoritative — short-circuit at first match)
+
+`kiln-next` is **human-only** — never auto-invoked by a workflow. Evaluate this fixed
+8-level stack top-down and **stop at the first level that matches**: surface that level's
+items as the headline recommendation, then stop. The richer classification below feeds
+the levels but never overrides the stack ordering.
+
+| # | Level | Condition | Recommended action |
+|---|---|---|---|
+| 1 | Pending human review | a workflow checkpoint is paused · an open PR awaits review · an L2 improvement proposal awaits an apply decision · a debugger escalation couldn't auto-fix | "These need you before anything moves" — list first, always |
+| 2 | Interrupted run | a `.kiln/runs/*/manifest.json` has `phase != "done"` and is not a checkpoint pause | show the halted step + exact resume: `/kiln:kiln-build-prd <slug> --resume` |
+| 3 | Failing tests | `npm test` (or `.kiln/test-strategy.json` `test`) exits non-zero on the current branch | show failing tests → `/kiln:kiln-fix` |
+| 4 | Issues: large batch | `.kiln/issues/` open count ≥ `issue_batch_threshold` | "N issues — enough to spec → `/kiln:kiln-build-prd`" |
+| 5 | Issues: small batch | `.kiln/issues/` open count > 0 and < `issue_batch_threshold` | "N issue(s) → `/kiln:kiln-fix <id>`" per issue (targeted, no spec overhead) |
+| 6 | Captures ready to distill | feedback + roadmap items combined ≥ `distill_threshold` | "N feedback/roadmap items → `/kiln:kiln-distill`" |
+| 7 | PRD ready to build | a `docs/features/*/PRD.md` exists with no `specs/` dir yet | suggest `/kiln:kiln-build-prd <slug>` |
+| 8 | All clear | nothing above matches | project health snapshot: coverage %, last build, open issue count, active roadmap phase |
+
+**Two-track model (never mix):** issues are always fix-priority — the track is chosen by
+count vs `issue_batch_threshold` (small → `kiln-fix` per issue; large → `kiln-build-prd`).
+Feedback + roadmap items are strategic and accumulate until `kiln-distill` bundles them
+into a PRD. Issues are never distilled; feedback is never fixed.
+
+Levels 1–2 reference Phase 1/2 artifacts (`.kiln/runs/`, L2 proposals); when those don't
+exist yet the level simply doesn't match and evaluation falls through. End with exactly
+one clear recommended action, not a list of everything.
 
 Now analyze ALL gathered data and classify each finding. For each item found:
 
