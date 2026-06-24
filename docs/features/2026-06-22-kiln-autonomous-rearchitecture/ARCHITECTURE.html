@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiln Autonomous Build Cycle — Rearchitecture Plan</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#30363d;
+    --ink:#e6edf3; --mute:#9aa7b4; --faint:#6e7b8a;
+    --repo:#4493f8; --obsidian:#a371f7; --queue:#e3a008; --precedent:#3fb950;
+    --danger:#f85149; --warn:#d29922; --ok:#3fb950;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.62;font-size:16px}
+  .wrap{max-width:1000px;margin:0 auto;padding:56px 28px 120px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em}
+  h2{font-size:23px;margin:54px 0 14px;padding-top:18px;border-top:1px solid var(--line);letter-spacing:-.01em}
+  h3{font-size:17px;margin:30px 0 8px;color:#cdd9e5}
+  p{margin:12px 0}
+  .sub{color:var(--mute);font-size:16px;margin-top:0}
+  .tag{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+       padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute);margin-right:6px}
+  code{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);
+       padding:1px 6px;border-radius:5px;color:#c9d6e3}
+  .lead{font-size:18px;color:#cdd9e5}
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--repo);
+           padding:14px 18px;border-radius:10px;margin:18px 0}
+  .callout.warn{border-left-color:var(--warn)} .callout.bad{border-left-color:var(--danger)}
+  .callout.good{border-left-color:var(--ok)}
+  .grid{display:grid;gap:14px}
+  .cols-2{grid-template-columns:1fr 1fr} .cols-3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.cols-2,.cols-3{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h4{margin:0 0 6px;font-size:15px}
+  .card .k{font:600 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  figure{margin:26px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 10px 14px;overflow-x:auto}
+  figcaption{color:var(--mute);font-size:13px;text-align:center;margin-top:6px;padding:0 14px}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+  .evi{color:var(--danger);font-weight:600}
+  .fix{color:var(--ok);font-weight:600}
+  ul{margin:10px 0;padding-left:22px} li{margin:6px 0}
+  .pill{font:600 10px/1 var(--mono);padding:3px 7px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+  .p-repo{background:rgba(68,147,248,.16);color:#79b8ff;border:1px solid rgba(68,147,248,.4)}
+  .p-obs{background:rgba(163,113,247,.16);color:#c8a6ff;border:1px solid rgba(163,113,247,.4)}
+  .p-q{background:rgba(227,160,8,.16);color:#e3a008;border:1px solid rgba(227,160,8,.4)}
+  .p-pre{background:rgba(63,185,80,.16);color:#56d364;border:1px solid rgba(63,185,80,.4)}
+  .foot{color:var(--faint);font-size:13px;margin-top:60px;border-top:1px solid var(--line);padding-top:18px}
+  svg{display:block;margin:0 auto;max-width:100%;height:auto;font-family:var(--sans)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:6px 0 0;font-size:12px;color:var(--mute)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .num{font:700 13px/1 var(--mono);color:var(--queue)}
+  .ph{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+  .ph .n{flex:none;width:30px;height:30px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);
+         display:grid;place-items:center;font:700 13px/1 var(--mono);color:#cdd9e5}
+  .wf{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0;scroll-margin-top:20px}
+  .wf h4{margin:0 0 2px;font-size:15px} .wf h4 a{color:var(--faint);font:600 11px/1 var(--mono);text-decoration:none;margin-left:8px}
+  .wf .wd{color:var(--mute);font-size:13px;margin:0 0 12px}
+  .strip{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;overflow-x:auto}
+  .step{flex:1 1 0;min-width:118px;border:1px solid var(--line);border-radius:9px;padding:8px 9px;margin-right:18px;position:relative;background:var(--panel2)}
+  .step:last-child{margin-right:0}
+  .step::after{content:"▸";position:absolute;right:-15px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px}
+  .step:last-child::after{content:""}
+  .step .t{font:700 9px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;display:inline-block;padding:2px 5px;border-radius:4px;margin-bottom:5px}
+  .step .p{font-size:11px;color:#c4d0dc;line-height:1.35}
+  .t-cmd{background:rgba(68,147,248,.16);color:#79b8ff} .t-agent{background:rgba(63,185,80,.16);color:#56d364}
+  .t-branch{background:rgba(227,160,8,.16);color:#e3a008} .t-approval{background:rgba(248,81,73,.16);color:#f0883e}
+  .t-loop{background:rgba(163,113,247,.16);color:#c8a6ff} .t-team{background:rgba(45,212,191,.16);color:#5eead4}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="tag">Planning Doc · Draft v1</span>
+  <span class="tag">2026-06-22</span>
+  <h1>Re-architecting the Kiln Build Cycle</h1>
+  <p class="sub">An autonomous, self-improving, observable, and forkable build loop — built from a critical audit of what exists today.</p>
+
+  <p class="lead">Goal: a skill flips a flag and Claude builds a project <strong>mostly autonomously</strong> from a plan + design — while the system <strong>watches its own pitfalls and improves during the build</strong>, you watch it happen, and anyone who forks it gets a loop that self-improves on <em>their</em> precedent.</p>
+
+  <div class="callout">
+    <strong>How to read this:</strong> §1 diagnosis (with evidence). §2 the input (vision as apex). §3 the holistic map — skills, contracts, human touchpoints. §4 the command flow (clay → trim → kiln). §5 which skills become wheel workflows (clickable). §6 the per-project testing strategy. §7 the data model · §8–§9 the build + improvement loops · §10 pillars · §11 build sequence · §12 dogfooding · §13 open questions. Every mechanism traces back to a weakness in §1.
+  </div>
+
+  <h2>1 · The diagnosis — what we have now, criticized</h2>
+  <p>Three parallel audits of the current pipeline (<code>build-prd</code> + the specify→plan→tasks→implement→audit skills, the agents/hooks/coordination, and the self-improvement loop) converged on one punchline:</p>
+
+  <div class="callout bad">
+    <strong>"The loop is the product" is aspirational, not operational — and <code>build-prd</code> is <em>already</em> mostly autonomous.</strong>
+    So the work isn't "add autonomy + self-improvement." It's <strong>close a loop that doesn't close</strong>, and <strong>convert prose-discipline into mechanism</strong>.
+  </div>
+
+  <h3>The findings that carry the redesign</h3>
+  <table>
+    <tr><th style="width:30%">Finding</th><th>Evidence</th><th style="width:26%">Implication</th></tr>
+    <tr>
+      <td><strong>The improvement loop doesn't close</strong></td>
+      <td><span class="evi">25 open retrospectives, 2 ever closed.</span> <code>kiln-pi-apply</code> last ran ~2 months ago; its logs read "53 stale, 18 parse errors, 5 actionable." Exactly <span class="evi">one</span> "apply" commit in project history.</td>
+      <td>Proposals must become <strong>self-actionable</strong>, not manual diffs.</td>
+    </tr>
+    <tr>
+      <td><strong>Precedent is write-only</strong></td>
+      <td><code>.kiln/mistakes/</code> holds <span class="evi">2 files total</span>, read by <span class="evi">zero</span> build skills. <code>build-prd</code>/<code>specify</code>/<code>plan</code> never read prior mistakes. The precedent-reader is an unbuilt roadmap item.</td>
+      <td>"Context-informed autonomy" has no input. Build the <strong>precedent-reader</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Autonomy is closer than it looks</strong></td>
+      <td>Once invoked, <code>build-prd</code> has no per-step approval gate. The real blockers are narrow: two stray <code>STOP and ask</code> prompts in <code>/implement</code> + <code>/audit</code>, the distill→build handoff, and PR→merge.</td>
+      <td>Auto-run is a <strong>thin trigger</strong>, not a rebuild.</td>
+    </tr>
+    <tr>
+      <td><strong>Safety is prose, not mechanism</strong></td>
+      <td>Hooks leave <code>tests/</code> + <code>*.json</code> unconditionally editable (an agent can fake green by editing tests). Coverage, merge-bar, and propose-don't-apply are enforced by goodwill. The relay rule (Rule 6) — the most load-bearing coordination invariant — is enforced <span class="evi">nowhere</span>; the <code>@include</code> module that claims to carry it is actually a friction-notes template.</td>
+      <td><strong>Prose → mechanism</strong>: real gates + structured verdicts.</td>
+    </tr>
+    <tr>
+      <td><strong>No durable run state</strong></td>
+      <td>Stall timers + task graph live in volatile session memory. <code>.kiln/implementing.lock</code> is <span class="evi">currently stale</span> and, on crash-restart, can <em>disable the spec gate</em> for 30 min. Branch creation isn't idempotent.</td>
+      <td>A <strong>resumable run-manifest</strong> is mandatory for unattended runs.</td>
+    </tr>
+    <tr>
+      <td><strong>No live observability</strong></td>
+      <td>The richest signal — agent friction-notes — is batched to the end and read only by the post-build retro. Sub-agent reasoning is invisible to the lead by design; the human sees even less.</td>
+      <td>Stream a <strong>live journal</strong> to a cockpit.</td>
+    </tr>
+    <tr>
+      <td><strong>Not forkable where it matters</strong></td>
+      <td>Capture is portable markdown, but curated precedent is entangled with a personal Obsidian vault (<code>@manifest</code>/<code>@inbox</code>, absent from the repo) + the hardcoded <code>yoshisada/ai-repo-template</code> issue tracker.</td>
+      <td>Precedent must be <strong>repo-resident</strong>; vault optional.</td>
+    </tr>
+  </table>
+
+  <h2>2 · The input — vision as the apex</h2>
+  <p>The loop's input isn't "captures." It's <strong>captures, filtered and prioritized by the vision, projected through the roadmap, distilled into PRDs.</strong> <code>.kiln/vision.md</code> already exists as a holistic outlook — <em>what we're building / what it is not / how we'll know we're winning (signals a–h) / guiding constraints</em> — but today builds don't apply it. It should play <strong>three active roles</strong>:</p>
+  <div class="grid cols-3">
+    <div class="card"><div class="k">role 1 · at intake</div><h4>Filter</h4><p>Every idea/feedback/issue is checked against <em>"what it is not"</em> + constraints + <em>"does this match real use?"</em>. Accept → roadmap; <strong>decline → precedent</strong> (the vision names "declined non-goals" as autonomy input).</p></div>
+    <div class="card"><div class="k">role 2 · at build time</div><h4>Context</h4><p>The build reads vision as top-level context, so act-vs-escalate decisions inherit strategic direction. The constraints <em>are</em> the strategic precedent.</p></div>
+    <div class="card"><div class="k">role 3 · continuously</div><h4>Measure</h4><p>Signals (a–h) are the system's own acceptance criteria. It scores itself against them; <strong>vision-vs-reality drift becomes roadmap items.</strong></p></div>
+  </div>
+  <div class="callout good"><strong>The vision already declares the goals the audit found unmet.</strong> Signal (c) "capture surfaces close their loops" and (d) "the self-improvement loop closes — and edits <em>land</em>" are exactly what's broken. Much of this rearchitecture is making the system enforce and measure its own <code>vision.md</code>.</div>
+  <p><strong>The abstraction ladder</strong> — the vision is the invariant checked at every rung; a lower rung may never contradict a higher one:</p>
+  <p style="text-align:center;font-family:var(--mono);font-size:13.5px;color:#cdd9e5;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px">
+    vision.md <span style="color:#7d8a99">(holistic · rarely changes)</span> &nbsp;→&nbsp; roadmap <span style="color:#7d8a99">(phases · typed items)</span> &nbsp;→&nbsp; PRD <span style="color:#7d8a99">(buildable)</span> &nbsp;→&nbsp; spec / plan / tasks <span style="color:#7d8a99">(executable)</span>
+  </p>
+  <p><strong>Open call:</strong> should the vision-filter <em>block</em> off-vision work or <em>flag-and-escalate</em>? Leaning flag-and-escalate (decline-with-reason, human can override), since the vision says strategic calls require a human "yes."</p>
+
+  <h3>Two intake streams — they look alike but go opposite ways</h3>
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="k">stream A · what to build</div>
+      <h4>Product intent → roadmap → PRD</h4>
+      <p><span class="pill p-repo">ideas</span> <span class="pill p-repo">feedback</span> <span class="pill p-repo">issues</span> <span class="pill p-repo">roadmap</span> pass the vision-filter, become roadmap items, distill into PRDs, and build into <strong>product code</strong>.</p>
+    </div>
+    <div class="card">
+      <div class="k">stream B · how we build</div>
+      <h4>Operational precedent → ledger → system</h4>
+      <p><span class="pill p-pre">mistakes</span> <span class="pill p-pre">fixes</span> <span class="pill p-pre">retros</span> go straight to the <strong>ledger</strong> — fed <em>forward</em> into builds (precedent-reader) and turned into proposals that change <strong>skills/agents/templates</strong>, never product features. (A mistake exposing a missing capability can be <em>promoted</em> to a roadmap item — explicit escalation, not the default.)</p>
+    </div>
+  </div>
+  <p style="margin-top:6px;color:var(--mute);font-size:14.5px"><strong>Mistakes are stream B.</strong> Conflating them with product captures (as draft v1 did) routes operational failures into the product roadmap — wrong destination.</p>
+
+  <h3>The design track — Claude-generated HTML, kept in sync</h3>
+  <p>Design is a co-equal input, but the source of truth is repo-resident <strong>Claude-generated HTML</strong> — layout mockups, a component library, and diagrams — not an external tool. This fits the vision's <em>file-based-state</em> + <em>forkability</em> constraints far better: design is git-diffable, needs no Penpot/MCP, and Claude both <em>generates</em> and <em>reads</em> it. The artifacts live, canonical and forkable, under <code>design/</code>:</p>
+  <ul>
+    <li><code>design/system/</code> — the design system: HTML component library (the shared SoT).</li>
+    <li><code>design/features/&lt;slug&gt;/</code> — per-feature layout mockups, generated from the PRD.</li>
+    <li><code>design/diagrams/</code> — system/architecture diagrams as HTML/SVG (this very doc is one).</li>
+    <li><code>design/manifest.json</code> — maps each design file ↔ the route/component it governs.</li>
+  </ul>
+  <p><strong>How it stays in sync</strong> (same "drift = failing test" rule as the canonical docs):</p>
+  <ol>
+    <li><strong>Generate</strong> — a design skill (<code>frontend-design</code> / a new <code>/kiln:kiln-design</code>) turns the PRD into mockups composing the design system — the "design" half of plan+design, in the build's design phase.</li>
+    <li><strong>Gate on UI-change</strong> — a PRD that touches UI (flagged <code>ui_change</code>, or detected from UI-path FRs) MUST update <code>design/features/&lt;slug&gt;/</code> before <code>implement</code>, which then builds to it.</li>
+    <li><strong>Drift = a finding</strong> — audit blocks if a feature touched UI code but its governing design file is stale/missing (and symmetrically, design changed but code not implemented).</li>
+    <li><strong>Verify by vision</strong> — render the mockup + the real app route, screenshot both, Claude-vision-compare → <code>{route, match, diff}</code>. Mismatch is a blocker (replaces <code>trim-verify</code>).</li>
+    <li><strong>Propagate</strong> — when a <code>design/system/</code> component changes, the manifest fans out to dependent mockups + code as review/regenerate tasks in the improvement queue.</li>
+  </ol>
+  <p style="color:var(--mute);font-size:14.5px"><code>trim</code> + Penpot stay available as an optional adapter for teams already on Penpot — but they're no longer the source of truth.</p>
+
+  <h2>3 · Master data-flow — where every artifact goes</h2>
+  <p>The whole system on one canvas. Follow the <span style="color:#79b8ff">blue spine</span> (intake → build → ship), the <span style="color:#56d364">green rail</span> (the precedent ledger feeding both directions), the <span style="color:#e3a008">amber</span> improvement return path, and the <span style="color:#a371f7">purple</span> human-facing mirrors. Every edge is labelled with the <em>artifact</em> that travels it.</p>
+  <figure>
+    <svg viewBox="0 0 1200 1000" role="img" aria-label="Holistic system map — skills, data, and contracts">
+      <defs>
+        <marker id="hb" markerWidth="10" markerHeight="10" refX="7.5" refY="3.4" orient="auto"><path d="M0,0 L7.5,3.4 L0,6.8 Z" fill="#79b8ff"/></marker>
+        <marker id="hq" markerWidth="10" markerHeight="10" refX="7.5" refY="3.4" orient="auto"><path d="M0,0 L7.5,3.4 L0,6.8 Z" fill="#e3a008"/></marker>
+        <marker id="hg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#3fb950"/></marker>
+        <marker id="hp" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#a371f7"/></marker>
+        <marker id="ht" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#2dd4bf"/></marker>
+      </defs>
+      <style>
+        .nt{font-size:14px;font-weight:700} .sk{font-size:10.5px;fill:#aebfd0;font-family:ui-monospace,Menlo,monospace}
+        .skd{font-size:10px;fill:#7d8a99;font-family:ui-monospace,Menlo,monospace}
+        .cl{font-size:10.5px;font-weight:600} .gl{font-size:10px;fill:#56d364}
+        .ns{font-size:10px;fill:#9aa7b4}
+      </style>
+
+      <!-- ===== ring arrows (drawn first; nodes overlay) ===== -->
+      <g fill="none" stroke="#79b8ff" stroke-width="3.2">
+        <path d="M600 125 Q 829 174 998 305" marker-end="url(#hb)"/>
+        <path d="M998 305 Q 1058 492 998 680" marker-end="url(#hb)"/>
+        <path d="M998 680 Q 829 814 600 865" marker-end="url(#hb)"/>
+      </g>
+      <g fill="none" stroke="#e3a008" stroke-width="3.2">
+        <path d="M600 865 Q 371 812 202 675" marker-end="url(#hq)"/>
+        <path d="M202 675 Q 142 490 202 305" marker-end="url(#hq)"/>
+        <path d="M202 305 Q 371 174 600 125" marker-end="url(#hq)"/>
+      </g>
+      <!-- contract labels on the ring edges -->
+      <text x="905" y="205" class="cl" fill="#79b8ff">captures + roadmap items ▸</text>
+      <text x="1012" y="495" class="cl" fill="#79b8ff">PRD ⟨frontmatter⟩ ▾</text>
+      <text x="845" y="800" class="cl" fill="#79b8ff">PR + run-manifest ▾</text>
+      <text x="300" y="800" class="cl" fill="#e3a008">◂ friction + retro</text>
+      <text x="150" y="495" class="cl" fill="#e3a008">▴ proposals ⟨risk, patch⟩</text>
+      <text x="300" y="200" class="cl" fill="#e3a008">◂ applied change</text>
+      <text x="690" y="118" class="cl" fill="#79b8ff">build arc ↻</text>
+      <text x="430" y="118" class="cl" fill="#e3a008">↺ improve arc</text>
+
+      <!-- ===== CENTER HUB ===== -->
+      <rect x="485" y="395" width="230" height="98" rx="12" fill="#101a10" stroke="#2e6b3c"/>
+      <text x="600" y="421" text-anchor="middle" fill="#56d364" class="nt">VISION ▲ apex</text>
+      <text x="600" y="441" text-anchor="middle" class="ns">filter · context · measure</text>
+      <text x="600" y="458" text-anchor="middle" class="ns">.kiln/vision.md · signals a–h</text>
+      <text x="600" y="479" text-anchor="middle" class="skd">ARCHITECTURE · STATUS · ROADMAP docs</text>
+      <rect x="485" y="498" width="230" height="92" rx="12" fill="#0f1c12" stroke="#2e6b3c"/>
+      <text x="600" y="524" text-anchor="middle" fill="#56d364" class="nt">LEDGER ◆</text>
+      <text x="600" y="544" text-anchor="middle" class="ns">.kiln/ledger · precedent · forkable</text>
+      <text x="600" y="563" text-anchor="middle" class="ns">semantic query → avoid past mistakes ↻</text>
+      <text x="600" y="581" text-anchor="middle" class="skd">← mistakes · fixes · retros</text>
+
+      <!-- radial green -->
+      <g fill="none" stroke="#3fb950" stroke-width="1.8">
+        <path d="M600 395 V214" stroke-dasharray="5 4" marker-end="url(#hg)"/>
+        <path d="M715 432 Q 820 540 870 632" stroke-dasharray="5 4" marker-end="url(#hg)"/>
+        <path d="M715 548 Q 800 620 868 666" marker-end="url(#hg)"/>
+        <path d="M872 700 Q 800 590 717 566" marker-end="url(#hg)"/>
+      </g>
+      <text x="610" y="300" class="gl">vision: filter/context ↑</text>
+      <text x="735" y="600" class="gl">context →</text>
+      <text x="735" y="648" class="gl">precedent →</text>
+      <text x="735" y="690" class="gl">← friction</text>
+
+      <!-- ===== NODES ===== -->
+      <!-- N0 INTAKE -->
+      <rect x="475" y="45" width="250" height="160" rx="13" fill="#13203a" stroke="#2b4a7d"/>
+      <text x="490" y="72" fill="#cdd9e5" class="nt">① INTAKE → roadmap</text>
+      <text x="490" y="94" class="sk">/clay:clay-idea</text>
+      <text x="490" y="111" class="sk">/kiln:kiln-feedback</text>
+      <text x="490" y="128" class="sk">/kiln:kiln-report-issue</text>
+      <text x="490" y="145" class="sk">/kiln:kiln-roadmap  (--vision)</text>
+      <text x="490" y="162" class="sk">/kiln:kiln-mistake  → ⑤ ledger</text>
+      <text x="490" y="186" class="skd">human: capture · accept items (yes)</text>
+      <!-- N1 DISTILL -->
+      <rect x="873" y="230" width="250" height="150" rx="13" fill="#13203a" stroke="#2b4a7d"/>
+      <text x="888" y="257" fill="#cdd9e5" class="nt">② DISTILL → PRD</text>
+      <text x="888" y="281" class="sk">/kiln:kiln-distill</text>
+      <text x="888" y="300" class="skd">bundles open captures + items</text>
+      <text x="888" y="320" class="sk">→ docs/features/&lt;slug&gt;/PRD.md</text>
+      <text x="888" y="352" class="skd">human: promote sources · review PRD</text>
+      <!-- N2 BUILD -->
+      <rect x="873" y="595" width="250" height="180" rx="13" fill="#0f1c12" stroke="#2e6b3c"/>
+      <text x="888" y="622" fill="#56d364" class="nt">③ BUILD</text>
+      <text x="888" y="644" class="sk">/kiln:kiln-build-prd</text>
+      <text x="900" y="661" class="skd">specify · plan · tasks</text>
+      <text x="900" y="676" class="skd">implement · audit</text>
+      <text x="900" y="691" class="skd">qa-setup · checkpoint · final</text>
+      <text x="900" y="706" class="sk" fill="#7fe9da">design → design/ HTML · vision-verify</text>
+      <text x="888" y="726" class="sk">debugger (on-demand)</text>
+      <text x="888" y="752" class="skd">human: clarify · fixtures · "ship gaps?"</text>
+      <!-- N3 SHIP -->
+      <rect x="475" y="790" width="250" height="150" rx="13" fill="#13203a" stroke="#2b4a7d"/>
+      <text x="490" y="817" fill="#cdd9e5" class="nt">④ SHIP</text>
+      <text x="490" y="841" class="sk">/kiln:kiln-build-prd → PR</text>
+      <text x="490" y="858" class="sk">/kiln:kiln-merge-pr</text>
+      <text x="490" y="875" class="sk">/shelf:shelf-release · update</text>
+      <text x="490" y="908" class="skd">human: review + MERGE (propose-don't-apply)</text>
+      <!-- N4 REFLECT -->
+      <rect x="77" y="595" width="250" height="160" rx="13" fill="#1c1605" stroke="#5c4708"/>
+      <text x="92" y="622" fill="#e3a008" class="nt">⑤ REFLECT</text>
+      <text x="92" y="646" class="sk">retrospective (in build-prd)</text>
+      <text x="92" y="663" class="sk">/kiln:kiln-pi-apply</text>
+      <text x="92" y="680" class="sk">/kiln:kiln-mistake</text>
+      <text x="92" y="697" class="sk">/shelf:propose-manifest-improvement</text>
+      <text x="92" y="730" class="skd">auto: friction+retro → ledger</text>
+      <!-- N5 APPLY -->
+      <rect x="77" y="230" width="250" height="150" rx="13" fill="#1c1605" stroke="#5c4708"/>
+      <text x="92" y="257" fill="#e3a008" class="nt">⑥ APPLY</text>
+      <text x="92" y="281" class="sk" fill="#f0c674">/kiln:kiln-improve  (new)</text>
+      <text x="92" y="298" class="sk">process-inbox (maintainer)</text>
+      <text x="92" y="318" class="skd">low-risk → auto-PR · high-risk → chip</text>
+      <text x="92" y="352" class="skd">human: one-click high-risk</text>
+
+      <!-- ===== satellites ===== -->
+      <rect x="24" y="36" width="176" height="50" rx="9" fill="#1a1322" stroke="#5a3a7d"/>
+      <text x="38" y="58" fill="#c8a6ff" font-size="12" font-weight="700">Obsidian mirror</text>
+      <text x="38" y="75" class="ns">browse · 2nd brain · dashboards</text>
+      <path d="M485 520 Q 230 320 150 88" fill="none" stroke="#a371f7" stroke-width="1.2" stroke-dasharray="4 4" opacity=".45" marker-end="url(#hp)"/>
+      <rect x="1000" y="36" width="176" height="50" rx="9" fill="#1a1322" stroke="#5a3a7d"/>
+      <text x="1014" y="58" fill="#c8a6ff" font-size="12" font-weight="700">live cockpit</text>
+      <text x="1014" y="75" class="ns">watch pitfalls · journal stream</text>
+      <path d="M1010 595 Q 1120 360 1110 88" fill="none" stroke="#a371f7" stroke-width="1.3" stroke-dasharray="4 4" opacity=".55" marker-end="url(#hp)"/>
+      <rect x="996" y="796" width="184" height="68" rx="9" fill="#0e2222" stroke="#2e6b6b"/>
+      <text x="1010" y="818" fill="#5eead4" font-size="12" font-weight="700">design/ (HTML)</text>
+      <text x="1010" y="835" class="ns">Claude-generated · git-diffable</text>
+      <text x="1010" y="850" class="ns">vision-verify gates audit</text>
+      <path d="M1058 775 Q 1075 788 1064 794" fill="none" stroke="#2dd4bf" stroke-width="1.6" marker-end="url(#ht)"/>
+      <text x="1036" y="790" fill="#5eead4" font-size="10">render ⇄ verify</text>
+    </svg>
+    <figcaption>The whole system on one canvas — every stage with its <strong>skills</strong>, the data <strong>contracts</strong> on each edge, and the human touchpoints (grey lines in each node). One continuous loop: a <span style="color:#79b8ff">blue build arc</span> (① intake → ② distill → ③ build → ④ ship) and an <span style="color:#e3a008">amber improve arc</span> (⑤ reflect → ⑥ apply → back into ①). The <span style="color:#56d364">vision + ledger hub</span> feeds the cycle from the centre (precedent in, friction out). the repo's <span style="color:#5eead4">design/</span> (Claude-generated HTML) is the design source of truth (vision-verify gates audit); <span style="color:#c8a6ff">Obsidian + cockpit</span> are observers off the critical path. Edge labels (<em>PRD ⟨frontmatter⟩</em>, <em>PR + run-manifest</em>, <em>proposals ⟨risk, patch⟩</em>) are the API contracts detailed below.</figcaption>
+  </figure>
+
+  <h3>The same loop, by skill — and where you drive</h3>
+  <p>Each stage maps to concrete commands. The legend marks the human's role at each touchpoint:
+    <span class="pill p-repo">drive</span> you initiate ·
+    <span class="pill p-q">approve</span> load-bearing gate (stays human) ·
+    <span class="pill p-pre">auto</span> auto-advances under the flag.</p>
+  <table>
+    <tr><th style="width:13%">Stage</th><th style="width:40%">Skills invoked</th><th>Human touchpoint(s) &amp; what the flag does</th></tr>
+    <tr>
+      <td><strong>① Intake</strong></td>
+      <td><code>/clay:clay-idea</code> · <code>/kiln:kiln-feedback</code> · <code>/kiln:kiln-report-issue</code> · <code>/kiln:kiln-roadmap</code> (<code>--vision</code>) · <code>/kiln:kiln-mistake</code> → ledger</td>
+      <td><span class="pill p-repo">drive</span> you capture ideas/feedback; <span class="pill p-repo">drive</span> vision/roadmap edits are strategic (explicit). <span class="pill p-q">approve</span> accepting a roadmap item needs a "yes". Flag: capture stays human; off-vision asks → escalation queue, not silent-drop.</td>
+    </tr>
+    <tr>
+      <td><strong>② Distill</strong></td>
+      <td><code>/kiln:kiln-distill</code> → <code>docs/features/&lt;slug&gt;/PRD.md</code></td>
+      <td><span class="pill p-q">approve</span> "promote these sources before distilling?" (per-entry yes); <span class="pill p-q">approve</span> <strong>review the PRD</strong> (distill won't auto-commit) — the go/no-go for the build. Flag: source-conflicts → escalation; PRD approval is the one gate worth keeping.</td>
+    </tr>
+    <tr>
+      <td><strong>③ Build</strong></td>
+      <td><code>/kiln:kiln-build-prd</code> orchestrates → <code>specify</code> → <code>plan</code> (+contracts) → <code>tasks</code> → <code>implement</code> → <code>audit</code>; QA <code>/kiln:kiln-qa-setup·checkpoint·final</code>; design <code>frontend-design</code>/<code>kiln-design</code> → <code>design/</code> + vision-verify; <code>debugger</code> on-demand</td>
+      <td><span class="pill p-q">approve</span> specify <code>[NEEDS CLARIFICATION]</code> (≤3, only if no default); <span class="pill p-q">approve</span> plan-time fixture accept/reject; <span class="pill p-q">approve</span> <strong>audit "ship with known gaps?"</strong> — the quality gate; <span class="pill p-repo">drive</span> QA creds (<code>.kiln/qa/.env.test</code>); <span class="pill p-q">approve</span> debugger escalation (after 9 tries). Flag: each routes to the <strong>escalation sink</strong> with a precedent-default — never a silent auto-yes.</td>
+    </tr>
+    <tr>
+      <td><strong>④ Ship</strong></td>
+      <td><code>/kiln:kiln-build-prd</code> opens the PR (stops); <code>/kiln:kiln-merge-pr</code>; <code>/shelf:shelf-release</code> · <code>/shelf:shelf-update</code></td>
+      <td><span class="pill p-q">approve</span> <strong>PR review + merge</strong> — propose-don't-apply for code; stays human. Flag default: <strong>stop at PR, you merge</strong> (auto-merge is opt-in, high-risk).</td>
+    </tr>
+    <tr>
+      <td><strong>⑤ Reflect</strong></td>
+      <td>retrospective (inside build-prd) → PI proposals; <code>/kiln:kiln-pi-apply</code>; <code>/kiln:kiln-mistake</code>; <code>/shelf:shelf-propose-manifest-improvement</code></td>
+      <td><span class="pill p-pre">auto</span> friction + retro auto-write to the ledger; proposals auto-generated &amp; risk-classified. <em>(Today this is where it breaks — pi-apply is propose-only and rarely run.)</em></td>
+    </tr>
+    <tr>
+      <td><strong>⑥ Apply</strong></td>
+      <td><code>/kiln:kiln-improve</code> <span style="color:var(--faint)">(new)</span> launches tasks from the queue; <code>process-inbox</code> maintainer pass</td>
+      <td><span class="pill p-pre">auto</span> low-risk → auto-launch task → PR (you still merge); <span class="pill p-q">approve</span> high-risk → <strong>one-click chip</strong> you launch. Flag: this is the relaxed propose-don't-apply class.</td>
+    </tr>
+    <tr>
+      <td><strong>cross-cutting</strong></td>
+      <td><code>/kiln:kiln-next</code> (session pickup) · <code>/shelf:shelf-sync·status·feedback</code> (mirror) · <code>/wheel:wheel-run</code> (routine engine)</td>
+      <td><span class="pill p-repo">drive</span> <code>kiln-next</code> starts a session; mirrors/sync run <span class="pill p-pre">auto</span>.</td>
+    </tr>
+  </table>
+  <div class="callout good">
+    <strong>The human's job, distilled.</strong> Under the flag, you do five things — everything else auto-advances:
+    <strong>(1)</strong> set direction (vision / roadmap), <strong>(2)</strong> approve the PRD, <strong>(3)</strong> answer genuine <em>no-precedent</em> escalations, <strong>(4)</strong> review &amp; merge PRs, <strong>(5)</strong> one-click the high-risk self-improvements. The vision's promise — "interrupt only when precedent is genuinely absent" — is exactly this list.
+  </div>
+
+  <h3>API contracts — the typed seams</h3>
+  <p>Every edge in the map is a <strong>typed seam</strong>. Defining these contracts <em>is</em> the "prose → mechanism" pillar — it's what makes the loop composable, testable, and safe to run unattended (today most are implicit prose, which is why empty/garbled input propagates silently). v1 shapes, to harden in Phase 0:</p>
+  <table>
+    <tr><th style="width:17%">Seam</th><th style="width:21%">Contract</th><th>Shape / key fields</th><th style="width:20%">Enforced by</th></tr>
+    <tr><td>② distill → ③ build</td><td><strong>PRD</strong> <code>docs/features/&lt;slug&gt;/PRD.md</code></td><td>frontmatter: <code>{slug, frs[], success_criteria[], empirical_quality?[], fixture_corpus?, blast_radius}</code></td><td><code>parse-prd-frontmatter.sh</code> + schema validate</td></tr>
+    <tr><td>plan → implement</td><td><strong>Interface contract</strong> <code>specs/&lt;f&gt;/contracts/interfaces.md</code></td><td>exact function signatures (name · params · return · sync/async) — the single source of truth for parallel agents</td><td><code>spec-enforcer</code> + audit</td></tr>
+    <tr><td>build state (resumable)</td><td><strong>Run-manifest</strong> <code>.kiln/runs/&lt;id&gt;/manifest.json</code></td><td><code>{run_id, prd, phase, branch, pr, decisions[], escalations[], cursor}</code></td><td>resumability check (crash → resume)</td></tr>
+    <tr><td>agent → team-lead</td><td><strong>Verdict envelope</strong> (JSON, not prose)</td><td><code>{agent, verdict: pass|fail, findings[], report_path}</code> — replaces the lossy prose-relay (Rule 6)</td><td>structured-output schema</td></tr>
+    <tr><td>④/⑤ reflect → ledger</td><td><strong>Ledger entry</strong> <code>.kiln/ledger/&lt;id&gt;.json</code></td><td><code>{kind: mistake|fix|retro, summary, blast_radius, tags[], source, ts}</code></td><td>schema + idempotent write</td></tr>
+    <tr><td>ledger → ⑥ queue</td><td><strong>Proposal</strong></td><td><code>{id, target, patch|instruction, risk: low|high, blast_radius, rationale, ledger_refs[]}</code></td><td>risk-classifier rubric (the load-bearing one)</td></tr>
+    <tr><td>ledger → ③ build</td><td><strong>Semantic precedent query</strong> (precedent-reader)</td><td><code>semanticQuery(task, k) → relevant_mistakes/issues[]</code> — cosine similarity over <code>.kiln/ledger/index/</code> embeddings; pre-flight + per-step inject</td><td>file-based index, in-process (no service)</td></tr>
+    <tr><td>design/ ⇄ code</td><td><strong>Design-fidelity</strong> (HTML)</td><td>render mockup + app route → vision-compare → <code>{route, match, diff}</code>; <code>design/manifest.json</code> maps file ↔ component</td><td>vision-verify gate in audit</td></tr>
+    <tr><td>project → audit/smoke</td><td><strong>Test-strategy</strong> <code>.kiln/test-strategy.json</code></td><td><code>{project_type, install, build, test, coverage_gate, smoke:{start, ready, probe, teardown}, design_verify}</code> (§5)</td><td>audit + smoke-tester read it — no hardcoded ports/framework</td></tr>
+    <tr><td>vision → all</td><td><strong>Vision constraints</strong></td><td>guiding constraints + non-goals as machine-checkable predicates (intake filter + drift-check)</td><td>intake filter + audit</td></tr>
+  </table>
+  <div class="callout"><strong>Why this matters most for autonomy:</strong> a contract turns "the agent probably did the right thing" into "the output validates or the run halts." The <em>verdict envelope</em> and <em>run-manifest</em> alone kill two of the top-5 audit findings (prose verdicts, no resumable state). Phase 0/1 ship these schemas first; everything downstream depends on them.</div>
+
+  <h2>4 · Command flow — how clay, trim &amp; kiln actually run</h2>
+  <p>Each plugin has its place, and each runs its own inner loop before handing off. <strong>Clay</strong> runs its real pipeline — <code>clay-idea</code> → <code>clay-idea-research</code> (find/classify similar projects) → <code>clay-project-naming</code> (npm/GitHub/domain checks) → <code>clay-new-product</code> (PRD) → <code>clay-create-repo</code>, tracked by <code>clay-list</code> (idea→researched→named→PRD→repo) — and is *proposed* to also emit vision + user-flows to hand to trim; <strong>trim</strong> turns those into approvable HTML prototypes; <strong>kiln</strong> builds from vision + prototype, with an <strong>AI smoke-review</strong> that drives the real UI and checks it matches the prototype. Two side-channels feed back — <code>report-issue</code> (bugs, fast-fixed) and <code>feedback</code> (features) — and a two-level self-improvement loop closes it (per-repo config vs a separate system-prompt loop). <span style="color:#f0c674">Amber</span> = where you step in. <strong>Each stage is clickable → drills into its sub-loop/flow (§5).</strong></p>
+  <figure>
+    <svg viewBox="0 0 1440 1190" role="img" aria-label="Detailed command loop — clay → trim → kiln → ship → feedback → self-improve">
+      <defs>
+        <marker id="lg" markerWidth="11" markerHeight="11" refX="8" refY="3.6" orient="auto"><path d="M0,0 L8,3.6 L0,7.2 Z" fill="#3fb950"/></marker>
+        <marker id="la" markerWidth="11" markerHeight="11" refX="8" refY="3.6" orient="auto"><path d="M0,0 L8,3.6 L0,7.2 Z" fill="#e3a008"/></marker>
+        <marker id="ls" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#56d364"/></marker>
+        <marker id="lp" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#a371f7"/></marker>
+      </defs>
+      <style>
+        .nt{font-size:15px;font-weight:700} .sk{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;fill:#aebfd0}
+        .ns{font-size:10.5px;fill:#9aa7b4} .am{fill:#f0c674;font-weight:600} .h{font-size:10.5px;fill:#7d8a99}
+        .el{font-size:11px;font-weight:700} .arc{font-size:13px;font-weight:700}
+      </style>
+
+      <!-- ring arrows -->
+      <g fill="none" stroke="#3fb950" stroke-width="3.6">
+        <path d="M720 150 Q 972 209 1162 360" marker-end="url(#lg)"/>
+        <path d="M1162 360 Q 1224 580 1162 800" marker-end="url(#lg)"/>
+        <path d="M1162 800 Q 972 951 720 1010" marker-end="url(#lg)"/>
+      </g>
+      <g fill="none" stroke="#e3a008" stroke-width="3.6">
+        <path d="M720 1010 Q 468 951 278 800" marker-end="url(#la)"/>
+        <path d="M278 800 Q 216 580 278 360" marker-end="url(#la)"/>
+        <path d="M278 360 Q 468 209 720 150" marker-end="url(#la)"/>
+      </g>
+      <text x="830" y="140" class="arc" fill="#56d364">build arc ↻</text>
+      <text x="510" y="140" class="arc" fill="#e3a008">↺ improve arc</text>
+      <!-- edge artifact labels -->
+      <text x="975" y="232" class="el" fill="#c8a6ff">vision + user-flows ▸</text>
+      <text x="1190" y="585" class="el" fill="#56d364">built feature ▾</text>
+      <text x="845" y="930" class="el" fill="#56d364">to review ▾</text>
+      <text x="360" y="930" class="el" fill="#e3a008">◂ friction + requests</text>
+      <text x="120" y="585" class="el" fill="#e3a008">▴ config + skill updates</text>
+      <text x="420" y="232" class="el" fill="#e3a008">◂ smarter next idea</text>
+
+      <!-- ===== HUB ===== -->
+      <rect x="566" y="466" width="308" height="112" rx="13" fill="#101a10" stroke="#2e6b3c"/>
+      <text x="720" y="492" text-anchor="middle" fill="#56d364" class="nt">VISION ▲ apex</text>
+      <text x="720" y="512" text-anchor="middle" class="ns">filter · context · measure</text>
+      <text x="720" y="530" text-anchor="middle" class="ns">.kiln/vision.md</text>
+      <text x="720" y="548" text-anchor="middle" class="h">+ ARCHITECTURE · STATUS · ROADMAP docs</text>
+      <text x="720" y="568" text-anchor="middle" class="h">(checked at every rung)</text>
+      <rect x="566" y="584" width="308" height="110" rx="13" fill="#0f1c12" stroke="#2e6b3c"/>
+      <text x="720" y="610" text-anchor="middle" fill="#56d364" class="nt">LEDGER ◆ precedent</text>
+      <text x="720" y="630" text-anchor="middle" class="ns">.kiln/ledger/  +  /index/ (embeddings)</text>
+      <text x="720" y="648" text-anchor="middle" class="ns">semantic query BEFORE run → avoid mistakes</text>
+      <text x="720" y="666" text-anchor="middle" class="h">← mistakes · fixes · retros · feedback</text>
+      <text x="720" y="684" text-anchor="middle" class="h">file-based · forkable · no service</text>
+
+      <!-- ===== ① CLAY ===== -->
+      <a href="#wf-clay-research"><rect x="560" y="40" width="320" height="220" rx="14" fill="#161122" stroke="#5a3a7d" style="cursor:pointer"/></a>
+      <text x="576" y="66" fill="#c8a6ff" class="nt">① CLAY — ideate (research loop ↻)</text>
+      <text x="576" y="88" class="sk">/clay:clay-idea           entrypoint · overlap</text>
+      <text x="576" y="105" class="sk">/clay:clay-idea-research   similar · classify</text>
+      <text x="576" y="122" class="sk">/clay:clay-project-naming  npm·gh·domain</text>
+      <text x="576" y="139" class="sk">/clay:clay-new-product     → PRD artifacts</text>
+      <text x="576" y="156" class="sk">/clay:clay-create-repo     scaffold repo</text>
+      <text x="576" y="173" class="sk">/clay:clay-list            pipeline status</text>
+      <text x="576" y="193" class="h">stages: idea→researched→named→PRD→repo</text>
+      <text x="576" y="211" class="ns">OUT today: products/&lt;slug&gt;/ (PRD)</text>
+      <text x="576" y="229" class="ns" fill="#c8a6ff">proposed: + vision + user-flows → ② trim</text>
+      <text x="576" y="247" class="h">research is its own inner loop — hands off when matured</text>
+
+      <!-- ===== ② TRIM ===== -->
+      <a href="#wf-trim-design"><rect x="1002" y="250" width="320" height="220" rx="14" fill="#0e2222" stroke="#2e6b6b" style="cursor:pointer"/></a>
+      <text x="1018" y="276" fill="#5eead4" class="nt">② TRIM — design (approve loop ↻)</text>
+      <text x="1018" y="298" class="sk">/trim:trim-design → design/ HTML mockups</text>
+      <text x="1018" y="315" class="ns">lays out user-flows; composes</text>
+      <text x="1018" y="332" class="sk">design/system/  component library</text>
+      <rect x="1018" y="344" width="288" height="26" rx="7" fill="#4a2f06" stroke="#b3850f"/>
+      <text x="1030" y="362" class="am">✋ approve — "I like this" (iterate ↻)</text>
+      <text x="1018" y="388" class="sk">design/manifest.json  maps file↔route</text>
+      <text x="1018" y="406" class="ns" fill="#7fe9da">OUT: prototype/ (approved HTML = visual SoT)</text>
+      <text x="1018" y="424" class="h">git-diffable · forkable · no external tool</text>
+      <text x="1018" y="442" class="h">vision-verify later checks code vs this</text>
+      <text x="1018" y="460" class="h">(trim/Penpot optional adapter)</text>
+
+      <!-- ===== ③ KILN ===== -->
+      <a href="#wf-buildprd"><rect x="1002" y="690" width="320" height="220" rx="14" fill="#0f1c12" stroke="#2e6b3c" style="cursor:pointer"/></a>
+      <text x="1018" y="716" fill="#56d364" class="nt">③ KILN — build (team)</text>
+      <text x="1018" y="738" class="ns">vision + prototype → roadmap / architecture</text>
+      <text x="1018" y="757" class="ns" fill="#56d364">◆ semantic precedent query FIRST</text>
+      <text x="1018" y="775" class="sk">specify → plan + contracts → tasks</text>
+      <text x="1018" y="793" class="sk">implement  (parallel team)  to spec+design</text>
+      <text x="1018" y="811" class="ns">segment tasks · decide next · per-step models</text>
+      <text x="1018" y="829" class="sk">run .kiln/test-strategy  (per project)</text>
+      <text x="1018" y="847" class="h">hooks gate: spec · coverage · untraced-tests</text>
+      <text x="1018" y="865" class="h">resumable via .kiln/runs/&lt;id&gt;/ manifest</text>
+      <text x="1018" y="885" class="ns">↻ next feature stays in build</text>
+
+      <!-- ===== ④ SHIP ===== -->
+      <a href="#wf-smoke-review"><rect x="560" y="900" width="320" height="220" rx="14" fill="#142a18" stroke="#2e6b3c" style="cursor:pointer"/></a>
+      <text x="576" y="926" fill="#7fe9da" class="nt">④ SHIP — verify &amp; merge</text>
+      <text x="576" y="948" class="ns" fill="#7fe9da">★ AI smoke-review (human-style QA):</text>
+      <text x="592" y="965" class="h">start app · drive real UI · screenshot</text>
+      <text x="592" y="982" class="h">vision-compare vs prototype → fidelity</text>
+      <text x="576" y="1001" class="ns">audit: compliance · coverage · design-drift</text>
+      <rect x="576" y="1012" width="288" height="26" rx="7" fill="#4a2f06" stroke="#b3850f"/>
+      <text x="588" y="1030" class="am">✋ "ship with gaps?" → create PR</text>
+      <text x="576" y="1056" class="am">✋ PR merge (propose-don't-apply)</text>
+      <text x="576" y="1074" class="am">✋ progress-bar → request human review</text>
+      <text x="576" y="1094" class="ns">→ next feature ↻ (back to ③)</text>
+      <text x="576" y="1112" class="h">fail → spawn debugger</text>
+
+      <!-- ===== ⑤ FEEDBACK / ISSUES ===== -->
+      <a href="#wf-distill"><rect x="118" y="690" width="320" height="220" rx="14" fill="#11161f" stroke="#30363d" style="cursor:pointer"/></a>
+      <text x="134" y="716" fill="#cdd9e5" class="nt">⑤ FEEDBACK / ISSUES (you)</text>
+      <text x="134" y="738" class="sk" fill="#f0c674">/kiln:kiln-report-issue   bugs you spot</text>
+      <text x="150" y="756" class="h">→ filed in ROADMAP</text>
+      <text x="150" y="773" class="ns" fill="#56d364">→ FAST-FIX at next /kiln:kiln-distill</text>
+      <text x="134" y="795" class="sk" fill="#aebfd0">/kiln:kiln-feedback   features, not bugs</text>
+      <text x="150" y="813" class="ns">• add feature → distill → build</text>
+      <text x="150" y="831" class="ns am">• new design? → ✋ review  (or AI does it)</text>
+      <text x="150" y="849" class="ns">• go deeper on a page</text>
+      <text x="150" y="867" class="ns">• complex fix → build</text>
+      <text x="134" y="889" class="h">triggered at a milestone / progress-bar</text>
+
+      <!-- ===== ⑥ SELF-IMPROVE ===== -->
+      <a href="#wf-self-improve"><rect x="118" y="250" width="320" height="220" rx="14" fill="#1a1206" stroke="#5c4708" style="cursor:pointer"/></a>
+      <text x="134" y="276" fill="#e3a008" class="nt">⑥ SELF-IMPROVE — end of run</text>
+      <text x="134" y="298" class="h">trigger: something wrong / under-specified</text>
+      <text x="134" y="320" class="ns" font-weight="700">Level 1 · per-repo config (in-loop, auto)</text>
+      <text x="150" y="338" class="sk">.kiln/test-strategy · constitution · gates</text>
+      <text x="150" y="356" class="h">agent edits the project's own config</text>
+      <text x="134" y="380" class="ns am" font-weight="700">Level 2 · system-prompt (SEPARATE loop)</text>
+      <text x="150" y="398" class="sk" fill="#f0c674">request fix → kiln/clay's OWN skills</text>
+      <text x="150" y="416" class="h">dedicated loop: edit skill → RELOAD it</text>
+      <text x="150" y="434" class="ns am">auto-run suggested · or run it yourself</text>
+      <text x="134" y="456" class="h">[deferred] local edits → push to your fork</text>
+
+      <!-- radials -->
+      <path d="M874 600 Q 990 680 1000 730" fill="none" stroke="#56d364" stroke-width="2" marker-end="url(#ls)"/>
+      <text x="900" y="650" class="ns" fill="#56d364">precedent →</text>
+      <path d="M690 264 C 690 360, 700 420, 700 462" fill="none" stroke="#c8a6ff" stroke-width="2" marker-end="url(#lp)"/>
+      <text x="706" y="360" class="ns" fill="#c8a6ff" font-weight="700">① creates vision.md ↓</text>
+      <text x="706" y="374" class="h">(seeded at init before clay)</text>
+      <path d="M278 690 Q 278 560 437 470" fill="none" stroke="#a371f7" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6" marker-end="url(#lp)"/>
+      <text x="292" y="560" class="ns" fill="#c8a6ff">new design → ② trim ↑</text>
+      <!-- canonical docs update points -->
+      <rect x="560" y="708" width="320" height="176" rx="13" fill="#1a1322" stroke="#5a3a7d"/>
+      <text x="720" y="732" text-anchor="middle" fill="#c8a6ff" class="nt">📄 CANONICAL DOCS — when each updates</text>
+      <text x="576" y="756" fill="#56d364" font-size="11" font-weight="700">STATUS/PROGRESS</text><text x="704" y="756" class="ns">— every run (at ④ ship)</text>
+      <text x="576" y="776" fill="#e3a008" font-size="11" font-weight="700">ARCHITECTURE</text><text x="704" y="776" class="ns">— on system change (⑥)</text>
+      <text x="576" y="796" fill="#79b8ff" font-size="11" font-weight="700">vision.md</text><text x="704" y="796" class="ns">— proposed on drift ✋ (audit)</text>
+      <text x="576" y="820" class="h">audit drift-checks each → a finding if code</text>
+      <text x="576" y="836" class="h">diverges (like a failing test) — no silent rot</text>
+      <text x="576" y="860" class="h">cadence inverse to authority:</text>
+      <text x="576" y="876" class="h">machine ▸ system-change ▸ human</text>
+      <path d="M720 884 V898" fill="none" stroke="#56d364" stroke-width="2" marker-end="url(#ls)"/>
+      <text x="726" y="895" fill="#56d364" font-size="9">STATUS ✎ ↓④</text>
+      <path d="M560 760 C 470 760, 452 470, 438 412" fill="none" stroke="#e3a008" stroke-width="1.4" stroke-dasharray="5 4" opacity=".7" marker-end="url(#ls)"/>
+      <text x="448" y="600" fill="#e3a008" font-size="9">ARCH ✎ ↖⑥</text>
+      <path d="M600 708 C 512 700, 512 548, 564 534" fill="none" stroke="#79b8ff" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ls)"/>
+      <text x="506" y="648" fill="#79b8ff" font-size="9" font-weight="700">vision.md ✎ ↑ (drift)</text>
+    </svg>
+    <figcaption>One loop, clockwise. <span style="color:#56d364">Build arc:</span> ① <span style="color:#c8a6ff">clay</span> (research ↻ → vision + flows) → ② <span style="color:#5eead4">trim</span> (HTML prototypes you ✋approve → <code>prototype/</code>) → ③ <span style="color:#56d364">kiln</span> build → ④ ship (★ AI smoke-<em>review</em> drives the UI vs the prototype, ✋merge, next-feature ↻). <span style="color:#e3a008">Improve arc:</span> ⑤ feedback/issues (report-issue → fast-fix · feedback → feature / ✋new-design) → ⑥ self-improve (L1 config in-loop · L2 system-prompt → separate loop, reload skill) → back to ①. At the hub, <span style="color:#56d364">vision + ledger</span> feed the cycle — the ledger runs a <em>semantic precedent query</em> into build to avoid past mistakes. <span style="color:#f0c674">Amber</span> = your touchpoints.</figcaption>
+  </figure>
+
+  <h3>Triage — when feedback redesigns, and how issues rank</h3>
+  <p>The ⑤ channel needs decision logic, or "new design?" and "which issue first?" become guesses.</p>
+  <h4 style="margin:14px 0 4px;font-size:14px">Redesign trigger (from feedback)</h4>
+  <p class="wd" style="color:var(--mute);font-size:14px;margin:0 0 8px">A redesign (back to ② trim → new HTML mockup) fires <strong>only when feedback's UI impact is material</strong>:</p>
+  <table>
+    <tr><th style="width:34%">feedback UI impact</th><th>action</th></tr>
+    <tr><td><strong>none</strong> — logic/behavior only</td><td>→ straight to build, no design</td></tr>
+    <tr><td><strong>tweak</strong> — copy · color · spacing</td><td>AI implements directly; <code>vision-verify</code> confirms</td></tr>
+    <tr><td><strong>material</strong> — new surface, or changed layout/flow</td><td><span class="pill p-pre">↻ redesign</span> → trim mockup</td></tr>
+    <tr><td>would push code <strong>past the prototype</strong></td><td><strong>forced</strong> redesign — else <code>vision-verify</code> blocks the PR anyway</td></tr>
+  </table>
+  <p style="font-size:14px"><strong>Who approves the redesign</strong> is the context-informed-autonomy call: <span class="pill p-q">✋ you</span> review when blast radius is high (a new top-level surface) or precedent is absent; <span class="pill p-pre">AI</span> self-approves when a matching approved design pattern exists.</p>
+  <h4 style="margin:18px 0 4px;font-size:14px">Issue priority (report-issue → roadmap)</h4>
+  <table>
+    <tr><th style="width:24%">Lane</th><th>What</th><th>When fixed</th></tr>
+    <tr><td><span class="pill p-q">1 · Hotfix</span></td><td>human-reported bugs on shipped features</td><td><strong>jump the queue</strong> → next <code>distill</code>, before new features</td></tr>
+    <tr><td><span class="pill p-repo">2 · Active-phase</span></td><td>items in the current roadmap phase</td><td>in order, this cycle</td></tr>
+    <tr><td><span class="pill" style="background:var(--panel2);color:var(--mute);border:1px solid var(--line)">3 · Queued</span></td><td>future phases / brainstorming</td><td>when promoted</td></tr>
+  </table>
+  <div class="callout"><strong>Score within a lane:</strong> <code>severity × blast-radius × vision-alignment ÷ effort</code>. <strong>Human-flagged &gt; AI-detected</strong> — AI-detected issues are triaged and <strong>semantic-deduped against past issues first</strong> (the same ledger query that avoids repeats also catches duplicate reports). <code>kiln-next</code> surfaces the top of the stack each session.</div>
+
+  <h2>5 · Built on wheel — the multi-step skills as workflows</h2>
+  <p>The rule: <strong>multi-step skills become wheel workflows</strong> (deterministic, resumable, observable in the cockpit, per-step model selection); single-shot skills stay plain prompts. This is the "is a workflow better than one big prompt?" question answered structurally — anything with branches, loops, parallel agents, or human gates earns a workflow. Each node below is <strong>clickable</strong> → jumps to that workflow's step breakdown; each breakdown links to where the workflow JSON will live. Stages that iterate are <strong>sub-loops</strong> (↻); the rest are linear <strong>flows</strong> (→) — and they <em>nest</em>, since any wheel step can itself be a sub-workflow.</p>
+  <p>And here is <strong>the entire system as one highly-detailed workflow</strong> — every step top-to-bottom in execution order, each labelled with the <strong>entity it reads (📖) / writes (✎)</strong> and marked <strong>real vs † proposed</strong>, with every <strong>branch showing both outcomes and their destination</strong>, the loop-backs, and the vision/ledger + feedback rails. This is the literal flow the autonomous run executes:</p>
+  <figure style="overflow-x:auto">
+        <svg viewBox="0 0 1220 3952" role="img" aria-label="Highly detailed build workflow v2"><defs><marker id="da" markerWidth="10" markerHeight="10" refX="7.5" refY="3.4" orient="auto"><path d="M0,0 L7.5,3.4 L0,6.8 Z" fill="#5a6675"/></marker><marker id="dp" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#e3a008"/></marker><marker id="dg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#56d364"/></marker><marker id="dpp" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#a371f7"/></marker></defs><style>.lab{font-size:12px;fill:#e6edf3;font-weight:600}.ch{font:700 8px/1 ui-monospace,monospace;letter-spacing:.05em}.ent{font-size:9.5px;font-family:ui-monospace,Menlo,monospace}.stg{font-size:14px;font-weight:700;fill:#7d8a99;letter-spacing:.05em}.bl{font-size:10px;font-weight:600}.rt{font-size:11.5px;font-weight:700}.rs{font-size:10px;fill:#9aa7b4;font-family:ui-monospace,Menlo,monospace}</style><rect x="324" y="114" width="512" height="3620" rx="18" fill="none" stroke="#21262d" stroke-width="2" stroke-dasharray="10 6"/><text x="580" y="108" class="rs" fill="#30363d" text-anchor="middle">WHEEL runtime hooks state-machines agent-resolver per-step model-selection</text><line x1="580" y1="178" x2="580" y2="250" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="306" x2="580" y2="328" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="384" x2="580" y2="406" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="462" x2="580" y2="484" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="540" x2="580" y2="562" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="618" x2="580" y2="640" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="696" x2="580" y2="768" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="824" x2="580" y2="846" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="902" x2="580" y2="924" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="980" x2="580" y2="1002" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1058" x2="580" y2="1130" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1186" x2="580" y2="1208" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1264" x2="580" y2="1286" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1342" x2="580" y2="1364" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1420" x2="580" y2="1442" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1498" x2="580" y2="1520" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1576" x2="580" y2="1598" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1654" x2="580" y2="1676" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1732" x2="580" y2="1804" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1860" x2="580" y2="1882" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="1938" x2="580" y2="1960" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2016" x2="580" y2="2038" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2094" x2="580" y2="2116" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2172" x2="580" y2="2244" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2300" x2="580" y2="2322" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2378" x2="580" y2="2400" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2456" x2="580" y2="2478" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2534" x2="580" y2="2556" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2612" x2="580" y2="2634" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2690" x2="580" y2="2712" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2768" x2="580" y2="2790" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2846" x2="580" y2="2868" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="2924" x2="580" y2="2946" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3002" x2="580" y2="3074" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3130" x2="580" y2="3152" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3208" x2="580" y2="3280" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3336" x2="580" y2="3358" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3414" x2="580" y2="3436" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3492" x2="580" y2="3514" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3570" x2="580" y2="3592" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><line x1="580" y1="3648" x2="580" y2="3670" stroke="#5a6675" stroke-width="2" marker-end="url(#da)"/><path d="M342 434 C 230 434, 230 356, 342 356" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="395" text-anchor="end" class="bl" fill="#e3a008">no refine re-search</text><path d="M342 874 C 230 874, 230 796, 342 796" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="835" text-anchor="end" class="bl" fill="#e3a008">no revise mockup</text><path d="M342 1470 C 230 1470, 230 796, 342 796" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="1133" text-anchor="end" class="bl" fill="#e3a008">yes to TRIM design</text><path d="M342 2066 C 230 2066, 230 2144, 342 2144" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="2105" text-anchor="end" class="bl" fill="#e3a008">no to debugger</text><path d="M342 2144 C 230 2144, 230 1832, 342 1832" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="1988" text-anchor="end" class="bl" fill="#e3a008">fixed re-implement</text><path d="M342 2428 C 230 2428, 230 2144, 342 2144" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="2286" text-anchor="end" class="bl" fill="#e3a008">no debugger loop</text><path d="M342 2584 C 230 2584, 230 2144, 342 2144" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="2364" text-anchor="end" class="bl" fill="#e3a008">reject to kiln-fix</text><path d="M342 2974 C 190 2974, 190 1236, 342 1236" fill="none" stroke="#56d364" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dg)"/><text x="182" y="2105" text-anchor="end" class="bl" fill="#56d364">loop to roadmap</text><path d="M342 3620 C 230 3620, 230 1314, 342 1314" fill="none" stroke="#e3a008" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#dp)"/><text x="222" y="2467" text-anchor="end" class="bl" fill="#e3a008">L1 loop to precedent</text><text x="34" y="96" class="stg">SESSION ENTRY</text><rect x="342" y="122" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="142" class="ch" fill="#79b8ff">CMD</text><text x="418" y="143" class="lab">kiln-next session pickup detect in-progress</text><text x="358" y="164" class="ent"><tspan fill="#79b8ff">R .kiln/config.json roadmap issues</tspan>   <tspan fill="#f0883e">W routes to CLAY | KILN | SELF-IMPROVE</tspan></text><text x="34" y="224" class="stg">CLAY ideate</text><rect x="342" y="250" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="270" class="ch" fill="#79b8ff">CMD</text><text x="418" y="271" class="lab">clay-idea seed idea</text><text x="358" y="292" class="ent"><tspan fill="#f0883e">W products/slug/</tspan></text><rect x="342" y="328" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="348" class="ch" fill="#56d364">AGENT</text><text x="418" y="349" class="lab">clay-idea-research classify similar</text><text x="358" y="370" class="ent"><tspan fill="#79b8ff">R web/registry</tspan>   <tspan fill="#f0883e">W products/slug/research</tspan></text><polygon points="342,434 382,400 778,400 818,434 778,468 382,468" fill="#1c1605" stroke="#6b540c"/><text x="358" y="426" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="427" class="lab">idea matured?</text><rect x="342" y="484" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="504" class="ch" fill="#56d364">AGENT</text><text x="418" y="505" class="lab">clay-project-naming</text><text x="358" y="526" class="ent"><tspan fill="#79b8ff">R npm gh domain</tspan>   <tspan fill="#f0883e">W products/slug/naming</tspan></text><rect x="342" y="562" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="582" class="ch" fill="#56d364">AGENT</text><text x="418" y="583" class="lab">clay-new-product to PRD</text><text x="358" y="604" class="ent"><tspan fill="#f0883e">W products/slug/PRD about.md</tspan></text><rect x="342" y="640" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="660" class="ch" fill="#79b8ff">CMD</text><text x="418" y="661" class="lab">clay-create-repo scaffold seed</text><text x="358" y="682" class="ent"><tspan fill="#f0883e">W .kiln/vision.md user-flows</tspan></text><text x="34" y="742" class="stg">TRIM design (if UI)</text><rect x="342" y="768" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="788" class="ch" fill="#56d364">AGENT</text><text x="418" y="789" class="lab">trim-design to HTML mockups</text><text x="358" y="810" class="ent"><tspan fill="#79b8ff">R .kiln/vision.md user-flows</tspan>   <tspan fill="#f0883e">W design/features/slug/ design/system/</tspan></text><polygon points="342,874 382,840 778,840 818,874 778,908 382,908" fill="#1c1605" stroke="#6b540c"/><text x="358" y="866" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="867" class="lab">approve design?</text><rect x="342" y="924" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="944" class="ch" fill="#79b8ff">CMD</text><text x="418" y="945" class="lab">write prototype (approved)</text><text x="358" y="966" class="ent"><tspan fill="#f0883e">W prototype/slug/ design/manifest.json</tspan></text><rect x="342" y="1002" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="1022" class="ch" fill="#79b8ff">CMD</text><text x="418" y="1023" class="lab">trim-pull sync from Penpot</text><text x="358" y="1044" class="ent"><tspan fill="#79b8ff">R Penpot design source</tspan>   <tspan fill="#f0883e">W design/features/slug/</tspan></text><text x="34" y="1104" class="stg">KILN specify</text><rect x="342" y="1130" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="1150" class="ch" fill="#79b8ff">CMD</text><text x="418" y="1151" class="lab">kiln-distill bundle captures to PRD</text><text x="358" y="1172" class="ent"><tspan fill="#79b8ff">R .kiln/issues/ .kiln/feedback/ .kiln/roadmap/</tspan>   <tspan fill="#f0883e">W docs/features/slug/PRD.md</tspan></text><rect x="342" y="1208" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="1228" class="ch" fill="#79b8ff">CMD</text><text x="418" y="1229" class="lab">vision + prototype to roadmap + ARCH</text><text x="358" y="1250" class="ent"><tspan fill="#79b8ff">R .kiln/vision.md prototype/slug/</tspan>   <tspan fill="#f0883e">W .kiln/roadmap/items/ ARCHITECTURE</tspan></text><rect x="342" y="1286" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="1306" class="ch" fill="#79b8ff">CMD</text><text x="418" y="1307" class="lab">semantic precedent query avoid mistakes</text><text x="358" y="1328" class="ent"><tspan fill="#79b8ff">R .kiln/ledger/index/</tspan>   <tspan fill="#f0883e">W .kiln/runs/id/manifest.json</tspan></text><rect x="342" y="1364" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="1384" class="ch" fill="#56d364">AGENT</text><text x="418" y="1385" class="lab">specify</text><text x="358" y="1406" class="ent"><tspan fill="#79b8ff">R PRD manifest</tspan>   <tspan fill="#f0883e">W specs/f/spec.md</tspan></text><polygon points="342,1470 382,1436 778,1436 818,1470 778,1504 382,1504" fill="#1c1605" stroke="#6b540c"/><text x="358" y="1462" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="1463" class="lab">needs design?</text><rect x="342" y="1520" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="1540" class="ch" fill="#56d364">AGENT</text><text x="418" y="1541" class="lab">plan + contracts</text><text x="358" y="1562" class="ent"><tspan fill="#79b8ff">R .kiln/standards.md</tspan>   <tspan fill="#f0883e">W specs/f/plan.md contracts/interfaces.md</tspan></text><rect x="342" y="1598" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="1618" class="ch" fill="#56d364">AGENT</text><text x="418" y="1619" class="lab">tasks</text><text x="358" y="1640" class="ent"><tspan fill="#f0883e">W specs/f/tasks.md</tspan></text><rect x="342" y="1676" width="476" height="56" rx="0" fill="#1a0d00" stroke="#8b4000"/><rect x="342" y="1676" width="6" height="56" fill="#ff8c00"/><text x="358" y="1696" class="ch" fill="#ff8c00">GATE</text><text x="418" y="1697" class="lab">HOOKS GATE  spec+plan+tasks+1X required before src/</text><text x="34" y="1778" class="stg">KILN implement</text><rect x="342" y="1804" width="476" height="56" rx="9" fill="#0e2222" stroke="#2e6b6b"/><text x="358" y="1824" class="ch" fill="#7fe9da">TEAM</text><text x="418" y="1825" class="lab">implement (parallel team)</text><text x="358" y="1846" class="ent"><tspan fill="#79b8ff">R contracts/interfaces.md standards.md precedent</tspan>   <tspan fill="#f0883e">W src/ tasks[X] specs/f/agent-notes/ VERSION</tspan></text><rect x="342" y="1882" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="1902" class="ch" fill="#79b8ff">CMD</text><text x="418" y="1903" class="lab">run test-strategy</text><text x="358" y="1924" class="ent"><tspan fill="#79b8ff">R .kiln/test-strategy.json</tspan>   <tspan fill="#f0883e">W coverage report</tspan></text><rect x="342" y="1960" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="1980" class="ch" fill="#56d364">AGENT</text><text x="418" y="1981" class="lab">smoke-review drive UI vs prototype</text><text x="358" y="2002" class="ent"><tspan fill="#79b8ff">R prototype/slug/ app</tspan>   <tspan fill="#f0883e">W .kiln/qa/checkpoints.md</tspan></text><polygon points="342,2066 382,2032 778,2032 818,2066 778,2100 382,2100" fill="#1c1605" stroke="#6b540c"/><text x="358" y="2058" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="2059" class="lab">works and matches prototype?</text><rect x="342" y="2116" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="2136" class="ch" fill="#56d364">AGENT</text><text x="418" y="2137" class="lab">kiln-fix / debugger diagnose fix verify</text><text x="358" y="2158" class="ent"><tspan fill="#79b8ff">R specs/ src/ .kiln/qa/</tspan>   <tspan fill="#f0883e">W src/ .kiln/logs/</tspan></text><text x="34" y="2218" class="stg">KILN ship</text><rect x="342" y="2244" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="2264" class="ch" fill="#56d364">AGENT</text><text x="418" y="2265" class="lab">audit compliance coverage drift</text><text x="358" y="2286" class="ent"><tspan fill="#79b8ff">R specs/ coverage .kiln/qa/latest/</tspan>   <tspan fill="#f0883e">W specs/f/blockers.md</tspan></text><rect x="342" y="2322" width="476" height="56" rx="9" fill="#1a1322" stroke="#5a3a7d"/><text x="358" y="2342" class="ch" fill="#c8a6ff">DOC</text><text x="418" y="2343" class="lab">drift-check ARCHITECTURE propose vision.md</text><text x="358" y="2364" class="ent"><tspan fill="#f0883e">W ARCHITECTURE vision.md</tspan></text><polygon points="342,2428 382,2394 778,2394 818,2428 778,2462 382,2462" fill="#1c1605" stroke="#6b540c"/><text x="358" y="2420" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="2421" class="lab">ship with gaps?</text><rect x="342" y="2478" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="2498" class="ch" fill="#79b8ff">CMD</text><text x="418" y="2499" class="lab">create PR</text><text x="358" y="2520" class="ent"><tspan fill="#f0883e">W git branch to PR</tspan></text><polygon points="342,2584 382,2550 778,2550 818,2584 778,2618 382,2618" fill="#1c1605" stroke="#6b540c"/><text x="358" y="2576" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="2577" class="lab">PR review merge?</text><rect x="342" y="2634" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="2654" class="ch" fill="#79b8ff">CMD</text><text x="418" y="2655" class="lab">kiln-merge-pr merge</text><text x="358" y="2676" class="ent"><tspan fill="#f0883e">W main (merged) .kiln/roadmap/ state-flip</tspan></text><rect x="342" y="2712" width="476" height="56" rx="9" fill="#1a1322" stroke="#5a3a7d"/><text x="358" y="2732" class="ch" fill="#c8a6ff">DOC</text><text x="418" y="2733" class="lab">update STATUS PROGRESS</text><text x="358" y="2754" class="ent"><tspan fill="#f0883e">W STATUS.md Obsidian progress</tspan></text><polygon points="342,2818 382,2784 778,2784 818,2818 778,2852 382,2852" fill="#1c1605" stroke="#6b540c"/><text x="358" y="2810" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="2811" class="lab">milestone reached?</text><rect x="342" y="2868" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="2888" class="ch" fill="#79b8ff">CMD</text><text x="418" y="2889" class="lab">milestone-review + shelf-sync</text><text x="358" y="2910" class="ent"><tspan fill="#79b8ff">R .kiln/ docs/features/</tspan>   <tspan fill="#f0883e">W Obsidian vault .kiln/logs/</tspan></text><rect x="342" y="2946" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="2966" class="ch" fill="#79b8ff">CMD</text><text x="418" y="2967" class="lab">next feature</text><text x="358" y="2988" class="ent"><tspan fill="#f0883e">W .kiln/roadmap</tspan></text><text x="34" y="3048" class="stg">SHELF sync counter-gated background</text><rect x="342" y="3074" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="3094" class="ch" fill="#79b8ff">CMD</text><text x="418" y="3095" class="lab">shelf-sync mirror issues PRDs progress</text><text x="358" y="3116" class="ent"><tspan fill="#79b8ff">R .kiln/issues/ .kiln/feedback/ docs/features/</tspan>   <tspan fill="#f0883e">W Obsidian vault</tspan></text><rect x="342" y="3152" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="3172" class="ch" fill="#79b8ff">CMD</text><text x="418" y="3173" class="lab">shelf-propose-manifest-improvement</text><text x="358" y="3194" class="ent"><tspan fill="#79b8ff">R Obsidian vault</tspan>   <tspan fill="#f0883e">W Obsidian @inbox/open/</tspan></text><text x="34" y="3254" class="stg">SELF-IMPROVE end of run</text><rect x="342" y="3280" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="3300" class="ch" fill="#79b8ff">CMD</text><text x="418" y="3301" class="lab">collect friction retro</text><text x="358" y="3322" class="ent"><tspan fill="#79b8ff">R specs/f/agent-notes/ run</tspan>   <tspan fill="#f0883e">W .kiln/ledger/id.json .kiln/logs/</tspan></text><rect x="342" y="3358" width="476" height="56" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="358" y="3378" class="ch" fill="#56d364">AGENT</text><text x="418" y="3379" class="lab">classify proposals by risk level</text><text x="358" y="3400" class="ent"><tspan fill="#f0883e">W .kiln/ledger/proposals/ Obsidian @inbox/</tspan></text><polygon points="342,3464 382,3430 778,3430 818,3464 778,3498 382,3498" fill="#1c1605" stroke="#6b540c"/><text x="358" y="3456" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="3457" class="lab">risk?  low=auto-PR  high=spawn chip human review</text><rect x="342" y="3514" width="476" height="56" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="358" y="3534" class="ch" fill="#79b8ff">CMD</text><text x="418" y="3535" class="lab">kiln-pi-apply (LOW: propose diff)</text><text x="358" y="3556" class="ent"><tspan fill="#f0883e">W .kiln/logs/pi-apply.md</tspan></text><polygon points="342,3620 382,3586 778,3586 818,3620 778,3654 382,3654" fill="#1c1605" stroke="#6b540c"/><text x="358" y="3612" class="ch" fill="#f0c674">BRANCH</text><text x="418" y="3613" class="lab">level? L1 config  L2 skill reload</text><rect x="342" y="3670" width="476" height="56" rx="9" fill="#1a1322" stroke="#5a3a7d"/><text x="358" y="3690" class="ch" fill="#c8a6ff">DOC</text><text x="418" y="3691" class="lab">update ARCHITECTURE (if structural)</text><text x="358" y="3712" class="ent"><tspan fill="#f0883e">W ARCHITECTURE</tspan></text><rect x="872" y="134" width="310" height="132" rx="12" fill="#111620" stroke="#30363d"/><text x="888" y="154" class="rt" fill="#cdd9e5">CAPTURE surfaces (any-time)</text><text x="888" y="174" class="rs">kiln-report-issue W .kiln/issues/</text><text x="888" y="192" class="rs">kiln-feedback W .kiln/feedback/</text><text x="888" y="210" class="rs">kiln-roadmap W .kiln/roadmap/</text><text x="888" y="228" class="rs">kiln-mistake W .kiln/mistakes/</text><text x="888" y="248" class="rs">feeds kiln-distill + self-improve</text><path d="M818 150 C 838 150, 862 184, 872 184" fill="none" stroke="#5a6675" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#da)"/><rect x="872" y="1220" width="310" height="78" rx="12" fill="#101a10" stroke="#2e6b3c"/><text x="888" y="1242" class="rt" fill="#56d364">VISION .kiln/vision.md</text><text x="888" y="1262" class="rs">created at clay; apex context doc</text><text x="888" y="1280" class="rs">+ ARCHITECTURE STATUS ROADMAP</text><rect x="872" y="1298" width="310" height="78" rx="12" fill="#0f1c12" stroke="#2e6b3c"/><text x="888" y="1320" class="rt" fill="#56d364">LEDGER .kiln/ledger/ /index/</text><text x="888" y="1340" class="rs">semantic precedent embeddings</text><text x="888" y="1358" class="rs">from mistakes fixes retros</text><path d="M872 1334 C 832 1314, 838 1314, 818 1314" fill="none" stroke="#56d364" stroke-width="1.6" marker-end="url(#dg)"/><rect x="872" y="1532" width="310" height="126" rx="12" fill="#0e2222" stroke="#2e6b6b"/><text x="888" y="1552" class="rt" fill="#7fe9da">PROJECT CONFIG (injected)</text><text x="888" y="1570" class="rs">.kiln/standards.md</text><text x="888" y="1586" class="rs">  naming · functions · comments · errors</text><text x="888" y="1602" class="rs">  → injected: plan + implement prompts</text><text x="888" y="1620" class="rs">.kiln/config.json</text><text x="888" y="1636" class="rs">  review_mode · auto_* · pi_threshold</text><text x="888" y="1652" class="rs">  → read: kiln-next · branch gates</text><path d="M872 1548 C 852 1548, 838 1548, 818 1548" fill="none" stroke="#7fe9da" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#dg)"/><rect x="872" y="3086" width="310" height="110" rx="12" fill="#110d1a" stroke="#5a3a7d"/><text x="888" y="3106" class="rt" fill="#c8a6ff">OBSIDIAN VAULT (shelf mirror)</text><text x="888" y="3126" class="rs">mirrors: issues PRDs progress retros</text><text x="888" y="3144" class="rs">@inbox/open/ human apply proposals</text><text x="888" y="3162" class="rs">triggered: counter-rollover or manual</text><text x="888" y="3180" class="rs">.shelf-config counter gates cadence</text><path d="M872 3102 C 852 3102, 838 3102, 818 3102" fill="none" stroke="#c8a6ff" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#dpp)"/><rect x="872" y="3448" width="310" height="82" rx="12" fill="#1a1105" stroke="#6b540c"/><text x="888" y="3468" class="rt" fill="#f0c674">HIGH RISK path spawn human chip</text><text x="888" y="3488" class="rs">task chip surfaced for human review</text><text x="888" y="3506" class="rs">kiln-pi-apply NOT called</text><text x="888" y="3524" class="rs">propose-not-apply discipline enforced</text><path d="M818 3464 C 848 3464, 852 3489, 872 3489" fill="none" stroke="#f0c674" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#dp)"/><rect x="872" y="2802" width="310" height="104" rx="12" fill="#11161f" stroke="#30363d"/><text x="886" y="2822" class="rt" fill="#cdd9e5">FEEDBACK ISSUES channel</text><text x="886" y="2842" class="rs">kiln-report-issue W .kiln/issues/</text><text x="886" y="2860" class="rs">dedup semantic fast-fix at distill</text><text x="886" y="2878" class="rs">kiln-feedback W .kiln/feedback/</text><text x="886" y="2896" class="rs">kiln-mistake W .kiln/mistakes/</text><path d="M818 2818 C 848 2810, 852 2818, 872 2828" fill="none" stroke="#a371f7" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#dpp)"/><rect x="872" y="3746" width="310" height="186" rx="12" fill="#161b22" stroke="#30363d"/><text x="886" y="3768" class="rt" fill="#cdd9e5">LEGEND</text><text x="886" y="3788" class="rs"><tspan fill="#f0883e">W = writes</tspan>   <tspan fill="#79b8ff">R = reads</tspan></text><text x="886" y="3808" class="rs"><tspan fill="#79b8ff">CMD</tspan> <tspan fill="#56d364">AGENT</tspan> <tspan fill="#7fe9da">TEAM</tspan></text><text x="886" y="3828" class="rs"><tspan fill="#f0c674">BRANCH</tspan> <tspan fill="#c8a6ff">DOC</tspan> <tspan fill="#ff8c00">GATE</tspan></text><text x="886" y="3848" class="rs">dashed left = loop-back arc</text><text x="886" y="3868" class="rs">dashed right = rail connection</text><text x="886" y="3888" class="rs">GATE = hooks enforcement barrier</text><text x="886" y="3908" class="rs">real: products/ specs/ .kiln/ src/</text><text x="886" y="3926" class="rs">proposed: design/ prototype/ ledger/</text></svg>
+    <figcaption>The whole system as one workflow. Steps run top → bottom; each box shows its <span style="color:#79b8ff">R read</span> / <span style="color:#f0883e">W write</span> entity, with <span style="color:#e3a008">†</span> marking proposed-vs-real. Step types: <span style="color:#79b8ff">CMD</span> · <span style="color:#56d364">AGENT</span> · <span style="color:#5eead4">TEAM</span> · <span style="color:#f0c674">BRANCH</span> (hexagon) · <span style="color:#c8a6ff">DOC</span>. Dashed left arrows are branch alternates / loop-backs, each labelled with its destination (e.g. <em>works &amp; matches prototype? no → debugger ↺ implement</em>). Right rails: the vision + ledger (semantic precedent) hub, the feedback/issues channel, and the legend.</figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 1180 360" role="img" aria-label="Which skills become wheel workflows">
+      <style>.lh{font-size:13px;font-weight:700} .wn{font-size:12px;font-weight:600;fill:#e6edf3} .wns{font-size:10px;fill:#9aa7b4}</style>
+      <rect x="24" y="40" width="266" height="300" rx="12" fill="#161122" stroke="#5a3a7d"/><text x="40" y="66" class="lh" fill="#c8a6ff">CLAY</text>
+      <a href="#wf-clay-research"><rect x="42" y="80" width="230" height="60" rx="9" fill="#221830" stroke="#7d5bb0" style="cursor:pointer"/><text x="56" y="104" class="wn">clay-idea-research</text><text x="56" y="122" class="wns">search → classify → loop</text></a>
+      <a href="#wf-clay-research"><rect x="42" y="152" width="230" height="56" rx="9" fill="#221830" stroke="#4a2f6b" style="cursor:pointer"/><text x="56" y="175" class="wn">clay pipeline</text><text x="56" y="192" class="wns">idea→research→name→PRD→repo</text></a>
+      <rect x="306" y="40" width="266" height="300" rx="12" fill="#0e2222" stroke="#2e6b6b"/><text x="322" y="66" class="lh" fill="#5eead4">TRIM</text>
+      <a href="#wf-trim-design"><rect x="324" y="80" width="230" height="60" rx="9" fill="#10302f" stroke="#3f9d92" style="cursor:pointer"/><text x="338" y="104" class="wn">trim-design</text><text x="338" y="122" class="wns">mockups → ✋ approve loop</text></a>
+      <rect x="588" y="40" width="290" height="300" rx="12" fill="#0f1c12" stroke="#2e6b3c"/><text x="604" y="66" class="lh" fill="#56d364">KILN</text>
+      <a href="#wf-buildprd"><rect x="606" y="80" width="254" height="64" rx="9" fill="#142a18" stroke="#54b35f" style="cursor:pointer"/><text x="620" y="104" class="wn">kiln-build-prd  ★</text><text x="620" y="122" class="wns">specify→…→audit→PR (team)</text></a>
+      <a href="#wf-distill"><rect x="606" y="156" width="254" height="52" rx="9" fill="#13203a" stroke="#2b4a7d" style="cursor:pointer"/><text x="620" y="178" class="wn">kiln-distill</text><text x="620" y="195" class="wns">gather → filter → PRD</text></a>
+      <a href="#wf-smoke-review"><rect x="606" y="220" width="254" height="58" rx="9" fill="#142a18" stroke="#54b35f" style="cursor:pointer"/><text x="620" y="243" class="wn">smoke-review  (AI QA)</text><text x="620" y="261" class="wns">run app → drive UI → vs prototype</text></a>
+      <rect x="894" y="40" width="262" height="300" rx="12" fill="#1a1206" stroke="#5c4708"/><text x="910" y="66" class="lh" fill="#e3a008">META</text>
+      <a href="#wf-self-improve"><rect x="912" y="80" width="226" height="60" rx="9" fill="#1c1605" stroke="#a37a13" style="cursor:pointer"/><text x="926" y="104" class="wn">self-improve</text><text x="926" y="122" class="wns">reflect → classify → apply</text></a>
+      <a href="#wf-buildprd"><rect x="912" y="152" width="226" height="56" rx="9" fill="#1c1605" stroke="#6b540c" style="cursor:pointer"/><text x="926" y="175" class="wn">semantic pre-flight</text><text x="926" y="192" class="wns">query ledger → guardrails</text></a>
+      <text x="926" y="300" class="wns">single-shot skills (status,</text><text x="926" y="316" class="wns">list, report-issue) stay prompts.</text>
+    </svg>
+    <figcaption>Which skills earn a wheel workflow (click any node → its step breakdown). <span style="color:#79b8ff">command</span> · <span style="color:#56d364">agent</span> · <span style="color:#e3a008">branch</span> · <span style="color:#f0883e">approval</span> · <span style="color:#c8a6ff">loop</span> · <span style="color:#5eead4">team</span>.</figcaption>
+  </figure>
+
+
+  <div class="wf" id="wf-buildprd">
+    <h4><span class="pill p-repo">→ flow + team</span> kiln-build-prd — the marquee (team-mode) <a href="../../../plugin-kiln/workflows/kiln-build-prd.json">→ plugin-kiln/workflows/kiln-build-prd.json</a></h4>
+    <p class="wd">Spawns implementers in parallel; per-step models; resumable via the run-manifest. Each step's prompt does one job:</p>
+    <div class="strip">
+      <div class="step"><span class="t t-cmd">command</span><div class="p">preflight — read PRD, derive slug + branch</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">semantic pre-flight — query ledger → "avoid these" guardrails</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">specify → spec.md (FRs, acceptance)</div></div>
+      <div class="step"><span class="t t-branch">branch</span><div class="p">ui_change? → design + ✋ review</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">plan + contracts/interfaces.md, then tasks</div></div>
+      <div class="step"><span class="t t-team">team</span><div class="p">implementers (parallel, to spec + design)</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">run .kiln/test-strategy</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">smoke-review vs prototype + audit</div></div>
+      <div class="step"><span class="t t-approval">approval</span><div class="p">✋ ship-with-gaps? → PR + retro → ledger</div></div>
+    </div>
+  </div>
+
+  <div class="wf" id="wf-clay-research">
+    <h4><span class="pill p-pre">↻ loop</span> clay-idea-research — research loop <a href="../../../plugin-clay/workflows/clay-idea-research.json">→ plugin-clay/workflows/clay-idea-research.json</a></h4>
+    <p class="wd">Loops until the idea is "good enough", then graduates the clay pipeline (name → PRD → repo).</p>
+    <div class="strip">
+      <div class="step"><span class="t t-cmd">command</span><div class="p">search similar projects (web/registry)</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">classify: exact / competitor / adjacent</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">summarize → positioning + gaps</div></div>
+      <div class="step"><span class="t t-loop">loop</span><div class="p">matured? no → refine &amp; re-search · yes → graduate</div></div>
+    </div>
+  </div>
+
+  <div class="wf" id="wf-trim-design">
+    <h4><span class="pill p-pre">↻ loop</span> trim-design — design + approval loop <a href="../../../plugin-trim/workflows/trim-design.json">→ plugin-trim/workflows/trim-design.json</a></h4>
+    <p class="wd">Turns user-flows into approvable HTML; iterates until you say "I like this", then writes the prototype.</p>
+    <div class="strip">
+      <div class="step"><span class="t t-agent">agent</span><div class="p">generate HTML mockups from user-flows</div></div>
+      <div class="step"><span class="t t-approval">approval</span><div class="p">✋ approve / request changes</div></div>
+      <div class="step"><span class="t t-loop">loop</span><div class="p">not approved → revise &amp; re-show</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">write approved → prototype/</div></div>
+    </div>
+  </div>
+
+  <div class="wf" id="wf-smoke-review">
+    <h4><span class="pill p-repo">→ flow</span> smoke-review — AI human-style QA <a href="../../../plugin-kiln/workflows/smoke-review.json">→ plugin-kiln/workflows/smoke-review.json</a></h4>
+    <p class="wd">The smoke test as a human-style review: actually run the app, drive the UI, confirm it works AND matches the prototype.</p>
+    <div class="strip">
+      <div class="step"><span class="t t-cmd">command</span><div class="p">start app per test-strategy.smoke.start</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">wait for smoke.ready</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">drive UI: navigate + interact + screenshot</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">vision-compare vs prototype → fidelity</div></div>
+      <div class="step"><span class="t t-branch">branch</span><div class="p">pass? → done · fail → spawn debugger</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">teardown</div></div>
+    </div>
+  </div>
+
+  <div class="wf" id="wf-distill">
+    <h4><span class="pill p-repo">→ flow</span> kiln-distill — captures → PRD <a href="../../../plugin-kiln/workflows/kiln-distill.json">→ plugin-kiln/workflows/kiln-distill.json</a></h4>
+    <p class="wd">Bundles open captures into a PRD; report-issues are fast-tracked here.</p>
+    <div class="strip">
+      <div class="step"><span class="t t-cmd">command</span><div class="p">gather open captures + roadmap items</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">filter vs vision (non-goals/constraints)</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">synthesize → docs/features/&lt;slug&gt;/PRD.md</div></div>
+      <div class="step"><span class="t t-approval">approval</span><div class="p">✋ review PRD → go/no-go</div></div>
+    </div>
+  </div>
+
+  <div class="wf" id="wf-self-improve">
+    <h4><span class="pill p-pre">↻ loop</span> self-improve — two-level <a href="../../../plugin-kiln/workflows/self-improve.json">→ plugin-kiln/workflows/self-improve.json</a></h4>
+    <p class="wd">Runs at end of a wheel-run. Level 1 edits per-repo config in-loop; Level 2 routes a skill fix to its own edit + reload.</p>
+    <div class="strip">
+      <div class="step"><span class="t t-cmd">command</span><div class="p">collect run friction + retro → ledger</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">classify proposals: risk + level</div></div>
+      <div class="step"><span class="t t-branch">branch</span><div class="p">L1 config → auto-edit · L2 skill → separate loop</div></div>
+      <div class="step"><span class="t t-agent">agent</span><div class="p">L2: edit kiln/clay skill prompt</div></div>
+      <div class="step"><span class="t t-cmd">command</span><div class="p">reload skill (auto-run suggested)</div></div>
+    </div>
+  </div>
+
+  <h2>6 · Custom testing strategy — per project, not one-size</h2>
+  <p>The audit found <code>smoke-tester</code> + <code>qa-engineer</code> <strong>hardcode</strong> ports (<code>localhost:5173</code>, <code>8081</code>) and <code>npm</code>/<code>vite</code> assumptions — so they break on any project that isn't a default Vite web app. A CLI, an API, a library, and a mobile app each <em>verify</em> differently. So testing must be <strong>declarative and per-project</strong>, read by the audit rather than baked into an agent.</p>
+  <p>Each project carries a <strong><code>.kiln/test-strategy.json</code></strong> (scaffolded by <code>kiln-init</code>/<code>clay-create-repo</code> from the detected project type, then customized):</p>
+  <pre style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;color:#c9d6e3">{
+  "project_type": "web-app",
+  "install": "npm ci",
+  "build": "npm run build",
+  "test": "vitest run",
+  "coverage_gate": 80,
+  "smoke":   { "start": "npm run dev", "ready": "http://localhost:3000", "probe": "playwright render /", "teardown": "kill" },
+  "design_verify": true
+}</pre>
+  <p>The <code>audit</code> + <code>smoke-tester</code> <strong>read this</strong> — "start per <code>smoke.start</code>, wait for <code>smoke.ready</code>, probe per <code>smoke.probe</code>, gate at <code>coverage_gate</code>" — with <em>zero</em> hardcoded assumptions. This also makes the loop framework-agnostic (the vision's language-agnostic direction) and fixes the audit finding by construction. Project-type defaults:</p>
+  <table>
+    <tr><th>Project type</th><th>test</th><th>smoke: start → probe</th><th>design_verify</th></tr>
+    <tr><td>CLI</td><td>unit</td><td>run the binary → assert stdout + exit code</td><td>no</td></tr>
+    <tr><td>Server / API</td><td>unit + integration</td><td>start server → curl declared endpoints</td><td>no</td></tr>
+    <tr><td>Web app</td><td>unit + e2e</td><td>dev server → Playwright render + vision-verify</td><td><strong>yes</strong></td></tr>
+    <tr><td>Library</td><td>unit</td><td>install into a fresh project → call public API</td><td>no</td></tr>
+    <tr><td>Mobile</td><td>unit</td><td>build → simulator smoke</td><td>yes</td></tr>
+  </table>
+  <div class="callout good"><strong>This is where design-review and testing meet.</strong> <code>design_verify: true</code> is what wires <code>vision-verify</code> (render <code>design/</code> mockup vs the running app) into the audit for UI projects — so a web project can't pass audit on UI drift, while a CLI never pays that cost. One declarative file decides the whole verification shape per project.</div>
+
+  <h2>7 · Project config — coding standards &amp; review preferences</h2>
+  <p>Two sibling config files sit alongside <code>.kiln/test-strategy.json</code> and are scaffolded by <code>kiln-init</code> / <code>clay-create-repo</code>. Together they answer the two questions every build pipeline needs before it can run autonomously: <em>what quality bar does the code need to meet?</em> and <em>when does a human want to review?</em></p>
+
+  <h3>7a · <code>.kiln/standards.md</code> — coding conventions injected at plan + implement</h3>
+  <p>Markdown, not JSON — it feeds directly into LLM prompt prefixes so natural language is more effective than structured data. The <strong>framework is explicit-rules (Option 2)</strong>: rather than referencing a style guide by name and hoping each agent interprets it consistently, the file enumerates concrete directives. <strong>Clean Code (Robert C. Martin) is the default template</strong>; projects override individual sections without replacing the whole file.</p>
+  <p>Injected at two points by <code>compose-context.sh</code>: the <strong>planner</strong> (so contracts and interfaces follow naming rules before any code is written) and the <strong>implementer</strong> (so function-level rules are enforced at write time). Injecting only at implement is too late — bad names in <code>contracts/interfaces.md</code> propagate everywhere.</p>
+
+  <pre style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;overflow-x:auto;font-family:var(--mono);font-size:12px;color:#c9d6e3;line-height:1.6">## Coding Standards
+
+### Naming
+- names are pronounceable and searchable — no abbreviations, no encodings
+- one word per concept (fetch not retrieve/get/pull mixed across the codebase)
+- functions named as verbs, booleans as predicates (isActive, hasPermission)
+- classes and modules named as nouns describing what they ARE, not what they DO
+
+### Functions
+- do one thing at one level of abstraction
+- &lt;= 20 lines, &lt;= 2 parameters — extract an object or split if more are needed
+- no flag arguments — split into two named functions instead
+- no side effects — a function that says it reads should only read
+
+### Comments
+- do not comment WHAT the code does — rename or restructure instead
+- only write a comment to explain WHY: a hidden constraint, a non-obvious invariant,
+  a workaround for a specific bug. If removing it wouldn't confuse a future reader,
+  don't write it.
+
+### Error handling
+- throw exceptions, never return null or error codes from internal functions
+- never pass null — guard at system boundaries, trust contracts internally
+- fail loudly at boundaries (user input, external APIs), fail silently nowhere
+
+### Structure
+- single responsibility — one reason to change per module
+- small and cohesive — if you're listing unrelated methods, split it
+- tell don't ask — don't reach into an object's state to make decisions for it
+- no circular dependencies across layers
+
+### Tests
+- one concept per test, assertion names describe the failure
+- every test references its spec FR in a comment
+- no stubs on integration paths — tests that mock the database teach you nothing</pre>
+
+  <p style="margin-top:12px">The <code>standards</code> key in <code>.kiln/config.json</code> points to this file so it is swappable — a project with an existing <code>CONTRIBUTING.md</code> can point there instead. Future upgrade: a <code>style</code> key picks a named preset (<code>"clean-code"</code>, <code>"google"</code>, <code>"airbnb"</code>) that gets merged with any local overrides, same pattern as ESLint extends.</p>
+
+  <h3>7b · <code>.kiln/config.json</code> — autonomy switches &amp; review preferences</h3>
+  <p>Controls how often the pipeline pauses for human review and which stages it can auto-advance through. The <strong><code>review_mode</code> preset</strong> sets sensible defaults; individual checkpoints can be overridden. <code>pi_apply_threshold</code> maps to the <code>d_risk</code> branch in the build workflow — which risk level of self-improvement proposals the loop applies automatically vs surfaces as a human chip.</p>
+
+  <pre style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;color:#c9d6e3">{
+  "review_mode": "standard",
+  "review_checkpoints": ["post-spec", "pre-pr"],
+  "auto_build": false,
+  "auto_pr":    false,
+  "auto_merge": false,
+  "pi_apply_threshold": "none",
+  "standards": ".kiln/standards.md"
+}</pre>
+
+  <table style="margin-top:14px">
+    <tr><th style="width:18%">review_mode</th><th>Checkpoints included</th><th style="width:30%">When to use</th></tr>
+    <tr><td><code>thorough</code></td><td>post-spec · post-plan · post-implement · pre-pr · pre-merge</td><td>New projects, unfamiliar domain, high-stakes changes</td></tr>
+    <tr><td><code>standard</code></td><td>post-spec · pre-pr</td><td>Default — review intent before building, review output before shipping</td></tr>
+    <tr><td><code>express</code></td><td>pre-merge only</td><td>Trusted pipeline, solo iteration, fast feedback loops</td></tr>
+    <tr><td><code>autonomous</code></td><td>none</td><td>Fully automated runs — CI, overnight builds, scripted pipelines</td></tr>
+  </table>
+
+  <table style="margin-top:12px">
+    <tr><th style="width:26%">Switch</th><th style="width:12%">Default</th><th>Effect when enabled</th></tr>
+    <tr><td><code>auto_build</code></td><td>false</td><td>Run specify → implement → audit without pausing at stage boundaries</td></tr>
+    <tr><td><code>auto_pr</code></td><td>false</td><td>Create PR automatically when audit passes, no confirmation prompt</td></tr>
+    <tr><td><code>auto_merge</code></td><td>false</td><td>Merge when review passes — explicit opt-in required (propose-not-apply)</td></tr>
+    <tr><td><code>pi_apply_threshold</code></td><td>"none"</td><td><code>"none"</code> | <code>"low"</code> | <code>"all"</code> — risk level auto-applied at <code>d_risk</code> branch</td></tr>
+  </table>
+
+  <div class="callout good"><strong>Context-informed autonomy — the long game.</strong> The static config is the right first step. The vision is for the system to use accumulated precedent (mistake recurrence rate, PI success rate, retro scores) to calibrate thresholds dynamically — a project with a clean mistake history and high retro scores earns a higher <code>pi_apply_threshold</code> automatically. The static config ships first; precedent-aware calibration comes once the ledger is live.</div>
+
+  <h2>8 · The data model — one owner per kind of knowledge</h2>
+  <p>The trap in "multiple sources of truth" is drift: if two places own the same fact, neither does. The resolution is <strong>one owner per <em>kind</em> of knowledge</strong> — everything else is a <em>mirror</em> or a <em>staging area</em>, never a competing original. The <span class="pill p-repo">repo</span> owns everything loop-critical and forkable; <span class="pill p-obs">Obsidian</span> owns the human-facing layer; the <span class="pill p-q">task queue</span> makes proposals actionable; the repo's <span class="pill" style="background:rgba(45,212,191,.16);color:#5eead4;border:1px solid rgba(45,212,191,.4)">design/</span> owns the UI design (Claude-generated HTML), kept in sync by a vision-verify gate.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 470" role="img" aria-label="Sources of truth: one owner per kind">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+          <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#7d8a99"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+          <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#3fb950"/></marker>
+      </defs>
+      <!-- REPO lane -->
+      <rect x="20" y="40" width="300" height="410" rx="14" fill="#101722" stroke="#234" />
+      <text x="170" y="68" text-anchor="middle" fill="#79b8ff" font-size="14" font-weight="700">REPO — canonical &amp; forkable</text>
+      <g font-size="12.5" fill="#cdd9e5">
+        <rect x="40" y="84"  width="260" height="52" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="54" y="106">Intent <tspan fill="#7d8a99">— roadmap · PRDs · specs</tspan></text><text x="54" y="124" fill="#7d8a99" font-size="11">.kiln/roadmap · docs/features · specs/</text>
+        <rect x="40" y="146" width="260" height="52" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="54" y="168">Run state <tspan fill="#7d8a99">— manifest · task graph</tspan></text><text x="54" y="186" fill="#7d8a99" font-size="11">.kiln/runs/&lt;id&gt;/  (NEW)</text>
+        <rect x="40" y="208" width="260" height="56" rx="9" fill="#12251a" stroke="#2e6b3c"/><text x="54" y="230" fill="#56d364" font-weight="700">Precedent ledger</text><text x="54" y="248" fill="#9aa7b4" font-size="11">.kiln/ledger/  (NEW · consolidates</text><text x="54" y="261" fill="#9aa7b4" font-size="11">mistakes+fixes+retros)</text>
+        <rect x="40" y="274" width="260" height="52" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="54" y="296">System config</text><text x="54" y="314" fill="#7d8a99" font-size="11">templates · agents · skills</text>
+        <rect x="40" y="336" width="260" height="48" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="54" y="364">Observability journal</text>
+        <rect x="40" y="394" width="260" height="44" rx="9" fill="#1a1322" stroke="#5a3a7d"/><text x="54" y="421" fill="#c8a6ff">(input) capture surfaces → ledger</text>
+      </g>
+      <!-- TASK QUEUE -->
+      <rect x="350" y="180" width="230" height="150" rx="14" fill="#1c1605" stroke="#5c4708"/>
+      <text x="465" y="206" text-anchor="middle" fill="#e3a008" font-size="13" font-weight="700">TASK QUEUE — actionable</text>
+      <rect x="368" y="220" width="194" height="42" rx="8" fill="#241c08" stroke="#6b540c"/><text x="380" y="246" fill="#f0c674" font-size="12">low-risk → auto-launch → PR</text>
+      <rect x="368" y="270" width="194" height="42" rx="8" fill="#241c08" stroke="#6b540c"/><text x="380" y="296" fill="#f0c674" font-size="12">high-risk → one-click chip</text>
+      <!-- DESIGN/ — design source of truth (repo, Claude-generated HTML) -->
+      <rect x="350" y="348" width="230" height="92" rx="14" fill="#0e2222" stroke="#2e6b6b"/>
+      <text x="465" y="372" text-anchor="middle" fill="#5eead4" font-size="13" font-weight="700">design/ — canonical (repo)</text>
+      <rect x="368" y="384" width="194" height="44" rx="8" fill="#10302f" stroke="#2e6b6b"/>
+      <text x="380" y="404" fill="#7fe9da" font-size="12">Design — Claude-HTML SoT</text>
+      <text x="380" y="421" fill="#9aa7b4" font-size="10.5">code implements it · vision-verify</text>
+      <path d="M350 400 C 334 400, 330 320, 320 308" fill="none" stroke="#2dd4bf" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ar)" opacity=".85"/>
+      <text x="300" y="345" text-anchor="end" fill="#5eead4" font-size="10.5">render ⇄ verify</text>
+      <!-- OBSIDIAN -->
+      <rect x="620" y="40" width="300" height="410" rx="14" fill="#1a1322" stroke="#5a3a7d"/>
+      <text x="770" y="68" text-anchor="middle" fill="#c8a6ff" font-size="14" font-weight="700">OBSIDIAN — human mirror</text>
+      <g font-size="12.5" fill="#cdd9e5">
+        <rect x="640" y="92"  width="260" height="56" rx="9" fill="#221830" stroke="#4a2f6b"/><text x="654" y="116">Dashboards (mirror)</text><text x="654" y="134" fill="#9aa7b4" font-size="11">issues · PRDs · progress</text>
+        <rect x="640" y="160" width="260" height="56" rx="9" fill="#221830" stroke="#4a2f6b"/><text x="654" y="184">Ledger mirror</text><text x="654" y="202" fill="#9aa7b4" font-size="11">browse · cross-project rollup</text>
+        <rect x="640" y="228" width="260" height="56" rx="9" fill="#221830" stroke="#4a2f6b"/><text x="654" y="252">Second brain</text><text x="654" y="270" fill="#9aa7b4" font-size="11">strategy · cross-project notes</text>
+        <rect x="640" y="296" width="260" height="56" rx="9" fill="#1c1206" stroke="#5c4708"/><text x="654" y="320" fill="#e3a008">@inbox → demoted</text><text x="654" y="338" fill="#9aa7b4" font-size="11">staging moves to repo task queue</text>
+      </g>
+      <!-- flows -->
+      <path d="M300 234 C 330 234, 332 244, 366 244" fill="none" stroke="#3fb950" stroke-width="2" marker-end="url(#arg)"/>
+      <path d="M300 300 C 470 360, 470 360, 580 250" fill="none" stroke="#7d8a99" stroke-width="1.6" marker-end="url(#ar)" opacity=".7"/>
+      <path d="M320 120 C 470 120, 500 120, 638 120" fill="none" stroke="#7d8a99" stroke-width="1.6" marker-end="url(#ar)" opacity=".8"/>
+      <text x="470" y="112" text-anchor="middle" fill="#7d8a99" font-size="11">mirror →</text>
+      <path d="M300 236 C 250 236, 250 30, 170 30" fill="none" stroke="#3fb950" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="210" y="22" fill="#56d364" font-size="11">precedent-reader feeds builds ↑</text>
+    </svg>
+    <figcaption>Fig 1 — Each kind of knowledge has exactly one canonical owner. The repo holds the forkable core (green = the precedent ledger, the loop's fuel); the repo's <span style="color:#5eead4">design/</span> owns UI design as Claude-generated HTML (vision-verify keeps code in sync); Obsidian becomes a mirror + second brain; proposal staging moves out of <code>@inbox</code> into an actionable repo task queue.</figcaption>
+  </figure>
+
+  <h3>Canonical living documents — the source-of-truth set</h3>
+  <p>Above the granular surfaces (ledger, per-run manifests, per-feature specs) sits a <strong>small set of human-facing docs</strong> — the narrative a person or a fork reads to understand the project at a glance. Same rule: <strong>one owner, one update mechanism, a drift-check</strong>. The split that matters is <em>loop-owned</em> (generated, so drift shows in git) vs <em>human-owned</em> (drift becomes an audit finding, like a failing test).</p>
+  <table>
+    <tr><th style="width:20%">Doc</th><th style="width:22%">Answers</th><th style="width:30%">Owner · updated by</th><th>Drift control</th></tr>
+    <tr><td><code>vision.md</code></td><td>what + why (intent)</td><td><span class="pill p-repo">human</span> · <code>kiln-roadmap --vision</code></td><td>the apex — every lower rung is checked against it</td></tr>
+    <tr><td><strong>ARCHITECTURE</strong> <span style="color:var(--faint)">(this doc)</span></td><td>how it's built (design)</td><td><span class="pill p-repo">human-designed</span> · loop updates on self-change</td><td>audit drift-checks it vs actual skills/agents/hooks</td></tr>
+    <tr><td><strong>STATUS / PROGRESS</strong></td><td>where we are now</td><td><span class="pill p-pre">loop</span> · every build/session</td><td>generated · idempotent · <code>kiln-next</code> reads it, shelf mirrors it</td></tr>
+    <tr><td>ROADMAP <span style="color:var(--faint)">(.kiln/roadmap)</span></td><td>what's next</td><td><span class="pill p-q">hybrid</span> · <code>kiln-roadmap</code> + <code>distill</code></td><td>typed items + phases; vision-filtered</td></tr>
+    <tr><td>DECISIONS <span style="color:var(--faint)">(ADR)</span></td><td>why we chose X</td><td><span class="pill p-q">hybrid</span> · appended per decision/retro</td><td>append-only log — never rewritten</td></tr>
+    <tr><td>CHANGELOG</td><td>what changed</td><td><span class="pill p-pre">loop</span> · <code>shelf-release</code> from git</td><td>generated per release</td></tr>
+  </table>
+  <p style="margin-top:14px"><strong>When each updates</strong> — cadence is inverse to authority:</p>
+  <table>
+    <tr><th style="width:22%">Doc</th><th>Updated when</th><th style="width:20%">Cadence</th></tr>
+    <tr><td><code>STATUS/PROGRESS</code></td><td>end of every build + session boundary (loop-generated; <code>kiln-next</code> reads it)</td><td><span class="pill p-pre">every run</span></td></tr>
+    <tr><td><strong>ARCHITECTURE</strong></td><td>a <em>structural</em> change lands — new skill/agent/hook/workflow or refactor (a self-modification). AI proposes → human approves</td><td><span class="pill p-q">on system change</span></td></tr>
+    <tr><td><code>vision.md</code></td><td>a strategic shift — pivot · phase transition · new non-goal — via <code>kiln-roadmap --vision</code>. System only <em>proposes</em> on drift</td><td><span class="pill p-repo">rare · human</span></td></tr>
+  </table>
+  <div class="callout warn">
+    <strong>A canonical doc the loop doesn't keep current is worse than none</strong> — it lies with authority. Two enforcement rules: <strong>(1)</strong> loop-owned docs (STATUS, CHANGELOG) are <em>generated</em>, so any drift is a visible git diff; <strong>(2)</strong> human-owned docs (vision, this architecture) get a <em>drift-check in audit</em> — if the code diverges from the doc, that's a finding, not a shrug. All of these are repo-resident (forkable) and mirror to Obsidian for browsing.
+  </div>
+  <p><strong>Open call:</strong> which docs are loop-<em>generated</em> vs human-<em>authored-with-drift-check</em>? My split above puts STATUS + CHANGELOG fully in the loop's hands and keeps vision + architecture human-authored (the loop may propose edits, but a human approves) — consistent with propose-don't-apply for the things that define the system.</p>
+
+  <h2>9 · The autonomous build loop</h2>
+  <p>Wheel stays what it is — sequenced routines, not the orchestrator. Autonomy is a <strong>thin trigger</strong>: a <code>.kiln/</code> flag flips the existing pipeline from "human drives each step" to "auto-advance," backed by a resumable run-manifest, an escalation sink, and a precedent-reader on the input.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 360" role="img" aria-label="Autonomous build loop">
+      <defs>
+        <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#79b8ff"/></marker>
+        <marker id="a2r" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto"><path d="M0,0 L7,3.2 L0,6.4 Z" fill="#f0883e"/></marker>
+      </defs>
+      <!-- trigger -->
+      <rect x="20" y="150" width="120" height="60" rx="10" fill="#1c1605" stroke="#5c4708"/>
+      <text x="80" y="176" text-anchor="middle" fill="#e3a008" font-size="12" font-weight="700">.kiln flag</text>
+      <text x="80" y="194" text-anchor="middle" fill="#9aa7b4" font-size="10.5">auto-run mode</text>
+      <!-- precedent in -->
+      <rect x="20" y="40" width="160" height="50" rx="10" fill="#12251a" stroke="#2e6b3c"/>
+      <text x="100" y="61" text-anchor="middle" fill="#56d364" font-size="12" font-weight="700">precedent-reader</text>
+      <text x="100" y="78" text-anchor="middle" fill="#9aa7b4" font-size="10.5">.kiln/ledger → context</text>
+      <!-- pipeline phases -->
+      <g font-size="11.5" fill="#cdd9e5">
+        <rect x="190" y="150" width="92" height="60" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="236" y="178" text-anchor="middle">specify</text>
+        <rect x="298" y="150" width="92" height="60" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="344" y="172" text-anchor="middle">plan +</text><text x="344" y="188" text-anchor="middle">design</text>
+        <rect x="406" y="150" width="92" height="60" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="452" y="178" text-anchor="middle">tasks</text>
+        <rect x="514" y="150" width="118" height="60" rx="9" fill="#142a18" stroke="#2e6b3c"/><text x="573" y="172" text-anchor="middle">implement</text><text x="573" y="190" text-anchor="middle" fill="#56d364" font-size="10.5">⇄ critic</text>
+        <rect x="648" y="150" width="92" height="60" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="694" y="178" text-anchor="middle">audit</text>
+        <rect x="756" y="150" width="92" height="60" rx="9" fill="#13203a" stroke="#2b4a7d"/><text x="802" y="178" text-anchor="middle">PR</text>
+      </g>
+      <!-- arrows along pipeline -->
+      <g stroke="#79b8ff" stroke-width="2" fill="none">
+        <path d="M140 180 H188" marker-end="url(#a2)"/>
+        <path d="M282 180 H296" marker-end="url(#a2)"/>
+        <path d="M390 180 H404" marker-end="url(#a2)"/>
+        <path d="M498 180 H512" marker-end="url(#a2)"/>
+        <path d="M632 180 H646" marker-end="url(#a2)"/>
+        <path d="M740 180 H754" marker-end="url(#a2)"/>
+      </g>
+      <path d="M100 90 C 100 130, 120 140, 150 150" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#a2)"/>
+      <!-- critic loop -->
+      <rect x="514" y="248" width="118" height="48" rx="9" fill="#142a18" stroke="#2e6b3c"/>
+      <text x="573" y="270" text-anchor="middle" fill="#56d364" font-size="11.5" font-weight="700">parallel critic</text>
+      <text x="573" y="285" text-anchor="middle" fill="#9aa7b4" font-size="10">watches for pitfalls</text>
+      <path d="M573 248 V214" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#a2)"/>
+      <!-- journal out -->
+      <rect x="360" y="300" width="220" height="44" rx="9" fill="#1a1322" stroke="#5a3a7d"/>
+      <text x="470" y="327" text-anchor="middle" fill="#c8a6ff" font-size="11.5">live journal → cockpit (you watch)</text>
+      <path d="M573 296 V300" stroke="#a371f7" stroke-width="2" fill="none"/>
+      <path d="M344 210 C 344 260, 360 300, 420 300" stroke="#a371f7" stroke-width="1.4" fill="none" opacity=".6"/>
+      <!-- escalation sink -->
+      <rect x="690" y="248" width="158" height="60" rx="9" fill="#2a1414" stroke="#5c2626"/>
+      <text x="769" y="270" text-anchor="middle" fill="#f0883e" font-size="11.5" font-weight="700">escalation sink</text>
+      <text x="769" y="287" text-anchor="middle" fill="#9aa7b4" font-size="10">no-precedent → queue + notify</text>
+      <path d="M694 210 C 694 230, 720 240, 760 247" stroke="#f0883e" stroke-width="1.8" fill="none" marker-end="url(#a2r)"/>
+      <path d="M452 210 C 452 235, 600 250, 688 270" stroke="#f0883e" stroke-width="1.4" fill="none" opacity=".5" marker-end="url(#a2r)"/>
+    </svg>
+    <figcaption>Fig 2 — The flag drives the existing pipeline. <span style="color:#56d364">Green</span>: precedent feeds in, a parallel critic course-corrects. <span style="color:#c8a6ff">Purple</span>: every decision streams to a live cockpit. <span style="color:#f0883e">Orange</span>: when no precedent covers a judgment call, it escalates to a queue instead of silently auto-defaulting.</figcaption>
+  </figure>
+
+  <h2>10 · The closed self-improvement loop</h2>
+  <p>This is the part that doesn't exist today. A build emits friction + a retro into the <span class="pill p-pre">ledger</span>; the ledger generates risk-classified proposals; low-risk ones <strong>launch a task that applies them and opens a PR</strong>, high-risk ones become one-click chips. The merged change updates the system, and the <strong>next build reads the ledger</strong> — the loop finally closes.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 380" role="img" aria-label="Closed improvement loop">
+      <defs><marker id="a3" markerWidth="10" markerHeight="10" refX="7" refY="3.4" orient="auto"><path d="M0,0 L7.5,3.4 L0,6.8 Z" fill="#56d364"/></marker></defs>
+      <g font-size="12.5">
+        <rect x="60" y="50" width="170" height="58" rx="10" fill="#13203a" stroke="#2b4a7d"/><text x="145" y="76" text-anchor="middle" fill="#cdd9e5" font-weight="700">build runs</text><text x="145" y="94" text-anchor="middle" fill="#9aa7b4" font-size="11">emits friction + retro</text>
+        <rect x="385" y="40" width="170" height="58" rx="10" fill="#12251a" stroke="#2e6b3c"/><text x="470" y="66" text-anchor="middle" fill="#56d364" font-weight="700">.kiln/ledger</text><text x="470" y="84" text-anchor="middle" fill="#9aa7b4" font-size="11">precedent (canonical)</text>
+        <rect x="715" y="50" width="170" height="58" rx="10" fill="#1c1605" stroke="#5c4708"/><text x="800" y="72" text-anchor="middle" fill="#e3a008" font-weight="700">proposals</text><text x="800" y="90" text-anchor="middle" fill="#9aa7b4" font-size="11">risk-classified</text>
+        <rect x="715" y="200" width="170" height="56" rx="10" fill="#241c08" stroke="#6b540c"/><text x="800" y="222" text-anchor="middle" fill="#f0c674">low-risk</text><text x="800" y="240" text-anchor="middle" fill="#9aa7b4" font-size="11">auto-launch task → PR</text>
+        <rect x="715" y="278" width="170" height="56" rx="10" fill="#2a1414" stroke="#5c2626"/><text x="800" y="300" text-anchor="middle" fill="#f0883e">high-risk</text><text x="800" y="318" text-anchor="middle" fill="#9aa7b4" font-size="11">one-click chip (you)</text>
+        <rect x="385" y="262" width="170" height="58" rx="10" fill="#13203a" stroke="#2b4a7d"/><text x="470" y="288" text-anchor="middle" fill="#cdd9e5" font-weight="700">human merges PR</text><text x="470" y="306" text-anchor="middle" fill="#9aa7b4" font-size="11">propose-don't-apply held</text>
+        <rect x="60" y="262" width="170" height="58" rx="10" fill="#13203a" stroke="#2b4a7d"/><text x="145" y="288" text-anchor="middle" fill="#cdd9e5" font-weight="700">system updated</text><text x="145" y="306" text-anchor="middle" fill="#9aa7b4" font-size="11">skills · agents · templates</text>
+        <rect x="60" y="150" width="170" height="50" rx="10" fill="#1a1322" stroke="#5a3a7d"/><text x="145" y="172" text-anchor="middle" fill="#c8a6ff">Obsidian mirror</text><text x="145" y="189" text-anchor="middle" fill="#9aa7b4" font-size="10.5">browse · rollup</text>
+      </g>
+      <g stroke="#56d364" stroke-width="2" fill="none">
+        <path d="M230 79 H383" marker-end="url(#a3)"/>
+        <path d="M555 72 H713" marker-end="url(#a3)"/>
+        <path d="M800 108 V198" marker-end="url(#a3)"/>
+        <path d="M715 228 C 620 232, 600 290, 557 290" marker-end="url(#a3)"/>
+        <path d="M800 278 C 760 270, 600 270, 557 285" marker-end="url(#a3)" opacity=".6"/>
+        <path d="M385 291 H232" marker-end="url(#a3)"/>
+        <path d="M145 262 V200" stroke-dasharray="4 4"/>
+        <path d="M145 150 C 145 110, 145 110, 145 110" />
+        <path d="M145 262 C 60 220, 60 120, 130 92" marker-end="url(#a3)"/>
+      </g>
+      <text x="100" y="240" fill="#56d364" font-size="11">next build reads ledger ↑</text>
+      <path d="M470 98 C 360 130, 250 150, 232 168" stroke="#a371f7" stroke-width="1.4" fill="none" opacity=".5"/>
+      <text x="300" y="140" fill="#9aa7b4" font-size="10.5">mirror →</text>
+    </svg>
+    <figcaption>Fig 3 — The loop closes. The ledger is the single canonical store; proposals are <em>actionable</em> (auto-applied if safe, one-click if not); PRs preserve propose-don't-apply; and the next build consumes the ledger. Obsidian mirrors for human browsing but isn't in the critical path.</figcaption>
+  </figure>
+
+  <h3>Mistakes &amp; semantic precedent — the read-forward half</h3>
+  <p>Closing the loop has two halves: writing precedent (covered above) and <strong>reading it forward to avoid repeats</strong>. The read-forward half is a <strong>semantic query over the mistakes + issues ledger, run before a pipeline</strong> (and at key steps): retrieve the top-K most-relevant past failures for the current task and inject them as "avoid these known pitfalls." This is "context-informed autonomy" made operational — and it's exactly what the Obsidian copies were always <em>for</em> (queryable issue/mistake data for avoidance), now canonical and forkable in the repo.</p>
+  <table>
+    <tr><th style="width:24%">Concern</th><th>How</th></tr>
+    <tr><td><strong>What a mistake captures</strong></td><td><code>kiln-mistake</code> → <code>{what Claude did, assumption_violated, trigger, correction}</code> — a violated assumption is a first-class mistake.</td></tr>
+    <tr><td><strong>The query</strong></td><td>embeddings stored in <code>.kiln/ledger/index/</code> (computed once at write-time); query = cosine similarity <em>in-process</em> — no service, file-based, forkable (a fork queries its <em>own</em> failures). Runs as a <strong>pre-flight</strong> + per-step context inject.</td></tr>
+    <tr><td><strong>What gets indexed</strong></td><td><span class="fix">HIGH signal</span>: mistakes · issues · feedback · human decisions/approvals · accepted-rejected proposals (all human-confirmed).</td></tr>
+    <tr><td><strong>What does NOT</strong></td><td><span class="evi">Generated PRDs/specs.</span> They're outputs — mostly AI-generated, self-referential; noisy as "how to build" reference. Mirror them to browse, but they don't feed the avoidance query.</td></tr>
+  </table>
+  <div class="callout good"><strong>Where "how we build" precedent actually lives:</strong> not in regenerated PRDs, but in the <em>vision constraints</em> (the deliberate rules) + the <em>mistakes</em> (the "don't do X" learned the hard way). Those two — queried semantically before each run — are the avoidance engine.</div>
+
+  <h2>11 · The four pillars (+ the thin trigger)</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="k">Pillar 1 · fixes "loop doesn't close"</div>
+      <h4>Close the loop</h4>
+      <p>Consolidate <code>.kiln/mistakes</code> + <code>.kiln/fixes</code> + retros into one repo <code>.kiln/ledger/</code>. Build the <strong>precedent-reader</strong> that injects relevant prior lessons into <code>specify</code>/<code>plan</code>/<code>implement</code> context. Proposals become an <strong>actionable task queue</strong> (auto-apply low-risk, escalate high-risk).</p>
+    </div>
+    <div class="card">
+      <div class="k">Pillar 2 · fixes "prose, not mechanism"</div>
+      <h4>Prose → mechanism</h4>
+      <p>A resumable <strong>run-manifest</strong> (<code>.kiln/runs/&lt;id&gt;/</code>) replacing volatile session state + the stale lock. <strong>Structured verdicts</strong> (JSON envelopes) for all auditors. Real <strong>hooks</strong>: coverage gate, untraced-test gate, merge-bar. Reuse <code>watcher-runner.sh</code> for stall detection instead of in-context timers.</p>
+    </div>
+    <div class="card">
+      <div class="k">Pillar 3 · fixes "no live observability"</div>
+      <h4>Live cockpit</h4>
+      <p>Stream friction-notes + decisions to <code>.kiln/runs/&lt;id&gt;/journal</code> as they happen; render in a watch UI (extend <code>wheel-view</code> from a static inspector into a live run cockpit). The parallel <strong>critic</strong> writes here too — you see pitfalls as they form.</p>
+    </div>
+    <div class="card">
+      <div class="k">Pillar 4 · fixes "not forkable"</div>
+      <h4>Forkability</h4>
+      <p>Precedent is repo-resident and machine-read; the GitHub-issue retro store and the personal Obsidian vault drop to <strong>optional mirrors</strong>. A fork carries its own ledger and self-improves on its own precedent, with or without a vault.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="k">Thin trigger · fixes "autonomy is closer than it looks"</div>
+    <h4>The <code>.kiln</code> auto-run flag</h4>
+    <p>A flag that (a) auto-triggers the distill→build handoff, (b) defines auto-answers for the two stray <code>STOP</code> prompts, (c) routes "ship with known gaps?" through the escalation sink (not a silent auto-yes), and (d) decides merge policy (default: <em>stop at PR; human merges</em>). It only flips safely <em>after</em> pillars 1–2 exist.</p>
+  </div>
+
+  <h2>12 · Build sequence</h2>
+  <p>All four pillars are in scope, but they have a dependency order — autonomy can't be safe before the mechanisms exist, and self-improvement needs the ledger first.</p>
+  <div class="ph"><div class="n">0</div><div><strong>Ledger consolidation + precedent-reader</strong> (Pillar 1 core). The highest-leverage single change: make precedent readable and read. Nothing else matters if the loop stays open.</div></div>
+  <div class="ph"><div class="n">1</div><div><strong>Run-manifest + structured verdicts + stall via watcher-runner</strong> (Pillar 2 core). Makes a run resumable and machine-judgeable.</div></div>
+  <div class="ph"><div class="n">2</div><div><strong>Live journal + cockpit</strong> (Pillar 3). You can now watch before you trust it to run unattended.</div></div>
+  <div class="ph"><div class="n">3</div><div><strong>Actionable proposal queue + auto-apply-low-risk</strong> (Pillar 1 completion). The loop closes end-to-end.</div></div>
+  <div class="ph"><div class="n">4</div><div><strong>Real hooks</strong> (coverage / untraced-tests / merge-bar) + the <code>.kiln</code> auto-run flag (thin trigger). Autonomy goes live only now.</div></div>
+  <div class="ph"><div class="n">5</div><div><strong>Forkability pass</strong> (Pillar 4): demote vault + GitHub-issue stores to mirrors; document the fork story.</div></div>
+
+  <h2>13 · How we build this — dogfooding the loop</h2>
+  <div class="callout good">
+    <strong>Self-improving during development is a requirement of the project, not just its output.</strong> We build the rearchitecture <em>using</em> the rearchitecture as soon as each piece lands.
+  </div>
+  <ul>
+    <li><strong>Ledger first, from day one.</strong> The moment Phase 0 ships, every pitfall we hit building the <em>rest</em> goes into <code>.kiln/ledger/</code> and feeds the next phase's build. The project is its own first consumer.</li>
+    <li><strong>Watch for pitfalls live.</strong> Phase 2's cockpit is used to observe Phases 3–5 being built — if the critic/journal can't surface our own mistakes, it isn't done.</li>
+    <li><strong>Forkable from the start.</strong> No step may add a hard dependency on the personal vault or <code>yoshisada/ai-repo-template</code>. Every mechanism must work in a clean fork — that's the acceptance test for Pillar 4.</li>
+    <li><strong>Each phase ships behind the flag off.</strong> Autonomy stays opt-in until Phase 4; until then a human drives, but the machinery (manifest, journal, verdicts) records everything for the eventual unattended run.</li>
+  </ul>
+
+  <h2>14 · Open questions &amp; risks</h2>
+  <table>
+    <tr><th style="width:34%">Question / risk</th><th>Notes</th></tr>
+    <tr><td><strong>Risk classification for auto-apply</strong></td><td>What counts as "low-risk / low-blast-radius"? Needs an explicit rubric (e.g. single-file prompt tweak with a passing test = auto; anything touching hooks/gates = escalate). Get this wrong and the system auto-applies a regression.</td></tr>
+    <tr><td><strong>"Launch a task" mechanism</strong></td><td>Background-task chips vs a <code>/kiln:kiln-improve</code> skill that spawns scoped sessions. Chips are lighter; a skill is more controllable. Likely both: chips for high-risk one-click, a skill for the auto-apply batch.</td></tr>
+    <tr><td><strong>The critic's authority</strong></td><td>Does the parallel critic only <em>flag</em> pitfalls to the journal, or can it <em>pause/redirect</em> the build? Flag-only is safe but passive; redirect is powerful but can fight the implementer.</td></tr>
+    <tr><td><strong>Confirming the audit claims</strong></td><td>A few findings (esp. the <code>coordination-protocol.md</code> misrepresentation) are strong; reconfirm by direct read before betting a mechanism on them.</td></tr>
+    <tr><td><strong>Relationship to the wheel research</strong></td><td>The "is a workflow better than one big prompt?" study validates whether any of these phases should be a wheel workflow vs prompt-driven. Run it against Phase 1's run-manifest as the first real test case.</td></tr>
+  </table>
+
+  <p class="foot">Draft v1 · generated for discussion · every claim in §1 traces to a file:line in the three audit reports. Next: react to the build sequence and the risk-classification rubric, then we cut Phase 0 into a PRD.</p>
+
+</div>
+</body>
+</html>

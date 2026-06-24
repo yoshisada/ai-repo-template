@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiln — Autonomous Re-architecture Master Plan</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#30363d;
+    --ink:#e6edf3; --mute:#9aa7b4; --faint:#6e7b8a;
+    --repo:#4493f8; --obsidian:#a371f7; --queue:#e3a008; --precedent:#3fb950;
+    --danger:#f85149; --warn:#d29922; --ok:#3fb950;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.62;font-size:16px}
+  .wrap{max-width:1040px;margin:0 auto;padding:56px 28px 120px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em}
+  h2{font-size:23px;margin:60px 0 14px;padding-top:20px;border-top:1px solid var(--line);letter-spacing:-.01em}
+  h3{font-size:17px;margin:28px 0 8px;color:#cdd9e5}
+  h4{font-size:15px;margin:20px 0 6px;color:#cdd9e5}
+  p{margin:12px 0}
+  .sub{color:var(--mute);font-size:16px;margin-top:4px}
+  .tag{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+       padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute);margin-right:6px}
+  code{font-family:var(--mono);font-size:13px;background:var(--panel2);border:1px solid var(--line);
+       padding:1px 6px;border-radius:5px;color:#c9d6e3}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+      overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;margin:14px 0;color:#c9d6e3}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+  .lead{font-size:18px;color:#cdd9e5}
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--repo);
+           padding:14px 18px;border-radius:10px;margin:18px 0}
+  .callout.warn{border-left-color:var(--warn)} .callout.bad{border-left-color:var(--danger)}
+  .callout.good{border-left-color:var(--ok)} .callout.obs{border-left-color:var(--obsidian)}
+  table{border-collapse:collapse;width:100%;margin:18px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+  td code{font-size:12px}
+  ul,ol{margin:10px 0;padding-left:22px} li{margin:6px 0}
+  .pill{font:600 10px/1 var(--mono);padding:3px 7px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase}
+  .p-new{background:rgba(63,185,80,.16);color:#56d364;border:1px solid rgba(63,185,80,.4)}
+  .p-mod{background:rgba(68,147,248,.16);color:#79b8ff;border:1px solid rgba(68,147,248,.4)}
+  .p-del{background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)}
+  .p-wf{background:rgba(45,212,191,.16);color:#5eead4;border:1px solid rgba(45,212,191,.4)}
+  .p-cfg{background:rgba(227,160,8,.16);color:#e3a008;border:1px solid rgba(227,160,8,.4)}
+  .foot{color:var(--faint);font-size:13px;margin-top:60px;border-top:1px solid var(--line);padding-top:18px}
+  .phase-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:18px 0}
+  .phase-card .ph-num{font:700 11px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+                      color:var(--faint);margin-bottom:6px}
+  .phase-card h3{margin:0 0 6px}
+  .phase-card .ph-gate{font-size:13px;color:var(--mute);border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+  .wf-block{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .wf-block h4{margin:0 0 4px}
+  .wf-block .wd{color:var(--mute);font-size:13px;margin:0 0 12px}
+  .step-row{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;overflow-x:auto;margin:10px 0}
+  .step{flex:1 1 0;min-width:120px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+        margin-right:16px;position:relative;background:var(--panel2)}
+  .step:last-child{margin-right:0}
+  .step::after{content:"▸";position:absolute;right:-12px;top:50%;transform:translateY(-50%);
+               color:var(--faint);font-size:12px}
+  .step:last-child::after{content:""}
+  .step .t{font:700 9px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;
+           display:inline-block;padding:2px 5px;border-radius:4px;margin-bottom:5px}
+  .step .p{font-size:11px;color:#c4d0dc;line-height:1.35}
+  .t-cmd{background:rgba(68,147,248,.16);color:#79b8ff}
+  .t-agent{background:rgba(63,185,80,.16);color:#56d364}
+  .t-branch{background:rgba(227,160,8,.16);color:#e3a008}
+  .t-team{background:rgba(45,212,191,.16);color:#5eead4}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr} .step{min-width:90px;margin-right:8px}}
+  .schema-block{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0;font-family:var(--mono);font-size:12px;line-height:1.7;color:#c9d6e3}
+  .section-num{color:var(--faint);font:700 12px/1 var(--mono);margin-right:8px;letter-spacing:.04em}
+  .change-row td:first-child code{font-size:12px}
+  .dep-graph{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0;font-family:var(--mono);font-size:13px;line-height:2.2;color:#c9d6e3}
+  .dep-graph .arr{color:var(--faint)}
+  .dep-graph .hl{color:#7fe9da}
+  .toc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:24px 0}
+  .toc h4{margin:0 0 10px;font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+  .toc ol{margin:0;padding-left:18px}
+  .toc li{margin:5px 0;font-size:14px}
+  .toc a{color:var(--repo);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="tag">Master Plan</span>
+  <span class="tag">2026-06-23</span>
+  <span class="tag">Draft v1</span>
+
+  <h1>Kiln — Autonomous Re-architecture</h1>
+  <p class="sub">All features, all workflows, all config schemas — the complete upgrade map</p>
+
+  <div class="callout good">
+    <strong>Source of truth:</strong> <code>docs/features/2026-06-22-kiln-autonomous-rearchitecture/ARCHITECTURE.html</code><br>
+    All features described in the architecture doc are reflected here with exact implementation details.
+  </div>
+
+  <div class="toc">
+    <h4>Contents</h4>
+    <ol>
+      <li><a href="#exec">Executive Summary</a></li>
+      <li><a href="#philosophy">Design Philosophy — Agent-First, Rightsized Model</a></li>
+      <li><a href="#inventory">Current Inventory</a></li>
+      <li><a href="#ph0">Phase 0 — Config Foundation</a></li>
+      <li><a href="#ph1">Phase 1 — Ledger + Precedent System</a></li>
+      <li><a href="#ph2">Phase 2 — Build Pipeline as Wheel Workflow</a></li>
+      <li><a href="#ph3">Phase 3 — Self-Improvement Loop</a></li>
+      <li><a href="#ph4">Phase 4 — New Hooks + Gates</a></li>
+      <li><a href="#ph5">Phase 5 — Observability + Vision Layer</a></li>
+      <li><a href="#registry">Complete Skills Registry (all 69)</a></li>
+      <li><a href="#skills">Full Skills Change Table</a></li>
+      <li><a href="#agents">Full Agents Change Table</a></li>
+      <li><a href="#workflows">Full Workflows Change Table</a></li>
+      <li><a href="#configs">Config File Schemas</a></li>
+      <li><a href="#hooks-wf">Workflow Pre/Post Hooks</a></li>
+      <li><a href="#mcp">MCP Tool Additions</a></li>
+      <li><a href="#depgraph">Build Order</a></li>
+      <li><a href="#open">Open Questions</a></li>
+    </ol>
+  </div>
+
+  <!-- ─── §1 EXECUTIVE SUMMARY ─────────────────────────────────────── -->
+  <h2 id="exec"><span class="section-num">§1</span>Executive Summary</h2>
+
+  <p class="lead">
+    Kiln ships today as a skill-invoked, human-paced build pipeline. This plan upgrades it to a
+    <strong>context-informed autonomous loop</strong>: every build reads its own accumulated precedent,
+    follows per-project coding standards, and self-advances based on declared review preferences.
+  </p>
+
+  <p>The loop closes because mistakes flow into Obsidian, Obsidian is searchable before each build,
+  and self-improvement proposals auto-classify into either applied L1 patches or human-reviewed chips.
+  Three invariants are preserved throughout:</p>
+
+  <ul>
+    <li><strong>Propose-don't-apply</strong> — kiln never auto-merges its own skill edits; only config edits (L1) may be auto-applied</li>
+    <li><strong>Hooks are the floor</strong> — 4-gate enforcement stays; new coverage + traceability hooks are additive</li>
+    <li><strong>Wheel stays plugin-agnostic</strong> — all kiln workflow JSONs live in <code>plugin-kiln/workflows/</code></li>
+  </ul>
+
+  <table>
+    <thead><tr><th>Phase</th><th>Theme</th><th>Gate to next phase</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill p-cfg">0</span> Config Foundation</td><td>Standards + review preferences scaffolded</td><td>Both config files scaffold cleanly from <code>kiln-init</code></td></tr>
+      <tr><td><span class="pill p-cfg">1</span> Ledger + Precedent</td><td>Cross-project mistake memory via Obsidian</td><td><code>search_vault</code> MCP live; <code>kiln-precedent.json</code> workflow runs</td></tr>
+      <tr><td><span class="pill p-wf">2</span> Build Pipeline Workflow</td><td><code>kiln-build-prd.json</code> replaces the skill shell</td><td>Smoke test passes; precedent + standards inject</td></tr>
+      <tr><td><span class="pill p-wf">3</span> Self-Improvement Loop</td><td><code>kiln-self-improve.json</code> closes friction→proposal→apply</td><td>L1 auto-apply green; L2 chips surface correctly</td></tr>
+      <tr><td><span class="pill p-new">4</span> Hooks + Gates</td><td>Coverage + traceability gates enforced in CI</td><td>All three new hooks green</td></tr>
+      <tr><td><span class="pill p-new">5</span> Observability + Vision</td><td>Cockpit streams; design fidelity gated</td><td>vision-verify compares screenshot vs mockup</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §1.5 DESIGN PHILOSOPHY ──────────────────────────────────── -->
+  <h2 id="philosophy"><span class="section-num">§1.5</span>Design Philosophy — Agent-First, Rightsized Model</h2>
+
+  <div class="callout good">
+    <strong>Core principle:</strong> Every workflow step that involves reasoning, judgment, or synthesis MUST be an agent step.
+    Command steps are reserved for pure mechanical operations: file reads, git commands, JSON slicing, process management.
+    When in doubt, make it an agent.
+  </div>
+
+  <p>The corollary: the model tier must match the task. Running <code>sonnet</code> on a classification task haiku can handle wastes latency and cost. Running <code>haiku</code> on complex design produces shallow output.</p>
+
+  <h3>Journal as Orchestrator State Source of Truth</h3>
+
+  <div class="callout good">
+    The run journal (<code>.kiln/runs/&lt;id&gt;/journal.md</code>) is the canonical state for the orchestrator session — not conversation history. After each step completes, one structured line is appended:
+    <pre style="margin:8px 0 0"><code>[step: specify] [verdict: pass] [output: specs/auth/spec.md] [cost: $0.03]</code></pre>
+  </div>
+
+  <p><strong>Why this matters for session management:</strong> Claude Code's auto-compact can summarize and compress conversation history at any time. This is safe because the orchestrator session is intentionally thin — it dispatches wheel steps and reads step outputs from disk. All decision-relevant state (verdicts, output paths, costs, errors) lives in the journal and <code>.wheel/outputs/</code>, not in session context. On <code>--resume</code>, the orchestrator reads the journal to reconstruct exactly where the run is, making compact irrelevant to correctness.</p>
+
+  <p><strong>Implication:</strong> the orchestrator must never make a decision based on "what the previous agent said in the conversation." It reads <code>.wheel/outputs/&lt;step&gt;-verdict.json</code>. The conversation is a display surface, not a state store.</p>
+
+  <h3>Model Tier Table</h3>
+  <table>
+    <thead><tr><th>Tier</th><th>Model</th><th>When to use</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code><strong>validator</strong></code></td><td><code>haiku</code></td>
+        <td>Validation, classification, format-checking, spec quality checklist, risk voting, traceability scanning, checkpoint gate decisions, audit-synthesize, coverage reasoning</td>
+      </tr>
+      <tr>
+        <td><code><strong>researcher</strong></code> / <code><strong>implementer</strong></code> / <code><strong>auditor</strong></code></td><td><code>sonnet</code></td>
+        <td>Research, design, implementation, contract generation, complex analysis, retro synthesis, precedent formatting, self-improvement, smoke review, PRD audit</td>
+      </tr>
+      <tr>
+        <td><code><strong>oracle</strong></code></td><td><code>sonnet</code> (reserved)</td>
+        <td>Future judge panels — run sonnet N× with distinct lenses, synthesize. Use when a single verdict is too high-stakes. Tier names resolve via <code>.kiln/config.json</code> <code>models</code> block; wheel substitutes the actual model ID before dispatching.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Agent-First Step Upgrade Table — kiln-build-prd.json</h3>
+  <p style="font-size:13px;color:var(--mute)">Bold rows are upgrades from the naive command-only design.</p>
+  <table>
+    <thead><tr><th>Step</th><th>Type</th><th>Model</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td><code>read-config</code></td><td>command</td><td>—</td><td>Pure file read</td></tr>
+      <tr><td><code>read-prd</code></td><td>command</td><td>—</td><td>Pure file read</td></tr>
+      <tr><td><code>read-standards</code></td><td>command</td><td>—</td><td>Pure file read</td></tr>
+      <tr><td><code>init-run-manifest</code></td><td>command</td><td>—</td><td>Pure file write</td></tr>
+      <tr><td><code>query-precedent</code></td><td>command (sub-wf)</td><td>—</td><td>Sub-workflow dispatch</td></tr>
+      <tr><td><code>specify</code></td><td>agent</td><td>sonnet</td><td>Complex synthesis: PRD → spec</td></tr>
+      <tr><td><code>checkpoint-post-spec</code></td><td>command</td><td>—</td><td>Pause if in <code>review_checkpoints[]</code> or upstream <code>severity: blocking</code></td></tr>
+      <tr><td><code>plan</code></td><td>agent</td><td>sonnet</td><td>Complex design + contract generation</td></tr>
+      <tr><td><code>tasks</code></td><td>agent</td><td>sonnet</td><td>Task breakdown requires reasoning</td></tr>
+      <tr><td><code>check-hooks-gate</code></td><td>command</td><td>—</td><td>File existence check only</td></tr>
+      <tr><td><code>dispatch-implement</code></td><td>command</td><td>—</td><td>Groups tasks by story; writes dispatch manifest for team step</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><strong><code>implement</code></strong></td><td><strong>team</strong></td><td>sonnet (implementers) + haiku (spec-enforcer)</td><td>Wheel dispatches: kiln:implementer × stories (worktree) + spec-enforcer (watch) + qa-engineer (checkpoint); merge_after=true</td></tr>
+      <tr><td><code>run-tests</code></td><td>command</td><td>—</td><td>Shell execution</td></tr>
+      <tr><td><code>smoke-review</code></td><td>agent</td><td>sonnet</td><td>Requires vision + judgment</td></tr>
+      <tr><td><code>checkpoint-post-implement</code></td><td>command</td><td>—</td><td>Pause if in <code>review_checkpoints[]</code> or implement verdict has blockers</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><strong><code>audit</code></strong></td><td><strong>team</strong></td><td>sonnet + haiku × 2</td><td>Wheel dispatches: prd-auditor + spec-enforcer + quality-judge in parallel</td></tr>
+      <tr><td><code>audit-synthesize</code></td><td>agent</td><td>haiku</td><td>Merges three panel verdicts → single compliance_pct + severity</td></tr>
+      <tr><td><code>fix-blocking</code></td><td>agent</td><td>sonnet</td><td>Inline fix for blocking findings; routes to debugger on failure</td></tr>
+      <tr><td><code>checkpoint-pre-pr</code></td><td>command</td><td>—</td><td>Pause if in <code>review_checkpoints[]</code> or <code>audit-verdict.severity == blocking</code></td></tr>
+      <tr><td><code>create-pr</code></td><td>command</td><td>—</td><td><code>gh pr create --base &lt;base&gt;</code>: reads <code>branching.style</code> → <code>main</code> for github-flow/trunk, <code>branching.integration_branch</code> for gitflow</td></tr>
+      <tr><td><code>checkpoint-pre-merge</code></td><td>command</td><td>—</td><td>Pause if in <code>review_checkpoints[]</code> (merge always gets a human gate option)</td></tr>
+      <tr><td><code>collect-retro</code></td><td>agent</td><td>sonnet</td><td>Synthesis of friction → ledger entries</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><strong><code>classify-proposals</code></strong></td><td>agent</td><td><strong>haiku</strong></td><td>Classification is mechanical — haiku suffices, sonnet is wasteful here</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><strong><code>apply-low-risk</code></strong></td><td><strong>agent</strong></td><td><strong>sonnet</strong></td><td>Requires reading + editing config files intelligently</td></tr>
+      <tr><td><code>update-run-manifest</code></td><td>command</td><td>—</td><td>Pure JSON write</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><strong><code>build-summary</code></strong></td><td><strong>agent</strong></td><td><strong>haiku</strong></td><td>Reads all verdicts + PR URL + git diff; emits structured markdown summary tables for the human</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Implement as a Parallel Team</h3>
+
+  <div class="callout">
+    The <code>implement</code> step is the most expensive in the pipeline — it MUST be a team, not a single agent. A single implementer working serially on all tasks leaves user stories that could run in parallel stuck behind each other.
+  </div>
+
+  <div class="wf-block">
+    <h4>team: implement — parallel structure</h4>
+    <p class="wd">Foundational phase first (blocking), then user story phases in parallel worktrees, then merge</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">implementer-foundational<br><em>sonnet</em><br>Phase 2 tasks: shared infra</p></div>
+      <div class="step"><span class="t" style="background:rgba(63,185,80,.16);color:#56d364">GATE</span><p class="p">foundational done<br>signal to team-lead</p></div>
+      <div class="step" style="border-color:rgba(88,166,255,.4)"><span class="t t-team">TEAM</span><p class="p">implementer-us1 (sonnet)<br>implementer-us2 (sonnet)<br><small>isolation: worktree</small></p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">merge-worktrees<br><em>researcher</em><br>merge + conflict recovery</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">qa-engineer (sonnet)<br>checkpoint after each phase</p></div>
+    </div>
+    <p style="font-size:12px;color:var(--mute);margin-top:10px">
+      <code>spec-enforcer</code> (haiku) runs throughout all phases — watches every edit for spec/contract drift, emits findings to team-lead in real time.
+    </p>
+  </div>
+
+  <table>
+    <thead><tr><th>Agent</th><th>Model</th><th>Role in team</th></tr></thead>
+    <tbody>
+      <tr><td><code>implementer-foundational</code></td><td>sonnet</td><td>Phase 2 tasks only: DB schema, auth framework, base models. Blocks user story phases.</td></tr>
+      <tr><td><code>implementer-us1</code></td><td>sonnet</td><td>All P1 story tasks. Runs in isolated worktree — no file locking needed.</td></tr>
+      <tr><td><code>implementer-us2</code></td><td>sonnet</td><td>All P2 story tasks. Parallel with us1, own worktree.</td></tr>
+      <tr><td><code>merge-worktrees</code></td><td>sonnet</td><td>Merges each worktree sequentially. On conflict: sends diff back to the owning implementer to resolve. Escalates to kiln:debugger only after 2 failed resolution attempts.</td></tr>
+      <tr><td><code>spec-enforcer</code></td><td>haiku</td><td>Watches all edits for spec/contract drift. Flag-only. Runs throughout.</td></tr>
+      <tr><td><code>qa-engineer</code></td><td>sonnet</td><td>Checkpoint feedback at end of each phase — not just at final smoke.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Audit as a Parallel Panel</h3>
+
+  <div class="wf-block">
+    <h4>team: audit — three specialist agents + synthesizer</h4>
+    <div class="step-row">
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">prd-auditor<br><em>sonnet</em><br>FR compliance, coverage %, drift</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">spec-enforcer<br><em>haiku</em><br>test traceability, FR comments in src/</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">quality-judge<br><em>haiku</em><br>naming rules, function size, comment ratio</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">audit-synthesizer<br><em>haiku</em><br>merge 3 verdicts → compliance_pct + findings[]</p></div>
+    </div>
+  </div>
+
+  <p>A feature passes audit when: <code>compliance_pct ≥ 80</code> AND no finding with <code>severity: blocking</code>. Each specialist emits a structured JSON verdict that the synthesizer merges.</p>
+
+  <h3>Checkpoint Pause Logic</h3>
+
+  <p>Checkpoints are <strong>command steps</strong> — no AI reasoning. A checkpoint pauses on exactly two conditions:</p>
+  <ol>
+    <li><strong>Config-determined (roadmap):</strong> the checkpoint name is in <code>review_checkpoints[]</code> in <code>.kiln/config.json</code>. Set during <code>kiln-init</code> and reflects the project's pre-declared review cadence.</li>
+    <li><strong>Critical-event override:</strong> an upstream step wrote <code>severity: blocking</code> in its verdict JSON. A blocking finding always pauses regardless of config.</li>
+  </ol>
+
+  <div class="callout obs">
+    <strong>Example:</strong> <code>checkpoint-pre-pr</code> checks <code>review_checkpoints[]</code> and <code>audit-verdict.severity</code>. If neither triggers, it skips automatically. No model call, no reasoning — just two <code>jq</code> lookups and a branch. The human's declared cadence governs; the system doesn't second-guess it mid-run.
+  </div>
+
+  <h3>Failure Recovery — Debugger Loop + Notification</h3>
+
+  <p>When a workflow step fails, the system does <strong>not</strong> retry blindly. The recovery sequence is:</p>
+
+  <div class="wf-block">
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">FAIL</span><p class="p">step fails</p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">kiln:debugger diagnoses + fixes</p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">retry step with updated context</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">if still failing → halt + write failure-report.md</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">post hook → notify.sh → configured channels</p></div>
+    </div>
+  </div>
+
+  <p>Command steps with transient failure modes (<code>gh</code> CLI, network calls) get <code>"retry": 2</code> before the debugger is invoked. Agent/team steps go straight to the debugger — retrying the same prompt produces the same failure. <code>build-summary</code> and the post hook always run (<code>"on": "always"</code>) regardless of pipeline status.</p>
+
+  <pre><code>{
+  "id": "implement",
+  "type": "team",
+  "on_failure": {
+    "route": "kiln:debugger",
+    "max_debug_attempts": 2
+  }
+}</code></pre>
+
+  <p><strong>Notification events:</strong></p>
+  <table>
+    <thead><tr><th>Event</th><th>Fires when</th></tr></thead>
+    <tbody>
+      <tr><td><code>failure</code></td><td>Debugger exhausted, workflow halted — notification body is failure-report.md</td></tr>
+      <tr><td><code>complete</code></td><td>Pipeline finished successfully — body is the build summary tables</td></tr>
+      <tr><td><code>checkpoint</code></td><td>Human pause requested — "ping me when you need me"</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th>Channel</th><th>Config key</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>macOS system alert</td><td><code>macos: true</code></td><td><code>osascript</code> — zero config, on by default</td></tr>
+      <tr><td>Email</td><td><code>email: "you@example.com"</code></td><td>Requires mail relay or sendmail</td></tr>
+      <tr><td>Slack</td><td><code>slack_webhook: "&lt;url&gt;"</code></td><td>Standard Slack incoming webhook</td></tr>
+      <tr><td>Generic webhook</td><td><code>webhook: "&lt;url&gt;"</code></td><td>POST with JSON body — Discord, Teams, custom</td></tr>
+    </tbody>
+  </table>
+
+  <p><code>plugin-kiln/scripts/notify.sh</code> reads <code>config.json</code> and dispatches to all configured channels. Called by the workflow post hook — no new infrastructure required.</p>
+
+  <h3>External MCP Graceful Degradation</h3>
+
+  <p>Any workflow step that depends on an external MCP (Obsidian, Notion, etc.) MUST have <code>"on_failure": "skip"</code>. External MCPs can be unavailable at any time and a build should never block on them.</p>
+
+  <p>The skip pattern: the command falls back to writing an empty stub output with a warning message, so downstream steps that <code>context_from</code> it receive something rather than nothing. The warning surfaces in the build summary Findings as <code>info</code> severity.</p>
+
+  <table>
+    <thead><tr><th>Step</th><th>MCP dependency</th><th>Fallback output</th></tr></thead>
+    <tbody>
+      <tr><td><code>query-precedent</code></td><td>Obsidian MCP</td><td>Empty precedent block + "⚠ Obsidian MCP unavailable — precedent skipped"</td></tr>
+      <tr><td>Any future shelf-sync steps</td><td>Obsidian MCP</td><td>Skip with warning</td></tr>
+      <tr><td>Any Notion/external calls</td><td>Notion MCP</td><td>Skip with warning</td></tr>
+    </tbody>
+  </table>
+
+  <h3>kiln-next — Human Orientation Command</h3>
+
+  <p><code>kiln-next</code> is <strong>human-only</strong> — never auto-invoked by any pipeline or workflow. It runs at session start to tell the human what needs their attention. It evaluates a fixed priority stack and short-circuits at the first match.</p>
+
+  <table>
+    <thead><tr><th>Priority</th><th>Condition</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr style="background:rgba(248,81,73,.06)"><td><strong>1 — Pending human review</strong></td><td>Checkpoint pauses · open PRs awaiting review · L2 proposals awaiting apply · debugger escalations that couldn't auto-fix</td><td>"These need you before anything can move" — always listed first</td></tr>
+      <tr><td>2 — Interrupted run</td><td><code>.kiln/runs/*/manifest.json</code> with <code>phase ≠ "done"</code> and not a checkpoint pause</td><td>Show halted step + exact command: <code>/kiln:kiln-build-prd &lt;slug&gt; --resume</code></td></tr>
+      <tr><td>3 — Failing tests</td><td><code>npm test</code> exit ≠ 0 on current branch</td><td>Show failing tests + suggest <code>kiln-fix</code></td></tr>
+      <tr style="background:rgba(248,81,73,.06)"><td>4 — Issues: large batch</td><td><code>.kiln/issues/</code> count ≥ <code>issue_batch_threshold</code></td><td>"N issues — significant body of work → <code>/kiln:kiln-build-prd</code>"</td></tr>
+      <tr style="background:rgba(255,166,0,.06)"><td>5 — Issues: small batch</td><td><code>.kiln/issues/</code> count &gt; 0 and &lt; <code>issue_batch_threshold</code></td><td>"N issue(s) → <code>/kiln:kiln-fix &lt;id&gt;</code>" per issue — targeted fix, no spec overhead</td></tr>
+      <tr><td>6 — Captures ready to distill</td><td>Feedback + roadmap items ≥ <code>distill_threshold</code></td><td>"N feedback/roadmap items → <code>/kiln:kiln-distill</code>" — strategic captures bundle into feature PRD</td></tr>
+      <tr><td>7 — PRD ready to build</td><td>PRD exists, no <code>specs/</code> dir yet</td><td>Suggest <code>kiln-build-prd &lt;slug&gt;</code></td></tr>
+      <tr><td>8 — All clear</td><td>Nothing above matches</td><td>Project health: coverage %, last build date, open issues, roadmap phase</td></tr>
+    </tbody>
+  </table>
+
+  <p>Always ends with one clear recommended action.</p>
+  <p><strong>Two-track model:</strong> issues are always fix-priority — the track is determined by count vs <code>issue_batch_threshold</code>. Small batch → <code>kiln-fix</code> per issue (targeted, no spec overhead). Large batch → <code>kiln-build-prd</code> (enough work to warrant full spec → plan → implement). Feedback + roadmap items are strategic, not urgent — they accumulate and <code>kiln-distill</code> bundles them into feature PRDs. These two tracks never mix: issues don't get distilled, feedback doesn't get fixed.</p>
+
+  <h3>Structured Human Output</h3>
+
+  <div class="callout">
+    <strong>Every pipeline run that changes code, creates artifacts, or makes decisions MUST emit a structured markdown summary as its final step.</strong> This is the human handoff document — everything needed to review, verify, and close out the work without digging through logs or agent transcripts.
+  </div>
+
+  <p>A <code>build-summary</code> agent step (<code>model_tier: validator</code>) is the final step of every qualifying workflow. It reads all verdict outputs accumulated during the run and emits five markdown tables to the terminal AND writes to <code>.kiln/runs/&lt;run-id&gt;/summary.md</code>. For non-workflow skills (<code>kiln-fix</code>, <code>kiln-create-prd</code>, <code>kiln-distill</code>), the skill file includes an equivalent summary instruction at its end.</p>
+
+  <p><strong>Canonical summary format:</strong></p>
+  <pre><code>## Build Summary: &lt;feature-name&gt;
+
+### Overview
+| Field | Value |
+|---|---|
+| Feature | [&lt;name&gt;](&lt;prd-path&gt;) |
+| Branch | `feature/&lt;slug&gt;` |
+| PR | [#&lt;n&gt; — &lt;title&gt;](&lt;url&gt;) |
+| Spec compliance | 95% |
+| Test coverage | 87% |
+| Smoke test | Passed |
+
+### What Changed
+| File | Change |
+|---|---|
+| src/components/Foo.tsx | New |
+| src/api/bar.ts | Modified |
+
+### What to Test
+| User Story | How to verify | Expected result |
+|---|---|---|
+| US-1: User can log in | Visit /login, submit valid credentials | Redirect to /dashboard |
+| US-2: Invalid credentials | Submit wrong password | Red error message, no redirect |
+
+### Findings
+| Severity | Finding |
+|---|---|
+| warning | FR-5 branch coverage 71% — below 80% gate |
+
+### Links
+| Resource | Path |
+|---|---|
+| PR | &lt;github-url&gt; |
+| Spec | specs/&lt;slug&gt;/spec.md |
+| Smoke report | specs/&lt;slug&gt;/smoke-report.md |
+| Retro | .kiln/runs/&lt;id&gt;/retro.md |</code></pre>
+
+  <p><strong>Per-command scope:</strong></p>
+  <table>
+    <thead><tr><th>Command</th><th>Overview</th><th>What Changed</th><th>What to Test</th><th>Findings</th><th>Links</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-build-prd</code></td><td>full</td><td>git diff --stat</td><td>user stories + acceptance criteria</td><td>audit + coverage</td><td>PR, spec, smoke, retro</td></tr>
+      <tr><td><code>kiln-fix</code></td><td>abbreviated</td><td>files touched</td><td>what broke + re-verify steps</td><td>— (or ✓ green)</td><td>PR or branch</td></tr>
+      <tr><td><code>kiln-create-prd</code></td><td>PRD metadata</td><td>PRD file path</td><td>open decisions / gaps</td><td>—</td><td>PRD path, roadmap item</td></tr>
+      <tr><td><code>kiln-distill</code></td><td>capture bundle</td><td>N captures → PRD</td><td>gaps the PRD should answer</td><td>—</td><td>PRD path</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cost + Token Tracking</h3>
+
+  <p>Every workflow run records token usage and estimated cost to <code>.kiln/runs/&lt;id&gt;/manifest.json</code>, broken down by model. The <code>build-summary</code> step reads this and appends two rows to the overview table.</p>
+
+  <pre><code>"cost": {
+  "total_usd": 2.40,
+  "input_tokens": 84000,
+  "output_tokens": 12000,
+  "by_model": {
+    "claude-haiku-4-5-20251001": { "input_tokens": 12000, "output_tokens": 3000, "usd": 0.25 },
+    "claude-sonnet-4-6":         { "input_tokens": 72000, "output_tokens": 9000, "usd": 2.15 }
+  }
+}</code></pre>
+
+  <p>Build summary overview adds:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Tokens</td><td>84k in · 12k out</td></tr>
+      <tr><td>Cost</td><td>~$2.40 &nbsp;(haiku: $0.25 · sonnet: $2.15)</td></tr>
+    </tbody>
+  </table>
+
+  <p>Wheel records token counts from agent output metadata after each step. No budget gate — visibility only. Applies to <code>kiln-build-prd</code> and <code>kiln-fix</code> runs.</p>
+
+  <h3><code>kiln-init</code> Onboarding Flow</h3>
+
+  <p><strong><code>kiln-init</code> is idempotent.</strong> It checks whether <code>.kiln/config.json</code> already exists and reads its <code>config_version</code> field:</p>
+  <ul>
+    <li><strong>First run (no config):</strong> runs the full 6-step wizard.</li>
+    <li><strong>Re-run (config exists):</strong> compares <code>config_version</code> against the current package's <code>config-schema.json</code>, identifies keys introduced since the project's version, and asks only about those. If nothing is new, prints "config is up to date" and exits.</li>
+  </ul>
+  <p>No separate <code>update</code> subcommand — <code>kiln-init</code> is the single entry point for both cases. Version detection uses a <code>config-schema.json</code> shipped with the plugin that maps each key to the version that introduced it.</p>
+  <pre><code>// plugin-kiln/scaffold/config-schema.json
+{
+  "1.0.0": ["review_mode", "review_checkpoints", "notifications", "models", "standards", "auto_build", "branching"],
+  "1.1.0": ["pi_apply_threshold"]
+}
+// .kiln/config.json carries: "config_version": "1.0.0"</code></pre>
+  <p>On re-run, <code>kiln-init</code> asks only about keys in versions &gt; <code>config_version</code>, then bumps <code>config_version</code> on save. Existing answers are never overwritten.</p>
+
+  <table>
+    <thead><tr><th>Step</th><th>Question + choices (default in bold)</th><th>Config written</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>"How often should kiln pause for your review?" → thorough / <strong>standard</strong> / express / autonomous</td>
+        <td><code>config.json</code> → <code>review_mode</code>, <code>review_checkpoints</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>"How should kiln notify you on finish or failure?" → <strong>macOS alert</strong> / Slack / email / webhook / none</td>
+        <td><code>config.json</code> → <code>notifications.channels</code></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>"Do you follow a coding style guide?" → Clean Code / Google / Airbnb / custom / <strong>none (skip)</strong></td>
+        <td><code>.kiln/standards.md</code> bootstrapped from template</td>
+      </tr>
+      <tr>
+        <td>3b</td>
+        <td>Vision interview — skipped if <code>.kiln/vision.md</code> already exists (written by clay). Four questions: "What is this project?" / "What is it NOT?" / "What does winning look like?" / "What are the hard constraints?" → <strong>skip (defer)</strong> / answer now</td>
+        <td><code>.kiln/vision.md</code> written from <code>vision-template.md</code></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>"What command runs your tests? Coverage target?" → <strong>npm test</strong> / vitest run / jest / custom · <strong>80%</strong> default</td>
+        <td><code>.kiln/test-strategy.json</code></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>"Priority: quality or cost?" → quality (oracle → opus) / <strong>balanced</strong> (all sonnet) / cost-optimized (implementer → haiku)</td>
+        <td><code>config.json</code> → <code>models</code> block</td>
+      </tr>
+      <tr>
+        <td>5b</td>
+        <td>"Do you design in Penpot before building features?" → <strong>no</strong> / yes (design-first mode)</td>
+        <td><code>config.json</code> → <code>design_first</code></td>
+      </tr>
+      <tr>
+        <td>5c</td>
+        <td>"What branching style?" → <strong>github-flow</strong> (feature → main) / gitflow (feature → integration → main) / trunk (commit direct to main). If gitflow: "Integration branch name?" → <strong>dev</strong></td>
+        <td><code>config.json</code> → <code>branching.style</code>, <code>branching.integration_branch</code></td>
+      </tr>
+      <tr style="background:rgba(88,166,255,.06)">
+        <td>6 <span class="pill" style="background:rgba(88,166,255,.1);color:#79c0ff;border:1px solid rgba(88,166,255,.3);font-size:10px">confirm</span></td>
+        <td>Shows all chosen settings as a table — no files written until user confirms</td>
+        <td>All config files written atomically</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Re-running <code>kiln-init</code> on an existing project skips questions for keys that already exist — only new keys introduced since <code>config_version</code> are asked about.</p>
+
+  <div class="ph-gate">Gate → No config files are written until the user confirms the step-6 summary table. Each step has an "accept default" path — full wizard completes in under 30 seconds.</div>
+
+  <h3>Distill → Build: Closing the Loop</h3>
+
+  <p><code>kiln-distill</code> (captures → PRD) and <code>kiln-build-prd</code> (PRD → code) are the two halves of the loop. By default they are separate commands. When <code>auto_build: true</code> is set in <code>config.json</code>, <code>kiln-distill</code> automatically enqueues <code>kiln-build-prd</code> after the PRD is written — completing the loop without a manual hand-off step.</p>
+
+  <table>
+    <thead><tr><th>State</th><th>End-of-distill behavior</th></tr></thead>
+    <tbody>
+      <tr><td><code>auto_build: false</code> (default)</td><td>Emits: "PRD ready. Run <code>/kiln:kiln-build-prd &lt;slug&gt;</code> to build."</td></tr>
+      <tr style="background:rgba(63,185,80,.06)"><td><code>auto_build: true</code></td><td>Emits: "PRD created. Starting build pipeline for &lt;slug&gt;…" → invokes <code>kiln-build-prd &lt;slug&gt;</code> in the same session, sequentially</td></tr>
+    </tbody>
+  </table>
+
+  <p><code>auto_build</code> is surfaced as a yes/no question in the <code>kiln-init</code> onboarding wizard. Default is <code>false</code> — users start manual and opt in when they trust the loop.</p>
+
+  <h3>Two-Tier Data Sync</h3>
+
+  <p><strong>All kiln capture surfaces write locally first. Obsidian is an optional cross-project sync layer — never a hard dependency.</strong></p>
+
+  <table>
+    <thead><tr><th>Capture surface</th><th>Local write</th><th>Obsidian sync</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-report-issue</code></td><td><code>.kiln/issues/&lt;id&gt;.md</code></td><td>shelf-sync on counter rollover</td></tr>
+      <tr><td><code>kiln-feedback</code></td><td><code>.kiln/feedback/&lt;id&gt;.md</code></td><td>shelf-sync, <code>on_failure: "skip"</code></td></tr>
+      <tr><td><code>kiln-roadmap</code></td><td><code>.kiln/roadmap/items/&lt;id&gt;.md</code></td><td>shelf-sync, <code>on_failure: "skip"</code></td></tr>
+      <tr><td><code>kiln-mistake</code></td><td><code>.kiln/mistakes/&lt;id&gt;.md</code></td><td>shelf-sync, <code>on_failure: "skip"</code></td></tr>
+      <tr><td>Ledger entries (build / self-improve)</td><td><code>.kiln/ledger/&lt;id&gt;.json</code></td><td><code>sync-to-obsidian</code> step, <code>on_failure: "skip"</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>When Obsidian is unavailable, all captures land safely in local files. The next time <code>shelf-sync</code> runs (manually or on counter rollover) it picks up any unsynced entries — eventual consistency without blocking any build.</p>
+
+  <div class="ph-gate">Cross-project learning depends on this sync: <code>precedent-reader</code> in project B queries Obsidian. A mistake from project A is invisible to B until it syncs. <code>shelf-sync</code> is the catch-up path — nothing is permanently lost, just delayed.</div>
+
+  <!-- ─── §2 CURRENT INVENTORY ─────────────────────────────────────── -->
+  <h2 id="inventory"><span class="section-num">§2</span>Current Inventory</h2>
+
+  <div class="grid2">
+    <div>
+      <h3>Skills (67 total)</h3>
+      <table>
+        <thead><tr><th>Plugin</th><th>Count</th><th>Notable skills</th></tr></thead>
+        <tbody>
+          <tr><td>kiln</td><td>42</td><td><code>kiln-build-prd</code>, <code>kiln-distill</code>, <code>kiln-pi-apply</code>, <code>kiln-next</code></td></tr>
+          <tr><td>clay</td><td>6</td><td><code>clay-idea</code>, <code>clay-create-repo</code></td></tr>
+          <tr><td>shelf</td><td>8</td><td><code>shelf-sync</code>, <code>shelf-propose-manifest-improvement</code></td></tr>
+          <tr><td>trim</td><td>10</td><td><code>trim-pull</code>, <code>trim-design</code></td></tr>
+          <tr><td>wheel</td><td>9</td><td><code>wheel-run</code>, <code>wheel-view</code>, <code>wheel-test</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Agents (13 in plugin-kiln)</h3>
+      <p style="font-size:13px;color:var(--mute)">continuance, debugger, fixture-synthesizer, output-quality-judge, prd-auditor, qa-engineer, qa-reporter, research-runner, smoke-tester, spec-enforcer, test-runner, test-watcher, ux-evaluator</p>
+      <h3>Workflows (18 production)</h3>
+      <table>
+        <thead><tr><th>Plugin</th><th>Workflows</th></tr></thead>
+        <tbody>
+          <tr><td>kiln</td><td>kiln-mistake.json, kiln-report-issue.json</td></tr>
+          <tr><td>shelf</td><td>shelf-sync.json + 5 others</td></tr>
+          <tr><td>trim</td><td>8 trim workflows</td></tr>
+          <tr><td>clay</td><td>sync.json</td></tr>
+          <tr><td>wheel</td><td>example.json, noni.json</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─── §3 PHASE 0 ─────────────────────────────────────────────── -->
+  <h2 id="ph0"><span class="section-num">§3</span>Phase 0 — Config Foundation</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 0</div>
+    <h3>Config files every project declares upfront</h3>
+    <p>Two new files scaffold via <code>kiln-init</code> and <code>clay-create-repo</code>. Once they exist,
+    the planner and implementer pick up coding rules automatically via <code>compose-context.sh --standards</code>.</p>
+    <div class="ph-gate">Gate → Both files scaffold cleanly from <code>kiln-init</code>; <code>plan</code> agent reads <code>standards.md</code> in its prompt prefix</div>
+  </div>
+
+  <h3>.kiln/standards.md — Coding Standards Template</h3>
+  <p>A Clean Code–shaped template injected at the planner and implementer stages. Swappable: the <code>standards</code> key in <code>config.json</code> can point to any file (e.g. a SOLID-focused alternative).</p>
+
+  <div class="callout obs">
+    <strong>Inject points:</strong> <code>compose-context.sh --standards</code> reads this file and prepends it as a
+    <code>## Coding Standards</code> block in the prompt prefix for both the <code>plan</code> agent and the <code>implement</code> team.
+    Standards set during planning propagate forward because bad names in <code>contracts/interfaces.md</code> contaminate the entire implementation.
+  </div>
+
+  <pre><code>## Coding Standards
+
+### Naming
+- names are pronounceable and searchable — no abbreviations, no encodings
+- one word per concept (fetch not retrieve/get/pull mixed across codebase)
+- functions named as verbs, booleans as predicates (isActive, hasPermission)
+
+### Functions
+- do one thing at one level of abstraction
+- ≤ 20 lines, ≤ 2 parameters — extract an object or split if more are needed
+- no flag arguments — split into two named functions instead
+- no side effects — a function that says it reads should only read
+
+### Comments
+- do not comment WHAT the code does — rename or restructure instead
+- only write a comment to explain WHY: a hidden constraint, a non-obvious invariant
+
+### Error handling
+- throw exceptions, never return null or error codes from internal functions
+- never pass null — guard at system boundaries, trust contracts internally
+
+### Structure
+- single responsibility — one reason to change per module
+- tell don't ask — don't reach into an object's state to make decisions for it
+- no circular dependencies across layers
+
+### Tests
+- one concept per test, assertion names describe the failure
+- every test references its spec FR in a comment</code></pre>
+
+  <h3>.kiln/config.json — Review Mode + Autonomy Switches + Model Tiers</h3>
+
+  <pre><code>{
+  "config_version": "1.0.0",
+  "review_mode": "standard",
+  "review_checkpoints": ["post-spec", "pre-pr"],
+  "auto_build": false,
+  "auto_pr":    false,
+  "auto_merge": false,
+  "pi_apply_threshold": "none",
+  "issue_batch_threshold": 5,
+  "distill_threshold": 3,
+  "standards": ".kiln/standards.md",
+  "design_first": false,
+  "branching": {
+    "style": "github-flow",
+    "integration_branch": "dev",
+    "per_feature": true
+  },
+  "models": {
+    "validator":   "claude-haiku-4-5-20251001",
+    "researcher":  "claude-sonnet-4-6",
+    "implementer": "claude-sonnet-4-6",
+    "auditor":     "claude-sonnet-4-6",
+    "oracle":      "claude-sonnet-4-6"
+  },
+  "notifications": {
+    "on": ["failure", "complete", "checkpoint"],
+    "channels": {
+      "email": null,
+      "slack_webhook": null,
+      "webhook": null,
+      "macos": true
+    }
+  }
+}</code></pre>
+
+  <table>
+    <thead><tr><th>review_mode</th><th>Checkpoints fired</th></tr></thead>
+    <tbody>
+      <tr><td><code>thorough</code></td><td>post-spec · post-plan · post-implement · pre-pr · pre-merge</td></tr>
+      <tr><td><code>standard</code></td><td>post-spec · pre-pr</td></tr>
+      <tr><td><code>express</code></td><td>pre-merge only</td></tr>
+      <tr><td><code>autonomous</code></td><td>none</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th>Switch</th><th>Default</th><th>Effect when true</th></tr></thead>
+    <tbody>
+      <tr><td><code>auto_build</code></td><td>false</td><td>kiln-next triggers build without human prompt</td></tr>
+      <tr><td><code>auto_pr</code></td><td>false</td><td>skip pre-pr checkpoint, create PR automatically</td></tr>
+      <tr><td><code>auto_merge</code></td><td>false</td><td>merge PR without pre-merge checkpoint</td></tr>
+      <tr><td><code>pi_apply_threshold</code></td><td>none</td><td><code>low</code> = auto-apply low-risk proposals; <code>all</code> = apply both</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th>branching.style</th><th>Flow</th><th>When to use</th></tr></thead>
+    <tbody>
+      <tr><td><code>github-flow</code></td><td>feature branch → PR → <code>main</code></td><td>Default. Solo or small team; main always deployable</td></tr>
+      <tr><td><code>gitflow</code></td><td>feature branch → PR → <code>integration_branch</code> → PR → <code>main</code></td><td>Long-lived sessions; keep <code>main</code> clean until milestone-ready</td></tr>
+      <tr><td><code>trunk</code></td><td>commit directly to <code>main</code></td><td>Strong CI, no branches, fastest loop</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;color:var(--mute)"><code>require-feature-branch.sh</code> reads <code>branching.per_feature</code>. The <code>create-pr</code> step reads <code>branching.style</code> to set PR target: <code>main</code> for github-flow/trunk, <code>branching.integration_branch</code> for gitflow. <code>kiln-init</code> creates the integration branch if missing when style is gitflow.</p>
+
+  <h3>Model Tier Configuration</h3>
+
+  <p>Workflow agent steps reference a <code>model_tier</code> name instead of a hardcoded model ID. Wheel resolves the tier against <code>config.json</code>'s <code>models</code> block before dispatching each step — change every validator-class agent from haiku to sonnet (or swap in MiniMax via Bifrost) by editing one line in config, no workflow JSON edits needed.</p>
+
+  <table>
+    <thead><tr><th>Tier</th><th>Default model</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td><code>validator</code></td><td>haiku</td><td>Spec gate checks, classification, audit-synthesize, build-summary, task counting</td></tr>
+      <tr><td><code>researcher</code></td><td>sonnet</td><td>Precedent queries, Phase 0 codebase research, plan research sub-phase</td></tr>
+      <tr><td><code>implementer</code></td><td>sonnet</td><td>Code generation, specifier, planner, task implementers</td></tr>
+      <tr><td><code>auditor</code></td><td>sonnet</td><td>PRD audit, spec-enforcer, quality-judge, smoke-review</td></tr>
+      <tr><td><code>oracle</code></td><td>sonnet</td><td>Audit synthesizer, retro analysis, highest-stakes synthesis — upgrade to opus when budget allows</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Resolution priority</strong> (wheel evaluates in order):</p>
+  <ol>
+    <li>Step-level <code>"model"</code> field — explicit per-step override (escape hatch)</li>
+    <li>Step-level <code>"model_tier"</code> → looked up in <code>config.json</code>'s <code>models</code> block</li>
+    <li>Default: <code>claude-sonnet-4-6</code></li>
+  </ol>
+
+  <p><strong>Example step with tier:</strong></p>
+  <pre><code>{ "id": "spec-gate", "type": "agent", "model_tier": "validator", "instruction": "Check spec gates..." }</code></pre>
+
+  <p><strong>Power-user patterns:</strong></p>
+  <pre><code>// Run everything on haiku for a cheap smoke-test pass
+"models": { "validator": "claude-haiku-4-5-20251001", "researcher": "claude-haiku-4-5-20251001",
+            "implementer": "claude-haiku-4-5-20251001", "auditor": "claude-haiku-4-5-20251001", "oracle": "claude-haiku-4-5-20251001" }
+
+// Upgrade oracle to opus for maximum synthesis quality
+"models": { ..., "oracle": "claude-opus-4-8" }
+
+// Use MiniMax for implementer tier via Bifrost gateway
+"models": { ..., "implementer": "minimax/MiniMax-Text-01" }</code></pre>
+
+  <h3>Phase 0 Skill Changes</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-init</code></td><td>Scaffold <code>.kiln/standards.md</code>, <code>.kiln/config.json</code>, <code>.kiln/test-strategy.json</code> on first init</td></tr>
+      <tr><td><code>clay-create-repo</code></td><td>After repo scaffold + initial commit: run vision interview → write <code>.kiln/vision.md</code> (what / not / winning / constraints). Then prompt "Set up kiln now?" → if yes, delegate to <code>kiln-init</code> (which skips vision step since it already exists).</td></tr>
+      <tr><td><code>kiln-next</code></td><td>Read <code>.kiln/config.json</code> on session entry; surface <code>review_mode</code> and pending checkpoint state</td></tr>
+      <tr><td><code>kiln-doctor</code></td><td>Reads <code>plugin-kiln/scaffold/doctor-manifest.json</code> — version-keyed required/optional checks. Merges all entries up to current version, emits diagnostic table. <code>--clean-worktrees</code> flag. New checks ship as manifest entries, no code changes needed.</td></tr>
+    </tbody>
+  </table>
+
+  <details>
+    <summary><code>plugin-kiln/scaffold/doctor-manifest.json</code> — version-keyed check declarations</summary>
+    <pre><code>{
+  "1.0.0": {
+    "required": [
+      { "path": ".kiln/config.json",        "check": "valid-json",  "fix": "/kiln:kiln-init" },
+      { "path": ".kiln/test-strategy.json", "check": "valid-json",  "fix": "/kiln:kiln-init" },
+      { "path": ".kiln/standards.md",       "check": "exists",      "fix": "/kiln:kiln-init", "if_config_key": "standards" }
+    ],
+    "optional": [
+      { "check": "obsidian-reachable", "severity": "warning", "fix": "Open Obsidian + enable MCP plugin" },
+      { "check": "stale-worktrees",    "severity": "warning", "fix": "kiln-doctor --clean-worktrees" }
+    ],
+    "version_checks": [
+      { "path": ".kiln/config.json", "field": "config_version", "fix": "/kiln:kiln-init" }
+    ]
+  },
+  "1.1.0": {
+    "required": [
+      { "path": ".kiln/ledger/", "check": "dir-exists", "fix": "created automatically on next build" }
+    ]
+  }
+}</code></pre>
+    <p style="font-size:12px;color:var(--mute)">Required failures → error (non-zero exit). Optional failures → warning (exit 0). All results render as <code>| Check | Status | Fix |</code> table.</p>
+  </details>
+
+  <!-- ─── §4 PHASE 1 ─────────────────────────────────────────────── -->
+  <h2 id="ph1"><span class="section-num">§4</span>Phase 1 — Ledger + Precedent System</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 1</div>
+    <h3>Cross-project mistake memory via Obsidian</h3>
+    <p>Past mistakes from all projects are already mirrored to a single Obsidian vault by <code>shelf-sync</code>.
+    The missing piece is <code>search_vault</code> on the Obsidian MCP + a precedent-query sub-workflow that
+    runs before each build and injects relevant findings as a warning block.</p>
+    <div class="ph-gate">Gate → <code>search_vault</code> MCP tool live; <code>kiln-precedent.json</code> workflow produces a populated <code>precedent-block.md</code></div>
+  </div>
+
+  <h3>New MCP Tool — search_vault</h3>
+  <div class="callout">
+    <strong>Add to Obsidian MCP:</strong>
+    <code>search_vault(query: string, limit?: number = 20)</code>
+    → <code>[{ path, title, frontmatter, excerpt }]</code><br><br>
+    Exposes Obsidian's native search syntax. Example queries:<br>
+    <code>tag:mistake/assumption AND tag:topic/hooks path:mistakes/</code><br>
+    <code>tag:language/typescript AND tag:topic/wheel path:mistakes/</code><br><br>
+    <strong>Future:</strong> <code>semantic_search(text, k)</code> backed by Turso sqlite-vec — add when corpus &gt; ~50 entries.
+    See <code>.kiln/roadmap/items/2026-06-23-obsidian-semantic-search-turso.md</code>.
+  </div>
+
+  <h3>New Ledger Schemas</h3>
+
+  <div class="grid2">
+    <div>
+      <h4>.kiln/ledger/&lt;id&gt;.json</h4>
+      <div class="schema-block">{<br>
+  "id": "YYYY-MM-DD-&lt;slug&gt;",<br>
+  "kind": "mistake|fix|retro|friction",<br>
+  "summary": "one-line",<br>
+  "detail": "full prose",<br>
+  "blast_radius": "local|cross-plugin|cross-project",<br>
+  "tags": ["mistake/assumption","topic/hooks"],<br>
+  "source_path": ".kiln/mistakes/...",<br>
+  "ts": "ISO-8601"<br>
+}</div>
+    </div>
+    <div>
+      <h4>.kiln/ledger/proposals/&lt;id&gt;.json</h4>
+      <div class="schema-block">{<br>
+  "id": "YYYY-MM-DD-&lt;slug&gt;",<br>
+  "target": "plugin-kiln/skills/plan/SKILL.md",<br>
+  "patch": "unified diff or instruction",<br>
+  "risk": "low|high",<br>
+  "blast_radius": "local|cross-plugin",<br>
+  "rationale": "why this change",<br>
+  "ledger_refs": ["YYYY-MM-DD-&lt;slug&gt;"]<br>
+}</div>
+    </div>
+  </div>
+
+  <h4>.kiln/runs/&lt;id&gt;/manifest.json — Resumable Per-Run State</h4>
+  <div class="schema-block">{<br>
+  "run_id": "uuid",<br>
+  "prd": "docs/features/&lt;slug&gt;/PRD.md",<br>
+  "phase": "specify|plan|tasks|implement|audit|pr|done",<br>
+  "branch": "build/&lt;slug&gt;-YYYYMMDD",<br>
+  "pr": "https://github.com/.../pull/N",<br>
+  "decisions": [],<br>
+  "escalations": [],<br>
+  "cursor": "last-completed-step-id"<br>
+}</div>
+
+  <h3>New Agents (Phase 1)</h3>
+
+  <details open>
+    <summary><code>precedent-reader.md</code> — haiku · validator · <code>on_failure: skip</code></summary>
+    <p><strong>Role:</strong> Before each build, search Obsidian for past mistakes relevant to the current PRD's topic and stack tags. Inject them as a <code>## Precedent</code> warning block so specifiers and implementers see real failure history before writing a line. If Obsidian is unavailable, writes an empty block and continues.</p>
+    <p><strong>Tools:</strong> Bash (MCP calls), Write</p>
+    <pre><code>---
+name: precedent-reader
+role: validator
+model_tier: validator
+on_failure: skip
+tools: [Bash, Write]
+---
+1. Read .wheel/outputs/prd-context.json → {topics, stack}
+2. Build Obsidian tag query: "(tag:topic/A OR tag:topic/B) AND tag:language/X path:mistakes/"
+3. Call mcp__obsidian-projects__search_vault, limit=10
+4. If no results: retry with first topic only (broader search)
+5. Format each result as:
+   - **[severity]** `[class]` — [assumption]
+     ✓ Correction: [correction]  _(source: [project], [date])_
+6. Write block to .wheel/outputs/precedent-block.md
+7. Emit JSON: {"count": N, "queries_used": [...], "path": "..."}</code></pre>
+  </details>
+
+  <details open>
+    <summary><code>risk-classifier.md</code> — sonnet · researcher</summary>
+    <p><strong>Role:</strong> Classifies improvement proposals as <code>low</code> or <code>high</code> risk so the self-improvement loop knows which to auto-apply vs surface to the human.</p>
+    <p><strong>Tools:</strong> Read, Write</p>
+    <pre><code>---
+name: risk-classifier
+role: researcher
+model_tier: researcher
+tools: [Read, Write]
+---
+LOW risk (safe to auto-apply):
+  - Single .kiln/*.json or .kiln/*.md config file target
+  - SKILL.md edit with local blast_radius only
+  - No hook/gate/workflow/cross-plugin contract touched
+
+HIGH risk (surface to human):
+  - Any hook/*.sh or hooks.json target
+  - Gate or enforcement rule change
+  - Cross-plugin contracts or shared interfaces
+  - blast_radius = cross-plugin or cross-project
+  - Uncertain → default HIGH
+
+Output: update each .kiln/ledger/proposals/&lt;id&gt;.json with {risk}
+Emit: {"low": [{id,target,instruction}], "high": [...]}</code></pre>
+  </details>
+
+  <h3>New Workflow — kiln-precedent.json</h3>
+
+  <div class="wf-block">
+    <h4>plugin-kiln/workflows/kiln-precedent.json</h4>
+    <p class="wd">2-step sub-workflow: extract PRD context → search Obsidian → emit precedent block</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-prd-context<br>extract topic/stack tags from PRD</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">search-mistakes<br>call search_vault → format precedent block → .wheel/outputs/precedent-block.md</p></div>
+    </div>
+  </div>
+
+  <pre><code>{
+  "name": "kiln-precedent",
+  "version": "1.0.0",
+  "description": "Query Obsidian for relevant past mistakes and emit a Precedent block for injection into build prompts",
+  "steps": [
+    {
+      "id": "read-prd-context",
+      "type": "command",
+      "command": "PRD=$(cat .wheel/inputs/prd-path.txt 2>/dev/null || echo ''); ...",
+      "output": ".wheel/outputs/prd-context.json"
+    },
+    {
+      "id": "search-mistakes",
+      "type": "agent",
+      "instruction": "You are the precedent reader. Search Obsidian for relevant past mistakes...\n1. Read .wheel/outputs/prd-context.json\n2. Build search query from topics[] and stack[] tags\n3. Call mcp__obsidian-projects__search_vault\n4. Format as ## Precedent block\n5. Write to .wheel/outputs/precedent-block.md",
+      "context_from": ["read-prd-context"],
+      "output": ".wheel/outputs/precedent-search-result.json"
+    }
+  ]
+}</code></pre>
+
+  <h3>New Workflow — kiln-distill.json</h3>
+
+  <div class="wf-block">
+    <h4>plugin-kiln/workflows/kiln-distill.json</h4>
+    <p class="wd">7-step pipeline: read captures → sync designs → vision-filter → group and draft PRD → mark processed → trigger build → invoke build</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-captures<br>count + combine all open captures</p></div>
+      <div class="step" style="border-color:rgba(63,185,80,.25)"><span class="t t-cmd">CMD</span><p class="p">sync-designs<br><small>on_failure: skip</small><br>trim-pull if design_first=true</p></div>
+      <div class="step" style="border-color:rgba(88,166,255,.3)"><span class="t t-agent">AGENT</span><p class="p">vision-filter<br><small>researcher · on_failure: skip</small></p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">group-and-draft<br><em>implementer</em><br>theme → PRD.md</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">mark-processed<br>stamp included captures</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">trigger-build<br>auto_build check → result.json</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">invoke-build<br><small>on_failure: skip</small><br>wheel-run if auto_build=true</p></div>
+    </div>
+    <p style="font-size:12px;color:var(--mute);margin-top:8px">
+      <code>sync-designs</code> reads <code>design_first</code> from <code>config.json</code>; if true, runs <code>trim-pull</code> to fetch latest Penpot tokens before drafting PRD. <code>on_failure: skip</code> — Penpot unavailability never blocks distill.<br>
+      <code>vision-filter</code> skips gracefully if <code>.kiln/vision.md</code> absent. <code>trigger-build</code> writes <code>auto_build</code> flag + slug to <code>.wheel/outputs/trigger-result.json</code>. <code>invoke-build</code> reads it: if <code>auto_build=true</code>, writes <code>.wheel/inputs/prd-slug.txt</code> and calls <code>wheel-run kiln:kiln-build-prd</code>; otherwise a no-op (<code>on_failure: skip</code>).
+    </p>
+  </div>
+
+  <h3>New Workflow — kiln-mistake-record.json</h3>
+
+  <div class="wf-block">
+    <h4>plugin-kiln/workflows/kiln-mistake-record.json</h4>
+    <p class="wd">Reusable sub-workflow: write mistake locally → sync to Obsidian. Called by collect-retro, kiln-report-issue, kiln-feedback.</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">write-mistake<br>write .kiln/mistakes/&lt;id&gt;.md + ledger entry</p></div>
+      <div class="step" style="border-color:rgba(88,166,255,.3)"><span class="t t-agent">AGENT</span><p class="p">sync-to-obsidian<br><small>on_failure: skip</small></p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">emit-summary<br>{id, path, synced}</p></div>
+    </div>
+    <p style="font-size:12px;color:var(--mute);margin-top:8px">
+      <strong>Input contract:</strong> caller writes <code>.wheel/inputs/mistake-data.json</code> with <code>{summary, assumption, correction, source}</code> — four fields only. The workflow generates the ID and derives tags internally. Callers never need to know the ID scheme or tag taxonomy.<br>
+      <code>collect-retro</code> calls this once per <code>kind: "mistake"</code> entry found. Same pattern for <code>kiln-report-issue</code> (AI-class) and <code>kiln-feedback</code> (AI-failure entries).
+    </p>
+  </div>
+
+  <h3>New Skill (Phase 1)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-ledger</code></td><td>Read-only view of <code>.kiln/ledger/</code>. Filters by <code>--kind</code>, <code>--tag</code>, <code>--last N</code>. No writes.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §5 PHASE 2 ─────────────────────────────────────────────── -->
+  <h2 id="ph2"><span class="section-num">§5</span>Phase 2 — Build Pipeline as Wheel Workflow</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 2</div>
+    <h3>kiln-build-prd becomes a resumable wheel workflow</h3>
+    <p>Standards and precedent inject automatically. Review checkpoints gate on <code>config.json</code>.
+    Structured JSON verdicts replace prose relay. Runs are resumable via <code>.kiln/runs/&lt;id&gt;/manifest.json</code>.</p>
+    <div class="ph-gate">Gate → Smoke test passes end-to-end; precedent block appears in specify + plan prompts; coverage gate fires</div>
+  </div>
+
+  <h3>New Workflow — kiln-fix.json</h3>
+
+  <p>Promotes <code>kiln-fix</code> from a skill to a resumable wheel workflow. The skill becomes a thin wrapper calling <code>wheel-run kiln:kiln-fix</code>.</p>
+
+  <p><strong>Auto-invoked from two places:</strong></p>
+  <ul>
+    <li><strong>A — kiln-build-prd post-audit:</strong> if the audit panel returns <code>severity: blocking</code> findings with specific file/FR references, kiln-build-prd auto-spawns kiln-fix for each blocking finding, then re-runs audit. Only escalates to human if kiln-fix also fails.</li>
+    <li><strong>B — kiln-next with <code>auto_build: true</code>:</strong> if kiln-next detects failing tests on an already-implemented feature (spec exists, code exists, tests failing), it auto-invokes kiln-fix rather than just recommending it.</li>
+  </ul>
+
+  <div class="wf-block">
+    <h4>kiln-fix.json — 6 steps</h4>
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-context</p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">diagnose<br><small>researcher</small></p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">fix<br><small>implementer</small></p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">verify<br><small>npm test</small></p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">write-ledger<br><small>validator</small></p></div>
+      <div class="step"><span class="t t-agent">AGT</span><p class="p">build-summary<br><small>validator · always</small></p></div>
+    </div>
+  </div>
+
+  <p>The <code>fix</code> and <code>verify</code> steps both have <code>on_failure: route kiln:debugger</code>. If verify still fails after debugger attempts, the workflow halts and fires a failure notification.</p>
+
+  <h3>New Workflow — kiln-build-prd.json</h3>
+
+  <div class="wf-block">
+    <h4>plugin-kiln/workflows/kiln-build-prd.json</h4>
+    <p class="wd">26-step full pipeline: config → PRD → standards → run-manifest → precedent → specify → checkpoint → plan → tasks → gate → dispatch → implement → test → smoke → checkpoint → audit → audit-synthesize → fix-blocking → checkpoint → create-pr → checkpoint → retro → classify → apply → update-manifest → build-summary</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-config</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-prd</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">read-standards</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">init-run-manifest</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">query-precedent (sub-wf)</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">specify → spec.md</p></div>
+    </div>
+    <div class="step-row" style="margin-top:8px">
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">checkpoint post-spec<br><small>review_checkpoints[] or blocking</small></p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">plan → plan.md + contracts</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">tasks → tasks.md</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">check-hooks-gate</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">dispatch-implement<br><small>group tasks by story</small></p></div>
+      <div class="step"><span class="t t-team">TEAM</span><p class="p">implement<br><small>kiln:implementer × stories · spec-enforcer · qa-engineer · worktree · merge after</small></p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">run-tests</p></div>
+    </div>
+    <div class="step-row" style="margin-top:8px">
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">smoke-review</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">checkpoint post-impl<br><small>review_checkpoints[] or blocking</small></p></div>
+      <div class="step"><span class="t t-team">TEAM</span><p class="p">audit<br><small>prd-auditor · spec-enforcer · quality-judge</small></p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">audit-synthesize<br><small>validator · merge + severity</small></p></div>
+      <div class="step" style="border-color:rgba(255,166,0,.3)"><span class="t t-agent">AGENT</span><p class="p">fix-blocking<br><small>implementer · skip if none</small></p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">checkpoint pre-pr<br><small>review_checkpoints[] or blocking</small></p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">create-pr</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">checkpoint pre-merge<br><small>review_checkpoints[]</small></p></div>
+    </div>
+    <div class="step-row" style="margin-top:8px">
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">collect-retro</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">classify-proposals</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">apply-low-risk</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">update-run-manifest</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">build-summary<br><small>validator · on:always</small></p></div>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--mute)"><strong>Skill wrapper input contract:</strong> The <code>kiln-build-prd</code> SKILL.md writes <code>.wheel/inputs/prd-slug.txt</code> before calling <code>wheel-run</code>. If absent, <code>read-prd</code> exits 1 and halts the workflow. The slug is derived from the user's argument or the most recent <code>docs/features/</code> directory. <strong>Mockup path:</strong> <code>design_verify</code> looks for <code>design/&lt;slug&gt;/mockup.{png,jpg,html}</code> — first file found wins; if none, <code>fidelity_score=null</code> and finding is <code>info</code> severity (non-blocking).</p>
+
+  <p>Full JSON is in <code>MASTER_PLAN.md</code> §Phase 2 and will be written to <code>plugin-kiln/workflows/kiln-build-prd.json</code>.</p>
+
+  <h3>Key Design Decisions</h3>
+  <ul>
+    <li><strong>Standards injected at plan time</strong> — not just at implement. Bad names in <code>contracts/interfaces.md</code> propagate everywhere; catching them at plan time prevents downstream drift.</li>
+    <li><strong>Precedent injected at specify + plan + implement</strong> — same precedent block read by all three agents so warnings can't be forgotten in a later stage.</li>
+    <li><strong>Structured JSON verdicts</strong> — each agent step emits <code>{agent, verdict:pass|fail|warn, ...}</code> so downstream steps can gate on the result without prose parsing.</li>
+    <li><strong>Checkpoints are command scripts, not agents</strong> — pause decisions are pre-configured (<code>review_checkpoints[]</code> set during <code>kiln-init</code>) or triggered by a critical upstream event (<code>severity: blocking</code> from an audit/implement verdict). No AI reasoning mid-run. If neither condition applies, the checkpoint skips automatically.</li>
+    <li><strong>Resumable via cursor</strong> — <code>.kiln/runs/&lt;id&gt;/manifest.json</code> stores the last completed step; <code>wheel-run</code> can resume from any step. All three major workflows support <code>--resume</code>: <code>kiln-build-prd</code> (interrupted mid-pipeline), <code>kiln-fix</code> (interrupted mid-debug), <code>kiln-distill</code> (interrupted mid-draft). <code>kiln-next</code> surfaces the resume command when it detects an interrupted run manifest.</li>
+  </ul>
+
+  <h3>New Agents (Phase 2)</h3>
+
+  <details open>
+    <summary><code>build-summary.md</code> — haiku · validator · <code>on: always</code></summary>
+    <p><strong>Role:</strong> Final step of every qualifying workflow. Reads all verdict outputs and the run's cost manifest, runs <code>git diff --stat</code>, renders the canonical 5-table build summary. Writes to <code>.kiln/runs/&lt;run-id&gt;/summary.md</code> AND prints to terminal. Runs even if upstream steps failed so the human always gets a summary.</p>
+    <p><strong>Tools:</strong> Read, Write, Bash</p>
+    <pre><code>---
+name: build-summary
+role: validator
+model_tier: validator
+on: always
+tools: [Read, Write, Bash]
+---
+Inputs:
+  .wheel/outputs/prd-content.md          → feature name + user stories
+  .wheel/outputs/audit-verdict.json      → compliance_pct, findings[]
+  .wheel/outputs/test-results.json       → coverage %, pass/fail
+  .wheel/outputs/smoke-report.md         → smoke result
+  .wheel/outputs/pr-result.json          → PR URL + number
+  .wheel/outputs/run-manifest-final.json → run_id, branch, prd path, cost block
+  bash -c "git diff --stat HEAD~1"       → files changed
+
+Render 5-table summary (Overview / What Changed / What to Test / Findings / Links).
+Include Tokens + Cost rows in Overview from cost block.
+Omit Findings section entirely if findings[] is empty.
+Write to .kiln/runs/&lt;run-id&gt;/summary.md
+Print full summary as final output.</code></pre>
+  </details>
+
+  <details open>
+  <!-- parallel-critic removed -->
+  <p style="font-size:12px;color:var(--mute);font-style:italic">⌀ <code>parallel-critic</code> removed — redundant given precedent injection at implement start + spec-enforcer + audit. Future idea: live pattern-watcher with pause-escalation once precedent corpus is large enough to make matching meaningful.</p>
+
+  <!-- ─── §6 PHASE 3 ─────────────────────────────────────────────── -->
+  <h2 id="ph3"><span class="section-num">§6</span>Phase 3 — Self-Improvement Loop</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 3</div>
+    <h3>Friction → proposal → L1 apply or L2 chip</h3>
+    <p>Every build run emits friction notes. At end-of-run, the self-improve workflow collects them,
+    classifies each proposal as low or high risk, applies config patches automatically (L1),
+    and surfaces skill-edit chips for human review (L2).</p>
+    <div class="ph-gate">Gate → L1 auto-apply commits cleanly; L2 chips surface the correct diff; loop is traceable in <code>.kiln/ledger/</code></div>
+  </div>
+
+  <h3>L1 vs L2 Distinction</h3>
+  <table>
+    <thead><tr><th>Level</th><th>Target</th><th>Applied by</th><th>Human step</th></tr></thead>
+    <tbody>
+      <tr><td><strong>L1 Config</strong></td><td><code>.kiln/config.json</code>, <code>.kiln/test-strategy.json</code>, <code>.kiln/standards.md</code></td><td>Auto (if <code>pi_apply_threshold</code> allows)</td><td>None required</td></tr>
+      <tr><td><strong>L2 Skill edit</strong></td><td><code>SKILL.md</code>, hooks, scripts, workflow JSON</td><td>Chip surfaced for human review</td><td>One-click apply in Claude Code</td></tr>
+    </tbody>
+  </table>
+
+  <h3>New Workflow — kiln-self-improve.json</h3>
+
+  <div class="wf-block">
+    <h4>plugin-kiln/workflows/kiln-self-improve.json</h4>
+    <p class="wd">6-step loop: collect friction → classify risk → apply L1 → surface L2 chips → write summary → sync to Obsidian</p>
+    <div class="step-row">
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">collect-friction<br>consolidate ledger proposals</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">classify-risk<br>low vs high per proposal</p></div>
+      <div class="step"><span class="t t-agent">AGENT</span><p class="p">apply-l1-patches<br>config-only auto-edits</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">surface-l2-chips<br>print high-risk to stdout</p></div>
+      <div class="step"><span class="t t-cmd">CMD</span><p class="p">write-summary<br>local count + result</p></div>
+      <div class="step" style="border-color:rgba(88,166,255,.3)"><span class="t t-agent">AGENT</span><p class="p">sync-to-obsidian<br><small>on_failure: skip</small></p></div>
+    </div>
+  </div>
+
+  <pre><code>{
+  "name": "kiln-self-improve",
+  "version": "1.0.0",
+  "description": "Collect build friction, classify proposals by risk, auto-apply L1 patches or surface L2 chips",
+  "steps": [
+    { "id": "collect-friction",  "type": "agent", ... },
+    { "id": "classify-risk",     "type": "agent",  "context_from": ["collect-friction"], ... },
+    { "id": "apply-l1-patches",  "type": "agent",  "context_from": ["classify-risk"], ... },
+    { "id": "surface-l2-chips",  "type": "command", ... },
+    { "id": "mirror-to-obsidian","type": "command", ... }
+  ]
+}</code></pre>
+
+  <h3>New Agent (Phase 3)</h3>
+  <table>
+    <thead><tr><th>Agent</th><th>Model</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr style="opacity:.45"><td><s><code>parallel-critic.md</code></s></td><td>—</td>
+      <td><em>Removed.</em> Future idea: live pattern-watcher with pause-escalation once precedent corpus is large enough.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §7 PHASE 4 ─────────────────────────────────────────────── -->
+  <h2 id="ph4"><span class="section-num">§7</span>Phase 4 — New Hooks + Gates</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 4</div>
+    <h3>Coverage, traceability, and merge-bar enforced automatically</h3>
+    <p>Three new hooks join the existing four. All are additive — they don't change existing enforcement,
+    they add new gates at test-run, test-write, and PR-create moments.</p>
+    <div class="ph-gate">Gate → All three new hooks green in CI; coverage gate fires correctly for &lt;80% coverage</div>
+  </div>
+
+  <h3>New Hooks (plugin-kiln/hooks/)</h3>
+
+  <table>
+    <thead><tr><th>Hook file</th><th>Fires on</th><th>Blocks if</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>coverage-gate.sh</code></td>
+        <td>PostToolUse(Bash) when test command runs</td>
+        <td>Coverage % &lt; <code>.kiln/test-strategy.json coverage_gate</code> (default 80)</td>
+      </tr>
+      <tr>
+        <td><code>untraced-test-gate.sh</code></td>
+        <td>PreToolUse(Edit|Write) when editing test files in <code>src/</code></td>
+        <td>New test file has no <code>// FR-</code> traceability comment</td>
+      </tr>
+      <tr>
+        <td><code>merge-bar.sh</code></td>
+        <td>PreToolUse(Bash) when <code>gh pr create</code> is called</td>
+        <td>Audit compliance &lt; 80%, unchecked tasks in <code>tasks.md</code>, or open blocking items in <code>specs/&lt;slug&gt;/blockers.md</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>New Config — .kiln/test-strategy.json</h3>
+  <div class="schema-block">{<br>
+  "project_type": "web-app",<br>
+  "install": "npm ci",<br>
+  "build": "npm run build",<br>
+  "test": "vitest run",<br>
+  "coverage_gate": 80,<br>
+  "smoke": {<br>
+    "start": "npm run dev",<br>
+    "ready": "http://localhost:3000",<br>
+    "probe": "playwright render /",<br>
+    "teardown": "kill"<br>
+  },<br>
+  "design_verify": false<br>
+}</div>
+
+  <!-- ─── §8 PHASE 5 ─────────────────────────────────────────────── -->
+  <h2 id="ph5"><span class="section-num">§8</span>Phase 5 — Observability + Vision Layer</h2>
+
+  <div class="phase-card">
+    <div class="ph-num">Phase 5</div>
+    <h3>Live build inspection + design/code fidelity gating</h3>
+    <p>The existing <code>wheel-view</code> static inspector extends to stream from a live run journal.
+    UI projects get <code>vision-verify</code> — a screenshot-vs-mockup comparison step embedded in <code>smoke-review</code>.</p>
+    <div class="ph-gate">Gate → vision-verify compares screenshot vs HTML mockup; fidelity score appears in smoke verdict JSON</div>
+  </div>
+
+  <h3>Extended Mechanisms</h3>
+
+  <table>
+    <thead><tr><th>Mechanism</th><th>Where</th><th>How it works</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>vision-verify</code></td>
+        <td>Inside <code>smoke-review</code> agent step</td>
+        <td>When <code>.kiln/test-strategy.json design_verify=true</code>: screenshot running app, render HTML mockup headless, use Claude vision to compare. Output: <code>{route, match:pass|fail|warn, diff_notes}</code>. Fail smoke if match=fail.</td>
+      </tr>
+      <tr>
+        <td><code>vision-filter</code></td>
+        <td>Inside <code>kiln-distill</code></td>
+        <td>Before routing a capture to the PRD, check against <code>.kiln/vision.md</code> non-goals. Decline if contradicted; emit to <code>.kiln/issues/declined/</code> with reason.</td>
+      </tr>
+      <tr>
+        <td><code>vision-drift-check</code></td>
+        <td>Inside <code>audit</code> agent step</td>
+        <td>Check whether implemented code diverges from <code>ARCHITECTURE.md</code> or <code>vision.md</code>. If yes, emit finding <code>{kind:"drift"}</code> in audit verdict.</td>
+      </tr>
+      <tr>
+        <td><code>wheel-view</code> live stream</td>
+        <td><code>wheel-view</code> skill enhancement</td>
+        <td>Extend static inspector to read from <code>.kiln/runs/&lt;id&gt;/journal</code> when a run is in progress. No new skill name — enhanced in-place.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Trim Integration — Design-First Mode</h3>
+
+  <p>When a user works design-first (Penpot → code rather than code → Penpot), the loop changes shape: feedback arrives as design file updates, not just text captures. The <code>design_first</code> config key wires trim into the capture → distill cycle.</p>
+
+  <table>
+    <thead><tr><th>Trigger</th><th>Action</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>kiln-distill</code> invoked <br><small>(design_first=true)</small></td>
+        <td><code>sync-designs</code> step calls <code>trim-pull</code> to fetch latest Penpot tokens + component specs before PRD is drafted</td>
+        <td>Step 2 of <code>kiln-distill.json</code>, <code>on_failure: skip</code></td>
+      </tr>
+      <tr>
+        <td><code>kiln-feedback</code> records feedback tagged <code>#design</code></td>
+        <td>Background sub-agent checks <code>design_first</code>; if true, prompts "Do you have an updated Penpot design?" — if yes, runs <code>trim-pull</code> inline</td>
+        <td><code>kiln-feedback</code> post-capture wizard</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Config flag:</strong> <code>"design_first": false</code> — set in <code>kiln-init</code> wizard step 5b: <em>"Do you design in Penpot before building features?"</em></p>
+  <p><code>on_failure: skip</code> on every trim step — Penpot unavailability never blocks distill or feedback capture.</p>
+
+  <!-- ─── COMPLETE SKILLS REGISTRY ───────────────────────────────── -->
+  <h2 id="registry"><span class="section-num">§8.5</span>Complete Skills Registry</h2>
+
+  <p>All 69 skills across 5 plugins. Every skill has a status and a reason.</p>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;font-size:13px">
+    <span><span class="pill p-mod">change</span> modifications required</span>
+    <span><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span> deprecated / replaced</span>
+    <span><span class="pill p-new">new</span> doesn't exist yet</span>
+    <span><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span> no changes needed</span>
+    <span><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span> auto-called by build workflow</span>
+    <span><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span> user-invoked only</span>
+  </div>
+
+  <h3>plugin-kiln (40 skills)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Mode</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>audit</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Becomes a parallel team step (prd-auditor + spec-enforcer + quality-judge); skill wraps the team dispatch</td></tr>
+      <tr><td><code>implement</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Becomes a team step in kiln-build-prd.json; parallel implementers per user story + spec-enforcer + qa-engineer</td></tr>
+      <tr><td><code>kiln-analyze</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Standalone codebase analysis; unchanged</td></tr>
+      <tr><td><code>kiln-analyze-issues</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Issue triage and deduplication; unchanged</td></tr>
+      <tr><td><code>kiln-build-prd</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Thin wrapper around <code>wheel-run kiln:kiln-build-prd</code>; gains <code>--resume</code> flag that reads run manifest <code>cursor</code> and restarts from last completed step</td></tr>
+      <tr><td><code>kiln-checklist</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span></td><td>Superseded by specify's 6-gate quality loop; no pipeline reference; never auto-called</td></tr>
+      <tr><td><code>kiln-clarify</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Pre-spec clarification pass for ambiguous requirements; unchanged</td></tr>
+      <tr><td><code>kiln-claude-audit</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span></td><td>No pipeline reference; never referenced by any agent; no evidence of active use</td></tr>
+      <tr><td><code>kiln-cleanup</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Remove stale specs and orphaned tasks; unchanged</td></tr>
+      <tr><td><code>kiln-constitution</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Read/write project constitution; unchanged</td></tr>
+      <tr><td><code>kiln-coverage</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Read coverage gate from <code>.kiln/test-strategy.json</code> instead of hardcoded threshold</td></tr>
+      <tr><td><code>kiln-create-prd</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Creates new PRDs from scratch; unchanged</td></tr>
+      <tr><td><code>kiln-distill</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Add vision-filter step (check captures against vision.md before routing); emit distill-ready signal to kiln-next</td></tr>
+      <tr><td><code>kiln-doctor</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Reads <code>doctor-manifest.json</code> (version-keyed required/optional checks); diagnostic table output; <code>--clean-worktrees</code> flag; new checks ship as manifest entries with no code changes</td></tr>
+      <tr><td><code>kiln-escalation-audit</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span></td><td>Zero references in build-prd or agents; unclear purpose; confirmed unused</td></tr>
+      <tr><td><code>kiln-feedback</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Capture strategic feedback to .kiln/feedback/; classify AI-failure feedback → auto-call kiln-mistake for those entries</td></tr>
+      <tr><td><code>kiln-fix</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Promoted to kiln-fix.json wheel workflow (diagnose → fix → verify → ledger → summary); auto-invoked by kiln-build-prd post-audit (blocking findings) and kiln-next (auto_build + failing tests); skill becomes thin wrapper</td></tr>
+      <tr><td><code>kiln-hygiene</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Add lint checks for new template files and config schema validity</td></tr>
+      <tr><td><code>kiln-improve</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-new">new</span></td><td>Wrapper for kiln-self-improve.json workflow; replaces kiln-pi-apply with broader L1/L2 improvement loop</td></tr>
+      <tr><td><code>kiln-init</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Idempotent: full 6-step wizard on first run; re-run reads <code>config_version</code> and asks only about new keys introduced since last init</td></tr>
+      <tr><td><code>kiln-ledger</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-new">new</span></td><td>Read-only view of .kiln/ledger/; filter by --kind, --tag, --last N; no writes</td></tr>
+      <tr><td><code>kiln-merge-pr</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Merge PR and flip roadmap item state; unchanged</td></tr>
+      <tr><td><code>kiln-mistake</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Auto-triggered from kiln-report-issue (AI-class issues), kiln-feedback (AI-failure entries), and retrospective (end of build); also manually invokable; writes to .kiln/ledger/ + .kiln/mistakes/; enforce three-axis tagging</td></tr>
+      <tr><td><code>kiln-next</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Human-only session-start command; evaluates 6-level priority stack (pending review → interrupted run → failing tests → captures pending → PRD unstarted → all clear); always one clear recommended action</td></tr>
+      <tr><td><code>kiln-pi-apply</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span></td><td>Replaced by kiln-improve; kiln-self-improve.json workflow handles both L1 config patches and L2 skill chips</td></tr>
+      <tr><td><code>kiln-qa-audit</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Post-build QA compliance audit; unchanged</td></tr>
+      <tr><td><code>kiln-qa-checkpoint</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Mid-build QA checkpoint feedback; unchanged</td></tr>
+      <tr><td><code>kiln-qa-final</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Final QA pass before PR; unchanged</td></tr>
+      <tr><td><code>kiln-qa-pass</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>QA live pass with Playwright; unchanged</td></tr>
+      <tr><td><code>kiln-qa-pipeline</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Orchestrate full QA pipeline (setup → checkpoint → final → pass); unchanged</td></tr>
+      <tr><td><code>kiln-qa-setup</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Scaffold QA environment, checklist, .env.test; unchanged</td></tr>
+      <tr><td><code>kiln-report-issue</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Fix issue numbering race condition; auto-route AI-class issues to kiln-mistake; increment shared shelf counter</td></tr>
+      <tr><td><code>kiln-research</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Standalone research pass outside of build pipeline; unchanged</td></tr>
+      <tr><td><code>kiln-reset-prd</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Reset PRD state to re-run a phase; unchanged</td></tr>
+      <tr><td><code>kiln-resume</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">remove</span></td><td>Explicitly deprecated; kiln-next's SKILL.md says it replaces kiln-resume as session-start command</td></tr>
+      <tr><td><code>kiln-roadmap</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Add --vision flag for vision.md strategic edits that bypass roadmap type system</td></tr>
+      <tr><td><code>kiln-taskstoissues</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Convert tasks.md items to GitHub issues; unchanged</td></tr>
+      <tr><td><code>kiln-test</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Read test command and coverage gate from .kiln/test-strategy.json instead of hardcoded defaults</td></tr>
+      <tr><td><code>kiln-todo</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Track TODO/FIXME annotations in codebase; unchanged</td></tr>
+      <tr><td><code>kiln-ux-evaluate</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>UX evaluation using ux-rubric.md 10-dimension scoring; unchanged</td></tr>
+      <tr><td><code>kiln-version</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Version bump and sync to package.json; unchanged</td></tr>
+      <tr><td><code>plan</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Inject .kiln/standards.md via compose-context.sh --standards; add research-first Phase 1.5 agent routing (synthesizer/judge)</td></tr>
+      <tr><td><code>specify</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill p-mod">change</span></td><td>Read precedent block; run spec quality checklist loop (6 gates) before committing spec.md</td></tr>
+      <tr><td><code>tasks</code></td><td><span class="pill" style="background:rgba(47,129,247,.16);color:#79c0ff;border:1px solid rgba(47,129,247,.4)">pipeline</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Task generation from spec + plan; user story organization unchanged</td></tr>
+    </tbody>
+  </table>
+
+  <h3>plugin-clay (6 skills)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Mode</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>clay-create-repo</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>After repo scaffold + initial commit, prompt "Set up kiln now?" → if yes, delegate to <code>kiln-init</code>; no wizard logic in clay</td></tr>
+      <tr><td><code>clay-idea</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Idea seeding and products/ directory scaffold; unchanged</td></tr>
+      <tr><td><code>clay-idea-research</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Classify and research candidate ideas; unchanged</td></tr>
+      <tr><td><code>clay-list</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>List all products in products/; unchanged</td></tr>
+      <tr><td><code>clay-new-product</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Generate PRD and about.md from idea; unchanged</td></tr>
+      <tr><td><code>clay-project-naming</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Generate name candidates with npm, domain, and GitHub availability checks; unchanged</td></tr>
+    </tbody>
+  </table>
+
+  <h3>plugin-shelf (8 skills)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Mode</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>shelf-create</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Create new Obsidian notes; unchanged</td></tr>
+      <tr><td><code>shelf-feedback</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Mirror feedback entries to Obsidian; unchanged</td></tr>
+      <tr><td><code>shelf-propose-manifest-improvement</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Propose manifest improvements from Obsidian vault analysis; unchanged</td></tr>
+      <tr><td><code>shelf-release</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Mirror release notes to Obsidian; unchanged</td></tr>
+      <tr><td><code>shelf-repair</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Repair broken sync manifest; unchanged</td></tr>
+      <tr><td><code>shelf-status</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Show sync status and pending items; unchanged</td></tr>
+      <tr><td><code>shelf-sync</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Add ledger-mirror step: sync .kiln/ledger/ entries and smoke-reports to Obsidian alongside existing issues/PRDs/progress</td></tr>
+      <tr><td><code>shelf-update</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Update existing Obsidian notes; unchanged</td></tr>
+    </tbody>
+  </table>
+
+  <h3>plugin-trim (10 skills)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Mode</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>trim-design</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Generate HTML mockups from vision + user flows; unchanged</td></tr>
+      <tr><td><code>trim-diff</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Diff design vs current code implementation; unchanged</td></tr>
+      <tr><td><code>trim-edit</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Edit design in Penpot; unchanged</td></tr>
+      <tr><td><code>trim-flows</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Generate user flow diagrams; unchanged</td></tr>
+      <tr><td><code>trim-init</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Initialize trim in a project; unchanged</td></tr>
+      <tr><td><code>trim-library</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Sync component library between design and code; unchanged</td></tr>
+      <tr><td><code>trim-pull</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Pull latest design assets from Penpot source; unchanged</td></tr>
+      <tr><td><code>trim-push</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Push design changes to Penpot; unchanged</td></tr>
+      <tr><td><code>trim-redesign</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Trigger a full redesign pass; unchanged</td></tr>
+      <tr><td><code>trim-verify</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Verify design/code fidelity; output feeds vision-verify step in smoke-review</td></tr>
+    </tbody>
+  </table>
+
+  <h3>plugin-wheel (9 skills)</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Mode</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>wheel-create</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Create a new workflow JSON; unchanged</td></tr>
+      <tr><td><code>wheel-init</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Initialize wheel in a project; unchanged</td></tr>
+      <tr><td><code>wheel-list</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>List all workflows and their status; unchanged</td></tr>
+      <tr><td><code>wheel-run</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Run a workflow by name; unchanged</td></tr>
+      <tr><td><code>wheel-skip</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Skip current step and advance to next; unchanged</td></tr>
+      <tr><td><code>wheel-status</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Show current workflow run state and step cursor; unchanged</td></tr>
+      <tr><td><code>wheel-stop</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Stop a running workflow; unchanged</td></tr>
+      <tr><td><code>wheel-test</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">keep</span></td><td>Run workflow test fixtures via wheel-test-runner.sh; unchanged</td></tr>
+      <tr><td><code>wheel-view</code></td><td><span class="pill" style="background:rgba(110,123,138,.12);color:#9aa7b4;border:1px solid #30363d">manual</span></td><td><span class="pill p-mod">change</span></td><td>Extend static inspector to stream live from .kiln/runs/&lt;id&gt;/journal; add pre/post hook visibility in output</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §9 SKILLS CHANGE TABLE ─────────────────────────────────── -->
+  <h2 id="skills"><span class="section-num">§9</span>Full Skills Change Table</h2>
+
+  <h3>New Skills</h3>
+  <table>
+    <thead><tr><th>Skill</th><th>Plugin</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>kiln-ledger</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td>
+        <td>Read-only view of <code>.kiln/ledger/</code>. Filters by <code>--kind mistake|fix|retro</code>, <code>--tag topic/hooks</code>, <code>--last 10</code>. No writes.</td>
+      </tr>
+      <tr>
+        <td><code>kiln-improve</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td>
+        <td>Wrapper for the <code>kiln-self-improve</code> wheel workflow. Replaces <code>kiln-pi-apply</code> with broader scope covering all improvement proposals, not just PI.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Renamed / Replaced Skills</h3>
+  <table class="change-row">
+    <thead><tr><th>Old name</th><th>New name</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-pi-apply</code></td><td><code>kiln-improve</code> <span class="pill p-del">replaced</span></td><td>Scope expanded beyond PI — all improvement proposals now handled; pi-apply was an implementation name, improve is the intent name</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Modified Skills (behavior changes)</h3>
+  <table class="change-row">
+    <thead><tr><th>Skill</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>kiln-next</code> <span class="pill p-mod">modified</span></td><td>Read <code>.kiln/config.json</code>; detect resumable runs via <code>.kiln/runs/*/manifest.json</code>; surface distill signal when N captures pending (threshold configurable)</td></tr>
+      <tr><td><code>kiln-build-prd</code> <span class="pill p-mod">modified</span></td><td>Becomes a thin wrapper for <code>wheel-run kiln:kiln-build-prd</code>; all logic moves to the workflow JSON; standards + precedent injected automatically</td></tr>
+      <tr><td><code>kiln-distill</code> <span class="pill p-mod">modified</span></td><td>Add vision-filter step (check captures against <code>.kiln/vision.md</code> before routing to PRD); emit signal to <code>kiln-next</code> when complete</td></tr>
+      <tr><td><code>kiln-init</code> <span class="pill p-mod">modified</span></td><td>Scaffold <code>.kiln/standards.md</code>, <code>.kiln/config.json</code>, <code>.kiln/test-strategy.json</code> with defaults on first init</td></tr>
+      <tr><td><code>clay-create-repo</code> <span class="pill p-mod">modified</span></td><td>After repo scaffold + initial commit, prompt "Set up kiln now?" → delegates to <code>kiln-init</code> if yes. No wizard logic in clay — hand-off only.</td></tr>
+      <tr><td><code>kiln-roadmap</code> <span class="pill p-mod">modified</span></td><td>Add <code>--vision</code> flag for strategic <code>vision.md</code> edits that bypass normal roadmap type system</td></tr>
+      <tr><td><code>shelf-sync</code> <span class="pill p-mod">modified</span></td><td>Extend <code>compute-work-list.sh</code> to include <code>.kiln/ledger/</code> entries; mirror ledger to Obsidian alongside issues/PRDs</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Unchanged Skills</h3>
+  <p style="color:var(--mute);font-size:14px">
+    kiln-mistake · kiln-report-issue · kiln-feedback · kiln-fix · kiln-qa-* · specify · plan · tasks · implement · audit ·
+    kiln-merge-pr · kiln-resume · kiln-analyze · kiln-doctor · kiln-hygiene · kiln-version · all shelf-* · all trim-* · all clay-* (except create-repo) · all wheel-*
+  </p>
+
+  <!-- ─── §10 AGENTS CHANGE TABLE ────────────────────────────────── -->
+  <h2 id="agents"><span class="section-num">§10</span>Full Agents Change Table</h2>
+
+  <h3>New Agents</h3>
+  <table>
+    <thead><tr><th>Agent file</th><th>Plugin</th><th>Model</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>precedent-reader.md</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>haiku</td>
+        <td>Extract topic/stack tags from PRD → build Obsidian search query → call <code>search_vault</code> → format <code>## Precedent</code> block → write <code>.wheel/outputs/precedent-block.md</code>. <code>on_failure: skip</code></td>
+      </tr>
+      <tr>
+        <td><code>risk-classifier.md</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>sonnet</td>
+        <td>Classify improvement proposals as low (single-file config/prompt edit, local blast) or high (hook/gate/cross-plugin). Updates <code>.kiln/ledger/proposals/</code>; emits JSON split for self-improve loop.</td>
+      </tr>
+      <tr>
+        <td><code>build-summary.md</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>haiku</td>
+        <td>Final step of every qualifying workflow. Reads verdicts + cost manifest + git diff; renders 5-table build summary; writes <code>.kiln/runs/&lt;id&gt;/summary.md</code> and prints to terminal. <code>on: always</code></td>
+      </tr>
+      <tr>
+        <td><s><code>parallel-critic.md</code></s> <span class="pill" style="background:rgba(248,81,73,.16);color:#f85149;border:1px solid rgba(248,81,73,.4)">removed</span></td>
+        <td>—</td><td>—</td>
+        <td>Future idea: live pattern-watcher mid-implement with pause-escalation once precedent corpus is large enough.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Modified Agents</h3>
+  <table>
+    <thead><tr><th>Agent</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>smoke-tester.md</code></td><td>Reads <code>.kiln/test-strategy.json</code> for start/ready/probe/teardown commands; adds <code>vision-verify</code> path when <code>design_verify=true</code></td></tr>
+      <tr><td><code>prd-auditor.md</code></td><td>Emits structured JSON verdict <code>{agent,verdict,compliance_pct,findings[],blockers_path}</code>; adds <code>vision-drift-check</code>; reads run-manifest for context</td></tr>
+      <tr><td><code>continuance.md</code></td><td>Reads <code>.kiln/config.json</code> for <code>review_mode</code> on session resume; surfaces pending checkpoints</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §11 WORKFLOWS CHANGE TABLE ─────────────────────────────── -->
+  <h2 id="workflows"><span class="section-num">§11</span>Full Workflows Change Table</h2>
+
+  <h3>New Workflows</h3>
+  <table>
+    <thead><tr><th>Workflow</th><th>Plugin</th><th>Steps</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>kiln-build-prd.json</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>20</td>
+        <td>Full pipeline: config read → PRD read → standards → run manifest → precedent → specify → checkpoint → plan → tasks → gate → implement → test → smoke → checkpoint → audit → checkpoint → create-pr → checkpoint → retro → classify → apply → manifest update</td>
+      </tr>
+      <tr>
+        <td><code>kiln-self-improve.json</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>5</td>
+        <td>Friction loop: collect → classify → L1 apply → L2 chips → mirror</td>
+      </tr>
+      <tr>
+        <td><code>kiln-precedent.json</code> <span class="pill p-new">new</span></td>
+        <td>kiln</td><td>2</td>
+        <td>Sub-workflow: extract PRD context → search Obsidian → emit precedent block</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Modified Workflows</h3>
+  <table>
+    <thead><tr><th>Workflow</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>shelf-sync.json</code></td><td>Add <code>ledger-mirror</code> step: sync <code>.kiln/ledger/</code> entries to Obsidian alongside existing issues/PRDs/progress</td></tr>
+      <tr><td><code>kiln-report-issue.json</code></td><td>Background sub-agent gains a <code>classify-issue</code> step (haiku): reads issue content, determines if AI-class mistake (hallucination, wrong assumption, incorrect output) vs user-reported bug/friction. If AI-class → calls <code>wheel-run kiln:kiln-mistake-record</code>. If not → local write + shelf-sync. Counter increments regardless of class. Extend counter increment to all 4 capture surfaces.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §12 CONFIG FILE SCHEMAS ─────────────────────────────────── -->
+  <h2 id="configs"><span class="section-num">§12</span>Config File Schemas</h2>
+
+  <div class="grid2">
+    <div>
+      <h3>.kiln/config.json</h3>
+      <div class="schema-block">{<br>
+  "review_mode": "standard",<br>
+  "review_checkpoints": ["post-spec","pre-pr"],<br>
+  "auto_build": false,<br>
+  "auto_pr": false,<br>
+  "auto_merge": false,<br>
+  "pi_apply_threshold": "none",<br>
+  "standards": ".kiln/standards.md"<br>
+}</div>
+      <p style="font-size:13px;color:var(--mute)">Scaffolded by <code>kiln-init</code> and <code>clay-create-repo</code>. Checked into project repo. Read at session start by <code>kiln-next</code> and at each checkpoint step in <code>kiln-build-prd.json</code>.</p>
+    </div>
+    <div>
+      <h3>.kiln/test-strategy.json</h3>
+      <div class="callout" style="margin:0 0 10px;padding:10px 14px;font-size:13px">
+        <strong>Machine config only</strong> — no scenarios, no probe scripts. The smoke-review agent derives what to test from PRD + spec context.
+      </div>
+      <div class="schema-block">{<br>
+  "project_type": "web-app",<br>
+  "install": "npm ci",<br>
+  "build": "npm run build",<br>
+  "test": "vitest run",<br>
+  "coverage_gate": 80,<br>
+  "smoke": {<br>
+    "start": "npm run dev",<br>
+    "port": 3000,<br>
+    "ready_url": "http://localhost:3000",<br>
+    "ready_timeout_seconds": 30,<br>
+    "credentials": ".kiln/qa/.env.test",<br>
+    "teardown": "kill"<br>
+  },<br>
+  "design_verify": false<br>
+}</div>
+      <p style="font-size:13px;color:var(--mute)">Read by <code>run-tests</code> step and <code>smoke-tester</code> agent. <code>coverage_gate</code> enforced by <code>coverage-gate.sh</code> hook. <code>design_verify</code> enables vision-verify in smoke step. <code>credentials</code> points to gitignored <code>.kiln/qa/.env.test</code>.</p>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3>.kiln/ledger/&lt;id&gt;.json</h3>
+      <div class="schema-block">{<br>
+  "id": "YYYY-MM-DD-&lt;slug&gt;",<br>
+  "kind": "mistake|fix|retro|friction",<br>
+  "summary": "one-line description",<br>
+  "detail": "full prose",<br>
+  "blast_radius": "local|cross-plugin|cross-project",<br>
+  "tags": ["mistake/assumption","topic/hooks","language/typescript"],<br>
+  "source_path": ".kiln/mistakes/YYYY-MM-DD-&lt;slug&gt;.md",<br>
+  "ts": "ISO-8601"<br>
+}</div>
+    </div>
+    <div>
+      <h3>.kiln/runs/&lt;id&gt;/manifest.json</h3>
+      <div class="schema-block">{<br>
+  "run_id": "uuid",<br>
+  "prd": "docs/features/&lt;slug&gt;/PRD.md",<br>
+  "phase": "specify|plan|tasks|implement|audit|pr|done",<br>
+  "branch": "build/&lt;slug&gt;-YYYYMMDD",<br>
+  "pr": "https://github.com/.../pull/N",<br>
+  "decisions": [],<br>
+  "escalations": [],<br>
+  "cursor": "last-completed-step-id"<br>
+}</div>
+    </div>
+  </div>
+
+  <h3>.kiln/ledger/proposals/&lt;id&gt;.json</h3>
+  <div class="schema-block" style="max-width:600px">{<br>
+  "id": "YYYY-MM-DD-&lt;slug&gt;",<br>
+  "target": "plugin-kiln/skills/plan/SKILL.md",<br>
+  "patch": "unified diff or instruction string",<br>
+  "risk": "low|high",<br>
+  "blast_radius": "local|cross-plugin",<br>
+  "rationale": "why this change",<br>
+  "ledger_refs": ["YYYY-MM-DD-&lt;slug&gt;"]<br>
+}</div>
+
+  <!-- ─── WORKFLOW PRE/POST HOOKS ─────────────────────────────────── -->
+  <h2 id="hooks-wf"><span class="section-num">§12.5</span>Workflow Pre/Post Hooks</h2>
+
+  <p>Every wheel workflow JSON may declare a <code>hooks</code> block with <code>pre</code> and <code>post</code> command steps. These run outside the step graph — before any steps start (pre) and after the last step completes (post). <strong>Command-only; no agent steps in hooks.</strong></p>
+
+  <div class="callout obs">
+    Use case: push an observability snapshot, fire a Slack notification, append to a build log, or send metrics to any endpoint — without touching the domain steps.
+  </div>
+
+  <h3>Schema</h3>
+  <pre><code>{
+  "name": "kiln-build-prd",
+  "version": "1.0.0",
+  "hooks": {
+    "pre": {
+      "command": "curl -s -X POST \"$WEBHOOK_URL\" -d '{\"event\":\"workflow.start\",\"run_id\":\"$WHEEL_RUN_ID\"}' || true",
+      "env_required": ["WEBHOOK_URL"]
+    },
+    "post": {
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/push-obs-snapshot.sh\" \"$WHEEL_RUN_ID\" \"$WHEEL_STATUS\"",
+      "on": "always",
+      "env_required": ["OBS_ENDPOINT"]
+    }
+  },
+  "steps": [...]
+}</code></pre>
+
+  <h3>Fields</h3>
+  <table>
+    <thead><tr><th>Field</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>hooks.pre.command</code></td><td>yes (if pre block exists)</td><td>—</td><td>Shell command run before step 1</td></tr>
+      <tr><td><code>hooks.post.command</code></td><td>yes (if post block exists)</td><td>—</td><td>Shell command run after last step</td></tr>
+      <tr><td><code>hooks.post.on</code></td><td>no</td><td><code>always</code></td><td><code>always</code> · <code>success</code> · <code>failure</code></td></tr>
+      <tr><td><code>hooks.pre.env_required</code></td><td>no</td><td><code>[]</code></td><td>If any listed var is unset, skip hook with a warning — no abort</td></tr>
+      <tr><td><code>hooks.post.env_required</code></td><td>no</td><td><code>[]</code></td><td>Same — hook self-skips gracefully when destination not configured</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Wheel-exported variables available in hook commands</h3>
+  <table>
+    <thead><tr><th>Variable</th><th>Available at</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>$WHEEL_RUN_ID</code></td><td>pre + post</td><td>UUID for this workflow run</td></tr>
+      <tr><td><code>$WHEEL_WORKFLOW_NAME</code></td><td>pre + post</td><td>e.g. <code>kiln-build-prd</code></td></tr>
+      <tr><td><code>$WHEEL_WORKFLOW_VERSION</code></td><td>pre + post</td><td>e.g. <code>1.0.0</code></td></tr>
+      <tr><td><code>$WHEEL_STATUS</code></td><td>post only</td><td><code>pass</code> · <code>fail</code> · <code>warn</code></td></tr>
+      <tr><td><code>$WHEEL_STEP_COUNT</code></td><td>post only</td><td>Total steps that executed</td></tr>
+      <tr><td><code>$WHEEL_STEPS_PASSED</code></td><td>post only</td><td>Steps that exited 0</td></tr>
+      <tr><td><code>$WHEEL_OUTPUTS_DIR</code></td><td>pre + post</td><td><code>.wheel/outputs/</code></td></tr>
+      <tr><td><code>$WORKFLOW_PLUGIN_DIR</code></td><td>pre + post</td><td>Absolute path to plugin dir</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    Pre-hooks that fail (non-zero exit) emit a warning but do <strong>not abort</strong> the workflow. Post-hooks that fail are logged but do not change the workflow exit status. Use <code>|| true</code> defensively when the destination may be unavailable.
+  </div>
+
+  <h3>Example hook commands</h3>
+  <pre><code># Slack notification on completion
+curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  -H 'Content-Type: application/json' \
+  -d "{\"text\":\"*${WHEEL_WORKFLOW_NAME}* finished: ${WHEEL_STATUS} (${WHEEL_STEPS_PASSED}/${WHEEL_STEP_COUNT} steps)\"}" || true
+
+# Lightweight HTTP observability endpoint
+curl -s -X POST "http://localhost:9000/events" \
+  -d "run_id=${WHEEL_RUN_ID}&workflow=${WHEEL_WORKFLOW_NAME}&status=${WHEEL_STATUS}" || true
+
+# Append to a shared TSV build log
+echo "$(date -u +%FT%TZ)\t${WHEEL_WORKFLOW_NAME}\t${WHEEL_RUN_ID}\t${WHEEL_STATUS}" \
+  >> "${HOME}/.kiln/build-log.tsv"
+
+# Push outputs snapshot to Obsidian via plugin script
+bash "${WORKFLOW_PLUGIN_DIR}/scripts/push-obs-snapshot.sh" \
+  "${WHEEL_RUN_ID}" "${WHEEL_STATUS}" "${WHEEL_OUTPUTS_DIR}" || true</code></pre>
+
+  <h3>Wheel runtime changes required</h3>
+  <ul>
+    <li>Parse <code>hooks.pre</code> and <code>hooks.post</code> from workflow JSON on load</li>
+    <li>Check <code>env_required</code> before running each hook; skip with <code>WARN: hook skipped — $VAR unset</code> if any var missing</li>
+    <li>Run pre-hook in a clean subshell with wheel context vars exported</li>
+    <li>Run post-hook after final step once <code>WHEEL_STATUS</code> is resolved</li>
+    <li>Both hooks share the same <code>$WORKFLOW_PLUGIN_DIR</code> templating used by agent steps</li>
+    <li>Add <code>hooks</code> block to <code>workflow-format.md</code> template reference</li>
+  </ul>
+
+  <!-- ─── §13 MCP TOOL ADDITIONS ──────────────────────────────────── -->
+  <h2 id="mcp"><span class="section-num">§13</span>MCP Tool Additions</h2>
+
+  <div class="callout obs">
+    <strong>Add to Obsidian MCP (user implements)</strong>
+  </div>
+
+  <h3>search_vault — Phase 1 (build this first)</h3>
+  <pre><code>search_vault(query: string, limit?: number = 20)
+  → Promise&lt;Array&lt;{
+      path:        string,   // vault-relative path, e.g. "mistakes/2026-01-10-hooks-race.md"
+      title:       string,   // note title from frontmatter or H1
+      frontmatter: object,   // all YAML frontmatter keys
+      excerpt:     string    // first ~300 chars of note body
+    }&gt;&gt;</code></pre>
+
+  <p>Exposes Obsidian's native search syntax. Called by the <code>precedent-reader</code> agent with tag-intersection queries built from the PRD's topic and stack tags.</p>
+
+  <h3>semantic_search — Phase 1+ (future upgrade)</h3>
+  <pre><code>semantic_search(text: string, k?: number = 10)
+  → Promise&lt;Array&lt;{ path: string, title: string, score: number, excerpt: string }&gt;&gt;</code></pre>
+
+  <p>Backed by Turso sqlite-vec. Embeddings computed at <code>shelf-sync</code> time for each mistake note.
+  Build after <code>search_vault</code> is live and the mistakes corpus exceeds ~50 entries.
+  See <code>.kiln/roadmap/items/2026-06-23-obsidian-semantic-search-turso.md</code>.</p>
+
+  <!-- ─── §14 BUILD ORDER ─────────────────────────────────────────── -->
+  <h2 id="depgraph"><span class="section-num">§14</span>Build Order — Dependency Graph</h2>
+
+  <div class="dep-graph">
+    <span class="hl">Phase 0</span>: .kiln/standards.md + .kiln/config.json + .kiln/test-strategy.json<br>
+    <span class="hl">          </span>  kiln-init scaffold + clay-create-repo scaffold<br>
+    <span class="hl">          </span>  compose-context.sh --standards flag<br>
+    <span class="arr">            ↓  (standards available to inject)</span><br>
+    <span class="hl">Phase 1</span>: search_vault MCP tool + precedent-reader agent<br>
+    <span class="hl">          </span>  .kiln/ledger/ schema + kiln-ledger skill<br>
+    <span class="hl">          </span>  kiln-precedent.json workflow<br>
+    <span class="arr">            ↓  (precedent queryable, ledger writable)</span><br>
+    <span class="hl">Phase 2</span>: kiln-build-prd.json (full 26-step pipeline)<br>
+    <span class="hl">          </span>  kiln-build-prd skill → thin wheel-run wrapper<br>
+    <span class="hl">          </span>  prd-auditor.md structured verdicts<br>
+    <span class="hl">          </span>  smoke-tester.md reads test-strategy.json<br>
+    <span class="arr">            ↓  (retro output available, run-manifest written)</span><br>
+    <span class="hl">Phase 3</span>: kiln-self-improve.json (5-step loop)<br>
+    <span class="hl">          </span>  risk-classifier.md agent<br>
+    <span class="hl">          </span>  kiln-improve skill replaces kiln-pi-apply<br>
+    <span class="arr">            ↓  (phases 4 + 5 are independent; can proceed in parallel)</span><br>
+    <span class="hl">Phase 4</span>: coverage-gate.sh + untraced-test-gate.sh + merge-bar.sh hooks<br>
+    <span class="hl">Phase 5</span>: wheel-view live stream + vision-verify in smoke-review<br>
+    <span class="hl">          </span>  vision-filter in kiln-distill + vision-drift-check in audit
+  </div>
+
+  <h3>Critical Path</h3>
+  <p>The critical path is: <strong>Phase 0 → Phase 1 → Phase 2</strong>. Everything else (Phases 3–5) depends only on Phase 2 being shippable. Phases 4 and 5 are independent of Phase 3 and can be built in parallel once Phase 2 ships.</p>
+
+  <!-- ─── §15 SPECKIT PIPELINE ────────────────────────────────────── -->
+  <h2 id="speckit"><span class="section-num">§15</span>Speckit Pipeline</h2>
+
+  <p>The <strong>speckit</strong> is the <code>specify → plan → tasks → contracts</code> unit. It runs before any <code>src/</code> edit; hooks enforce this. The pipeline has three distinct sub-phases inside <code>plan</code> that are load-bearing for the autonomous build loop.</p>
+
+  <div class="callout">
+    <strong>Pipeline overview:</strong><br><br>
+    <code>kiln-distill → PRD.md</code><br>
+    &nbsp;&nbsp;↓<br>
+    <code>/specify → specs/&lt;slug&gt;/spec.md</code> <em>(quality-validation loop)</em><br>
+    &nbsp;&nbsp;↓<br>
+    <code>/plan Phase 0</code>: research → <code>research.md</code><br>
+    <code>/plan Phase 1</code>: design + contracts → <code>plan.md</code> + <code>contracts/interfaces.md</code><br>
+    <code>/plan Phase 1.5</code>: research-first routing → synthesizer/judge agents<br>
+    &nbsp;&nbsp;↓<br>
+    <code>/tasks → specs/&lt;slug&gt;/tasks.md</code><br>
+    &nbsp;&nbsp;↓<br>
+    <strong>HOOKS GATE</strong> (spec + plan + tasks + contracts all present)<br>
+    &nbsp;&nbsp;↓<br>
+    <code>/implement</code>
+  </div>
+
+  <h3>Specify — Quality Validation Loop</h3>
+  <p>The <code>specify</code> skill does not exit on first pass. After writing <code>spec.md</code> it runs a <strong>spec quality checklist</strong>. If any item fails, the skill runs an iterative fix loop — rewriting the offending sections — until all checks pass or the loop limit is reached.</p>
+
+  <table>
+    <thead><tr><th>Checklist item</th><th>Enforced before spec.md is committed</th></tr></thead>
+    <tbody>
+      <tr><td>FR testability</td><td>Every FR contains MUST or MUST NOT (not vague)</td></tr>
+      <tr><td>Acceptance scenarios</td><td>Every user story has ≥1 Given/When/Then scenario</td></tr>
+      <tr><td>Open questions resolved</td><td>No unresolved <code>[NEEDS CLARIFICATION]</code> unless flagged <code>open_question</code></td></tr>
+      <tr><td>Independent test described</td><td>Every user story has an <code>Independent Test</code> line</td></tr>
+      <tr><td>Edge cases non-empty</td><td>Edge cases section has ≥1 item</td></tr>
+      <tr><td>Success criteria present</td><td>At least one <code>SC-NNN</code> entry exists</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Plan — Three Sub-Phases</h3>
+
+  <div class="grid2">
+    <div>
+      <div class="phase-card">
+        <div class="ph-num">Phase 0</div>
+        <h3 style="margin:0 0 6px">Research</h3>
+        <p style="margin:0;font-size:14px">Spawns <code>research-runner</code> agent. Writes <code>specs/&lt;slug&gt;/research.md</code>. Covers: existing solutions, comparable implementations, potential pitfalls, stack fit. <strong>Skipped</strong> if <code>research.md</code> already exists (resumable).</p>
+      </div>
+      <div class="phase-card">
+        <div class="ph-num">Phase 1.5</div>
+        <h3 style="margin:0 0 6px">Research-First Routing</h3>
+        <p style="margin:0;font-size:14px">When entering a new API surface or unknown third-party: spawns <code>research-runner</code> (synthesizer) → generates N candidate approaches; <code>output-quality-judge</code> scores each, selects winner. Winner becomes Phase 1 input. Runners-up archived in <code>research.md</code>.</p>
+      </div>
+    </div>
+    <div>
+      <div class="phase-card">
+        <div class="ph-num">Phase 1</div>
+        <h3 style="margin:0 0 6px">Design + Contracts</h3>
+        <p style="margin:0;font-size:14px">Writes four artifacts:</p>
+        <ul style="font-size:13px;margin:8px 0 0">
+          <li><code>specs/&lt;slug&gt;/plan.md</code> — technical approach, phases, file list</li>
+          <li><code>specs/&lt;slug&gt;/contracts/interfaces.md</code> — every exported function signature with FR reference</li>
+          <li><code>specs/&lt;slug&gt;/data-model.md</code> <em>(when feature involves entities)</em></li>
+          <li><code>specs/&lt;slug&gt;/quickstart.md</code> <em>(when feature is a library or CLI)</em></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>Interface Contracts as Anchor</h3>
+  <div class="callout good">
+    <code>contracts/interfaces.md</code> is the single source of truth for the entire build. Every exported function name, parameter type, return type, and FR reference lives here. Implementation must match exactly — hooks block divergence. If a signature must change during implementation, update <code>contracts/interfaces.md</code> first and commit.
+  </div>
+
+  <h3>Tasks — User Story Organization</h3>
+  <p>Tasks are grouped by user story (US1, US2, US3) so each story is independently deliverable. A <strong>Foundational phase</strong> (Phase 2 in the task list) blocks all user story phases — it contains shared infrastructure that every story depends on.</p>
+
+  <table>
+    <thead><tr><th>Tag</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>[P]</code></td><td>Can run in parallel — different files, no dependencies</td></tr>
+      <tr><td><code>[USN]</code></td><td>Links task to user story N for traceability</td></tr>
+      <tr><td>Exact file path</td><td>Required in every task description — no vague tasks</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─── §16 TEMPLATES REGISTRY ───────────────────────────────────── -->
+  <h2 id="templates"><span class="section-num">§16</span>Templates Registry</h2>
+
+  <h3>Existing Templates (plugin-kiln/templates/)</h3>
+  <table>
+    <thead><tr><th>File</th><th>Purpose</th><th>Used by</th></tr></thead>
+    <tbody>
+      <tr><td><code>spec-template.md</code></td><td>Spec scaffold: user stories, FRs, success criteria, assumptions, edge cases</td><td><code>/specify</code></td></tr>
+      <tr><td><code>plan-template.md</code></td><td>Plan scaffold: summary, tech context, project structure, complexity tracking</td><td><code>/plan</code></td></tr>
+      <tr><td><code>tasks-template.md</code></td><td>Task list scaffold organized by user story + phases; parallel tagging</td><td><code>/tasks</code></td></tr>
+      <tr><td><code>interfaces-template.md</code></td><td>Interface contracts scaffold: function signatures with FR references</td><td><code>/plan</code> Phase 1</td></tr>
+      <tr><td><code>constitution-template.md</code></td><td>Project constitution: principles, governance, design reference mapping</td><td><code>/kiln-init</code></td></tr>
+      <tr><td><code>vision-template.md</code></td><td>Product vision: what / not / winning / constraints — apex context doc</td><td><code>/clay-create-repo</code>, <code>/kiln-roadmap --vision</code></td></tr>
+      <tr><td><code>issue.md</code></td><td>Issue/friction report: frontmatter with type, severity, category, status</td><td><code>/kiln-report-issue</code></td></tr>
+      <tr><td><code>checklist-template.md</code></td><td>QA checklist scaffold for <code>qa-engineer</code> agent</td><td><code>/kiln-qa-setup</code></td></tr>
+      <tr><td><code>ux-rubric.md</code></td><td>10-dimension UX scoring rubric (Tier A/B/C, weighted formula, thresholds)</td><td><code>ux-evaluator</code> agent</td></tr>
+      <tr><td><code>agent-file-template.md</code></td><td>New agent file scaffold: frontmatter, role, tools, output format</td><td>Manual / <code>/kiln-hygiene</code></td></tr>
+      <tr><td><code>workflow-format.md</code></td><td>Wheel workflow JSON format reference</td><td>Manual</td></tr>
+      <tr><td><code>kiln-manifest.json</code></td><td>Plugin manifest scaffold</td><td><code>/kiln-init</code></td></tr>
+      <tr><td><code>roadmap-template.md</code></td><td>Roadmap document scaffold</td><td><code>/kiln-roadmap</code></td></tr>
+      <tr><td><code>roadmap-item-template.md</code></td><td>Single roadmap item frontmatter + body</td><td><code>/kiln-roadmap</code></td></tr>
+      <tr><td><code>roadmap-phase-template.md</code></td><td>Phase document scaffold</td><td><code>/kiln-roadmap</code></td></tr>
+      <tr><td><code>roadmap-critique-template.md</code></td><td>Roadmap critique / retro item</td><td><code>/kiln-roadmap</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>New Templates (to add in Phase 0–1)</h3>
+
+  <table>
+    <thead><tr><th>File</th><th>Phase</th><th>Scaffolded by</th><th>Written to</th></tr></thead>
+    <tbody>
+      <tr><td><code>standards-template.md</code> <span class="pill p-new">new</span></td><td>0</td><td><code>kiln-init</code>, <code>clay-create-repo</code></td><td><code>.kiln/standards.md</code></td></tr>
+      <tr><td><code>config-template.json</code> <span class="pill p-new">new</span></td><td>0</td><td><code>kiln-init</code>, <code>clay-create-repo</code></td><td><code>.kiln/config.json</code></td></tr>
+      <tr><td><code>test-strategy-template.json</code> <span class="pill p-new">new</span></td><td>0</td><td><code>kiln-init</code></td><td><code>.kiln/test-strategy.json</code></td></tr>
+      <tr><td><code>ledger-entry-template.json</code> <span class="pill p-new">new</span></td><td>1</td><td><code>collect-retro</code> agent, <code>kiln-mistake</code></td><td><code>.kiln/ledger/&lt;id&gt;.json</code></td></tr>
+      <tr><td><code>run-manifest-template.json</code> <span class="pill p-new">new</span></td><td>1</td><td><code>init-run-manifest</code> step</td><td><code>.kiln/runs/&lt;id&gt;/manifest.json</code></td></tr>
+      <tr><td><code>retro-template.md</code> <span class="pill p-new">new</span></td><td>2</td><td><code>collect-retro</code> agent</td><td><code>.kiln/runs/&lt;id&gt;/retro.md</code></td></tr>
+      <tr><td><code>smoke-report-template.md</code> <span class="pill p-new">new</span></td><td>2</td><td><code>smoke-review</code> agent</td><td><code>specs/&lt;slug&gt;/smoke-report.md</code></td></tr>
+      <tr><td><code>precedent-block-template.md</code> <span class="pill p-new">new</span></td><td>1</td><td><code>precedent-reader</code> agent</td><td><code>.wheel/outputs/precedent-block.md</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>New Scaffold Files (plugin-kiln/scaffold/)</h3>
+  <p style="font-size:13px;color:var(--mute)">Read from the plugin install path — NOT copied to consumer projects. Used by kiln tooling at runtime.</p>
+  <table>
+    <thead><tr><th>File</th><th>Purpose</th><th>Read by</th></tr></thead>
+    <tbody>
+      <tr><td><code>config-schema.json</code> <span class="pill p-new">new</span></td><td>Version-keyed config key declarations: for each key, the version that introduced it plus type + default. <code>kiln-init</code> compares against project's <code>config_version</code> to ask only about new keys on re-run.</td><td><code>kiln-init</code></td></tr>
+      <tr><td><code>doctor-manifest.json</code> <span class="pill p-new">new</span></td><td>Version-keyed required/optional health check declarations. <code>kiln-doctor</code> merges all entries up to current version and emits a diagnostic table. New checks ship by adding manifest entries — no code changes needed.</td><td><code>kiln-doctor</code></td></tr>
+    </tbody>
+  </table>
+
+  <h4>standards-template.md content</h4>
+  <pre><code>## Coding Standards
+
+### Naming
+- names are pronounceable and searchable — no abbreviations, no encodings
+- one word per concept (fetch not retrieve/get/pull mixed across the codebase)
+- functions named as verbs, booleans as predicates (isActive, hasPermission)
+- classes/modules named as nouns describing what they ARE, not what they DO
+
+### Functions
+- do one thing at one level of abstraction
+- &lt;= 20 lines, &lt;= 2 parameters — extract an object or split if more are needed
+- no flag arguments — split into two named functions instead
+- no side effects — a function that says it reads should only read
+
+### Comments
+- do not comment WHAT the code does — rename or restructure instead
+- only write a comment to explain WHY: a hidden constraint, a non-obvious invariant
+
+### Error handling
+- throw exceptions, never return null or error codes from internal functions
+- never pass null — guard at system boundaries, trust contracts internally
+
+### Structure
+- single responsibility — one reason to change per module
+- tell don't ask — don't reach into an object's state to make decisions for it
+- no circular dependencies across layers
+
+### Tests
+- one concept per test, assertion names describe the failure
+- every test references its spec FR in a comment
+- no stubs on integration paths</code></pre>
+
+  <h4>ledger-entry-template.json — Three-axis tagging</h4>
+  <pre><code>{
+  "id": "YYYY-MM-DD-&lt;slug&gt;",
+  "kind": "mistake | fix | retro | friction",
+  "summary": "&lt;one-line description&gt;",
+  "detail": "&lt;full prose — what happened, root cause, how to avoid&gt;",
+  "blast_radius": "local | cross-plugin | cross-project",
+  "tags": ["mistake/assumption", "topic/hooks", "language/typescript"],
+  "source_path": ".kiln/mistakes/YYYY-MM-DD-&lt;slug&gt;.md",
+  "ts": "ISO-8601"
+}</code></pre>
+  <p style="font-size:13px;color:var(--mute)">
+    Tag axes: <code>mistake/&lt;class&gt;</code> (assumption, race-condition, scope-creep) ·
+    <code>topic/&lt;area&gt;</code> (hooks, wheel, shelf, contracts) ·
+    <code>language/&lt;lang&gt;</code> or <code>framework/&lt;fw&gt;</code>
+  </p>
+
+  <h4>smoke-report-template.md — agent-generated, not pre-written</h4>
+
+  <div class="callout good" style="margin-bottom:10px">
+    <strong>Design principle:</strong> The smoke-review agent derives its own test plan from PRD + spec + contracts context.
+    <code>test-strategy.json</code> gives it machine config (how to start/stop the app).
+    The agent figures out <em>what</em> to test. The <code>smoke-report.md</code> it writes becomes the traceability artifact and feeds Obsidian for future runs.
+  </div>
+
+  <p style="font-size:13px;color:var(--mute)">Agent steps for smoke-review:</p>
+  <ol style="font-size:13px;color:var(--mute)">
+    <li>Read PRD, spec FRs, <code>contracts/interfaces.md</code> to understand what was built</li>
+    <li>If <code>design_verify: true</code>, read <code>design/features/&lt;slug&gt;/</code> mockups</li>
+    <li>Start app with <code>smoke.start</code>, poll <code>smoke.ready_url</code> every 2s up to <code>ready_timeout_seconds</code></li>
+    <li>Derive own test plan — one scenario per FR with a visible user-facing surface</li>
+    <li>Execute scenarios via browser tools</li>
+    <li>Write <code>specs/&lt;slug&gt;/smoke-report.md</code></li>
+    <li>Emit JSON verdict, teardown app</li>
+  </ol>
+
+  <pre><code>---
+run_id: &lt;uuid&gt;
+prd: docs/features/&lt;slug&gt;/PRD.md
+date: YYYY-MM-DD
+verdict: pass | fail | warn
+scenarios_run: &lt;N&gt;
+scenarios_passed: &lt;N&gt;
+fidelity_score: null | 0-10
+---
+
+## Test Context
+
+Tested against: PRD `docs/features/&lt;slug&gt;/PRD.md`
+FRs exercised: FR-001, FR-002, FR-003
+Design verify: false
+
+## Scenarios
+
+### SC-001 — &lt;derived from FR-001&gt;
+- **Route**: /
+- **Auth**: not required
+- **Actions**: &lt;prose: what the agent did&gt;
+- **Assertions**: &lt;prose: what the agent checked&gt;
+- **Result**: pass | fail | warn
+- **Notes**: &lt;any unexpected behavior&gt;
+
+### SC-002 — &lt;derived from FR-002&gt;
+...
+
+## Design Fidelity (if design_verify: true)
+
+| Route | Reference mockup | Match | Notes |
+|---|---|---|---|
+| / | design/features/slug/home.html | pass | Minor delta on CTA color |
+
+## Summary
+
+&lt;One paragraph: what was tested, what passed, what failed, anything surprising&gt;</code></pre>
+
+  <p style="font-size:13px;color:var(--mute)">Smoke reports are mirrored to Obsidian via <code>shelf-sync</code> alongside issues and PRDs. The <code>precedent-reader</code> can surface relevant past smoke reports when building similar features — this is the learning loop that makes the agent smarter over time without manual maintenance.</p>
+
+  <h4>retro-template.md content</h4>
+  <pre><code>---
+run_id: &lt;uuid&gt;
+prd: docs/features/&lt;slug&gt;/PRD.md
+date: YYYY-MM-DD
+compliance_pct: &lt;N&gt;
+---
+
+## What went well
+- &lt;item&gt;
+
+## What slowed us down
+- &lt;item&gt;
+
+## Improvement proposals
+
+### Proposal 1 — &lt;title&gt;
+- **Target**: &lt;file or area&gt;
+- **Instruction**: &lt;concrete actionable change&gt;
+- **Risk guess**: low | high
+- **Blast radius**: local | cross-plugin</code></pre>
+
+  <h4>precedent-block-template.md content</h4>
+  <pre><code>## Precedent — past mistakes relevant to this feature
+
+&gt; These are real mistakes made in prior builds. Read before specifying or implementing.
+
+- **[severity]** `[mistake_class]` — [assumption that was wrong]
+  ✓ Correction: [what to do instead]
+  _(source: [project-slug], [date])_
+
+## Precedent   ← (empty state)
+
+_No relevant past mistakes found for this feature._</code></pre>
+
+  <!-- ─── §17 OPEN QUESTIONS ──────────────────────────────────────── -->
+  <h2 id="open"><span class="section-num">§17</span>Open Questions</h2>
+
+  <table>
+    <thead><tr><th>#</th><th>Question</th><th>Decision needed</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><s><code>parallel-critic</code> authority</s></td>
+        <td><em>Resolved — removed.</em> Future idea: live pattern-watcher with pause-escalation once precedent corpus is large enough to make matching meaningful.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Issue numbering collision in <code>kiln-report-issue</code></td>
+        <td>Race condition on numbering across concurrent captures. Quick fix before Phase 0 ships. Options: lockfile, monotonic counter in <code>.shelf-config</code>, UUID-based names.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Shared shelf counter across all 4 capture surfaces</td>
+        <td>Currently only <code>kiln-report-issue</code> increments the counter. Fix in Phase 0: all 4 capture surface background sub-agents should increment it. Needs a shared lockfile or atomic counter.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>kiln-next</code> distill signal threshold</td>
+        <td>How many pending captures before surfacing "ready to distill"? Proposal: 5. Make it configurable in <code>.kiln/config.json</code> as <code>"distill_threshold": 5</code>.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>L2 chip UX</td>
+        <td>High-risk proposals have no UX for one-click apply today. Depends on Claude Code task chip API. For now, L2 proposals are printed to stdout and emailed/Slacked to the developer. Revisit when chip API is stable.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="foot">
+    Master Plan · Kiln Autonomous Re-architecture · Generated 2026-06-23<br>
+    Branch: <code>build/wheel-viewer-definition-quality-20260509</code> ·
+    Source: <code>docs/features/2026-06-22-kiln-autonomous-rearchitecture/MASTER_PLAN.md</code>
+  </div>
+
+</div>
+</body>
+</html>
