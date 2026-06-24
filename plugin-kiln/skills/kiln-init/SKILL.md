@@ -55,21 +55,58 @@ If the plugin is already installed, skip to Step 3.
 
 ## Step 3: Run the Scaffold
 
+Prefer the bundled `bin/init.mjs` from this plugin install (so a locally-loaded or
+`--plugin-dir` plugin scaffolds with ITS code, not a stale published package). Fall
+back to the published package only when the bundled script isn't resolvable.
+
 ```bash
-# Run init.mjs to scaffold project structure
-# This is idempotent — won't overwrite existing files
-npx @yoshisada/kiln-harness init
+# Run init.mjs to scaffold project structure. Idempotent — won't overwrite existing files.
+if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && -f "${CLAUDE_PLUGIN_ROOT}/bin/init.mjs" ]]; then
+  node "${CLAUDE_PLUGIN_ROOT}/bin/init.mjs" init
+else
+  npx @yoshisada/kiln init
+fi
 ```
 
 This creates (if missing):
 - `CLAUDE.md` — workflow rules and hook enforcement
 - `.specify/memory/constitution.md` — governing principles
 - `.specify/templates/` — spec, plan, tasks templates
+- `.kiln/config.json` — review mode, checkpoints, branching, model tiers (Phase 0)
+- `.kiln/standards.md` — coding standards injected into plan/implement prompts
+- `.kiln/test-strategy.json` — coverage gate + smoke config
 - `docs/PRD.md` — product requirements placeholder
 - `docs/session-prompt.md` — onboarding prompt
 - `specs/` — feature specifications directory
-- `src/` and `tests/` — code directories with `.gitkeep`
 - `.gitignore` — standard ignores
+
+## Step 3b: Vision Interview
+
+Vision is best captured at setup, when the idea is freshest. It's the filter
+`kiln-distill` uses to decline off-vision captures, so it pays for itself fast.
+
+```bash
+# Skip if vision already exists (e.g. clay-create-repo already wrote it).
+test -f .kiln/vision.md && echo "vision-exists" || echo "vision-missing"
+```
+
+- If `.kiln/vision.md` **exists** → skip with: "Vision already defined — edit with
+  `/kiln:kiln-roadmap --vision`."
+- If **missing** → run a short interview, asking the four prompts in **two pairs** (never
+  dump all four at once), each with a strong default the user can accept or tweak:
+  1. **What are we building?** (one paragraph — product, user, the unfair shortcut)
+  2. **What is it NOT?** (the deliberate boundary)
+  — then —
+  3. **How will we know we're winning?** (the 6-month signals)
+  4. **Guiding constraints?** (≤5 bullets)
+
+  Write the answers into `.kiln/vision.md` using `templates/vision-template.md` as the
+  shape (resolve via `${CLAUDE_PLUGIN_ROOT}/templates/vision-template.md`), stamping
+  `last_updated` with today's date.
+
+This step is **skippable** — if the user presses enter / declines, print "Vision
+deferred — define it any time with `/kiln:kiln-roadmap --vision`." and continue. Do not
+block init on it.
 
 ## Step 4: Handle Existing Code
 
@@ -121,6 +158,51 @@ If `docs/PRD.md` is still the template placeholder, ask:
 - "Do you have a product requirements document? If so, paste it or point me to it."
 - "If not, would you like me to generate one from the existing codebase?"
 
+### Step 5b: Design-First Mode
+
+Ask **one** question with a default:
+
+> "Is this a design-first project — do you drive UI from Penpot designs, with code
+> following the design? (default: no)"
+
+If **yes**, set `design_first: true` in `.kiln/config.json`. When enabled, `kiln-distill`
+pulls the latest Penpot artifacts (via `trim-pull`) before drafting PRDs, and
+`smoke-review` can verify rendered code against the design mockup. Leave `false` for
+code-first projects.
+
+```bash
+# Apply the answer (DESIGN_FIRST is "true" or "false")
+jq --argjson v "$DESIGN_FIRST" '.design_first = $v' .kiln/config.json > .kiln/config.json.tmp \
+  && mv .kiln/config.json.tmp .kiln/config.json
+```
+
+### Step 5c: Branching Style
+
+Ask **one** question with a default, offering the three styles:
+
+> "How should kiln branch and PR? (default: github-flow)"
+
+| Style | Flow | When |
+|---|---|---|
+| `github-flow` | feature branch → PR → `main` | Solo / small team; main always deployable |
+| `gitflow` | feature branch → PR → `integration_branch` (default `dev`) → PR → `main` | Keep `main` clean until milestone-ready |
+| `trunk` | commit directly to `main` | Strong CI, fastest loop, no branches |
+
+Write the choice into `.kiln/config.json` under `branching.style`. If `gitflow`, also set
+`branching.integration_branch` (default `dev`) and create it if it doesn't exist:
+
+```bash
+jq --arg s "$BRANCHING_STYLE" '.branching.style = $s' .kiln/config.json > .kiln/config.json.tmp \
+  && mv .kiln/config.json.tmp .kiln/config.json
+if [ "$BRANCHING_STYLE" = "gitflow" ]; then
+  INT_BRANCH=$(jq -r '.branching.integration_branch // "dev"' .kiln/config.json)
+  git rev-parse --verify "$INT_BRANCH" >/dev/null 2>&1 || git branch "$INT_BRANCH"
+fi
+```
+
+`require-feature-branch.sh` reads `branching.per_feature`; `create-pr` reads
+`branching.style` to choose the PR base. No workflow JSON edits needed to switch styles.
+
 ## Step 6: Initialize Version Tracking
 
 ```bash
@@ -136,7 +218,7 @@ fi
 If there are changes to commit:
 
 ```bash
-git add CLAUDE.md .specify/ docs/ specs/ VERSION .gitignore
+git add CLAUDE.md .specify/ docs/ specs/ .kiln/ VERSION .gitignore
 git commit -m "chore: initialize kiln harness
 
 Adds spec-first development infrastructure:
@@ -144,6 +226,8 @@ Adds spec-first development infrastructure:
 - Constitution with governing principles
 - PRD template
 - Spec templates and directory structure
+- .kiln/config.json, standards.md, test-strategy.json (review + standards config)
+- Vision (.kiln/vision.md) if defined
 - Version tracking (000.000.000.000)"
 ```
 
@@ -162,14 +246,19 @@ Adds spec-first development infrastructure:
 - [x] Constitution (.specify/memory/constitution.md)
 - [x] PRD (docs/PRD.md)
 - [x] Spec templates (.specify/templates/)
+- [x] Config (.kiln/config.json — review_mode: [mode], branching: [style])
+- [x] Standards (.kiln/standards.md)
+- [x] Test strategy (.kiln/test-strategy.json)
+- [x] Vision (.kiln/vision.md) [if defined — else "deferred"]
 - [x] Directory structure (specs/, docs/)
 - [x] Version tracking (VERSION)
 - [x] Git hooks (require-spec, block-env-commit, version-increment)
 
 ### Next steps:
 1. Edit `docs/PRD.md` with your product requirements
-2. Edit `.specify/memory/constitution.md` with project-specific principles
-3. Run `/kiln:kiln-build-prd` to start building, or `/kiln:kiln-resume` to see current state
+2. Review `.kiln/config.json` (review_mode, branching, model tiers) and `.kiln/standards.md`
+3. Edit `.specify/memory/constitution.md` with project-specific principles
+4. Run `/kiln:kiln-build-prd` to start building, or `/kiln:kiln-resume` to see current state
 ```
 
 ## Rules
