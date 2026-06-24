@@ -66,3 +66,6 @@ reports/
 # Research-first runner reports (NFR-S-004) — per-run ephemeral comparative
 # reports. Maintainers may copy into PR descriptions manually.
 .kiln/logs/research-*
+
+# Dogfood harness — per-run cost/result logs from run-scenario.sh. Never commit.
+.kiln/logs/dogfood-*

@@ -16,7 +16,7 @@
  *   npx @yoshisada/kiln update     # re-sync templates to latest
  */
 
-import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -148,20 +148,20 @@ function scaffoldProject() {
 // ── Sync: plugin workflows to consumer project (FR-002) ──
 
 function syncWorkflows() {
-  const pluginJsonPath = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
-  if (!existsSync(pluginJsonPath)) return;
+  // Discover workflows by filesystem scan, not a plugin.json field. The manifest
+  // `workflows` array is non-standard (it fails `claude plugin validate`, which in
+  // turn blocks the plugin's skills from loading under --plugin-dir) and redundant —
+  // wheel discovers workflows from the plugin's workflows/ dir, matching the
+  // filesystem-backed-discovery vision constraint.
+  const workflowsSrc = join(PLUGIN_ROOT, "workflows");
+  if (!existsSync(workflowsSrc)) return;
 
-  const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
-  const workflows = pluginJson.workflows || [];
-  if (workflows.length === 0) return;
+  const files = readdirSync(workflowsSrc).filter((f) => f.endsWith(".json"));
+  if (files.length === 0) return;
 
   ensureDir(join(PROJECT_DIR, "workflows"));
-  for (const wfPath of workflows) {
-    const src = join(PLUGIN_ROOT, wfPath);
-    const dest = join(PROJECT_DIR, "workflows", basename(wfPath));
-    if (existsSync(src)) {
-      copyIfMissing(src, dest, `workflows/${basename(wfPath)}`);
-    }
+  for (const f of files) {
+    copyIfMissing(join(workflowsSrc, f), join(PROJECT_DIR, "workflows", f), `workflows/${f}`);
   }
 }
 

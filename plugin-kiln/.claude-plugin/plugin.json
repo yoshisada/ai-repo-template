@@ -6,10 +6,6 @@
     "name": "yoshisada"
   },
   "homepage": "https://github.com/yoshisada/ai-repo-template",
-  "workflows": [
-    "workflows/report-issue.json",
-    "workflows/mistake.json"
-  ],
   "agent_bindings": {
     "research-runner": {
       "verbs": {

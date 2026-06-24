@@ -9,8 +9,5 @@
   "dependencies": [
     "wheel",
     "shelf"
-  ],
-  "workflows": [
-    "workflows/sync.json"
   ]
 }
