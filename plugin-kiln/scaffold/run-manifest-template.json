@@ -1,0 +1,16 @@
+{
+  "run_id": "",
+  "prd": "docs/features/<slug>/PRD.md",
+  "phase": "specify",
+  "branch": "",
+  "pr": null,
+  "decisions": [],
+  "escalations": [],
+  "cursor": "init-run-manifest",
+  "cost": {
+    "total_usd": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "by_model": {}
+  }
+}
