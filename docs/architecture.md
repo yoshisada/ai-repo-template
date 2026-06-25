@@ -28,7 +28,9 @@ blocking issues.
 | kiln-fix | ✅ substantive 5/7 — **diagnosed + FIXED the bug** (`return a-b`→`a+b`) + verified; ledger/summary pending at turn-end |
 | Phase-4 hooks | ✅ verified by direct invocation (block / allow / fail-open across all scenarios) |
 | kiln-build-prd (linear steps) | ✅ config→prd→standards→manifest→precedent drive E2E |
-| kiln-build-prd (team steps) | ⚠️ dispatch proven (Stop hook emits the exact `TeamCreate(...)` call) but **team EXECUTION can't run under `claude --print`** — `TeamCreate`/`Agent` are interactive-session-only (not exposed headless). Covered by wheel's own CI team fixtures + structural equivalence. |
+| **kiln-build-prd (FULL 38-step, real teams)** | ✅ **archived to `history/success` end-to-end (2026-06-25)** — implement team + 3-panel audit team both spawned via the Agent tool, produced real FR-traced `src/slugify.js`+test, 3 audit verdicts synthesized, build-summary at 100% compliance. Required two wheel fixes (below). |
+
+**Post-2.1.178 team-API fixes (wheel — `fix/team-create-delete-post-2.1.178`).** Claude Code v2.1.178 **removed the `TeamCreate`/`TeamDelete` tools**; teammates now spawn directly via the `Agent` tool under one implicit session team (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Wheel's `team-create`/`team-delete` steps blocked forever waiting for those tools. Fixes: (1) team-create/team-delete now auto-complete (register/drop the team in state + cascade) with no tool wait; (2) the polling backstop reconciles orphaned teammate children whose `--as` linkage was dropped at spawn, by `owner_session_id` + sub-workflow + by-count match — without it `team-wait` hung when the orchestrator paraphrased the spawn prompt. vitest 193/193; validated against the real stalled capstone state. (Two residual interactive-driving frictions — double-activation + teammate-step idle — are tracked as follow-ups, not wheel-correctness defects; headless flows fine.)
 
 **Auto mode (the checkpoint/autonomy model) — tested both ways.** A checkpoint-smoke fixture
 proved the branch+approval mechanism: in **autonomous** config (`review_checkpoints: []`) the
