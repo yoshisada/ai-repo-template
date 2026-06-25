@@ -228,6 +228,21 @@ The `.kiln/feedback/` directory is committed (same policy as `.kiln/issues/`). C
 mkdir -p .kiln/feedback
 ```
 
+## Step 5b: Tick the Shared Capture Counter
+
+Advance the shared full-sync cadence counter so it reflects ALL capture surfaces, not
+just `/kiln:kiln-report-issue`. This is a **local `.shelf-config` increment only** — it
+does NOT write to Obsidian and does NOT fire a sync, so the "local-only" contract below
+still holds. Ignore the printed `action` value here (feedback never triggers the rollover
+sync — that stays with report-issue's background sub-agent).
+
+```bash
+bash "${WORKFLOW_PLUGIN_DIR:-$CLAUDE_PLUGIN_ROOT}/scripts/capture/counter-tick.sh" feedback >/dev/null 2>&1 || true
+```
+
+Best-effort: if the helper or shelf is unavailable it exits cleanly and feedback still
+succeeds — capture must never fail because the counter couldn't be ticked.
+
 ## Step 6: Confirm
 
 Print a single confirmation line:
@@ -236,11 +251,13 @@ Print a single confirmation line:
 Feedback logged: .kiln/feedback/<file>.md
 ```
 
-Do NOT write to Obsidian. Do NOT run a wheel workflow. Do NOT spawn a background sync. The file on disk is the source of truth.
+Do NOT write to Obsidian. Do NOT run a wheel workflow. Do NOT spawn a background sync. The
+file on disk is the source of truth. (Ticking the shared cadence counter in Step 5b is a
+local `.shelf-config` increment, not a sync — it does not violate this.)
 
 ## Rules
 
-- No MCP writes, no wheel workflow, no Obsidian sync — just write the local file and exit. Interview runs inline in main chat; it does NOT break this rule.
+- No MCP writes, no wheel workflow, no Obsidian sync — just write the local file and exit. Interview runs inline in main chat; it does NOT break this rule. (Step 5b's local counter increment is exempt — it touches only `.shelf-config`, never Obsidian.)
 - Classification is a hard gate: if `severity` or `area` is ambiguous from the description, ASK before writing. Classification gate fires BEFORE the interview (Step 4 before Step 4b).
 - Interview runs by default — skip is the escape hatch, not the default. The skip option is a single in-prompt opt-out (verbatim `skip interview — just capture the one-liner`), always the last option at every prompt. No CLI flag.
 - Interview answers go in the BODY (NFR-003 Contract 2 / FR-009), never in the frontmatter. Frontmatter shape is byte-identical to today.

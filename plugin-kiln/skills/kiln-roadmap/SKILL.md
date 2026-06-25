@@ -601,6 +601,17 @@ Then invoke `shelf:shelf-write-roadmap-note` — this workflow reads `.shelf-con
 
 If the Obsidian mirror fails (action: "failed" or non-empty errors), log the diagnostic and continue — `.kiln/` writes are the source of truth and the capture is considered successful. FR-040 covers the `.shelf-config`-missing case separately (warning at Step 0; mirror-skipped flag suppresses this step).
 
+### Step 6b: Tick the shared capture counter
+
+Advance the shared full-sync cadence counter so it reflects ALL capture surfaces, not
+just `/kiln:kiln-report-issue`. This is a local `.shelf-config` increment; ignore the
+printed `action` (roadmap does not own the rollover sync). Best-effort — never fail the
+capture if shelf is unavailable.
+
+```bash
+bash "${WORKFLOW_PLUGIN_DIR:-$CLAUDE_PLUGIN_ROOT}/scripts/capture/counter-tick.sh" roadmap >/dev/null 2>&1 || true
+```
+
 ---
 
 ## Step 7: Update phase file (FR-006 / PRD FR-006)

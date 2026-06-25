@@ -16,6 +16,12 @@
       "output": ".wheel/outputs/create-mistake-result.md"
     },
     {
+      "id": "tick-counter",
+      "type": "command",
+      "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/capture/counter-tick.sh\" mistake || echo '{\"action\":\"skip\"}'",
+      "output": ".wheel/outputs/tick-counter.json"
+    },
+    {
       "id": "propose-manifest-improvement",
       "type": "workflow",
       "workflow": "shelf:shelf-propose-manifest-improvement"
