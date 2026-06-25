@@ -49,7 +49,14 @@ tmux kill-session -t "$SESS" 2>/dev/null || true
 tmux new-session -d -s "$SESS" -x 220 -y 50
 # CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 is REQUIRED — agent teams are disabled by
 # default; without it the implement/audit team steps spawn no teammates.
-tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
+# --no-chrome: suppress the Chrome-extension browser-tools permission prompt that
+# otherwise blocks the fresh interactive session at startup (before activation).
+# CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 is REQUIRED for unattended runs: wheel
+# drives every step via a Stop-hook block, and team-wait emits many consecutive
+# "still waiting" blocks while a teammate works. The default cap is 9 — past it
+# Claude Code overrides + ends the turn, idling the workflow. (Manual nudging
+# masked this by resetting the consecutive-block counter each nudge.)
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
 sleep 20; tmux send-keys -t "$SESS" Enter; sleep 14   # dismiss trust prompt, wait for input box
 tmux send-keys -t "$SESS" "$PROMPT"; sleep 3; tmux send-keys -t "$SESS" Enter
 echo "  prompt sent; polling .wheel/ for archive (up to ~40 min)…"
