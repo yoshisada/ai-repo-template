@@ -1,5 +1,47 @@
 # System Architecture
 
+> **Autonomous rearchitecture in progress.** The diagrams below describe the established
+> system. The target autonomous build loop is specified in
+> `docs/features/2026-06-22-kiln-autonomous-rearchitecture/MASTER_PLAN.md` and sequenced in
+> that folder's `IMPLEMENTATION_PLAN.md`. The build-status section tracks what has landed.
+
+## Autonomous Rearchitecture — Build Status
+
+Staged build of the autonomous loop. Each stage is implemented, dogfooded live (fresh
+isolated subprocess), reviewed by agents, and pushed before the next begins.
+
+### Phase 0 — Config Foundation ✅ (landed)
+
+Every project declares its coding standards and review preferences; `kiln-init` scaffolds
+them; `kiln-doctor`/`kiln-next` read them.
+
+- **`.kiln/config.json`** (scaffolded from `plugin-kiln/scaffold/config-template.json`) —
+  `config_version`, `review_mode` + `review_checkpoints`, `auto_build/auto_pr/auto_merge`,
+  `issue_batch_threshold`, `distill_threshold`, `branching{style,integration_branch,per_feature}`,
+  per-tier `models{}`, `notifications{}`.
+- **`.kiln/standards.md`** — coding standards, injected into `plan`/`implement` agent prompts
+  via `compose-context.sh --standards`, enforced at audit.
+- **`.kiln/test-strategy.json`** — `coverage_gate`, `test`, `smoke{}`, `design_verify`.
+- **`scaffold/doctor-manifest.json`** — version-keyed health checks read from the plugin
+  install path (not copied to consumers); run by `kiln-doctor` step 3i via
+  `scripts/doctor/config-check.sh`.
+- **`kiln-init`** wizard: prefers bundled `bin/init.mjs`; steps 3b (vision), 5b (design_first),
+  5c (branching).
+- **`kiln-next`**: reads config; authoritative 8-level priority stack (pending-review →
+  interrupted-run → failing-tests → issues large/small → captures-to-distill → PRD-ready →
+  all-clear) with the two-track model (issues=fix, feedback/roadmap=distill).
+- **Capture hardening**: collision-safe issue filenames (`scripts/issues/alloc-issue-filename.sh`,
+  atomic O_EXCL); the shared shelf full-sync counter now ticks on all four capture surfaces
+  (`scripts/capture/counter-tick.sh` wired into report-issue/feedback/roadmap/mistake).
+- **Dogfood harness**: `plugin-kiln/tests/dogfood/run-scenario.sh` — drives skills live in an
+  isolated fresh `claude` subprocess loading local plugin source via `--plugin-dir`, records cost.
+
+### Phases 1–5 — pending
+
+Ledger + precedent (1) · build pipeline as wheel workflow (2) · self-improvement loop (3) ·
+hooks + gates (4) · observability + vision (5). See `IMPLEMENTATION_PLAN.md` for the
+wheel-capability reconciliation that governs how these are encoded.
+
 ## Complete System Diagram
 
 ```mermaid
