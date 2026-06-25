@@ -62,7 +62,7 @@ tmux send-keys -t "$SESS" "$PROMPT"; sleep 3; tmux send-keys -t "$SESS" Enter
 echo "  prompt sent; polling .wheel/ for archive (up to ~40 min)…"
 
 ARCHIVED=""; LAST=""
-for i in $(seq 1 240); do   # 240 * 10s = 40 min
+for i in $(seq 1 450); do   # 450 * 10s = 75 min (build-prd self-drives unattended; give it room)
   sleep 10
   if ls "$DIR"/.wheel/history/*/*.json >/dev/null 2>&1; then ARCHIVED="$(ls "$DIR"/.wheel/history/ 2>/dev/null | tr '\n' ' ')"; break; fi
   CUR=""; for s in "$DIR"/.wheel/state_*.json; do [ -f "$s" ] && CUR="$CUR [$(jq -r '"\(.workflow_name):c\(.cursor)/\(.steps|length):\(.steps[.cursor].id // \"?\")"' "$s" 2>/dev/null)]"; done
