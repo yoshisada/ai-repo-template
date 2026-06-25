@@ -36,11 +36,39 @@ them; `kiln-doctor`/`kiln-next` read them.
 - **Dogfood harness**: `plugin-kiln/tests/dogfood/run-scenario.sh` — drives skills live in an
   isolated fresh `claude` subprocess loading local plugin source via `--plugin-dir`, records cost.
 
-### Phases 1–5 — pending
+### Phase 1 — Ledger + Precedent System ✅ (landed)
 
-Ledger + precedent (1) · build pipeline as wheel workflow (2) · self-improvement loop (3) ·
-hooks + gates (4) · observability + vision (5). See `IMPLEMENTATION_PLAN.md` for the
-wheel-capability reconciliation that governs how these are encoded.
+Past mistakes from all projects become queryable before any new build.
+
+- **`workflows/kiln-precedent.json`** — extracts PRD topic/stack tags, queries the vault
+  (`search_vault`, `path:ledger/`) for relevant past mistakes, emits a `## Precedent` block
+  for injection into specify/plan/implement prompts. Degrades to an empty block when
+  `search_vault` (net-new MCP tool, built separately) is unavailable.
+- **`workflows/kiln-mistake-record.json`** — from `{summary,assumption,correction,source}`,
+  writes `.kiln/mistakes/<id>.md` + `.kiln/ledger/<id>.json` (id = `<YYYY-MM-DD>-<slug>`),
+  mirrors to the vault `ledger/` path, self-skips on absent input.
+- **`agents/precedent-reader.md`** (haiku), **`agents/risk-classifier.md`** (sonnet).
+- **`skills/kiln-ledger`** — read-only ledger history (`--kind/--tag/--last`).
+- **`.kiln/ledger/`** + `.kiln/ledger/proposals/` scaffolded by init; schemas in
+  `scaffold/ledger-schema.md`.
+- **Integration**: `kiln-report-issue` judges AI-class → writes `mistake-data.json` → the
+  background sub-agent records it via `kiln-mistake-record` (off the critical path);
+  `shelf-sync` gains a `ledger-mirror` step that backfills the full ledger to the vault.
+- All vault read/write paths standardized on `ledger/` so precedent finds mirrored entries.
+
+> **Verification note.** Phase 1's *contract* is dogfood-verified (id format, all 8 ledger
+> schema fields, three-axis tags, `blast_radius`, graceful Obsidian degradation, and the
+> `kiln-ledger` table all correct). The skill-dogfood harness (`--plugin-dir` + `claude
+> --print`) exercises **skills** well but does **not** reliably run **wheel workflows** via
+> `/wheel:wheel-run` in a subprocess — live wheel-workflow execution uses wheel's
+> `activate.sh` isolated recipe or `wheel-test-runner` fixtures instead. Establishing that
+> path is the first task of Phase 2 (which converts `kiln-build-prd` into a wheel workflow).
+
+### Phases 2–5 — pending
+
+Build pipeline as wheel workflow (2) · self-improvement loop (3) · hooks + gates (4) ·
+observability + vision (5). See `IMPLEMENTATION_PLAN.md` for the wheel-capability
+reconciliation (esp. the Phase 2 team-step encoding, Option A) that governs how these land.
 
 ## Complete System Diagram
 
