@@ -97,10 +97,39 @@ existence), and JSON hygiene.
 > need a wheel change → approval): dynamic per-story implementer fan-out, per-teammate worktree
 > isolation + auto-merge. v1 uses a bounded static team with a single implementer slot.
 
-### Phases 3–5 — pending
+### Phase 3 — Self-Improvement Loop ✅ (landed)
 
-Self-improvement loop (3) · hooks + gates (4) · observability + vision (5).
-See `IMPLEMENTATION_PLAN.md`.
+- **`workflows/kiln-self-improve.json`** (6 steps): collect-friction → classify-risk →
+  apply-l1-patches → surface-l2-chips → write-summary → sync-to-obsidian. L1 = config-file
+  patches only; L2 (SKILL/hook/workflow) surfaced as text (chip API deferred, G4).
+- **`skills/kiln-pi-apply`** → thin redirect; **`skills/kiln-improve`** → preferred-name alias.
+- **Propose-don't-apply preserved:** L1 auto-apply gates on `pi_apply_threshold` and applies
+  nothing by default — the human opts in.
+
+### Phase 4 — Hooks + Gates ✅ (landed)
+
+Three enforcement hooks (`hooks/{coverage-gate,untraced-test-gate,merge-bar}.sh`) registered
+alongside the original four. Coverage gate (post-test), test-traceability gate (test-file
+writes need an FR/AC ref), and merge bar (`gh pr create` needs ≥80% compliance, all tasks
+`[X]`, no blocking blockers). All **fail open** on their own errors and use narrow matchers.
+
+### Phase 5 — Observability + Vision ✅ (kiln-side landed)
+
+- **vision-filter** (kiln-distill) declines off-vision captures · **vision-verify** (build-prd
+  smoke-review `design_verify` path) scores design fidelity · **vision-drift-check** (audit
+  panel) flags `kind:drift` when code contradicts `vision.md`/`docs/architecture.md`.
+- **wheel-view live-journal streaming** (stream `.kiln/runs/<id>/journal` during active runs)
+  touches the **wheel submodule** — deferred as **G2** (needs explicit approval + thorough
+  testing per the wheel-change policy); not implemented here.
+
+## Residual decisions for the human
+
+- **G2** — wheel changes that would complete the design: (a) wheel-view live-journal streaming,
+  (b) dynamic per-story implementer fan-out, (c) per-teammate worktree isolation + auto-merge.
+  Each needs explicit approval + thorough testing.
+- **G3** — the Obsidian MCP `search_vault` tool (precedent read path) is built separately; the
+  kiln side degrades gracefully until it ships.
+- **G4** — the L2 improvement-chip UI; surfaced as text until the task-chip API is available.
 
 ## Complete System Diagram
 
