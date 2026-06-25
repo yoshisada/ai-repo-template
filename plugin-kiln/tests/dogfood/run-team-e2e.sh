@@ -37,7 +37,9 @@ echo "▶ team E2E (interactive/tmux): $DIR  session=$SESS"
 tmux kill-session -t "$SESS" 2>/dev/null || true
 tmux new-session -d -s "$SESS" -x 220 -y 50
 # Launch interactive claude (real TTY -> team tools). Env-wipe the 4 collision vars; keep teams env.
-tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_PLUGIN_ROOT='$WHEEL' claude --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO_ROOT/plugin-kiln --plugin-dir $WHEEL" Enter
+# CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 is REQUIRED — agent teams are disabled by
+# default; without it no implicit team is set up and teammate Agent spawns never join.
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO_ROOT/plugin-kiln --plugin-dir $WHEEL" Enter
 sleep 20  # boot to the "trust this folder?" prompt
 tmux send-keys -t "$SESS" Enter   # accept "1. Yes, I trust this folder" (default-selected)
 sleep 14  # welcome screen -> input box ready
