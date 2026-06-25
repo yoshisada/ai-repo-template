@@ -6,19 +6,19 @@
     {
       "id": "read-config",
       "type": "command",
-      "command": "cat .kiln/config.json 2>/dev/null || echo '{\"review_mode\":\"standard\",\"review_checkpoints\":[\"post-spec\",\"pre-pr\"],\"auto_build\":false,\"auto_pr\":false,\"auto_merge\":false,\"pi_apply_threshold\":\"none\",\"standards\":\".kiln/standards.md\",\"branching\":{\"style\":\"github-flow\",\"integration_branch\":\"dev\"}}'",
+      "command": "{ cat .kiln/config.json 2>/dev/null || echo '{\"review_mode\":\"standard\",\"review_checkpoints\":[\"post-spec\",\"pre-pr\"],\"auto_build\":false,\"auto_pr\":false,\"auto_merge\":false,\"pi_apply_threshold\":\"none\",\"standards\":\".kiln/standards.md\",\"branching\":{\"style\":\"github-flow\",\"integration_branch\":\"dev\"}}'; } | tee .wheel/outputs/kiln-config.json",
       "output": ".wheel/outputs/kiln-config.json"
     },
     {
       "id": "read-prd",
       "type": "command",
-      "command": "PRD_SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); PRD_PATH=\"docs/features/${PRD_SLUG}/PRD.md\"; if [ ! -f \"$PRD_PATH\" ]; then echo \"ERROR: PRD not found at $PRD_PATH\" >&2; exit 1; fi; echo \"$PRD_PATH\" > .wheel/outputs/prd-path.txt; cat \"$PRD_PATH\"",
+      "command": "PRD_SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); PRD_PATH=\"docs/features/${PRD_SLUG}/PRD.md\"; if [ ! -f \"$PRD_PATH\" ]; then echo \"ERROR: PRD not found at $PRD_PATH\" >&2; exit 1; fi; echo \"$PRD_PATH\" > .wheel/outputs/prd-path.txt; cat \"$PRD_PATH\" | tee .wheel/outputs/prd-content.md",
       "output": ".wheel/outputs/prd-content.md"
     },
     {
       "id": "read-standards",
       "type": "command",
-      "command": "STD=$(jq -r '.standards // \".kiln/standards.md\"' .wheel/outputs/kiln-config.json 2>/dev/null || echo '.kiln/standards.md'); cat \"$STD\" 2>/dev/null || echo '## Coding Standards\\n\\n_No standards file found — using defaults._'",
+      "command": "STD=$(jq -r '.standards // \".kiln/standards.md\"' .wheel/outputs/kiln-config.json 2>/dev/null || echo '.kiln/standards.md'); { cat \"$STD\" 2>/dev/null || echo '## Coding Standards\\n\\n_No standards file found — using defaults._'; } | tee .wheel/outputs/standards-block.md",
       "output": ".wheel/outputs/standards-block.md"
     },
     {
@@ -54,7 +54,7 @@
       "type": "branch",
       "if_zero": "plan",
       "if_nonzero": "approve-post-spec",
-      "condition": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/specify-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-spec' || [ \"$SEV\" = 'blocking' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi"
+      "condition": "if grep -q post-spec .wheel/outputs/kiln-config.json || grep -q blocking .wheel/outputs/specify-verdict.json; then exit 1; else exit 0; fi"
     },
     {
       "id": "approve-post-spec",
@@ -134,7 +134,7 @@
     {
       "id": "run-tests",
       "type": "command",
-      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" > .wheel/outputs/test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"coverage_gate\":%s,\"log\":\".wheel/outputs/test-output.log\"}' \"$EXIT\" \"$GATE\"",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" > .wheel/outputs/test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"coverage_gate\":%s,\"log\":\".wheel/outputs/test-output.log\"}' \"$EXIT\" \"$GATE\" | tee .wheel/outputs/test-results.json",
       "output": ".wheel/outputs/test-results.json"
     },
     {
@@ -153,7 +153,7 @@
       "type": "branch",
       "if_zero": "audit-team-create",
       "if_nonzero": "approve-post-implement",
-      "condition": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/smoke-verdict.json 2>/dev/null); IMPL=$(jq -r '.verdict // \"pass\"' .wheel/outputs/implement-worker-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-implement' || [ \"$SEV\" = 'blocking' ] || [ \"$IMPL\" = 'blocked' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi"
+      "condition": "if grep -q post-implement .wheel/outputs/kiln-config.json || grep -q blocking .wheel/outputs/smoke-verdict.json || grep -q blocked .wheel/outputs/implement-worker-verdict.json; then exit 1; else exit 0; fi"
     },
     {
       "id": "approve-post-implement",
@@ -248,7 +248,7 @@
       "type": "branch",
       "if_zero": "create-pr",
       "if_nonzero": "approve-pre-pr",
-      "condition": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); AUTO=$(jq -r '.auto_pr // false' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/audit-verdict.json 2>/dev/null); if [ \"$AUTO\" = 'true' ]; then echo 'skip(auto_pr)'; exit 0; elif echo \"$CKPTS\" | grep -q 'pre-pr' || [ \"$SEV\" = 'blocking' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi"
+      "condition": "if grep -qE auto_pr[^,]*true .wheel/outputs/kiln-config.json; then exit 0; elif grep -q pre-pr .wheel/outputs/kiln-config.json || grep -q blocking .wheel/outputs/audit-verdict.json; then exit 1; else exit 0; fi"
     },
     {
       "id": "approve-pre-pr",
@@ -258,7 +258,7 @@
     {
       "id": "create-pr",
       "type": "command",
-      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); AUDIT=$(jq -r '.compliance_pct // \"?\"' .wheel/outputs/audit-verdict.json 2>/dev/null); BRANCH=$(git branch --show-current 2>/dev/null); STYLE=$(jq -r '.branching.style // \"github-flow\"' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$STYLE\" = 'gitflow' ]; then BASE=$(jq -r '.branching.integration_branch // \"dev\"' .wheel/outputs/kiln-config.json 2>/dev/null); else BASE='main'; fi; git push -u origin \"$BRANCH\" 2>&1 || echo 'push failed (continuing)'; PR_URL=$(gh pr create --base \"$BASE\" --title \"feat($SLUG): build-prd pipeline\" --body \"PRD: docs/features/${SLUG}/PRD.md\\n\\nAudit compliance: ${AUDIT}%\\n\\nGenerated by kiln-build-prd.\" --label 'build-prd' 2>&1 || echo 'PR-CREATE-FAILED'); printf '{\"pr_url\":\"%s\",\"base\":\"%s\"}' \"$PR_URL\" \"$BASE\"",
+      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); AUDIT=$(jq -r '.compliance_pct // \"?\"' .wheel/outputs/audit-verdict.json 2>/dev/null); BRANCH=$(git branch --show-current 2>/dev/null); STYLE=$(jq -r '.branching.style // \"github-flow\"' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$STYLE\" = 'gitflow' ]; then BASE=$(jq -r '.branching.integration_branch // \"dev\"' .wheel/outputs/kiln-config.json 2>/dev/null); else BASE='main'; fi; git push -u origin \"$BRANCH\" 2>&1 || echo 'push failed (continuing)'; PR_URL=$(gh pr create --base \"$BASE\" --title \"feat($SLUG): build-prd pipeline\" --body \"PRD: docs/features/${SLUG}/PRD.md\\n\\nAudit compliance: ${AUDIT}%\\n\\nGenerated by kiln-build-prd.\" --label 'build-prd' 2>&1 || echo 'PR-CREATE-FAILED'); printf '{\"pr_url\":\"%s\",\"base\":\"%s\"}' \"$PR_URL\" \"$BASE\" | tee .wheel/outputs/pr-result.json",
       "output": ".wheel/outputs/pr-result.json"
     },
     {
@@ -266,7 +266,7 @@
       "type": "branch",
       "if_zero": "collect-retro",
       "if_nonzero": "approve-pre-merge",
-      "condition": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); AUTO=$(jq -r '.auto_merge // false' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$AUTO\" = 'true' ]; then echo 'skip(auto_merge)'; exit 0; elif echo \"$CKPTS\" | grep -q 'pre-merge'; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi"
+      "condition": "if grep -qE auto_merge[^,]*true .wheel/outputs/kiln-config.json; then exit 0; elif grep -q pre-merge .wheel/outputs/kiln-config.json; then exit 1; else exit 0; fi"
     },
     {
       "id": "approve-pre-merge",

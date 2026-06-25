@@ -6,13 +6,13 @@
     {
       "id": "init-run-manifest",
       "type": "command",
-      "command": "RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"phase\":\"fix\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\"",
+      "command": "RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"phase\":\"fix\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\" | tee .wheel/outputs/run-manifest.json",
       "output": ".wheel/outputs/run-manifest.json"
     },
     {
       "id": "read-context",
       "type": "command",
-      "command": "mkdir -p .wheel/outputs; ISSUE=$(cat .wheel/inputs/issue.txt 2>/dev/null || echo ''); TEST_CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); TEST_OUT=$(eval \"$TEST_CMD\" 2>&1 | tail -40 || echo 'no test output'); ISSUE_ESC=$(printf '%s' \"$ISSUE\" | jq -Rs .); TEST_ESC=$(printf '%s' \"$TEST_OUT\" | jq -Rs .); printf '{\"issue\":%s,\"test_output\":%s,\"test_cmd\":\"%s\"}' \"$ISSUE_ESC\" \"$TEST_ESC\" \"$TEST_CMD\"",
+      "command": "mkdir -p .wheel/outputs; ISSUE=$(cat .wheel/inputs/issue.txt 2>/dev/null || echo ''); TEST_CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); TEST_OUT=$(eval \"$TEST_CMD\" 2>&1 | tail -40 || echo 'no test output'); ISSUE_ESC=$(printf '%s' \"$ISSUE\" | jq -Rs .); TEST_ESC=$(printf '%s' \"$TEST_OUT\" | jq -Rs .); printf '{\"issue\":%s,\"test_output\":%s,\"test_cmd\":\"%s\"}' \"$ISSUE_ESC\" \"$TEST_ESC\" \"$TEST_CMD\" | tee .wheel/outputs/fix-context.json",
       "output": ".wheel/outputs/fix-context.json"
     },
     {
@@ -34,7 +34,7 @@
     {
       "id": "verify",
       "type": "command",
-      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); mkdir -p .wheel/outputs; eval \"$CMD\" > .wheel/outputs/fix-test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"gate\":%s,\"passed\":%s,\"log\":\".wheel/outputs/fix-test-output.log\"}' \"$EXIT\" \"$GATE\" \"$([ $EXIT -eq 0 ] && echo true || echo false)\"",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); mkdir -p .wheel/outputs; eval \"$CMD\" > .wheel/outputs/fix-test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"gate\":%s,\"passed\":%s,\"log\":\".wheel/outputs/fix-test-output.log\"}' \"$EXIT\" \"$GATE\" \"$([ $EXIT -eq 0 ] && echo true || echo false)\" | tee .wheel/outputs/verify-result.json",
       "output": ".wheel/outputs/verify-result.json"
     },
     {
