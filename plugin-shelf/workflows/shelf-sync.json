@@ -58,6 +58,14 @@
       "output": ".wheel/outputs/obsidian-apply-results.json"
     },
     {
+      "id": "ledger-mirror",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "You mirror the local precedent ledger to Obsidian so the cross-project precedent store (queried by kiln's precedent-reader via search_vault) stays current. This is best-effort: if there are no ledger entries or Obsidian is unavailable, emit a clean result and stop — NEVER error the sync.\n\n## Inputs\n- Read the project slug + base_path from .wheel/outputs/read-shelf-config.txt (or .shelf-config). If slug/base_path are missing, emit {\\\"mirrored\\\":0,\\\"skipped\\\":\\\"no-shelf-config\\\"} and stop.\n- Local ledger entries live at .kiln/ledger/*.json (one JSON object per entry: {id, kind, summary, detail, blast_radius, tags[], source_path, ts}). Proposals at .kiln/ledger/proposals/*.json are NOT mirrored here.\n\n## Steps\n1. List .kiln/ledger/*.json. If none, emit {\\\"mirrored\\\":0,\\\"skipped\\\":\\\"empty-ledger\\\"} and stop.\n2. For each ledger entry, upsert a note in the vault under <base_path>/<slug>/ledger/<id>.md using the projects-scope MCP (mcp__obsidian-projects__create_file; on \\\"already exists\\\" fall back to mcp__obsidian-projects__patch_file with programmatic fields only). Note frontmatter: type: ledger, kind: <kind>, project: \\\"[[<slug>]]\\\", tags: <entry.tags>, ts: <entry.ts>, source_path: <entry.source_path>. Body: the summary + detail. Mistakes additionally carry their mistake/* + topic/* + stack tags so precedent-reader's tag query (path:ledger/ or path:mistakes/) finds them.\n3. On any MCP failure, append {id, message} to an errors array and CONTINUE — do not abort.\n4. Emit JSON: {\\\"mirrored\\\": N, \\\"errors\\\": [ ... ]}.\n\nIf the Obsidian MCP is entirely unavailable, emit {\\\"mirrored\\\":0,\\\"skipped\\\":\\\"obsidian-unavailable\\\"} and exit cleanly — the local .kiln/ledger/ remains the source of truth and the next sync retries.",
+      "context_from": ["read-shelf-config"],
+      "output": ".wheel/outputs/ledger-mirror-results.json"
+    },
+    {
       "id": "update-sync-manifest",
       "type": "command",
       "command": "bash \"${WORKFLOW_PLUGIN_DIR}/scripts/update-sync-manifest.sh\"",

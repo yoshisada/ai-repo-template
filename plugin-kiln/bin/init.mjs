@@ -116,7 +116,9 @@ function scaffoldProject() {
     ".kiln/qa/screenshots",
     ".kiln/qa/videos",
     ".kiln/qa/config",
-    ".kiln/logs"
+    ".kiln/logs",
+    ".kiln/ledger",              // Phase 1: precedent ledger entries
+    ".kiln/ledger/proposals"     // Phase 1: improvement proposals derived from ledger
   ];
   for (const dir of kilnDirs) {
     ensureDir(join(PROJECT_DIR, dir));
