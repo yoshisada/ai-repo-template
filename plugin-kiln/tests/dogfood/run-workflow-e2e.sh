@@ -63,7 +63,8 @@ git -C "$TESTDIR" add -A >/dev/null 2>&1; git -C "$TESTDIR" commit -q -m init >/
 # Force-inject wheel's hooks. ${CLAUDE_PLUGIN_ROOT} in the hook commands is bash-expanded at
 # run time from the env var we export below -> resolves to the LOCAL plugin-wheel.
 SETTINGS="$TESTDIR/.wheel-hooks-settings.json"
-cp "$WHEEL_DIR/hooks/hooks.json" "$SETTINGS"
+# Hardcode the absolute wheel path — Claude Code blocks ${CLAUDE_PLUGIN_ROOT} in settings.json hooks.
+sed "s#\${CLAUDE_PLUGIN_ROOT}#$WHEEL_DIR#g" "$WHEEL_DIR/hooks/hooks.json" > "$SETTINGS"
 
 echo "▶ e2e: $WF"
 echo "  scratch: $TESTDIR   model: $MODEL   budget: \$$BUDGET"
