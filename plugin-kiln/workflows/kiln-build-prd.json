@@ -29,8 +29,11 @@
     },
     {
       "id": "query-precedent",
-      "type": "workflow",
-      "workflow": "kiln:kiln-precedent"
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "Surface past mistakes relevant to this build as a Precedent block — best-effort, NEVER error the build. (Inlined rather than a nested workflow so the pipeline drives cleanly.)\n\n1. Read .wheel/outputs/prd-content.md (the PRD). Extract any topic/* and (language|framework|lib)/* tags mentioned. If none, use no tags.\n2. Build an Obsidian query like \"(tag:topic/x OR tag:topic/y) path:ledger/\" and call mcp__obsidian-projects__search_vault (limit 10). If the tool is unavailable / errors / returns nothing, skip to step 4 — that is normal (the search_vault MCP may not be present yet).\n3. For each result format: `- **[severity]** \\`[mistake_class]\\` — [assumption]\\n  ✓ Correction: [correction]`.\n4. ALWAYS write .wheel/outputs/precedent-block.md: the formatted block, or exactly `## Precedent\\n\\n_No relevant past mistakes found._` when there are none.\n5. Emit {\"count\": N, \"path\": \".wheel/outputs/precedent-block.md\"}.\n\nNever leave this step without .wheel/outputs/precedent-block.md written.",
+      "context_from": ["read-prd"],
+      "output": ".wheel/outputs/precedent-search-result.json"
     },
     {
       "id": "specify",
