@@ -1,0 +1,262 @@
+{
+  "name": "kiln-build-prd",
+  "version": "1.0.0",
+  "description": "Full spec-first build pipeline as a resumable wheel workflow: config -> precedent -> specify -> plan -> tasks -> gate -> implement (team) -> test -> smoke -> audit (parallel panel team) -> synthesize -> fix-blocking -> PR -> retro -> classify -> summary. Checkpoints are branch+approval pairs gated on .kiln/config.json review_checkpoints (or upstream blocking severity). Reconciled to the real wheel runtime: concrete models (no model_tier), defensive exit-0 (no on_failure), native team-create/teammate/team-wait/team-delete (no type:team), branch routing.",
+  "steps": [
+    {
+      "id": "read-config",
+      "type": "command",
+      "command": "cat .kiln/config.json 2>/dev/null || echo '{\"review_mode\":\"standard\",\"review_checkpoints\":[\"post-spec\",\"pre-pr\"],\"auto_build\":false,\"auto_pr\":false,\"auto_merge\":false,\"pi_apply_threshold\":\"none\",\"standards\":\".kiln/standards.md\",\"branching\":{\"style\":\"github-flow\",\"integration_branch\":\"dev\"}}'",
+      "output": ".wheel/outputs/kiln-config.json"
+    },
+    {
+      "id": "read-prd",
+      "type": "command",
+      "command": "PRD_SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); PRD_PATH=\"docs/features/${PRD_SLUG}/PRD.md\"; if [ ! -f \"$PRD_PATH\" ]; then echo \"ERROR: PRD not found at $PRD_PATH\" >&2; exit 1; fi; echo \"$PRD_PATH\" > .wheel/outputs/prd-path.txt; cat \"$PRD_PATH\"",
+      "output": ".wheel/outputs/prd-content.md"
+    },
+    {
+      "id": "read-standards",
+      "type": "command",
+      "command": "STD=$(jq -r '.standards // \".kiln/standards.md\"' .wheel/outputs/kiln-config.json 2>/dev/null || echo '.kiln/standards.md'); cat \"$STD\" 2>/dev/null || echo '## Coding Standards\\n\\n_No standards file found — using defaults._'",
+      "output": ".wheel/outputs/standards-block.md"
+    },
+    {
+      "id": "init-run-manifest",
+      "type": "command",
+      "command": "RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); PRD_SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"prd\":\"docs/features/%s/PRD.md\",\"phase\":\"specify\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$PRD_SLUG\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\"",
+      "output": ".wheel/outputs/run-manifest.json"
+    },
+    {
+      "id": "query-precedent",
+      "type": "workflow",
+      "workflow": "kiln:kiln-precedent"
+    },
+    {
+      "id": "specify",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the specifier. Produce a complete spec.md for the PRD.\n\n## Inputs\n- PRD: read .wheel/outputs/prd-content.md\n- Standards: read .wheel/outputs/standards-block.md — FOLLOW THESE for every interface you define.\n- Precedent: read .wheel/outputs/precedent-block.md — AVOID the listed past mistakes.\n\n## Output\nGet the prd-slug from .wheel/inputs/prd-slug.txt. Write specs/<slug>/spec.md with:\n- ## User Stories (one per actor, labeled US-1, US-2, ...)\n- ## Functional Requirements (FR-001, FR-002, ...)\n- ## Non-Functional Requirements (NFR-001, ...)\n- ## Acceptance Criteria (one scenario per FR)\n- ## Open Questions\n\nEmit verdict JSON: {\"agent\":\"specifier\",\"verdict\":\"pass\",\"severity\":\"pass\",\"spec_path\":\"specs/<slug>/spec.md\",\"fr_count\":N,\"open_questions\":[]}. Set severity=blocking only if you cannot produce a coherent spec from the PRD.",
+      "context_from": ["read-prd", "read-standards", "query-precedent"],
+      "output": ".wheel/outputs/specify-verdict.json"
+    },
+    {
+      "id": "checkpoint-post-spec",
+      "type": "branch",
+      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/specify-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-spec' || [ \"$SEV\" = 'blocking' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
+      "if_zero": "plan",
+      "if_nonzero": "approve-post-spec"
+    },
+    {
+      "id": "approve-post-spec",
+      "type": "approval",
+      "message": "Post-spec checkpoint: review specs/<slug>/spec.md (FRs, acceptance criteria, open questions). Approve to continue to planning, or stop the workflow to revise."
+    },
+    {
+      "id": "plan",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the planner. Produce plan.md and contracts/interfaces.md.\n\n## Inputs\n- Spec: read the spec.md path from .wheel/outputs/specify-verdict.json\n- Standards: read .wheel/outputs/standards-block.md — ALL interface names + signatures MUST follow the naming rules; functions declare <=2 params or an options object.\n- Precedent: read .wheel/outputs/precedent-block.md\n\n## Output\n1. specs/<slug>/plan.md — technical approach, phases, file list.\n2. specs/<slug>/contracts/interfaces.md — EVERY exported function: name, params, return type, sync/async, and which FR it satisfies. This is the single source of truth implementers match exactly.\n\nEmit verdict JSON: {\"agent\":\"planner\",\"verdict\":\"pass\",\"plan_path\":\"...\",\"contracts_path\":\"...\",\"interface_count\":N}",
+      "context_from": ["specify", "read-standards", "query-precedent"],
+      "output": ".wheel/outputs/plan-verdict.json"
+    },
+    {
+      "id": "tasks",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the task planner. Produce specs/<slug>/tasks.md from the spec and plan.\n\n## Inputs\n- Spec verdict: .wheel/outputs/specify-verdict.json\n- Plan verdict: .wheel/outputs/plan-verdict.json\n\n## Output\nspecs/<slug>/tasks.md with ordered, dependency-aware tasks GROUPED UNDER USER STORIES. Use `### US-<n> <title>` headings (the dispatch step splits on these), with `- [ ] <task>` lines under each. Each task references the FR it implements and the interface(s) it touches, and is completable in one session without breaking the build.\n\nEmit verdict JSON: {\"agent\":\"task-planner\",\"verdict\":\"pass\",\"tasks_path\":\"...\",\"task_count\":N,\"story_count\":N}",
+      "context_from": ["specify", "plan"],
+      "output": ".wheel/outputs/tasks-verdict.json"
+    },
+    {
+      "id": "check-hooks-gate",
+      "type": "command",
+      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); ERR=''; for f in spec.md plan.md tasks.md contracts/interfaces.md; do [ -f \"specs/${SLUG}/$f\" ] || ERR=\"$ERR $f missing;\"; done; if [ -n \"$ERR\" ]; then echo \"GATE FAIL:$ERR\" >&2; exit 1; fi; echo '{\"gate\":\"pass\"}'",
+      "output": ".wheel/outputs/hooks-gate.json"
+    },
+    {
+      "id": "dispatch-implement",
+      "type": "command",
+      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); TASKS=\"specs/${SLUG}/tasks.md\"; STORIES=$(grep -E '^### US-' \"$TASKS\" 2>/dev/null | sed 's/^### //' | jq -R . | jq -s . 2>/dev/null || echo '[]'); COUNT=$(echo \"$STORIES\" | jq 'length' 2>/dev/null || echo 0); printf '{\"stories\":%s,\"count\":%s,\"tasks_path\":\"%s\"}' \"$STORIES\" \"$COUNT\" \"$TASKS\" > .wheel/inputs/implement-dispatch.json; echo \"Dispatch: $COUNT user stories to the implement team\"; cat .wheel/inputs/implement-dispatch.json",
+      "output": ".wheel/inputs/implement-dispatch.json"
+    },
+    {
+      "id": "implement-team-create",
+      "type": "team-create",
+      "team_name": "implement"
+    },
+    {
+      "id": "implement-worker",
+      "type": "teammate",
+      "team": "implement-team-create",
+      "workflow": "kiln:kiln-implement-worker",
+      "model": "sonnet",
+      "assign": {"stories": "all", "note": "Implement every user story in specs/<slug>/tasks.md in order. (v1: single slot owns all stories; bounded static team — additional implementer slots can be added when worktree isolation lands.)"},
+      "context_from": ["dispatch-implement", "tasks", "plan", "read-standards", "query-precedent"]
+    },
+    {
+      "id": "implement-wait",
+      "type": "team-wait",
+      "team": "implement-team-create",
+      "collect_to": ".wheel/outputs/implement-results/",
+      "output": ".wheel/outputs/implement-verdict.json"
+    },
+    {
+      "id": "implement-delete",
+      "type": "team-delete",
+      "team": "implement-team-create"
+    },
+    {
+      "id": "run-tests",
+      "type": "command",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" 2>&1; EXIT=$?; printf '{\"exit\":%s,\"coverage_gate\":%s}' \"$EXIT\" \"$GATE\"",
+      "output": ".wheel/outputs/test-results.json"
+    },
+    {
+      "id": "smoke-review",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the smoke reviewer. Verify the implementation works at runtime.\n\n## Inputs\n- .kiln/test-strategy.json — smoke.start / smoke.ready / smoke.probe / smoke.teardown, and design_verify.\n- .wheel/outputs/test-results.json; .wheel/inputs/prd-slug.txt.\n\n## Steps\n1. Start the app per smoke.start; wait for smoke.ready; run smoke.probe; stop per smoke.teardown.\n2. If design_verify is true and design/<slug>/mockup.{png,jpg,html} exists, screenshot the running app and estimate a 0-100 fidelity match.\n3. Write specs/<slug>/smoke-report.md (use scaffold/smoke-report-template.md shape) and COPY it to .wheel/outputs/smoke-report.md (build-summary reads from there).\n\nIf the app cannot start or there is nothing runnable yet, do NOT error: write a report noting that and emit verdict severity=warn.\n\nEmit .wheel/outputs/smoke-verdict.json: {\"agent\":\"smoke-reviewer\",\"verdict\":\"pass|fail\",\"severity\":\"pass|warn|blocking\",\"findings\":[],\"fidelity_score\":null,\"report_path\":\"specs/<slug>/smoke-report.md\"}",
+      "context_from": ["implement-wait", "run-tests"],
+      "output": ".wheel/outputs/smoke-verdict.json"
+    },
+    {
+      "id": "checkpoint-post-implement",
+      "type": "branch",
+      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/smoke-verdict.json 2>/dev/null); IMPL=$(jq -r '.verdict // \"pass\"' .wheel/outputs/implement-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-implement' || [ \"$SEV\" = 'blocking' ] || [ \"$IMPL\" = 'blocked' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
+      "if_zero": "audit-team-create",
+      "if_nonzero": "approve-post-implement"
+    },
+    {
+      "id": "approve-post-implement",
+      "type": "approval",
+      "message": "Post-implement checkpoint: review the implementation + smoke report. Approve to continue to audit, or stop to address blockers."
+    },
+    {
+      "id": "audit-team-create",
+      "type": "team-create",
+      "team_name": "audit"
+    },
+    {
+      "id": "audit-prd-auditor",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
+      "model": "sonnet",
+      "assign": {"role": "prd-auditor"},
+      "context_from": ["specify", "implement-wait", "run-tests", "smoke-review"]
+    },
+    {
+      "id": "audit-spec-enforcer",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
+      "model": "sonnet",
+      "assign": {"role": "spec-enforcer"},
+      "context_from": ["specify", "implement-wait", "run-tests"]
+    },
+    {
+      "id": "audit-quality-judge",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
+      "model": "sonnet",
+      "assign": {"role": "quality-judge"},
+      "context_from": ["specify", "implement-wait", "read-standards"]
+    },
+    {
+      "id": "audit-wait",
+      "type": "team-wait",
+      "team": "audit-team-create",
+      "collect_to": ".wheel/outputs/audit-results/",
+      "output": ".wheel/outputs/audit-raw-verdict.json"
+    },
+    {
+      "id": "audit-delete",
+      "type": "team-delete",
+      "team": "audit-team-create"
+    },
+    {
+      "id": "audit-synthesize",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "You are the audit synthesizer. Merge the per-role audit verdicts into one result.\n\n## Inputs\n- .wheel/outputs/audit-results/ — the collected per-role verdicts (prd-auditor, spec-enforcer, quality-judge), each {role, severity, compliance_pct, findings[]}. Also check .wheel/outputs/audit-raw-verdict.json.\n\n## Task\n1. Read every per-role verdict.\n2. Overall severity: blocking if ANY finding is blocking; else warn if any warn; else pass.\n3. Deduplicate findings by file+fr.\n4. compliance_pct: take the prd-auditor's value (or the min across roles that report one).\n5. Write .wheel/outputs/audit-verdict.json: {\"compliance_pct\":N,\"severity\":\"pass|warn|blocking\",\"findings\":[{\"severity\",\"fr\",\"file\",\"description\"}],\"blockers_path\":null}.\n6. If severity=blocking, write the blocking findings to .wheel/outputs/blocking-findings.json (an array); else write [].",
+      "context_from": ["audit-wait"],
+      "output": ".wheel/outputs/audit-verdict.json"
+    },
+    {
+      "id": "fix-blocking",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the blocking-fix implementer. Resolve audit findings that block the PR. Fix INLINE — do NOT spawn sub-agents or call kiln-fix.\n\n## Inputs\n- .wheel/outputs/blocking-findings.json — blocking findings (may be []).\n- .wheel/outputs/audit-verdict.json; specs/<slug>/spec.md; specs/<slug>/contracts/interfaces.md.\n\n## Task\n1. If blocking-findings.json is empty or absent: emit {\"fixed\":0,\"skipped\":true} and stop.\n2. For each blocking finding: read the implicated file, understand the FR it violates, fix the implementation to satisfy the FR without breaking other contracts.\n3. Re-run the test suite to confirm no regression.\n4. Any finding you cannot fix: mark status=escalate (it surfaces as priority 1 in kiln-next).\n5. Emit .wheel/outputs/fix-blocking-verdict.json: {\"fixed\":N,\"remaining\":N,\"findings\":[{\"fr\",\"file\",\"fix_summary\",\"status\":\"fixed|escalate\"}]}",
+      "context_from": ["audit-synthesize"],
+      "output": ".wheel/outputs/fix-blocking-verdict.json"
+    },
+    {
+      "id": "checkpoint-pre-pr",
+      "type": "branch",
+      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); AUTO=$(jq -r '.auto_pr // false' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/audit-verdict.json 2>/dev/null); if [ \"$AUTO\" = 'true' ]; then echo 'skip(auto_pr)'; exit 0; elif echo \"$CKPTS\" | grep -q 'pre-pr' || [ \"$SEV\" = 'blocking' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
+      "if_zero": "create-pr",
+      "if_nonzero": "approve-pre-pr"
+    },
+    {
+      "id": "approve-pre-pr",
+      "type": "approval",
+      "message": "Pre-PR checkpoint: review the audit verdict + fix-blocking results. Approve to open the PR, or stop to address findings."
+    },
+    {
+      "id": "create-pr",
+      "type": "command",
+      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null); AUDIT=$(jq -r '.compliance_pct // \"?\"' .wheel/outputs/audit-verdict.json 2>/dev/null); BRANCH=$(git branch --show-current 2>/dev/null); STYLE=$(jq -r '.branching.style // \"github-flow\"' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$STYLE\" = 'gitflow' ]; then BASE=$(jq -r '.branching.integration_branch // \"dev\"' .wheel/outputs/kiln-config.json 2>/dev/null); else BASE='main'; fi; git push -u origin \"$BRANCH\" 2>&1 || echo 'push failed (continuing)'; PR_URL=$(gh pr create --base \"$BASE\" --title \"feat($SLUG): build-prd pipeline\" --body \"PRD: docs/features/${SLUG}/PRD.md\\n\\nAudit compliance: ${AUDIT}%\\n\\nGenerated by kiln-build-prd.\" --label 'build-prd' 2>&1 || echo 'PR-CREATE-FAILED'); printf '{\"pr_url\":\"%s\",\"base\":\"%s\"}' \"$PR_URL\" \"$BASE\"",
+      "output": ".wheel/outputs/pr-result.json"
+    },
+    {
+      "id": "checkpoint-pre-merge",
+      "type": "branch",
+      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); AUTO=$(jq -r '.auto_merge // false' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$AUTO\" = 'true' ]; then echo 'skip(auto_merge)'; exit 0; elif echo \"$CKPTS\" | grep -q 'pre-merge'; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
+      "if_zero": "collect-retro",
+      "if_nonzero": "approve-pre-merge"
+    },
+    {
+      "id": "approve-pre-merge",
+      "type": "approval",
+      "message": "Pre-merge checkpoint: the PR is open. Approve to finish the run (retro + summary), or stop to review the PR before merge."
+    },
+    {
+      "id": "collect-retro",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the retrospective collector. Gather friction from this build and write it to the ledger.\n\n## Inputs\n- run-id from .wheel/outputs/run-id.txt; agent-notes from .kiln/runs/<run-id>/agent-notes/*.md; the verdict files (specify, plan, tasks, implement, audit, smoke).\n\n## Output\n1. Write .kiln/runs/<run-id>/retro.md using scaffold/retro-template.md (what went well / what slowed us down / improvement proposals / insight_score 1-5).\n2. For each concrete improvement proposal (actionable, with a target file/prompt), write a proposal stub to .kiln/ledger/proposals/<run-id>-<n>.json: {id, target, patch, risk:null, blast_radius, rationale, ledger_refs:[]}.\n3. For each mistake-class friction (a wrong assumption / hallucination / incorrect output by the build), write .wheel/inputs/mistake-data.json {summary, assumption, correction, source:\"retro\"} and run /wheel:wheel-run kiln:kiln-mistake-record (once per mistake; remove the input file between mistakes).\n4. Emit {\"agent\":\"retrospective\",\"ledger_entries\":N,\"proposals\":N,\"retro_path\":\"...\",\"insight_score\":N}.",
+      "context_from": ["implement-wait", "audit-synthesize", "smoke-review"],
+      "output": ".wheel/outputs/retro-verdict.json"
+    },
+    {
+      "id": "classify-proposals",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the risk classifier. Classify each retro improvement proposal from this run as low or high risk.\n\n## Inputs\n- .wheel/outputs/retro-verdict.json; the proposal stubs .kiln/ledger/proposals/<run-id>-*.json written by collect-retro.\n\n## Rules\n- LOW: single-file SKILL.md/template/.kiln config edit, no hook/gate/workflow/cross-plugin change, local blast_radius.\n- HIGH: touches hooks/*.sh, gates, workflows/*.json, cross-plugin contracts, or blast_radius cross-plugin. Uncertain -> HIGH.\n\nFor each proposal, fill the FULL schema in .kiln/ledger/proposals/<id>.json: {id, target, patch, risk:\"low\"|\"high\", blast_radius, rationale, ledger_refs[]}. Emit {\"agent\":\"risk-classifier\",\"low_count\":N,\"high_count\":N,\"proposal_paths\":[]}.",
+      "context_from": ["collect-retro"],
+      "output": ".wheel/outputs/classify-verdict.json"
+    },
+    {
+      "id": "apply-low-risk",
+      "type": "command",
+      "command": "THR=$(jq -r '.pi_apply_threshold // \"none\"' .wheel/outputs/kiln-config.json 2>/dev/null); if [ \"$THR\" = 'none' ]; then echo '{\"applied\":0,\"skipped\":\"threshold=none\"}'; exit 0; fi; LOW=$(jq -r '.low_count // 0' .wheel/outputs/classify-verdict.json 2>/dev/null || echo 0); printf '{\"applied\":0,\"pending\":%s,\"threshold\":\"%s\"}' \"$LOW\" \"$THR\"",
+      "output": ".wheel/outputs/apply-result.json"
+    },
+    {
+      "id": "update-run-manifest",
+      "type": "command",
+      "command": "RID=$(cat .wheel/outputs/run-id.txt 2>/dev/null); PR=$(jq -r '.pr_url // null' .wheel/outputs/pr-result.json 2>/dev/null); M=\".kiln/runs/${RID}/manifest.json\"; if [ -n \"$RID\" ] && [ -f \"$M\" ]; then jq --arg pr \"$PR\" '.phase=\"done\" | .pr=$pr | .cursor=\"update-run-manifest\"' \"$M\" > /tmp/m.$$.json 2>/dev/null && mv /tmp/m.$$.json \"$M\"; fi; cp \"$M\" .wheel/outputs/run-manifest-final.json 2>/dev/null; echo 'manifest updated to done'",
+      "output": ".wheel/outputs/run-manifest-final.json"
+    },
+    {
+      "id": "build-summary",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "You are the build summary agent (the run's final step — render a summary even if upstream steps failed). Read .wheel/outputs/prd-content.md, audit-verdict.json, test-results.json, smoke-report.md, pr-result.json, run-manifest-final.json, and `git diff --stat HEAD~1`. Render the canonical 5-table markdown summary (Overview with Tokens+Cost rows / What Changed / What to Test / Findings [omit if none] / Links) exactly as agents/build-summary.md specifies. Write it to .kiln/runs/<run-id>/summary.md AND print the full summary as your output — the human reads it directly.",
+      "context_from": ["read-prd", "specify", "audit-synthesize", "smoke-review", "collect-retro", "update-run-manifest"],
+      "output": ".kiln/runs/summary.md"
+    }
+  ]
+}
