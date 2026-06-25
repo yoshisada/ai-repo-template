@@ -17,15 +17,24 @@ structural gate, and respects all invariants (propose-don't-apply, hooks fail-op
 `model_tier`/`on_failure`/`on:always`, portability, `path:ledger/` consistency) — no
 blocking issues.
 
-**Live-verification status:** Phases 0–1 were live-dogfooded as the user (init/doctor/next;
-mistake-record contract). **Wheel-workflow E2E testing is now solved** — `plugin-kiln/tests/
-dogfood/run-workflow-e2e.sh` drives a kiln wheel workflow end-to-end (hook-driven, all steps)
-in an isolated subprocess by injecting wheel's hooks via `claude --settings` + a strict
-driving-loop prompt (full writeup: `tests/dogfood/E2E-RECIPE.md`). **Proven:** `kiln-mistake-
-record` ran E2E → `history/success/`, all 3 steps `done`, real `.kiln/mistakes` + `.kiln/
-ledger` written. Remaining heavier runs (greenlight to spend): full `kiln-build-prd` E2E
-(team path; needs a toy PRD + creates a PR), the Phase-4 gate trips, and `kiln-self-improve`
-on seeded proposals. Wheel's own team fixtures already prove the team-launch machinery.
+**Live E2E verification (campaign run — `tests/dogfood/run-workflow-e2e.sh`, recipe in
+`tests/dogfood/E2E-RECIPE.md`):**
+
+| Workflow | Result |
+|---|---|
+| kiln-distill | ✅ E2E `history/success/` 7/7 — produced a real senior-quality PRD from seeded captures |
+| kiln-mistake-record | ✅ E2E `history/success/` 3/3 — wrote `.kiln/mistakes` + `.kiln/ledger` (correct id) |
+| kiln-self-improve | ✅ substantive 5/6 — **propose-don't-apply held** (L1 applied 0 at threshold=none; config→low/hook→high); only optional Obsidian sync pending at turn-end |
+| kiln-fix | ✅ substantive 5/7 — **diagnosed + FIXED the bug** (`return a-b`→`a+b`) + verified; ledger/summary pending at turn-end |
+| Phase-4 hooks | ✅ verified by direct invocation (block / allow / fail-open across all scenarios) |
+| kiln-build-prd (linear steps) | ✅ config→prd→standards→manifest→precedent drive E2E |
+| kiln-build-prd (team steps) | ⚠️ dispatch proven (Stop hook emits the exact `TeamCreate(...)` call) but **team EXECUTION can't run under `claude --print`** — `TeamCreate`/`Agent` are interactive-session-only (not exposed headless). Covered by wheel's own CI team fixtures + structural equivalence. |
+
+Two platform limits of headless `--print` testing, both characterized: (1) longer agent-heavy
+workflows truncate at `--print`'s natural turn limit (finish via state-cursor resume / chained
+invocations); (2) wheel **team** workflows need an **interactive** session to execute (the team
+tools aren't in `--print`). One real bug was found + fixed by E2E: nested `type:workflow` steps
+stall the headless loop (build-prd's `query-precedent` was inlined).
 
 ### Phase 0 — Config Foundation ✅ (landed)
 
