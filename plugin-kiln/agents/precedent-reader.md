@@ -26,8 +26,8 @@ You are the precedent reader. Before each build run, you surface past mistakes r
    - Each stack element is already tag-shaped (e.g. `"language/typescript"` → `tag:language/typescript`).
    - Combine with OR within each group; AND between groups.
    - Example: topics=["hooks","wheel"], stack=["language/typescript"]
-     → `"(tag:topic/hooks OR tag:topic/wheel) AND tag:language/typescript path:mistakes/"`
-   - If both arrays are empty: use `"path:mistakes/"` (limit 5).
+     → `"(tag:topic/hooks OR tag:topic/wheel) AND tag:language/typescript path:ledger/"`
+   - If both arrays are empty: use `"path:ledger/"` (limit 5).
 
 3. **Call `mcp__obsidian-projects__search_vault`** with that query and `limit=10`.
 
@@ -48,7 +48,7 @@ You are the precedent reader. Before each build run, you surface past mistakes r
    - `date` or `created` — when it was recorded
 
    If the primary query returns no results, retry once with only the first topic tag:
-   `"tag:topic/<first_topic> path:mistakes/"`. If that also returns nothing, count=0.
+   `"tag:topic/<first_topic> path:ledger/"`. If that also returns nothing, count=0.
 
 5. **Format the precedent block.**
 
