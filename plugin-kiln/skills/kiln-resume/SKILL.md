@@ -1,40 +1,89 @@
 ---
 name: "kiln-resume"
-description: "Deprecated — use /kiln:kiln-next instead. Runs /kiln:kiln-next with a deprecation notice."
+description: "Scan .kiln/runs/*/manifest.json for incomplete runs and print the exact resume command for each. Read-only — reports and recommends, does not auto-run anything."
 ---
 
-# Resume (Deprecated)
-
-<!-- FR-010: /kiln:kiln-resume continues to function as deprecated alias that invokes /kiln:kiln-next -->
-
-**This skill has been replaced by `/kiln:kiln-next`.** It is kept as a deprecated alias for backward compatibility.
+# Kiln Resume — Incomplete-Run Scanner
 
 ```text
 $ARGUMENTS
 ```
 
-## Deprecation Notice
+Scan all run manifests under `.kiln/runs/` and surface any run whose `phase` is not `"done"`. For each, print the resume command derived from the manifest's `prd` and `phase`.
 
-Print this notice before proceeding:
+## Scan Manifests
 
+```bash
+MANIFESTS=$(find .kiln/runs -name "manifest.json" 2>/dev/null | sort)
+
+if [ -z "$MANIFESTS" ]; then
+  echo "No run manifests found under .kiln/runs/. Nothing to resume."
+  exit 0
+fi
+
+INCOMPLETE=0
+
+for MANIFEST in $MANIFESTS; do
+  PHASE=$(jq -r '.phase // "unknown"' "$MANIFEST" 2>/dev/null)
+  [ "$PHASE" = "done" ] && continue
+
+  RUN_ID=$(jq -r  '.run_id  // "unknown"' "$MANIFEST")
+  PRD=$(jq -r     '.prd     // ""'        "$MANIFEST")
+  BRANCH=$(jq -r  '.branch  // ""'        "$MANIFEST")
+  PR=$(jq -r      '.pr      // "null"'    "$MANIFEST")
+  CURSOR=$(jq -r  '.cursor  // "unknown"' "$MANIFEST")
+
+  # Derive workflow type from the prd field shape or directory cues.
+  # build-prd manifests: prd = "docs/features/<slug>/PRD.md"
+  # fix manifests:       prd = "fix/<slug>" or phase contains "fix"
+  # distill manifests:   prd = "" or phase contains "distill"
+  if echo "$PRD" | grep -q "^docs/features/"; then
+    PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||; s|^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-||')
+    RESUME_CMD="/kiln:kiln-build-prd ${PRD_SLUG} --resume"
+    WORKFLOW="build-prd"
+  elif echo "$PHASE" | grep -qi "fix\|diagnose"; then
+    ISSUE_SLUG=$(echo "$PRD" | sed 's|fix/||')
+    RESUME_CMD="/kiln:kiln-fix ${ISSUE_SLUG} --resume"
+    WORKFLOW="fix"
+  elif echo "$PHASE" | grep -qi "distill\|theme"; then
+    RESUME_CMD="/kiln:kiln-distill --resume"
+    WORKFLOW="distill"
+  else
+    # Unknown workflow type — show build-prd as best guess when prd is set
+    if [ -n "$PRD" ] && [ "$PRD" != "null" ]; then
+      PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||; s|^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-||')
+      RESUME_CMD="/kiln:kiln-build-prd ${PRD_SLUG} --resume"
+      WORKFLOW="build-prd (inferred)"
+    else
+      RESUME_CMD="# unknown — inspect ${MANIFEST} manually"
+      WORKFLOW="unknown"
+    fi
+  fi
+
+  INCOMPLETE=$((INCOMPLETE + 1))
+
+  echo ""
+  echo "## Incomplete Run: ${RUN_ID}"
+  echo "  Workflow : ${WORKFLOW}"
+  echo "  Phase    : ${PHASE}"
+  echo "  Cursor   : ${CURSOR}"
+  [ -n "$PRD"    ] && echo "  PRD      : ${PRD}"
+  [ -n "$BRANCH" ] && echo "  Branch   : ${BRANCH}"
+  [ "$PR" != "null" ] && [ -n "$PR" ] && echo "  PR       : ${PR}"
+  echo "  Manifest : ${MANIFEST}"
+  echo ""
+  echo "  Resume with:"
+  echo "    ${RESUME_CMD}"
+done
+
+if [ "$INCOMPLETE" -eq 0 ]; then
+  echo "All runs are complete. Nothing to resume."
+fi
 ```
-Note: `/kiln:kiln-resume` has been replaced by `/kiln:kiln-next`. Please use `/kiln:kiln-next` going forward.
-`/kiln:kiln-resume` will continue to work but may be removed in a future version.
-```
 
-## Execute /kiln:kiln-next
+## Notes
 
-After printing the deprecation notice, execute the full `/kiln:kiln-next` workflow with no additional flags.
-
-Specifically, perform all of the following steps from `/kiln:kiln-next`:
-
-1. **Read project context** — VERSION, branch, constitution
-2. **Gather state from all local sources** — tasks, blockers, retrospectives, QA reports, backlog issues, unimplemented FRs
-3. **Gather state from GitHub sources** — issues and PR comments (skip gracefully if `gh` unavailable)
-4. **Classify and prioritize** — blocker/incomplete/qa-audit/backlog/improvement with critical/high/medium/low priorities
-5. **Map to kiln commands** — every recommendation gets a concrete command
-6. **Output terminal summary** — max 15 items grouped by priority
-7. **Save persistent report** — to `.kiln/logs/next-<timestamp>.md`
-8. **Create backlog issues** — for untracked gaps in `.kiln/issues/`
-
-The output is identical to `/kiln:kiln-next` — the only difference is the deprecation notice at the top.
+- This skill is **read-only** — it does not modify any file or start any workflow.
+- Resume commands call the relevant thin-wrapper skill with `--resume`, which passes the slug to wheel and lets wheel's native step-skipping handle continuation.
+- If wheel-run does not yet support cursor-based start-step resumption, re-running the wrapper still works: wheel skips steps whose `.wheel/outputs/<step-id>` files already exist from the prior run.
+- To resume manually, copy the printed command and run it.

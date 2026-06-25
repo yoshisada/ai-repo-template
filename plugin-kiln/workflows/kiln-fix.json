@@ -1,0 +1,57 @@
+{
+  "name": "kiln-fix",
+  "version": "1.0.0",
+  "description": "Diagnose → fix → verify loop for targeted bug fixes. Auto-invoked by kiln-next (auto_build mode) when tests fail on an implemented feature. model_tier is absent in wheel runtime — steps use concrete model values (validator=haiku, all others=sonnet). on_failure absent in runtime — steps exit 0 with fallback payloads; debugger routing replaced with defensive inline strategy. on:always absent — build-summary is terminal and upstream steps are non-halting.",
+  "steps": [
+    {
+      "id": "init-run-manifest",
+      "type": "command",
+      "command": "RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"phase\":\"fix\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\"",
+      "output": ".wheel/outputs/run-manifest.json"
+    },
+    {
+      "id": "read-context",
+      "type": "command",
+      "command": "mkdir -p .wheel/outputs; ISSUE=$(cat .wheel/inputs/issue.txt 2>/dev/null || echo ''); TEST_CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); TEST_OUT=$(eval \"$TEST_CMD\" 2>&1 | tail -40 || echo 'no test output'); ISSUE_ESC=$(printf '%s' \"$ISSUE\" | jq -Rs .); TEST_ESC=$(printf '%s' \"$TEST_OUT\" | jq -Rs .); printf '{\"issue\":%s,\"test_output\":%s,\"test_cmd\":\"%s\"}' \"$ISSUE_ESC\" \"$TEST_ESC\" \"$TEST_CMD\" > .wheel/outputs/fix-context.json; cat .wheel/outputs/fix-context.json",
+      "output": ".wheel/outputs/fix-context.json"
+    },
+    {
+      "id": "diagnose",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the fix diagnostician. Read fix-context.json and perform root-cause analysis.\n\n## Inputs\n- .wheel/outputs/fix-context.json — {issue, test_output, test_cmd}. The issue field is the human-written description; test_output is the last 40 lines of test runner output.\n\n## Steps\n1. Read fix-context.json. Read the relevant source files and failing tests named in test_output.\n2. Identify the root cause: the simplest change that makes the failing test(s) pass without breaking passing tests.\n3. If the issue mentions a spec (e.g. FR-number), read specs/<feature>/spec.md and specs/<feature>/contracts/interfaces.md to understand the intended contract.\n4. Write .wheel/outputs/diagnosis.json (MUST be valid JSON — write atomically to a .tmp file then mv):\n   {\"summary\":\"one-line description of the bug\",\"root_cause\":\"...\",\"implicated_files\":[\"src/...\"],\"implicated_frs\":[\"FR-001\"],\"fix_strategy\":\"...\",\"risk\":\"low|medium|high\"}\n\n## Critical: always exit cleanly\nIf you cannot determine the root cause (issue text empty, no failing tests, files not found), write:\n{\"summary\":\"insufficient context\",\"root_cause\":\"issue text or test output missing\",\"implicated_files\":[],\"implicated_frs\":[],\"fix_strategy\":\"Review .wheel/inputs/issue.txt and re-run tests manually\",\"risk\":\"low\"}\nEmit the diagnosis JSON as your output and stop.",
+      "context_from": ["read-context"],
+      "output": ".wheel/outputs/diagnosis.json"
+    },
+    {
+      "id": "fix",
+      "type": "agent",
+      "model": "sonnet",
+      "instruction": "You are the fix implementer. Apply the fix strategy from the diagnosis.\n\n## Inputs\n- .wheel/outputs/diagnosis.json — {summary, root_cause, implicated_files, implicated_frs, fix_strategy, risk}.\n- .wheel/outputs/fix-context.json — original issue + test output.\n\n## Steps\n1. Read diagnosis.json. If fix_strategy is 'insufficient context', emit {\"files_changed\":[],\"commit\":null,\"skipped\":true,\"reason\":\"diagnosis insufficient\"} and stop.\n2. For each implicated file: read the file, understand the failing contract, apply the minimal fix that satisfies the FR without breaking other interfaces.\n3. If specs/<feature>/contracts/interfaces.md exists for any implicated feature, verify every changed function signature still matches the contract exactly.\n4. Run the test command from .wheel/outputs/fix-context.json (.test_cmd) to do a quick sanity check. If tests still fail after your fix, document the remaining failures in your output — do NOT retry indefinitely; one attempt is sufficient for this step (verify step re-runs after).\n5. Stage and commit with message: fix(<area>): <summary>  where <area> is the directory/module and <summary> matches diagnosis.summary. Use git commit -m.\n6. Write .wheel/outputs/fix-result.json: {\"files_changed\":[\"...\"],\"commit\":\"<sha or null if nothing committed>\",\"tests_passed\":true|false,\"remaining_failures\":[]}.",
+      "context_from": ["diagnose"],
+      "output": ".wheel/outputs/fix-result.json"
+    },
+    {
+      "id": "verify",
+      "type": "command",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" 2>&1; EXIT=$?; printf '{\"exit\":%s,\"gate\":%s,\"passed\":%s}' \"$EXIT\" \"$GATE\" \"$([ $EXIT -eq 0 ] && echo true || echo false)\" > .wheel/outputs/verify-result.json; cat .wheel/outputs/verify-result.json; exit 0",
+      "output": ".wheel/outputs/verify-result.json"
+    },
+    {
+      "id": "write-ledger",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "You are the ledger writer. Record this fix in the kiln ledger.\n\n## Inputs\n- .wheel/outputs/run-id.txt — the run ID.\n- .wheel/outputs/diagnosis.json — {summary, root_cause, implicated_files, implicated_frs, fix_strategy, risk}.\n- .wheel/outputs/fix-result.json — {files_changed, commit, tests_passed}.\n- .wheel/outputs/verify-result.json — {exit, gate, passed}.\n\n## Steps\n1. Read run-id.txt for the run ID.\n2. Build the ledger entry ID: YYYY-MM-DD-fix-<first-8-chars-of-run-id> (use today's date).\n3. Determine blast_radius from diagnosis.risk: low→local, medium→cross-plugin, high→cross-plugin.\n4. Build tags array: always include \"phase/implement\"; add \"topic/<area>\" derived from the first implicated file path; add \"severity/low|medium|high\" from diagnosis.risk.\n5. Write .kiln/ledger/<entry-id>.json atomically (write to .kiln/ledger/<entry-id>.tmp then mv):\n   {\"id\":\"<entry-id>\",\"kind\":\"fix\",\"summary\":\"<diagnosis.summary>\",\"detail\":\"Root cause: <root_cause>. Fix strategy: <fix_strategy>. Files changed: <files_changed>. Tests passed: <tests_passed>.\",\"blast_radius\":\"local|cross-plugin\",\"tags\":[...],\"source_path\":\".wheel/outputs/fix-result.json\",\"ts\":\"<ISO-8601>\"}\n6. Emit {\"path\":\".kiln/ledger/<entry-id>.json\",\"id\":\"<entry-id>\"} as your output.\n\n## Critical: always exit cleanly\nIf any input file is absent, write a minimal ledger entry with summary='fix run (inputs missing)' and emit the path. Never fail.",
+      "context_from": ["diagnose", "fix", "verify"],
+      "output": ".wheel/outputs/ledger-entry.json"
+    },
+    {
+      "id": "build-summary",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "You are the fix build summary agent (terminal step — render a summary even if upstream steps failed). Read the verdict files and render a structured markdown summary for the human.\n\n## Inputs to read (if absent, fill rows with —)\n- .wheel/outputs/run-id.txt — run ID\n- .wheel/outputs/run-manifest.json — branch, phase\n- .wheel/outputs/fix-context.json — original issue text\n- .wheel/outputs/diagnosis.json — summary, root_cause, implicated_files, implicated_frs, risk\n- .wheel/outputs/fix-result.json — files_changed, commit, tests_passed\n- .wheel/outputs/verify-result.json — exit, gate, passed\n- .wheel/outputs/ledger-entry.json — ledger path\n\nRun: git diff --stat HEAD~1 2>/dev/null || echo 'no changes'\n\n## Output format (markdown tables)\n\n### Fix Summary\n| Field | Value |\n|---|---|\n| Issue | <summary from diagnosis.json> |\n| Root cause | <root_cause> |\n| Risk | <risk> |\n| Branch | `<branch>` |\n| Commit | `<commit sha or —>` |\n| Tests | Passed / Failed |\n| Ledger | `<ledger path>` |\n\n### What Changed\n| File | Change |\n|---|---|\n(from git diff --stat HEAD~1)\n\n### What to Verify\n| Step | Expected |\n|---|---|\n(derive from implicated_frs and the fix_strategy — what the human should manually confirm)\n\n### Findings (omit entirely if tests passed and no remaining failures)\n| Severity | Finding |\n|---|---|\n(from fix-result.json remaining_failures; omit section if empty)\n\n## Save and print\n1. Get run_id from .wheel/outputs/run-id.txt.\n2. Write the complete summary to .kiln/runs/<run_id>/summary.md.\n3. Print the full summary as your final output — the human reads it directly.\n\n## Rules\n- Do NOT spawn sub-agents or use the Agent tool.\n- If a required input file is absent, fill its rows with — rather than failing.\n- Always print the summary even if writing to file fails.",
+      "context_from": ["diagnose", "fix", "verify", "write-ledger"],
+      "output": ".wheel/outputs/fix-summary.json"
+    }
+  ]
+}
