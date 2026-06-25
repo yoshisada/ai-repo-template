@@ -1,0 +1,14 @@
+{
+  "name": "kiln-team-smoke-worker",
+  "version": "1.0.0",
+  "description": "Trivial teammate sub-worker for the team E2E smoke test: writes a stamped file from its injected assignment id.",
+  "steps": [
+    {
+      "id": "stamp",
+      "type": "agent",
+      "model": "haiku",
+      "instruction": "Your teammate assignment (injected by wheel) includes an `id` value (e.g. a or b). Write a file at `.wheel/outputs/team-smoke-<id>.txt` containing the single line `worker <id> ran`. Then emit {\"id\":\"<id>\",\"done\":true}. Keep it to one action.",
+      "output": ".wheel/outputs/team-smoke-worker-verdict.json"
+    }
+  ]
+}

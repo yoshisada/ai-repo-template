@@ -20,13 +20,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 WHEEL_DIR="$REPO_ROOT/plugin-wheel"
 
-WF=""; PROMPT=""; BUDGET="6.00"; MODEL="sonnet"; CLEAN=0
+WF=""; PROMPT=""; BUDGET="6.00"; MODEL="sonnet"; CLEAN=0; INIT_KILN=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --budget-usd) BUDGET="$2"; shift 2 ;;
     --model) MODEL="$2"; shift 2 ;;
     --keep) CLEAN=0; shift ;;
     --clean) CLEAN=1; shift ;;
+    --init-kiln) INIT_KILN=1; shift ;;  # scaffold .kiln config + force autonomous mode (no checkpoint pauses)
     *) if [ -z "$WF" ]; then WF="$1"; elif [ -z "$PROMPT" ]; then PROMPT="$1"; fi; shift ;;
   esac
 done
@@ -49,6 +50,14 @@ git -C "$TESTDIR" config user.email "e2e@kiln.local"; git -C "$TESTDIR" config u
 cp "$WF_FILE" "$TESTDIR/workflows/${WF}.json"
 # Co-locate any kiln sub-workflows the target may invoke (teammates / type:workflow steps).
 for dep in "$REPO_ROOT"/plugin-kiln/workflows/*.json; do cp "$dep" "$TESTDIR/workflows/" 2>/dev/null || true; done
+if [ "$INIT_KILN" = 1 ]; then
+  ( cd "$TESTDIR" && node "$REPO_ROOT/plugin-kiln/bin/init.mjs" init >/dev/null 2>&1 )
+  # Force autonomous mode so checkpoint (approval) steps don't pause a headless run.
+  if [ -f "$TESTDIR/.kiln/config.json" ]; then
+    jq '.review_mode="autonomous" | .review_checkpoints=[] | .auto_pr=true | .auto_merge=true | .auto_build=true' \
+      "$TESTDIR/.kiln/config.json" > "$TESTDIR/.kiln/config.json.tmp" && mv "$TESTDIR/.kiln/config.json.tmp" "$TESTDIR/.kiln/config.json"
+  fi
+fi
 git -C "$TESTDIR" add -A >/dev/null 2>&1; git -C "$TESTDIR" commit -q -m init >/dev/null 2>&1 || true
 
 # Force-inject wheel's hooks. ${CLAUDE_PLUGIN_ROOT} in the hook commands is bash-expanded at

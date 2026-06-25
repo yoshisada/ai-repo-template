@@ -1,0 +1,13 @@
+{
+  "name": "kiln-team-smoke",
+  "version": "1.0.0",
+  "description": "Team E2E smoke: launch a 2-member team, each runs kiln-team-smoke-worker with a distinct id, barrier (team-wait), teardown.",
+  "steps": [
+    { "id": "setup", "type": "command", "command": "mkdir -p .wheel/outputs && echo started", "output": ".wheel/outputs/team-smoke-setup.txt" },
+    { "id": "team", "type": "team-create", "team_name": "smoke" },
+    { "id": "worker-a", "type": "teammate", "team": "team", "workflow": "kiln:kiln-team-smoke-worker", "model": "haiku", "assign": { "id": "a" } },
+    { "id": "worker-b", "type": "teammate", "team": "team", "workflow": "kiln:kiln-team-smoke-worker", "model": "haiku", "assign": { "id": "b" } },
+    { "id": "wait", "type": "team-wait", "team": "team", "collect_to": ".wheel/outputs/team-smoke-results/", "output": ".wheel/outputs/team-smoke-summary.json" },
+    { "id": "cleanup", "type": "team-delete", "team": "team", "terminal": true }
+  ]
+}
