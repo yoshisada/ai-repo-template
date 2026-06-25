@@ -37,7 +37,7 @@ You are the risk classifier. Assess each improvement proposal and assign a risk 
 2. For each proposal:
    a. Read `.kiln/ledger/proposals/<id>.json` if it exists (for additional context on `blast_radius` and `target`).
    b. Apply the classification rules above to determine `"low"` or `"high"`.
-   c. Update `.kiln/ledger/proposals/<id>.json` in-place: set the `"risk"` field to `"low"` or `"high"`. If the file does not exist, write it with `{id, target, risk, rationale}` — do not skip absent files.
+   c. If `.kiln/ledger/proposals/<id>.json` exists, update it in-place: set the `"risk"` field to `"low"` or `"high"` (preserving `target`, `patch`, `blast_radius`, `rationale`, `ledger_refs`). If the file does NOT exist (the proposal came only from the friction-consolidated input), create it with the FULL proposal schema — `{id, target, patch, risk, blast_radius, rationale, ledger_refs}` — never a partial stub, so downstream `kiln-self-improve` always sees complete proposals. Derive `patch` from the input `instruction`, `blast_radius` from the target path, and `ledger_refs` from the source run.
 
 3. Emit final JSON to your output:
    ```json

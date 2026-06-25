@@ -100,7 +100,8 @@ for f in $ENTRIES; do
     echo "$TAGS" | grep -qF "$TAG_FILTER" || continue
   fi
 
-  echo -e "${TS}\t${ID}\t${KIND}\t${SUMMARY}\t${TAGS}\t${DATE}" >> "$TMPFILE"
+  # printf, not `echo -e` — macOS system bash (3.2) prints a literal "-e" with echo -e.
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$TS" "$ID" "$KIND" "$SUMMARY" "$TAGS" "$DATE" >> "$TMPFILE"
 done
 
 # sort newest first
@@ -111,8 +112,7 @@ if [ -n "$LAST_N" ] && [ "$LAST_N" -gt 0 ] 2>/dev/null; then
   SORTED=$(echo "$SORTED" | head -n "$LAST_N")
 fi
 
-ROW_COUNT=$(echo "$SORTED" | grep -c . 2>/dev/null || echo 0)
-if [ "$ROW_COUNT" -eq 0 ]; then
+if [ -z "$SORTED" ]; then
   echo "No entries match the given filters."
   exit 0
 fi
