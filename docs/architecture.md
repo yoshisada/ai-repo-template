@@ -17,13 +17,14 @@ structural gate, and respects all invariants (propose-don't-apply, hooks fail-op
 `model_tier`/`on_failure`/`on:always`, portability, `path:ledger/` consistency) — no
 blocking issues.
 
-**Live-verification boundary (honest):** Phases 0–1 were live-dogfooded as the user (init/
-doctor/next; mistake-record contract). Phases 2–5 are structurally + contract validated; the
-**wheel workflows themselves have not been run end-to-end** because the `--plugin-dir` skill
-harness can't drive wheel workflows (wheel's hooks must be in `.claude/settings.json` via
-`wheel init`). The sanctioned live path is a `wheel-test-runner` fixture or the `activate.sh`
-isolated recipe. Recommended follow-up live tests (greenlight to run): (1) a full
-`kiln-build-prd` end-to-end on a toy PRD; (2) trip each Phase-4 gate; (3) `kiln-self-improve`
+**Live-verification status:** Phases 0–1 were live-dogfooded as the user (init/doctor/next;
+mistake-record contract). **Wheel-workflow E2E testing is now solved** — `plugin-kiln/tests/
+dogfood/run-workflow-e2e.sh` drives a kiln wheel workflow end-to-end (hook-driven, all steps)
+in an isolated subprocess by injecting wheel's hooks via `claude --settings` + a strict
+driving-loop prompt (full writeup: `tests/dogfood/E2E-RECIPE.md`). **Proven:** `kiln-mistake-
+record` ran E2E → `history/success/`, all 3 steps `done`, real `.kiln/mistakes` + `.kiln/
+ledger` written. Remaining heavier runs (greenlight to spend): full `kiln-build-prd` E2E
+(team path; needs a toy PRD + creates a PR), the Phase-4 gate trips, and `kiln-self-improve`
 on seeded proposals. Wheel's own team fixtures already prove the team-launch machinery.
 
 ### Phase 0 — Config Foundation ✅ (landed)
