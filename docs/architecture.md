@@ -8,7 +8,23 @@
 ## Autonomous Rearchitecture — Build Status
 
 Staged build of the autonomous loop. Each stage is implemented, dogfooded live (fresh
-isolated subprocess), reviewed by agents, and pushed before the next begins.
+isolated subprocess) where the harness allows, reviewed by agents, and pushed before the
+next begins.
+
+**Status: all 6 phases (0–5) landed and pushed.** A final completeness-audit sub-agent
+confirmed every phase's deliverable exists, matches this doc + the MASTER_PLAN, passes the
+structural gate, and respects all invariants (propose-don't-apply, hooks fail-open, no
+`model_tier`/`on_failure`/`on:always`, portability, `path:ledger/` consistency) — no
+blocking issues.
+
+**Live-verification boundary (honest):** Phases 0–1 were live-dogfooded as the user (init/
+doctor/next; mistake-record contract). Phases 2–5 are structurally + contract validated; the
+**wheel workflows themselves have not been run end-to-end** because the `--plugin-dir` skill
+harness can't drive wheel workflows (wheel's hooks must be in `.claude/settings.json` via
+`wheel init`). The sanctioned live path is a `wheel-test-runner` fixture or the `activate.sh`
+isolated recipe. Recommended follow-up live tests (greenlight to run): (1) a full
+`kiln-build-prd` end-to-end on a toy PRD; (2) trip each Phase-4 gate; (3) `kiln-self-improve`
+on seeded proposals. Wheel's own team fixtures already prove the team-launch machinery.
 
 ### Phase 0 — Config Foundation ✅ (landed)
 
