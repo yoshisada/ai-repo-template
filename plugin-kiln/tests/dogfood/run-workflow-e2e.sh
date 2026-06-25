@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 WHEEL_DIR="$REPO_ROOT/plugin-wheel"
 
-WF=""; PROMPT=""; BUDGET="6.00"; MODEL="sonnet"; CLEAN=0; INIT_KILN=0
+WF=""; PROMPT=""; BUDGET="6.00"; MODEL="sonnet"; CLEAN=0; INIT_KILN=0; SEED_CONFIG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --budget-usd) BUDGET="$2"; shift 2 ;;
@@ -28,6 +28,7 @@ while [ $# -gt 0 ]; do
     --keep) CLEAN=0; shift ;;
     --clean) CLEAN=1; shift ;;
     --init-kiln) INIT_KILN=1; shift ;;  # scaffold .kiln config + force autonomous mode (no checkpoint pauses)
+    --seed-config) SEED_CONFIG="$2"; shift 2 ;;  # write this JSON to .kiln/config.json BEFORE the run (deterministic)
     *) if [ -z "$WF" ]; then WF="$1"; elif [ -z "$PROMPT" ]; then PROMPT="$1"; fi; shift ;;
   esac
 done
@@ -58,6 +59,7 @@ if [ "$INIT_KILN" = 1 ]; then
       "$TESTDIR/.kiln/config.json" > "$TESTDIR/.kiln/config.json.tmp" && mv "$TESTDIR/.kiln/config.json.tmp" "$TESTDIR/.kiln/config.json"
   fi
 fi
+if [ -n "$SEED_CONFIG" ]; then mkdir -p "$TESTDIR/.kiln"; printf '%s' "$SEED_CONFIG" > "$TESTDIR/.kiln/config.json"; fi
 git -C "$TESTDIR" add -A >/dev/null 2>&1; git -C "$TESTDIR" commit -q -m init >/dev/null 2>&1 || true
 
 # Force-inject wheel's hooks. ${CLAUDE_PLUGIN_ROOT} in the hook commands is bash-expanded at

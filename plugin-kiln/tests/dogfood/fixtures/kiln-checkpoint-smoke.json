@@ -1,0 +1,32 @@
+{
+  "name": "kiln-checkpoint-smoke",
+  "version": "1.0.0",
+  "description": "Auto-mode test: a checkpoint (branch + approval) that PAUSES when its name is in .kiln/config.json review_checkpoints, and SKIPS in autonomous mode (empty checkpoints). Mirrors kiln-build-prd's checkpoint pattern.",
+  "steps": [
+    {
+      "id": "read-config",
+      "type": "command",
+      "command": "{ cat .kiln/config.json 2>/dev/null || echo '{}'; } | tee .wheel/outputs/cfg.json",
+      "output": ".wheel/outputs/cfg.json"
+    },
+    {
+      "id": "checkpoint-test",
+      "type": "branch",
+      "condition": "if grep -q test-gate .wheel/outputs/cfg.json; then exit 1; else exit 0; fi",
+      "if_zero": "done-step",
+      "if_nonzero": "approve-test"
+    },
+    {
+      "id": "approve-test",
+      "type": "approval",
+      "message": "Checkpoint test-gate reached \u2014 approve to continue."
+    },
+    {
+      "id": "done-step",
+      "type": "command",
+      "command": "echo 'reached the end past the checkpoint' > .wheel/outputs/completed.txt; cat .wheel/outputs/completed.txt",
+      "output": ".wheel/outputs/completed.txt",
+      "terminal": true
+    }
+  ]
+}
