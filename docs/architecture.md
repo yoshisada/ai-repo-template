@@ -64,11 +64,43 @@ Past mistakes from all projects become queryable before any new build.
 > `activate.sh` isolated recipe or `wheel-test-runner` fixtures instead. Establishing that
 > path is the first task of Phase 2 (which converts `kiln-build-prd` into a wheel workflow).
 
-### Phases 2–5 — pending
+### Phase 2 — Build Pipeline as Wheel Workflow ✅ (landed)
 
-Build pipeline as wheel workflow (2) · self-improvement loop (3) · hooks + gates (4) ·
-observability + vision (5). See `IMPLEMENTATION_PLAN.md` for the wheel-capability
-reconciliation (esp. the Phase 2 team-step encoding, Option A) that governs how these land.
+`kiln-build-prd` is now a resumable 38-step wheel workflow that launches **real parallel
+teams** via wheel's native primitives (`team-create` → `teammate` → `team-wait` →
+`team-delete`).
+
+- **`workflows/kiln-build-prd.json`** (38 steps): read-config/prd/standards → init-manifest →
+  `query-precedent` (native sub-workflow) → specify → **checkpoint** → plan → tasks → gate →
+  **implement team** → test → smoke → **checkpoint** → **audit panel team** → synthesize →
+  fix-blocking → **checkpoint** → create-pr → **checkpoint** → retro → classify → summary.
+- **Teams:** implement = `kiln-implement-worker` teammate (bounded static slot; expandable);
+  audit = a 3-member parallel panel (`prd-auditor` + `spec-enforcer` + `quality-judge`, one
+  `kiln-audit-worker` slot per role via `assign.role`) → `team-wait` → synthesize. Each role's
+  knowledge lives in its sub-workflow's agent-step instruction (wheel teammates run as
+  general-purpose).
+- **Checkpoints** are `branch` + `approval` pairs gated on `review_checkpoints[]` / upstream
+  blocking severity / `auto_*` (a command can't pause; `approval` can).
+- **`workflows/kiln-distill.json`** (7 steps) and **`workflows/kiln-fix.json`** (7 steps).
+- **Skills** `kiln-build-prd` / `kiln-fix` / `kiln-distill` / `kiln-resume` are now thin
+  wrappers (build-prd: 99 lines, was 1430) that write `.wheel/inputs/*` and call `wheel-run`.
+- **`agents/build-summary.md`** (haiku, terminal) renders the canonical 5-table summary.
+
+Encoded to the **real** wheel runtime: concrete models (no `model_tier`), defensive exit-0
+(no `on_failure`), `branch` routing, native `workflow`/`team-*` steps. Two review passes fixed
+the team collect-path contract, the resume semantics (state-file cursor, not output-file
+existence), and JSON hygiene.
+
+> **Verification.** Structural gate (`tests/dogfood/validate-workflow-structure.sh`) passes on
+> all five workflows; wheel's own team fixtures prove live team launch; a full live
+> `kiln-build-prd` fixture (wheel-test-runner) is a follow-up. **Residual wheel gaps** (would
+> need a wheel change → approval): dynamic per-story implementer fan-out, per-teammate worktree
+> isolation + auto-merge. v1 uses a bounded static team with a single implementer slot.
+
+### Phases 3–5 — pending
+
+Self-improvement loop (3) · hooks + gates (4) · observability + vision (5).
+See `IMPLEMENTATION_PLAN.md`.
 
 ## Complete System Diagram
 
