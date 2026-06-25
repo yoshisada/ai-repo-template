@@ -76,7 +76,7 @@ START="$(date +%s)"
 
 ( cd "$TESTDIR"
   env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH \
-    CLAUDE_PLUGIN_ROOT="$WHEEL_DIR" \
+    CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT="$WHEEL_DIR" \
     claude --print --dangerously-skip-permissions \
       --model "$MODEL" --session-id "$UUID" --max-budget-usd "$BUDGET" \
       --plugin-dir "$REPO_ROOT/plugin-kiln" --plugin-dir "$REPO_ROOT/plugin-wheel" --plugin-dir "$REPO_ROOT/plugin-shelf" \
