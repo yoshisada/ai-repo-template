@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# run-buildprd-e2e.sh — drive the FULL kiln-build-prd (38 steps, real teams) E2E in an
+# interactive tmux claude session (team tools are interactive-only). Autonomous config so no
+# checkpoint pauses. Monitors completion via on-disk .wheel/ state.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+WHEEL="$REPO/plugin-wheel"
+UUID="$(uuidgen | tr '[:upper:]' '[:lower:]')"; SHORT="${UUID:0:8}"
+DIR="/tmp/kiln-bp-e2e-$SHORT"; SESS="kilnbp-$SHORT"
+mkdir -p "$DIR/workflows" "$DIR/.wheel/inputs"
+git -C "$DIR" init -q; git -C "$DIR" config user.email e2e@kiln.local; git -C "$DIR" config user.name e2e
+
+# Stage ALL kiln workflows locally; rewrite teammate plugin refs -> local names so they resolve
+# from the scratch workflows/ (uses MY local code, unambiguously).
+for f in "$REPO"/plugin-kiln/workflows/*.json; do cp "$f" "$DIR/workflows/"; done
+sed -i '' 's/kiln:kiln-implement-worker/kiln-implement-worker/g; s/kiln:kiln-audit-worker/kiln-audit-worker/g' "$DIR/workflows/kiln-build-prd.json"
+
+# Autonomous config (no checkpoint pauses).
+( cd "$DIR" && node "$REPO/plugin-kiln/bin/init.mjs" init >/dev/null 2>&1 )
+jq '.review_mode="autonomous" | .review_checkpoints=[] | .auto_pr=true | .auto_merge=true | .auto_build=true' \
+  "$DIR/.kiln/config.json" > "$DIR/.kiln/config.json.tmp" && mv "$DIR/.kiln/config.json.tmp" "$DIR/.kiln/config.json"
+
+# Seed a trivial real PRD.
+mkdir -p "$DIR/docs/features/2026-06-24-slugify"
+cat > "$DIR/docs/features/2026-06-24-slugify/PRD.md" <<'EOF'
+# PRD: slugify utility
+## Overview
+A small pure function slugify(text) that converts a string to a URL-safe kebab-case slug.
+## User Stories
+- US-1: As a developer, I want slugify("Hello World!") to return "hello-world" for clean URLs.
+## Functional Requirements
+- FR-001: slugify lowercases the input.
+- FR-002: slugify replaces any run of non-alphanumeric characters with a single hyphen.
+- FR-003: slugify trims leading/trailing hyphens.
+## Success Criteria
+- SC-001 (FR-001..003): slugify("  Hello, World!! ") returns "hello-world".
+EOF
+echo "2026-06-24-slugify" > "$DIR/.wheel/inputs/prd-slug.txt"
+
+# Inject wheel hooks (hardcoded path — Claude Code blocks ${CLAUDE_PLUGIN_ROOT} in settings).
+sed "s#\${CLAUDE_PLUGIN_ROOT}#$WHEEL#g" "$WHEEL/hooks/hooks.json" > "$DIR/.wheel-hooks-settings.json"
+git -C "$DIR" add -A >/dev/null 2>&1; git -C "$DIR" commit -q -m init >/dev/null 2>&1 || true
+
+PROMPT='Drive the kiln-build-prd wheel workflow to completion. First run the /wheel:wheel-run skill with input kiln-build-prd (Step 1 validate + Step 2 activate.sh). Then loop: do exactly ONE hook-directed action, END YOUR TURN, obey the next Stop-hook additionalContext, repeat until the workflow archives. When a hook tells you to call TeamCreate or spawn teammate Agents, make those exact tool calls (in parallel when it says so), then end your turn — team-wait barriers until they finish. Config is autonomous so there are NO approval pauses. HARD RULES (never violate): stay in THIS directory, never cd elsewhere; never build/rebuild/modify any plugin or run npm/tsc/node on plugin source; never read or debug hook/workflow/state source; if a hook PRINTS AN ERROR, ignore it and just end your turn (it is NOT yours to fix); never run wheel-status/wheel-skip/wheel-stop. Your ONLY job is to make the exact tool calls the hooks request and do the agent-step work they describe, ending your turn after each. The create-pr step will fail (no git remote) — that is expected, keep going. Keep driving patiently until it archives, then say DONE.'
+
+echo "▶ build-prd E2E (interactive tmux): $DIR  session=$SESS"
+tmux kill-session -t "$SESS" 2>/dev/null || true
+tmux new-session -d -s "$SESS" -x 220 -y 50
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_PLUGIN_ROOT='$WHEEL' claude --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
+sleep 20; tmux send-keys -t "$SESS" Enter; sleep 14   # dismiss trust prompt, wait for input box
+tmux send-keys -t "$SESS" "$PROMPT"; sleep 3; tmux send-keys -t "$SESS" Enter
+echo "  prompt sent; polling .wheel/ for archive (up to ~40 min)…"
+
+ARCHIVED=""; LAST=""
+for i in $(seq 1 240); do   # 240 * 10s = 40 min
+  sleep 10
+  if ls "$DIR"/.wheel/history/*/*.json >/dev/null 2>&1; then ARCHIVED="$(ls "$DIR"/.wheel/history/ 2>/dev/null | tr '\n' ' ')"; break; fi
+  CUR=""; for s in "$DIR"/.wheel/state_*.json; do [ -f "$s" ] && CUR="$CUR [$(jq -r '"\(.workflow_name):c\(.cursor)/\(.steps|length):\(.steps[.cursor].id // \"?\")"' "$s" 2>/dev/null)]"; done
+  [ "$CUR" != "$LAST" ] && { echo "  [$i]$CUR  src=$(find "$DIR/src" -type f 2>/dev/null | wc -l|tr -d ' ') specs=$(find "$DIR/specs" -name '*.md' 2>/dev/null|wc -l|tr -d ' ')"; LAST="$CUR"; }
+done
+
+echo "=== RESULT ==="
+echo "archived: ${ARCHIVED:-NONE (still active / truncated — resumable)}"
+echo "main workflow final:"; for s in "$DIR"/.wheel/state_*.json "$DIR"/.wheel/history/*/*.json; do [ -f "$s" ] && jq -r '"  \(.workflow_name): cursor=\(.cursor)/\(.steps|length)"' "$s" 2>/dev/null; done | grep build-prd | head -1
+echo "artifacts produced:"; find "$DIR/specs" "$DIR/src" -type f 2>/dev/null | sed "s#$DIR/##" | head -30
+echo "audit verdicts:"; ls "$DIR"/.wheel/outputs/audit-*-verdict.json 2>/dev/null
+echo "summary:"; cat "$DIR"/.kiln/runs/*/summary.md 2>/dev/null | head -30
+tmux kill-session -t "$SESS" 2>/dev/null || true
+rm -rf "$HOME/.claude/teams/implement" "$HOME/.claude/teams/audit" 2>/dev/null
+echo "scratch: $DIR  (session $UUID — resumable if truncated)"
