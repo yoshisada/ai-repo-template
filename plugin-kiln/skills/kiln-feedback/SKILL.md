@@ -7,7 +7,7 @@ description: Log strategic product feedback about the core mission, scope, or di
 
 Capture higher-altitude product feedback (mission, scope, ergonomics, architecture, direction) to `.kiln/feedback/`. This is the counterpart to `/kiln:kiln-report-issue`: issues are tactical bugs/friction; feedback is strategic. Both are consumed by `/kiln:kiln-distill` to shape the next PRD — feedback leads the narrative; issues form the tactical layer.
 
-Unlike `/kiln:kiln-report-issue`, this skill does NOT run a wheel workflow, does NOT write to Obsidian, and does NOT kick off a background sync. It writes one local file and exits.
+Unlike `/kiln:kiln-report-issue`, this skill does NOT run a wheel workflow, does NOT write to Obsidian, and does NOT kick off a background sync. It writes one local feedback file and ticks the shared capture-cadence counter (a local `.shelf-config` increment, not a sync), then exits.
 
 ## User Input
 

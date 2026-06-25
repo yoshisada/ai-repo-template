@@ -96,11 +96,17 @@ START_EPOCH="$(date +%s)"
 
 # The three-part isolation + local plugin load. --output-format json gives us the
 # cost/usage block. --add-dir lets the subprocess's CLAUDE.md/tools reach the scratch.
-env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH \
-  bash -c "cd '$TESTDIR' && claude --print --dangerously-skip-permissions \
-    --model '$MODEL' --session-id '$UUID' --max-budget-usd '$BUDGET_USD' \
-    ${PLUGIN_FLAGS[*]} --add-dir '$TESTDIR' \
-    --output-format json < '$SCENARIO'" > "$RESULT_JSON" 2>"$TESTDIR/.dogfood-stderr.txt"
+# Run claude directly with the flag ARRAY properly expanded ("${PLUGIN_FLAGS[@]}") rather
+# than interpolating into a `bash -c` string — the latter word-splits any plugin path that
+# contains spaces. cwd is changed with a subshell so isolation is preserved.
+(
+  cd "$TESTDIR" || exit 97
+  env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH \
+    claude --print --dangerously-skip-permissions \
+    --model "$MODEL" --session-id "$UUID" --max-budget-usd "$BUDGET_USD" \
+    "${PLUGIN_FLAGS[@]}" --add-dir "$TESTDIR" \
+    --output-format json < "$SCENARIO"
+) > "$RESULT_JSON" 2>"$TESTDIR/.dogfood-stderr.txt"
 RUN_RC=$?
 
 END_EPOCH="$(date +%s)"

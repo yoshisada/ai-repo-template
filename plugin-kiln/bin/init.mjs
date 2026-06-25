@@ -16,7 +16,7 @@
  *   npx @yoshisada/kiln update     # re-sync templates to latest
  */
 
-import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, cpSync, writeFileSync, copyFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 

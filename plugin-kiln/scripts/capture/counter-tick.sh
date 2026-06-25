@@ -23,12 +23,19 @@ SOURCE="${1:-unknown}"
 # wheel-exported plugin dir → this script's sibling plugin → install cache.
 _find_shelf_scripts() {
   local c
+  # Explicit, version-correct probes first: the wheel-exported plugin dir, the sibling
+  # plugin under a --plugin-dir/cache install, and the source-repo layout.
   for c in \
     "${WORKFLOW_PLUGIN_DIR:-}/../plugin-shelf/scripts" \
     "${CLAUDE_PLUGIN_ROOT:-}/../plugin-shelf/scripts" \
-    "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../plugin-shelf/scripts" 2>/dev/null && pwd)" \
-    "$HOME/.claude/plugins/cache"/*/shelf/*/scripts; do
+    "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../plugin-shelf/scripts" 2>/dev/null && pwd)"; do
     [ -n "$c" ] && [ -f "$c/shelf-counter.sh" ] && { printf '%s\n' "$c"; return 0; }
+  done
+  # Cache fallback: multiple installed shelf versions can match. Take the NEWEST by
+  # version (sort -V descending), not the arbitrary glob order, to avoid resolving a
+  # stale counter implementation.
+  for c in $(ls -d "$HOME/.claude/plugins/cache"/*/shelf/*/scripts 2>/dev/null | sort -t/ -k7 -V -r); do
+    [ -f "$c/shelf-counter.sh" ] && { printf '%s\n' "$c"; return 0; }
   done
   return 1
 }

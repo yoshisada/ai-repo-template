@@ -27,7 +27,8 @@ if [ -z "$MANIFEST" ]; then
     [ -n "$c" ] && [ -f "$c" ] && { MANIFEST="$c"; break; }
   done
   if [ -z "$MANIFEST" ]; then
-    MANIFEST="$(find . -path '*/kiln/scaffold/doctor-manifest.json' 2>/dev/null | head -1)"
+    # Bounded walk — kiln installs at shallow depth; avoid scanning a huge consumer tree.
+    MANIFEST="$(find . -maxdepth 8 -path '*/kiln/scaffold/doctor-manifest.json' 2>/dev/null | head -1)"
   fi
 fi
 
