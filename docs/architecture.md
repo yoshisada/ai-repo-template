@@ -30,11 +30,23 @@ blocking issues.
 | kiln-build-prd (linear steps) | ✅ config→prd→standards→manifest→precedent drive E2E |
 | kiln-build-prd (team steps) | ⚠️ dispatch proven (Stop hook emits the exact `TeamCreate(...)` call) but **team EXECUTION can't run under `claude --print`** — `TeamCreate`/`Agent` are interactive-session-only (not exposed headless). Covered by wheel's own CI team fixtures + structural equivalence. |
 
-Two platform limits of headless `--print` testing, both characterized: (1) longer agent-heavy
-workflows truncate at `--print`'s natural turn limit (finish via state-cursor resume / chained
-invocations); (2) wheel **team** workflows need an **interactive** session to execute (the team
-tools aren't in `--print`). One real bug was found + fixed by E2E: nested `type:workflow` steps
-stall the headless loop (build-prd's `query-precedent` was inlined).
+**Auto mode (the checkpoint/autonomy model) — tested both ways.** A checkpoint-smoke fixture
+proved the branch+approval mechanism: in **autonomous** config (`review_checkpoints: []`) the
+checkpoint **skips** and the workflow self-drives to completion; in **supervised** config
+(checkpoint name present) it **pauses** at the approval step (`approve-test:working`,
+`done-step:skipped`) awaiting human approval. Team execution is proven via interactive tmux
+(`run-team-e2e.sh`).
+
+**Real bugs E2E found and fixed** (all silently broke build-prd; structural/contract review
+couldn't catch them — they're wheel runtime-semantics): (1) nested `type:workflow` steps stall
+the headless loop → build-prd's `query-precedent` inlined; (2) `branch` steps use a **`condition`**
+field (not `command`), run via `eval` so it must be **quote-free** → 4 checkpoints rewritten;
+(3) command steps don't auto-write their `output` file (wheel stores stdout in state) → 8
+command steps across build-prd/kiln-fix given explicit `tee`/redirect.
+
+Two platform limits of headless `--print` testing: (1) longer agent-heavy workflows truncate at
+`--print`'s turn limit (finish via state-cursor resume); (2) team tools are interactive-only, so
+team execution uses the tmux path.
 
 ### Phase 0 — Config Foundation ✅ (landed)
 
