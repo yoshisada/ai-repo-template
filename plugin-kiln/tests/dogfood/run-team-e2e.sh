@@ -5,8 +5,8 @@
 # workflows can't EXECUTE headless. A real PTY-backed interactive session DOES have them. This
 # launches interactive `claude` inside tmux (real TTY), sends the driving prompt once, lets the
 # model auto-drive the team workflow via wheel's Stop-hook loop, and monitors COMPLETION via the
-# on-disk .wheel/ state (not the TUI). Wheel hooks are injected via --settings (same as the
-# headless E2E recipe).
+# on-disk .wheel/ state (not the TUI). Wheel hooks come from --plugin-dir (interactive
+# auto-load) — NOT --settings, which would double-fire every hook (see note below).
 #
 # Usage: run-team-e2e.sh [--keep]
 # Verifies: a 2-member team (kiln-team-smoke) runs each teammate, team-wait collects, archives.
@@ -25,9 +25,9 @@ git -C "$DIR" init -q; git -C "$DIR" config user.email e2e@kiln.local; git -C "$
 # Stage the team workflow + worker locally; rewrite the teammate ref to the unprefixed local name.
 sed 's/kiln:kiln-team-smoke-worker/kiln-team-smoke-worker/g' "$FIX/kiln-team-smoke.json" > "$DIR/workflows/kiln-team-smoke.json"
 cp "$FIX/kiln-team-smoke-worker.json" "$DIR/workflows/kiln-team-smoke-worker.json"
-# Hardcode the absolute wheel path: Claude Code BLOCKS ${CLAUDE_PLUGIN_ROOT} in settings.json
-# hooks (it's a plugin-only var), and the block hits teammate sub-agent contexts hardest.
-sed "s#\${CLAUDE_PLUGIN_ROOT}#$WHEEL#g" "$WHEEL/hooks/hooks.json" > "$DIR/.wheel-hooks-settings.json"
+# NOTE: hooks come from `--plugin-dir $WHEEL` (interactive auto-load). Do NOT also
+# inject via `--settings` — that double-fires every wheel hook per turn. (--settings
+# is only for HEADLESS --print, where --plugin-dir doesn't fire hooks.)
 git -C "$DIR" add -A >/dev/null 2>&1; git -C "$DIR" commit -q -m init >/dev/null 2>&1 || true
 
 # Single-line prompt (no embedded newlines — multi-line send-keys can submit prematurely).
@@ -39,7 +39,7 @@ tmux new-session -d -s "$SESS" -x 220 -y 50
 # Launch interactive claude (real TTY -> team tools). Env-wipe the 4 collision vars; keep teams env.
 # CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 is REQUIRED — agent teams are disabled by
 # default; without it no implicit team is set up and teammate Agent spawns never join.
-tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO_ROOT/plugin-kiln --plugin-dir $WHEEL" Enter
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --plugin-dir $REPO_ROOT/plugin-kiln --plugin-dir $WHEEL" Enter
 sleep 20  # boot to the "trust this folder?" prompt
 tmux send-keys -t "$SESS" Enter   # accept "1. Yes, I trust this folder" (default-selected)
 sleep 14  # welcome screen -> input box ready

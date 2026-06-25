@@ -38,8 +38,13 @@ A small pure function slugify(text) that converts a string to a URL-safe kebab-c
 EOF
 echo "2026-06-24-slugify" > "$DIR/.wheel/inputs/prd-slug.txt"
 
-# Inject wheel hooks (hardcoded path — Claude Code blocks ${CLAUDE_PLUGIN_ROOT} in settings).
-sed "s#\${CLAUDE_PLUGIN_ROOT}#$WHEEL#g" "$WHEEL/hooks/hooks.json" > "$DIR/.wheel-hooks-settings.json"
+# NOTE: wheel's hooks are registered by `--plugin-dir $WHEEL` (an INTERACTIVE
+# session auto-loads the plugin's hooks/hooks.json). Do NOT also inject them via
+# `--settings` — that double-registers every wheel hook, so each fires TWICE per
+# turn (confirmed in wheel.log: same-ms duplicate wait_all_polling), doubling
+# hook output + context growth and double-running the polling/dispatch. The
+# `--settings` path is only needed for HEADLESS `--print` (run-workflow-e2e.sh),
+# where `--plugin-dir` does NOT fire hooks.
 git -C "$DIR" add -A >/dev/null 2>&1; git -C "$DIR" commit -q -m init >/dev/null 2>&1 || true
 
 PROMPT='Drive the kiln-build-prd wheel workflow to completion. ONCE — and only once, at the very start — run the /wheel:wheel-run skill with input kiln-build-prd (Step 1 validate + Step 2 activate.sh) to activate the workflow. Then DRIVE THE LOOP ACTIVELY: each time the Stop hook blocks your turn (you will see "Blocked by hook"), the next instruction is waiting for you — IMMEDIATELY read the file .wheel/.next-instruction.md and do EXACTLY what it says (perform that agent step, OR make that exact spawn call — this Claude Code spawns teammates DIRECTLY via the Agent tool, there is NO TeamCreate tool), then end your turn so the hook advances. NEVER passively wait or say "waiting for hooks" — when blocked, read .wheel/.next-instruction.md and ACT. Repeat until the workflow archives. For agent steps, do the real work the instruction describes (write the spec/plan/code/etc.). For team steps, make the exact Agent spawn calls the instruction gives. Config is autonomous so there are NO approval pauses. HARD RULES (never violate): NEVER run /wheel:wheel-run or activate.sh more than the single time at the start — re-activating FORKS the workflow state into two desynced lineages and breaks the run; if you ever feel lost, the ONLY recovery is to read .wheel/.next-instruction.md (end your turn once first if it looks stale) and act, never to re-activate. Stay in THIS directory, never cd elsewhere; never build/rebuild/modify any plugin or run npm/tsc/node on plugin source; never run wheel-status/wheel-skip/wheel-stop. If a hook prints an error OTHER than the next-instruction block, ignore it. The create-pr step will fail (no git remote) — expected, keep going. Drive patiently through all ~38 steps until it archives, then say DONE.'
@@ -56,7 +61,7 @@ tmux new-session -d -s "$SESS" -x 220 -y 50
 # "still waiting" blocks while a teammate works. The default cap is 9 — past it
 # Claude Code overrides + ends the turn, idling the workflow. (Manual nudging
 # masked this by resetting the consecutive-block counter each nudge.)
-tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --settings $DIR/.wheel-hooks-settings.json --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
 sleep 20; tmux send-keys -t "$SESS" Enter; sleep 14   # dismiss trust prompt, wait for input box
 tmux send-keys -t "$SESS" "$PROMPT"; sleep 3; tmux send-keys -t "$SESS" Enter
 echo "  prompt sent; polling .wheel/ for archive (up to ~40 min)…"
