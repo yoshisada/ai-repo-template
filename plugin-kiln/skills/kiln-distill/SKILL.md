@@ -1,6 +1,6 @@
 ---
 name: kiln-distill
-description: Bundle open backlog items, feedback, and roadmap entries into a feature PRD by delegating to the kiln:kiln-distill wheel workflow. Accepts optional filter flags (--phase, --addresses, --kind) and a free-text category. Supports --resume to continue an interrupted distill run.
+description: Bundle open backlog items, feedback, and roadmap entries into a feature PRD by delegating to the kiln:kiln-distill wheel workflow. Takes no filter arguments — the workflow reads all open captures automatically. Supports --resume to report the last-known cursor; actual continuation depends on whether the prior run's wheel state file is still active.
 ---
 
 # Kiln Distill — Thin Wrapper
@@ -11,27 +11,24 @@ $ARGUMENTS
 
 ## Parse Arguments
 
-Parse `$ARGUMENTS` for a `--resume` flag and any pass-through filter flags. Write the full argument string (minus `--resume`) to `.wheel/inputs/distill-args.txt` so the workflow can read it.
+Parse `$ARGUMENTS` for a `--resume` flag only. The kiln-distill workflow reads all open captures automatically and does not consume filter arguments.
 
 ```bash
 RESUME=false
-PASSTHROUGH=""
 
 for token in $ARGUMENTS; do
   case "$token" in
     --resume) RESUME=true ;;
-    *)        PASSTHROUGH="${PASSTHROUGH} ${token}" ;;
+    *)        ;;  # ignore — workflow takes no filter args
   esac
 done
-PASSTHROUGH="${PASSTHROUGH# }"
-
-mkdir -p .wheel/inputs
-echo "$PASSTHROUGH" > .wheel/inputs/distill-args.txt
 ```
 
 ## Resume Logic
 
-If `--resume` was passed, find the most recent distill run manifest and report its state. Wheel's step-skipping handles the actual resume.
+If `--resume` was passed, find the most recent distill run manifest and report its last-known cursor for orientation.
+
+Actual continuation is driven by wheel's state-file cursor: if the prior run's state file is still active (not yet archived to `.wheel/history/`), the hook system continues from that cursor at the next tool call. If the state file was archived on completion or stop, re-invoking starts a new run from the beginning. Steps are authored to be re-runnable, so a restart is safe — but it is not a true mid-run resume.
 
 ```bash
 if [ "$RESUME" = "true" ]; then
@@ -53,7 +50,9 @@ if [ "$RESUME" = "true" ]; then
       exit 0
     fi
 
-    echo "Resuming run ${RUN_ID} — phase: ${PHASE}, last completed step: ${CURSOR}"
+    echo "Last known run ${RUN_ID} — phase: ${PHASE}, cursor: ${CURSOR}"
+    echo "If its state file is still active in .wheel/, wheel will continue from that cursor."
+    echo "If it was archived, this invocation starts a fresh run from the beginning."
   fi
 fi
 ```

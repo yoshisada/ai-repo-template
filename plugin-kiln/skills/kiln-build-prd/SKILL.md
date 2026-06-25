@@ -1,6 +1,6 @@
 ---
 name: kiln-build-prd
-description: Run the full spec-first build pipeline via the kiln:kiln-build-prd wheel workflow. Resolves or defaults the PRD slug, writes it to .wheel/inputs/prd-slug.txt, then delegates to the workflow. Supports --resume to continue from the last completed step.
+description: Run the full spec-first build pipeline via the kiln:kiln-build-prd wheel workflow. Resolves or defaults the PRD slug (full dated directory name, e.g. 2026-06-24-my-feature), writes it to .wheel/inputs/prd-slug.txt, then delegates to the workflow. Supports --resume to report the last-known cursor; actual continuation depends on whether the prior run's wheel state file is still active.
 ---
 
 # Kiln Build-PRD — Thin Wrapper
@@ -28,7 +28,7 @@ done
 
 ## Resolve PRD Slug
 
-If no slug was provided, default to the most recent `docs/features/*` directory (strip the leading date prefix to get the slug):
+If no slug was provided, default to the most recent `docs/features/*` directory. The slug is the FULL directory basename (including the date prefix, e.g. `2026-06-24-my-feature`):
 
 ```bash
 if [ -z "$PRD_SLUG" ]; then
@@ -37,22 +37,21 @@ if [ -z "$PRD_SLUG" ]; then
     echo "No PRD found under docs/features/. Run /kiln:kiln-distill first, or pass a slug: /kiln:kiln-build-prd <slug>"
     exit 1
   fi
-  DIR_NAME=$(basename "$LATEST_DIR")
-  PRD_SLUG=$(echo "$DIR_NAME" | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//')
+  PRD_SLUG=$(basename "$LATEST_DIR")
 fi
 ```
 
-Verify the PRD file exists, allowing for date-prefixed directories:
+Verify the PRD file exists. The slug must be the full directory name (date prefix included):
 
 ```bash
 PRD_PATH="docs/features/${PRD_SLUG}/PRD.md"
 if [ ! -f "$PRD_PATH" ]; then
   MATCH=$(find docs/features -maxdepth 2 -name "PRD.md" -path "*${PRD_SLUG}*" 2>/dev/null | head -1)
   if [ -z "$MATCH" ]; then
-    echo "PRD not found for slug '${PRD_SLUG}'. Expected docs/features/<date>-${PRD_SLUG}/PRD.md"
+    echo "PRD not found for slug '${PRD_SLUG}'. Expected docs/features/${PRD_SLUG}/PRD.md"
     exit 1
   fi
-  PRD_SLUG=$(basename "$(dirname "$MATCH")" | sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-//')
+  PRD_SLUG=$(basename "$(dirname "$MATCH")")
 fi
 ```
 
@@ -65,7 +64,9 @@ echo "$PRD_SLUG" > .wheel/inputs/prd-slug.txt
 
 ## Resume Logic
 
-If `--resume` was passed, find the most recent run manifest for this slug and report its state. Wheel's step-skipping handles the actual resume — steps whose outputs already exist in `.wheel/outputs/` are skipped automatically.
+If `--resume` was passed, find the most recent run manifest for this slug and report its last-known cursor for orientation.
+
+Actual continuation is driven by wheel's state-file cursor: if the prior run's state file is still active (not yet archived to `.wheel/history/`), the hook system continues from that cursor at the next tool call. If the state file was archived on completion or stop, re-invoking starts a new run from the beginning. Steps are authored to be re-runnable, so a restart is safe — but it is not a true mid-run resume.
 
 ```bash
 if [ "$RESUME" = "true" ]; then
@@ -86,8 +87,9 @@ if [ "$RESUME" = "true" ]; then
       exit 0
     fi
 
-    echo "Resuming run ${RUN_ID} — phase: ${PHASE}, last completed step: ${CURSOR}"
-    echo "Wheel will skip already-completed steps and continue from the cursor."
+    echo "Last known run ${RUN_ID} — phase: ${PHASE}, cursor: ${CURSOR}"
+    echo "If its state file is still active in .wheel/, wheel will continue from that cursor."
+    echo "If it was archived, this invocation starts a fresh run from the beginning."
   fi
 fi
 ```

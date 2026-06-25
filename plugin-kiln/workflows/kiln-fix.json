@@ -12,7 +12,7 @@
     {
       "id": "read-context",
       "type": "command",
-      "command": "mkdir -p .wheel/outputs; ISSUE=$(cat .wheel/inputs/issue.txt 2>/dev/null || echo ''); TEST_CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); TEST_OUT=$(eval \"$TEST_CMD\" 2>&1 | tail -40 || echo 'no test output'); ISSUE_ESC=$(printf '%s' \"$ISSUE\" | jq -Rs .); TEST_ESC=$(printf '%s' \"$TEST_OUT\" | jq -Rs .); printf '{\"issue\":%s,\"test_output\":%s,\"test_cmd\":\"%s\"}' \"$ISSUE_ESC\" \"$TEST_ESC\" \"$TEST_CMD\" > .wheel/outputs/fix-context.json; cat .wheel/outputs/fix-context.json",
+      "command": "mkdir -p .wheel/outputs; ISSUE=$(cat .wheel/inputs/issue.txt 2>/dev/null || echo ''); TEST_CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); TEST_OUT=$(eval \"$TEST_CMD\" 2>&1 | tail -40 || echo 'no test output'); ISSUE_ESC=$(printf '%s' \"$ISSUE\" | jq -Rs .); TEST_ESC=$(printf '%s' \"$TEST_OUT\" | jq -Rs .); printf '{\"issue\":%s,\"test_output\":%s,\"test_cmd\":\"%s\"}' \"$ISSUE_ESC\" \"$TEST_ESC\" \"$TEST_CMD\"",
       "output": ".wheel/outputs/fix-context.json"
     },
     {
@@ -34,7 +34,7 @@
     {
       "id": "verify",
       "type": "command",
-      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" 2>&1; EXIT=$?; printf '{\"exit\":%s,\"gate\":%s,\"passed\":%s}' \"$EXIT\" \"$GATE\" \"$([ $EXIT -eq 0 ] && echo true || echo false)\" > .wheel/outputs/verify-result.json; cat .wheel/outputs/verify-result.json; exit 0",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); mkdir -p .wheel/outputs; eval \"$CMD\" > .wheel/outputs/fix-test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"gate\":%s,\"passed\":%s,\"log\":\".wheel/outputs/fix-test-output.log\"}' \"$EXIT\" \"$GATE\" \"$([ $EXIT -eq 0 ] && echo true || echo false)\"",
       "output": ".wheel/outputs/verify-result.json"
     },
     {
@@ -51,7 +51,7 @@
       "model": "haiku",
       "instruction": "You are the fix build summary agent (terminal step — render a summary even if upstream steps failed). Read the verdict files and render a structured markdown summary for the human.\n\n## Inputs to read (if absent, fill rows with —)\n- .wheel/outputs/run-id.txt — run ID\n- .wheel/outputs/run-manifest.json — branch, phase\n- .wheel/outputs/fix-context.json — original issue text\n- .wheel/outputs/diagnosis.json — summary, root_cause, implicated_files, implicated_frs, risk\n- .wheel/outputs/fix-result.json — files_changed, commit, tests_passed\n- .wheel/outputs/verify-result.json — exit, gate, passed\n- .wheel/outputs/ledger-entry.json — ledger path\n\nRun: git diff --stat HEAD~1 2>/dev/null || echo 'no changes'\n\n## Output format (markdown tables)\n\n### Fix Summary\n| Field | Value |\n|---|---|\n| Issue | <summary from diagnosis.json> |\n| Root cause | <root_cause> |\n| Risk | <risk> |\n| Branch | `<branch>` |\n| Commit | `<commit sha or —>` |\n| Tests | Passed / Failed |\n| Ledger | `<ledger path>` |\n\n### What Changed\n| File | Change |\n|---|---|\n(from git diff --stat HEAD~1)\n\n### What to Verify\n| Step | Expected |\n|---|---|\n(derive from implicated_frs and the fix_strategy — what the human should manually confirm)\n\n### Findings (omit entirely if tests passed and no remaining failures)\n| Severity | Finding |\n|---|---|\n(from fix-result.json remaining_failures; omit section if empty)\n\n## Save and print\n1. Get run_id from .wheel/outputs/run-id.txt.\n2. Write the complete summary to .kiln/runs/<run_id>/summary.md.\n3. Print the full summary as your final output — the human reads it directly.\n\n## Rules\n- Do NOT spawn sub-agents or use the Agent tool.\n- If a required input file is absent, fill its rows with — rather than failing.\n- Always print the summary even if writing to file fails.",
       "context_from": ["diagnose", "fix", "verify", "write-ledger"],
-      "output": ".wheel/outputs/fix-summary.json"
+      "output": ".kiln/runs/summary.md"
     }
   ]
 }

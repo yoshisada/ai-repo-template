@@ -38,7 +38,7 @@ for MANIFEST in $MANIFESTS; do
   # fix manifests:       prd = "fix/<slug>" or phase contains "fix"
   # distill manifests:   prd = "" or phase contains "distill"
   if echo "$PRD" | grep -q "^docs/features/"; then
-    PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||; s|^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-||')
+    PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||')
     RESUME_CMD="/kiln:kiln-build-prd ${PRD_SLUG} --resume"
     WORKFLOW="build-prd"
   elif echo "$PHASE" | grep -qi "fix\|diagnose"; then
@@ -51,7 +51,7 @@ for MANIFEST in $MANIFESTS; do
   else
     # Unknown workflow type — show build-prd as best guess when prd is set
     if [ -n "$PRD" ] && [ "$PRD" != "null" ]; then
-      PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||; s|^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}-||')
+      PRD_SLUG=$(echo "$PRD" | sed 's|docs/features/||; s|/PRD\.md||')
       RESUME_CMD="/kiln:kiln-build-prd ${PRD_SLUG} --resume"
       WORKFLOW="build-prd (inferred)"
     else
@@ -84,6 +84,6 @@ fi
 ## Notes
 
 - This skill is **read-only** — it does not modify any file or start any workflow.
-- Resume commands call the relevant thin-wrapper skill with `--resume`, which passes the slug to wheel and lets wheel's native step-skipping handle continuation.
-- If wheel-run does not yet support cursor-based start-step resumption, re-running the wrapper still works: wheel skips steps whose `.wheel/outputs/<step-id>` files already exist from the prior run.
+- Resume commands call the relevant thin-wrapper skill with `--resume`, which reads the manifest to report the last-known cursor for orientation.
+- Actual continuation is driven by wheel's state-file cursor in `.wheel/state_*.json`. If the prior run's state file is still active (not archived to `.wheel/history/`), re-invoking the wrapper lets the hook system continue from that cursor. If the state file was archived on completion or stop, re-invoking starts a fresh run from the beginning. Steps are authored to be re-runnable, so a restart is safe — but it is not a true mid-run resume.
 - To resume manually, copy the printed command and run it.

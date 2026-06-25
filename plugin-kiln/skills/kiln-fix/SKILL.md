@@ -1,6 +1,6 @@
 ---
 name: kiln-fix
-description: Fix a bug without ceremony by writing the issue text to .wheel/inputs/issue.txt, then delegating to the kiln:kiln-fix wheel workflow. Accepts a text description, a GitHub issue number, or a URL. Supports --resume to continue an interrupted fix run.
+description: Fix a bug without ceremony by writing the issue text to .wheel/inputs/issue.txt, then delegating to the kiln:kiln-fix wheel workflow. Accepts a text description, a GitHub issue number, or a URL. Supports --resume to report the last-known cursor; actual continuation depends on whether the prior run's wheel state file is still active.
 ---
 
 # Kiln Fix — Thin Wrapper
@@ -54,7 +54,9 @@ fi
 
 ## Resume Logic
 
-If `--resume` was passed, find the most recent fix run manifest and report its state. Wheel's step-skipping handles the actual resume — completed steps are not re-run.
+If `--resume` was passed, find the most recent fix run manifest and report its last-known cursor for orientation.
+
+Actual continuation is driven by wheel's state-file cursor: if the prior run's state file is still active (not yet archived to `.wheel/history/`), the hook system continues from that cursor at the next tool call. If the state file was archived on completion or stop, re-invoking starts a new run from the beginning. Steps are authored to be re-runnable, so a restart is safe — but it is not a true mid-run resume.
 
 ```bash
 if [ "$RESUME" = "true" ]; then
@@ -77,7 +79,9 @@ if [ "$RESUME" = "true" ]; then
       exit 0
     fi
 
-    echo "Resuming run ${RUN_ID} — phase: ${PHASE}, last completed step: ${CURSOR}"
+    echo "Last known run ${RUN_ID} — phase: ${PHASE}, cursor: ${CURSOR}"
+    echo "If its state file is still active in .wheel/, wheel will continue from that cursor."
+    echo "If it was archived, this invocation starts a fresh run from the beginning."
   fi
 fi
 ```

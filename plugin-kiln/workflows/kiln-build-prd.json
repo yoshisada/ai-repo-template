@@ -109,7 +109,7 @@
     {
       "id": "run-tests",
       "type": "command",
-      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" 2>&1; EXIT=$?; printf '{\"exit\":%s,\"coverage_gate\":%s}' \"$EXIT\" \"$GATE\"",
+      "command": "GATE=$(jq -r '.coverage_gate // 80' .kiln/test-strategy.json 2>/dev/null || echo 80); CMD=$(jq -r '.test // \"npm test\"' .kiln/test-strategy.json 2>/dev/null || echo 'npm test'); eval \"$CMD\" > .wheel/outputs/test-output.log 2>&1; EXIT=$?; printf '{\"exit\":%s,\"coverage_gate\":%s,\"log\":\".wheel/outputs/test-output.log\"}' \"$EXIT\" \"$GATE\"",
       "output": ".wheel/outputs/test-results.json"
     },
     {
@@ -123,7 +123,7 @@
     {
       "id": "checkpoint-post-implement",
       "type": "branch",
-      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/smoke-verdict.json 2>/dev/null); IMPL=$(jq -r '.verdict // \"pass\"' .wheel/outputs/implement-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-implement' || [ \"$SEV\" = 'blocking' ] || [ \"$IMPL\" = 'blocked' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
+      "command": "CKPTS=$(jq -r '.review_checkpoints // [] | join(\",\")' .wheel/outputs/kiln-config.json 2>/dev/null); SEV=$(jq -r '.severity // \"pass\"' .wheel/outputs/smoke-verdict.json 2>/dev/null); IMPL=$(jq -r '.verdict // \"pass\"' .wheel/outputs/implement-worker-verdict.json 2>/dev/null); if echo \"$CKPTS\" | grep -q 'post-implement' || [ \"$SEV\" = 'blocking' ] || [ \"$IMPL\" = 'blocked' ]; then echo 'pause'; exit 1; else echo 'skip'; exit 0; fi",
       "if_zero": "audit-team-create",
       "if_nonzero": "approve-post-implement"
     },
@@ -180,7 +180,7 @@
       "id": "audit-synthesize",
       "type": "agent",
       "model": "haiku",
-      "instruction": "You are the audit synthesizer. Merge the per-role audit verdicts into one result.\n\n## Inputs\n- .wheel/outputs/audit-results/ — the collected per-role verdicts (prd-auditor, spec-enforcer, quality-judge), each {role, severity, compliance_pct, findings[]}. Also check .wheel/outputs/audit-raw-verdict.json.\n\n## Task\n1. Read every per-role verdict.\n2. Overall severity: blocking if ANY finding is blocking; else warn if any warn; else pass.\n3. Deduplicate findings by file+fr.\n4. compliance_pct: take the prd-auditor's value (or the min across roles that report one).\n5. Write .wheel/outputs/audit-verdict.json: {\"compliance_pct\":N,\"severity\":\"pass|warn|blocking\",\"findings\":[{\"severity\",\"fr\",\"file\",\"description\"}],\"blockers_path\":null}.\n6. If severity=blocking, write the blocking findings to .wheel/outputs/blocking-findings.json (an array); else write [].",
+      "instruction": "You are the audit synthesizer. Merge the per-role audit verdicts into one result.\n\n## Inputs (the 3 panel members each wrote a role-specific verdict file)\n- .wheel/outputs/audit-prd-auditor-verdict.json\n- .wheel/outputs/audit-spec-enforcer-verdict.json\n- .wheel/outputs/audit-quality-judge-verdict.json\nEach is {role, severity, compliance_pct, findings[]}. Any that is missing/unreadable: treat as a warn with no findings (do not error). (.wheel/outputs/audit-results/ holds wheel's collected context/assignment blobs — NOT the verdicts; read the three files above directly.)\n\n## Task\n1. Read the three role verdict files.\n2. Overall severity: blocking if ANY finding is blocking; else warn if any warn; else pass.\n3. Deduplicate findings by file+fr.\n4. compliance_pct: take the prd-auditor's value (or the min across roles that report one).\n5. Write .wheel/outputs/audit-verdict.json: {\"compliance_pct\":N,\"severity\":\"pass|warn|blocking\",\"findings\":[{\"severity\",\"fr\",\"file\",\"description\"}],\"blockers_path\":null}.\n6. If severity=blocking, write the blocking findings to .wheel/outputs/blocking-findings.json (an array); else write [].",
       "context_from": ["audit-wait"],
       "output": ".wheel/outputs/audit-verdict.json"
     },
@@ -226,7 +226,7 @@
       "id": "collect-retro",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the retrospective collector. Gather friction from this build and write it to the ledger.\n\n## Inputs\n- run-id from .wheel/outputs/run-id.txt; agent-notes from .kiln/runs/<run-id>/agent-notes/*.md; the verdict files (specify, plan, tasks, implement, audit, smoke).\n\n## Output\n1. Write .kiln/runs/<run-id>/retro.md using scaffold/retro-template.md (what went well / what slowed us down / improvement proposals / insight_score 1-5).\n2. For each concrete improvement proposal (actionable, with a target file/prompt), write a proposal stub to .kiln/ledger/proposals/<run-id>-<n>.json: {id, target, patch, risk:null, blast_radius, rationale, ledger_refs:[]}.\n3. For each mistake-class friction (a wrong assumption / hallucination / incorrect output by the build), write .wheel/inputs/mistake-data.json {summary, assumption, correction, source:\"retro\"} and run /wheel:wheel-run kiln:kiln-mistake-record (once per mistake; remove the input file between mistakes).\n4. Emit {\"agent\":\"retrospective\",\"ledger_entries\":N,\"proposals\":N,\"retro_path\":\"...\",\"insight_score\":N}.",
+      "instruction": "You are the retrospective collector. Gather friction from this build and write it to the ledger.\n\n## Inputs\n- run-id from .wheel/outputs/run-id.txt; agent-notes from .kiln/runs/<run-id>/agent-notes/*.md; the verdict files (specify, plan, tasks, implement, audit, smoke).\n\n## Output\n1. Write .kiln/runs/<run-id>/retro.md using scaffold/retro-template.md (what went well / what slowed us down / improvement proposals / insight_score 1-5).\n2. For each concrete improvement proposal (actionable, with a target file/prompt), write a proposal stub to .kiln/ledger/proposals/<run-id>-<n>.json: {id, target, patch, risk:null, blast_radius, rationale, ledger_refs:[]}.\n3. For each mistake-class friction (a wrong assumption / hallucination / incorrect output by the build), write the mistake to the ledger INLINE — do NOT invoke another workflow from inside this one. For each: generate id `<YYYY-MM-DD>-<slug>`, write .kiln/mistakes/<id>.md (frontmatter: id, source: retro, tags: one mistake/* + one topic/* + one stack tag; body: ## Summary / ## Wrong assumption / ## Correction) AND .kiln/ledger/<id>.json ({id, kind:\"mistake\", summary, detail:\"<assumption> → <correction>\", blast_radius, tags, source_path, ts}). The next shelf-sync's ledger-mirror backfills these to Obsidian.\n4. Emit {\"agent\":\"retrospective\",\"ledger_entries\":N,\"proposals\":N,\"retro_path\":\"...\",\"insight_score\":N}.",
       "context_from": ["implement-wait", "audit-synthesize", "smoke-review"],
       "output": ".wheel/outputs/retro-verdict.json"
     },
