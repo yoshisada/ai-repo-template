@@ -344,6 +344,31 @@ Append ONE row to the diagnosis table (Step 3e):
 - MUST NOT mutate `.wheel/history/` or any other source.
 - Performance budget: cheap (`find -mtime -7` + `jq` on at most 7 days of history files; well under 2 s on any realistic corpus). No `gh` calls; no LLM.
 
+### 3i: Config Foundation Check (Phase 0)
+
+Run the version-keyed config health checks from `scaffold/doctor-manifest.json` (separate
+from `kiln-manifest.json`, so new system components ship as new version entries without a
+doctor code change). The helper resolves the manifest, reads `.kiln/config.json`'s
+`config_version`, merges every manifest entry from `1.0.0` through that version, and emits
+diagnosis-table rows. Resolution mirrors 3g/3h.
+
+```bash
+# Prefer the plugin-bundled helper; fall back to the source-repo layout.
+CFG_CHECK="${CLAUDE_PLUGIN_ROOT:-}/scripts/doctor/config-check.sh"
+[ -f "$CFG_CHECK" ] || CFG_CHECK="$(find . -path '*/kiln/scripts/doctor/config-check.sh' 2>/dev/null | head -1)"
+[ -f "$CFG_CHECK" ] || CFG_CHECK="plugin-kiln/scripts/doctor/config-check.sh"
+if [ -f "$CFG_CHECK" ]; then
+  bash "$CFG_CHECK"   # prints `| check | STATUS | fix |` rows; exits non-zero on a required failure
+else
+  echo "| Config foundation | N/A | config-check.sh not found — skipped |"
+fi
+```
+
+Append the emitted rows to the diagnosis table (Step 3e). A `FAIL` row is a required-check
+failure (missing/invalid `.kiln/config.json`, `.kiln/test-strategy.json`, or `.kiln/standards.md`,
+or a missing `config_version`) — surface it and, in fix mode, the fix is to re-run
+`/kiln:kiln-init`. Optional rows (`obsidian-reachable`, `stale-worktrees`) are warnings only.
+
 ### 3f: Stale prd-created Issue Detection — FR-010
 
 Scan `.kiln/issues/` for issues that were bundled into a PRD but never built:
