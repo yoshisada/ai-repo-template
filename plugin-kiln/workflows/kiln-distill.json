@@ -1,12 +1,12 @@
 {
   "name": "kiln-distill",
   "version": "1.0.0",
-  "description": "Bundle open feedback + roadmap captures into a PRD, filter against project vision, optionally trigger build. Resumable via init-run-manifest cursor. Note: issues go to kiln-fix/kiln-build-prd; distill processes feedback + roadmap items only. model_tier is absent in wheel runtime — steps use concrete model values (validator=haiku, all others=sonnet).",
+  "description": "Bundle open feedback + roadmap captures into a PRD, filter against project vision, optionally trigger build. Resumable via init-run-manifest cursor. Note: issues go to kiln-fix/kiln-build-prd; distill processes feedback + roadmap items only. model_tier is absent in wheel runtime \u2014 steps use concrete model values (validator=haiku, all others=sonnet).",
   "steps": [
     {
       "id": "init-run-manifest",
       "type": "command",
-      "command": "RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"phase\":\"distill\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\"",
+      "command": "mkdir -p .wheel/outputs; RUN_ID=$(uuidgen | tr '[:upper:]' '[:lower:]' 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || date +%s); BRANCH=$(git branch --show-current 2>/dev/null); mkdir -p \".kiln/runs/${RUN_ID}/agent-notes\"; printf '{\"run_id\":\"%s\",\"phase\":\"distill\",\"branch\":\"%s\",\"pr\":null,\"decisions\":[],\"escalations\":[],\"cursor\":\"init-run-manifest\",\"cost\":{\"total_usd\":0,\"input_tokens\":0,\"output_tokens\":0,\"by_model\":{}}}' \"$RUN_ID\" \"$BRANCH\" > \".kiln/runs/${RUN_ID}/manifest.json\"; echo \"$RUN_ID\" > .wheel/outputs/run-id.txt; cat \".kiln/runs/${RUN_ID}/manifest.json\"",
       "output": ".wheel/outputs/run-manifest.json"
     },
     {
@@ -18,35 +18,40 @@
     {
       "id": "sync-designs",
       "type": "command",
-      "command": "DESIGN_FIRST=$(jq -r '.design_first // false' .kiln/config.json 2>/dev/null || echo 'false'); if [ \"$DESIGN_FIRST\" = 'true' ]; then printf '{\"design_sync\":true,\"note\":\"design_first=true — run /trim:trim-pull before distill to pull latest Penpot designs\"}'; else printf '{\"design_sync\":false,\"reason\":\"design_first disabled or config absent\"}'; fi",
+      "command": "DESIGN_FIRST=$(jq -r '.design_first // false' .kiln/config.json 2>/dev/null || echo 'false'); if [ \"$DESIGN_FIRST\" = 'true' ]; then printf '{\"design_sync\":true,\"note\":\"design_first=true \u2014 run /trim:trim-pull before distill to pull latest Penpot designs\"}'; else printf '{\"design_sync\":false,\"reason\":\"design_first disabled or config absent\"}'; fi",
       "output": ".wheel/outputs/design-sync-result.json"
     },
     {
       "id": "vision-filter",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the vision filter. Remove captures that conflict with the project vision before distillation.\n\n## Inputs\n- .wheel/outputs/captures-combined.md — all open feedback + roadmap items.\n- .kiln/vision.md — the project vision (may not exist; degrade gracefully if absent).\n\n## Steps\n1. Try to read .kiln/vision.md. If absent or empty, skip filtering: copy captures-combined.md to .wheel/outputs/captures-filtered.md unchanged, emit {kept:0,filtered:0,reasons:[],vision_absent:true}.\n2. If vision.md exists: for each capture, check whether it contradicts a 'what this is NOT' constraint or non-goal stated in vision.md.\n3. Write .wheel/outputs/captures-filtered.md with only the kept captures (one capture block per entry, preserve original formatting).\n4. If no captures remain after filtering, write a note explaining this so the next step can handle it gracefully.\n5. Emit JSON to your output file: {\"kept\":N,\"filtered\":N,\"reasons\":[{\"id\":\"...\",\"reason\":\"...\"}],\"vision_absent\":false}.\n\n## Critical: always exit cleanly\nIf captures-combined.md is absent or empty, copy it as-is to captures-filtered.md and emit {kept:0,filtered:0,reasons:[],vision_absent:false}. Never error.",
-      "context_from": ["read-captures"],
+      "instruction": "You are the vision filter. Remove captures that conflict with the project vision before distillation.\n\n## Inputs\n- .wheel/outputs/captures-combined.md \u2014 all open feedback + roadmap items.\n- .kiln/vision.md \u2014 the project vision (may not exist; degrade gracefully if absent).\n\n## Steps\n1. Try to read .kiln/vision.md. If absent or empty, skip filtering: copy captures-combined.md to .wheel/outputs/captures-filtered.md unchanged, emit {kept:0,filtered:0,reasons:[],vision_absent:true}.\n2. If vision.md exists: for each capture, check whether it contradicts a 'what this is NOT' constraint or non-goal stated in vision.md.\n3. Write .wheel/outputs/captures-filtered.md with only the kept captures (one capture block per entry, preserve original formatting).\n4. If no captures remain after filtering, write a note explaining this so the next step can handle it gracefully.\n5. Emit JSON to your output file: {\"kept\":N,\"filtered\":N,\"reasons\":[{\"id\":\"...\",\"reason\":\"...\"}],\"vision_absent\":false}.\n\n## Critical: always exit cleanly\nIf captures-combined.md is absent or empty, copy it as-is to captures-filtered.md and emit {kept:0,filtered:0,reasons:[],vision_absent:false}. Never error.",
+      "context_from": [
+        "read-captures"
+      ],
       "output": ".wheel/outputs/vision-filter-result.json"
     },
     {
       "id": "group-and-draft",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the PRD drafter. Group filtered captures by theme and write a PRD.\n\n## Inputs\n- .wheel/outputs/captures-filtered.md — filtered captures (use .wheel/outputs/captures-combined.md if captures-filtered.md is absent or empty).\n- .wheel/outputs/vision-filter-result.json — filter summary (kept count, filtered reasons).\n- .wheel/outputs/captures-count.json — total capture counts.\n\n## Steps\n1. Read captures-filtered.md. If empty or absent, emit {\"slug\":null,\"prd_path\":null,\"capture_count\":0,\"themes\":[],\"warning\":\"no_captures_to_distill\"} and stop.\n2. Group captures by common theme, user need, or feature area. Identify the dominant theme.\n3. Pick a slug: YYYY-MM-DD-<theme-slug> (e.g. 2026-06-24-auth-improvements). Use today's date.\n4. Write docs/features/<slug>/PRD.md following the project PRD template shape:\n   - ## Overview (2-3 sentences)\n   - ## User Stories (US-1, US-2, ...)\n   - ## Functional Requirements (FR-001, FR-002, ...)\n   - ## Success Criteria (one per FR)\n   - ## Out of Scope\n   - ## Open Questions\n5. Write .wheel/outputs/prd-path.txt with just the PRD file path (e.g. docs/features/2026-06-24-auth-improvements/PRD.md).\n6. Emit JSON: {\"slug\":\"<slug>\",\"prd_path\":\"docs/features/<slug>/PRD.md\",\"capture_count\":N,\"themes\":[\"...\"],\"fr_count\":N}.",
-      "context_from": ["vision-filter", "read-captures"],
+      "instruction": "You are the PRD drafter. Group filtered captures by theme and write a PRD.\n\n## Inputs\n- .wheel/outputs/captures-filtered.md \u2014 filtered captures (use .wheel/outputs/captures-combined.md if captures-filtered.md is absent or empty).\n- .wheel/outputs/vision-filter-result.json \u2014 filter summary (kept count, filtered reasons).\n- .wheel/outputs/captures-count.json \u2014 total capture counts.\n\n## Steps\n1. Read captures-filtered.md. If empty or absent, emit {\"slug\":null,\"prd_path\":null,\"capture_count\":0,\"themes\":[],\"warning\":\"no_captures_to_distill\"} and stop.\n2. Group captures by common theme, user need, or feature area. Identify the dominant theme.\n3. Pick a slug: YYYY-MM-DD-<theme-slug> (e.g. 2026-06-24-auth-improvements). Use today's date.\n4. Write docs/features/<slug>/PRD.md following the project PRD template shape:\n   - ## Overview (2-3 sentences)\n   - ## User Stories (US-1, US-2, ...)\n   - ## Functional Requirements (FR-001, FR-002, ...)\n   - ## Success Criteria (one per FR)\n   - ## Out of Scope\n   - ## Open Questions\n5. Write .wheel/outputs/prd-path.txt with just the PRD file path (e.g. docs/features/2026-06-24-auth-improvements/PRD.md).\n6. Emit JSON: {\"slug\":\"<slug>\",\"prd_path\":\"docs/features/<slug>/PRD.md\",\"capture_count\":N,\"themes\":[\"...\"],\"fr_count\":N}.",
+      "context_from": [
+        "vision-filter",
+        "read-captures"
+      ],
       "output": ".wheel/outputs/distill-verdict.json"
     },
     {
       "id": "mark-processed",
       "type": "command",
-      "command": "PRD=$(cat .wheel/outputs/prd-path.txt 2>/dev/null); if [ -z \"$PRD\" ]; then echo '{\"marked_processed\":false,\"reason\":\"no prd-path.txt — distill produced no PRD\"}'; exit 0; fi; SLUG=$(basename \"$(dirname \"$PRD\")\" 2>/dev/null); COUNT=0; for f in $(find .kiln/feedback .kiln/roadmap/items -name '*.md' 2>/dev/null); do echo \"\" >> \"$f\" && echo \"processed: $SLUG\" >> \"$f\" && COUNT=$((COUNT+1)); done; printf '{\"marked_processed\":true,\"slug\":\"%s\",\"files_marked\":%s,\"prd\":\"%s\"}' \"$SLUG\" \"$COUNT\" \"$PRD\"",
+      "command": "PRD=$(cat .wheel/outputs/prd-path.txt 2>/dev/null); if [ -z \"$PRD\" ]; then echo '{\"marked_processed\":false,\"reason\":\"no prd-path.txt \u2014 distill produced no PRD\"}'; exit 0; fi; SLUG=$(basename \"$(dirname \"$PRD\")\" 2>/dev/null); COUNT=0; for f in $(find .kiln/feedback .kiln/roadmap/items -name '*.md' 2>/dev/null); do echo \"\" >> \"$f\" && echo \"processed: $SLUG\" >> \"$f\" && COUNT=$((COUNT+1)); done; printf '{\"marked_processed\":true,\"slug\":\"%s\",\"files_marked\":%s,\"prd\":\"%s\"}' \"$SLUG\" \"$COUNT\" \"$PRD\"",
       "output": ".wheel/outputs/mark-processed.json"
     },
     {
       "id": "trigger-build",
       "type": "command",
-      "command": "AUTO=$(jq -r '.auto_build // false' .kiln/config.json 2>/dev/null || echo 'false'); SLUG=$(jq -r '.slug // \"\"' .wheel/outputs/distill-verdict.json 2>/dev/null); PRD=$(cat .wheel/outputs/prd-path.txt 2>/dev/null); if [ -z \"$SLUG\" ] || [ \"$SLUG\" = 'null' ]; then printf '{\"auto_build\":false,\"slug\":null,\"note\":\"distill produced no PRD — nothing to build\"}'; exit 0; fi; if [ \"$AUTO\" = 'true' ]; then printf '{\"auto_build\":true,\"slug\":\"%s\",\"note\":\"PRD ready at %s. Write the slug to .wheel/inputs/prd-slug.txt and run wheel:kiln-build-prd to build.\"}' \"$SLUG\" \"$PRD\"; else printf '{\"auto_build\":false,\"slug\":\"%s\",\"note\":\"PRD ready at %s. Run /kiln:kiln-build-prd %s to build.\"}' \"$SLUG\" \"$PRD\" \"$SLUG\"; fi",
+      "command": "AUTO=$(jq -r '.auto_build // false' .kiln/config.json 2>/dev/null || echo 'false'); SLUG=$(jq -r '.slug // \"\"' .wheel/outputs/distill-verdict.json 2>/dev/null); PRD=$(cat .wheel/outputs/prd-path.txt 2>/dev/null); if [ -z \"$SLUG\" ] || [ \"$SLUG\" = 'null' ]; then printf '{\"auto_build\":false,\"slug\":null,\"note\":\"distill produced no PRD \u2014 nothing to build\"}'; exit 0; fi; if [ \"$AUTO\" = 'true' ]; then printf '{\"auto_build\":true,\"slug\":\"%s\",\"note\":\"PRD ready at %s. Write the slug to .wheel/inputs/prd-slug.txt and run wheel:kiln-build-prd to build.\"}' \"$SLUG\" \"$PRD\"; else printf '{\"auto_build\":false,\"slug\":\"%s\",\"note\":\"PRD ready at %s. Run /kiln:kiln-build-prd %s to build.\"}' \"$SLUG\" \"$PRD\" \"$SLUG\"; fi",
       "output": ".wheel/outputs/trigger-result.json"
     }
   ]

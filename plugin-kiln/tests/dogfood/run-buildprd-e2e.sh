@@ -8,7 +8,7 @@ REPO="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 WHEEL="$REPO/plugin-wheel"
 UUID="$(uuidgen | tr '[:upper:]' '[:lower:]')"; SHORT="${UUID:0:8}"
 DIR="/tmp/kiln-bp-e2e-$SHORT"; SESS="kilnbp-$SHORT"
-mkdir -p "$DIR/workflows" "$DIR/.wheel/inputs"
+mkdir -p "$DIR/workflows" "$DIR/.wheel/inputs" "$DIR/.wheel/outputs"
 git -C "$DIR" init -q; git -C "$DIR" config user.email e2e@kiln.local; git -C "$DIR" config user.name e2e
 
 # Stage ALL kiln workflows locally; rewrite teammate plugin refs -> local names so they resolve
