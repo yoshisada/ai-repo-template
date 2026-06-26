@@ -53,10 +53,12 @@ spec/plan/audit reasoning, not typing, so it scales sub-linearly with feature si
 
 ## Efficiency levers (applied / candidate)
 
-- ✅ **applied — `audit-spec-enforcer` → haiku.** It was the single slowest step (170s) and its own
-  instruction calls it "haiku-simple, mechanical" (FR-comment + test-traceability checks). Moving it
-  off sonnet should cut it toward the ~24–50s haiku-step band and reduce cost. (`prd-auditor` and
-  `quality-judge` stay on sonnet — they need judgement.)
+- ✅ **applied + MEASURED — `audit-spec-enforcer` → haiku.** It was the single slowest step (170s on
+  sonnet) and its own instruction calls it "haiku-simple, mechanical" (FR-comment + test-traceability
+  checks). Run #16 (haiku) measured it at **72s — a 58% drop (170s→72s)** while still archiving to
+  success (the haiku verdict was accepted by audit-synthesize). `prd-auditor` and `quality-judge` stay
+  on sonnet (judgement). Two consecutive unattended full archives (run #15 sonnet, run #16 haiku)
+  confirm the team-free pipeline is reproducible, not a fluke.
 - candidate: the 3 audit roles run **sequentially** (~6.5 min combined) because parallel = teams =
   process death. If agent-teams stabilize in this environment, parallelizing audit reclaims ~4 min.
 - candidate: `query-precedent`/`plan`/`tasks` are ~73–85s each; tightening their delegate prompts
