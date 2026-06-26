@@ -61,7 +61,7 @@ tmux new-session -d -s "$SESS" -x 220 -y 50
 # "still waiting" blocks while a teammate works. The default cap is 9 — past it
 # Claude Code overrides + ends the turn, idling the workflow. (Manual nudging
 # masked this by resetting the consecutive-block counter each nudge.)
-tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
+tmux send-keys -t "$SESS" "cd $DIR && env -u CLAUDECODE -u AI_AGENT -u CLAUDE_CODE_ENTRYPOINT -u CLAUDE_CODE_EXECPATH -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=100000 CLAUDE_PLUGIN_ROOT='$WHEEL' claude --no-chrome --dangerously-skip-permissions --model sonnet --session-id $UUID --plugin-dir $REPO/plugin-kiln --plugin-dir $WHEEL" Enter
 sleep 20; tmux send-keys -t "$SESS" Enter; sleep 14   # dismiss trust prompt, wait for input box
 tmux send-keys -t "$SESS" "$PROMPT"; sleep 3; tmux send-keys -t "$SESS" Enter
 echo "  prompt sent; polling .wheel/ for archive (up to ~40 min)…"
