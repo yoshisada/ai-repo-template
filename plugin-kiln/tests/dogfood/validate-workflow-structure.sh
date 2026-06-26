@@ -14,7 +14,7 @@
 set -uo pipefail
 
 # Real wheel step types (src/lib/dispatch.ts + engine.ts). Keep in sync with wheel.
-KNOWN_TYPES="command agent loop branch parallel approval workflow team-create teammate team-wait team-delete"
+KNOWN_TYPES="command agent delegate loop branch parallel approval workflow team-create teammate team-wait team-delete"
 # Fields the idealized MASTER_PLAN used that the real wheel runtime does NOT honor.
 FORBIDDEN_FIELDS="model_tier on_failure"
 

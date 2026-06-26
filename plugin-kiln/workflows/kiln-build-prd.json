@@ -18,7 +18,7 @@
     {
       "id": "read-standards",
       "type": "command",
-      "command": "STD=$(jq -r '.standards // \".kiln/standards.md\"' .wheel/outputs/kiln-config.json 2>/dev/null || echo '.kiln/standards.md'); { cat \"$STD\" 2>/dev/null || echo '## Coding Standards\\n\\n_No standards file found \u2014 using defaults._'; } | tee .wheel/outputs/standards-block.md",
+      "command": "STD=$(jq -r '.standards // \".kiln/standards.md\"' .wheel/outputs/kiln-config.json 2>/dev/null || echo '.kiln/standards.md'); { cat \"$STD\" 2>/dev/null || echo '## Coding Standards\\n\\n_No standards file found — using defaults._'; } | tee .wheel/outputs/standards-block.md",
       "output": ".wheel/outputs/standards-block.md"
     },
     {
@@ -29,9 +29,9 @@
     },
     {
       "id": "query-precedent",
-      "type": "agent",
+      "type": "delegate",
       "model": "haiku",
-      "instruction": "Surface past mistakes relevant to this build as a Precedent block \u2014 best-effort, NEVER error the build. (Inlined rather than a nested workflow so the pipeline drives cleanly.)\n\n1. Read .wheel/outputs/prd-content.md (the PRD). Extract any topic/* and (language|framework|lib)/* tags mentioned. If none, use no tags.\n2. Build an Obsidian query like \"(tag:topic/x OR tag:topic/y) path:ledger/\" and call mcp__obsidian-projects__search_vault (limit 10). If the tool is unavailable / errors / returns nothing, skip to step 4 \u2014 that is normal (the search_vault MCP may not be present yet).\n3. For each result format: `- **[severity]** \\`[mistake_class]\\` \u2014 [assumption]\\n  \u2713 Correction: [correction]`.\n4. ALWAYS write .wheel/outputs/precedent-block.md: the formatted block, or exactly `## Precedent\\n\\n_No relevant past mistakes found._` when there are none.\n5. Emit {\"count\": N, \"path\": \".wheel/outputs/precedent-block.md\"}.\n\nNever leave this step without .wheel/outputs/precedent-block.md written.",
+      "instruction": "Surface past mistakes relevant to this build as a Precedent block — best-effort, NEVER error the build. (Inlined rather than a nested workflow so the pipeline drives cleanly.)\n\n1. Read .wheel/outputs/prd-content.md (the PRD). Extract any topic/* and (language|framework|lib)/* tags mentioned. If none, use no tags.\n2. Build an Obsidian query like \"(tag:topic/x OR tag:topic/y) path:ledger/\" and call mcp__obsidian-projects__search_vault (limit 10). If the tool is unavailable / errors / returns nothing, skip to step 4 — that is normal (the search_vault MCP may not be present yet).\n3. For each result format: `- **[severity]** \\`[mistake_class]\\` — [assumption]\\n  ✓ Correction: [correction]`.\n4. ALWAYS write .wheel/outputs/precedent-block.md: the formatted block, or exactly `## Precedent\\n\\n_No relevant past mistakes found._` when there are none.\n5. Emit {\"count\": N, \"path\": \".wheel/outputs/precedent-block.md\"}.\n\nNever leave this step without .wheel/outputs/precedent-block.md written.",
       "context_from": [
         "read-prd"
       ],
@@ -39,9 +39,9 @@
     },
     {
       "id": "specify",
-      "type": "agent",
+      "type": "delegate",
       "model": "sonnet",
-      "instruction": "You are the specifier. Produce a complete spec.md for the PRD.\n\n## Inputs\n- PRD: read .wheel/outputs/prd-content.md\n- Standards: read .wheel/outputs/standards-block.md \u2014 FOLLOW THESE for every interface you define.\n- Precedent: read .wheel/outputs/precedent-block.md \u2014 AVOID the listed past mistakes.\n\n## Output\nGet the prd-slug from .wheel/inputs/prd-slug.txt. Write specs/<slug>/spec.md with:\n- ## User Stories (one per actor, labeled US-1, US-2, ...)\n- ## Functional Requirements (FR-001, FR-002, ...)\n- ## Non-Functional Requirements (NFR-001, ...)\n- ## Acceptance Criteria (one scenario per FR)\n- ## Open Questions\n\nEmit verdict JSON: {\"agent\":\"specifier\",\"verdict\":\"pass\",\"severity\":\"pass\",\"spec_path\":\"specs/<slug>/spec.md\",\"fr_count\":N,\"open_questions\":[]}. Set severity=blocking only if you cannot produce a coherent spec from the PRD.",
+      "instruction": "You are the specifier. Produce a complete spec.md for the PRD.\n\n## Inputs\n- PRD: read .wheel/outputs/prd-content.md\n- Standards: read .wheel/outputs/standards-block.md — FOLLOW THESE for every interface you define.\n- Precedent: read .wheel/outputs/precedent-block.md — AVOID the listed past mistakes.\n\n## Output\nGet the prd-slug from .wheel/inputs/prd-slug.txt. Write specs/<slug>/spec.md with:\n- ## User Stories (one per actor, labeled US-1, US-2, ...)\n- ## Functional Requirements (FR-001, FR-002, ...)\n- ## Non-Functional Requirements (NFR-001, ...)\n- ## Acceptance Criteria (one scenario per FR)\n- ## Open Questions\n\nEmit verdict JSON: {\"agent\":\"specifier\",\"verdict\":\"pass\",\"severity\":\"pass\",\"spec_path\":\"specs/<slug>/spec.md\",\"fr_count\":N,\"open_questions\":[]}. Set severity=blocking only if you cannot produce a coherent spec from the PRD.",
       "context_from": [
         "read-prd",
         "read-standards",
@@ -63,9 +63,9 @@
     },
     {
       "id": "plan",
-      "type": "agent",
+      "type": "delegate",
       "model": "sonnet",
-      "instruction": "You are the planner. Produce plan.md and contracts/interfaces.md.\n\n## Inputs\n- Spec: read the spec.md path from .wheel/outputs/specify-verdict.json\n- Standards: read .wheel/outputs/standards-block.md \u2014 ALL interface names + signatures MUST follow the naming rules; functions declare <=2 params or an options object.\n- Precedent: read .wheel/outputs/precedent-block.md\n\n## Output\n1. specs/<slug>/plan.md \u2014 technical approach, phases, file list.\n2. specs/<slug>/contracts/interfaces.md \u2014 EVERY exported function: name, params, return type, sync/async, and which FR it satisfies. This is the single source of truth implementers match exactly.\n\nEmit verdict JSON: {\"agent\":\"planner\",\"verdict\":\"pass\",\"plan_path\":\"...\",\"contracts_path\":\"...\",\"interface_count\":N}",
+      "instruction": "You are the planner. Produce plan.md and contracts/interfaces.md.\n\n## Inputs\n- Spec: read the spec.md path from .wheel/outputs/specify-verdict.json\n- Standards: read .wheel/outputs/standards-block.md — ALL interface names + signatures MUST follow the naming rules; functions declare <=2 params or an options object.\n- Precedent: read .wheel/outputs/precedent-block.md\n\n## Output\n1. specs/<slug>/plan.md — technical approach, phases, file list.\n2. specs/<slug>/contracts/interfaces.md — EVERY exported function: name, params, return type, sync/async, and which FR it satisfies. This is the single source of truth implementers match exactly.\n\nEmit verdict JSON: {\"agent\":\"planner\",\"verdict\":\"pass\",\"plan_path\":\"...\",\"contracts_path\":\"...\",\"interface_count\":N}",
       "context_from": [
         "specify",
         "read-standards",
@@ -75,7 +75,7 @@
     },
     {
       "id": "tasks",
-      "type": "agent",
+      "type": "delegate",
       "model": "sonnet",
       "instruction": "You are the task planner. Produce specs/<slug>/tasks.md from the spec and plan.\n\n## Inputs\n- Spec verdict: .wheel/outputs/specify-verdict.json\n- Plan verdict: .wheel/outputs/plan-verdict.json\n\n## Output\nspecs/<slug>/tasks.md with ordered, dependency-aware tasks GROUPED UNDER USER STORIES. Use `### US-<n> <title>` headings (the dispatch step splits on these), with `- [ ] <task>` lines under each. Each task references the FR it implements and the interface(s) it touches, and is completable in one session without breaking the build.\n\nEmit verdict JSON: {\"agent\":\"task-planner\",\"verdict\":\"pass\",\"tasks_path\":\"...\",\"task_count\":N,\"story_count\":N}",
       "context_from": [
@@ -109,7 +109,7 @@
       "model": "sonnet",
       "assign": {
         "stories": "all",
-        "note": "Implement every user story in specs/<slug>/tasks.md in order. (v1: single slot owns all stories; bounded static team \u2014 additional implementer slots can be added when worktree isolation lands.)"
+        "note": "Implement every user story in specs/<slug>/tasks.md in order. (v1: single slot owns all stories; bounded static team — additional implementer slots can be added when worktree isolation lands.)"
       },
       "context_from": [
         "dispatch-implement",
@@ -141,7 +141,7 @@
       "id": "smoke-review",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the smoke reviewer. Verify the implementation works at runtime.\n\n## Inputs\n- .kiln/test-strategy.json \u2014 smoke.start / smoke.ready / smoke.probe / smoke.teardown, and design_verify.\n- .wheel/outputs/test-results.json; .wheel/inputs/prd-slug.txt.\n\n## Steps\n1. FIRST decide if anything is runnable: if there is no package.json `dev`/`start` script (or no package.json), OR the feature is a pure library/function with no server, SKIP starting anything and go straight to a warn report (nothing runnable) — do NOT run smoke.start. If there IS a runnable app: run smoke.start ONLY in the BACKGROUND and time-boxed, e.g. `timeout 30 <smoke.start> &` — NEVER as a blocking foreground command (a foreground server hangs your turn and stalls the ENTIRE workflow). Poll smoke.ready for at most ~25s; if it never comes up, run smoke.teardown and write a warn report. Otherwise run smoke.probe then smoke.teardown. HARD CAP: at most ~45s on this step total, then write your report+verdict — never block waiting on a server.\n2. If design_verify is true and design/<slug>/mockup.{png,jpg,html} exists, screenshot the running app and estimate a 0-100 fidelity match.\n3. Write specs/<slug>/smoke-report.md (use scaffold/smoke-report-template.md shape) and COPY it to .wheel/outputs/smoke-report.md (build-summary reads from there).\n\nIf the app cannot start or there is nothing runnable yet, do NOT error: write a report noting that and emit verdict severity=warn.\n\nEmit .wheel/outputs/smoke-verdict.json: {\"agent\":\"smoke-reviewer\",\"verdict\":\"pass|fail\",\"severity\":\"pass|warn|blocking\",\"findings\":[],\"fidelity_score\":null,\"report_path\":\"specs/<slug>/smoke-report.md\"}",
+      "instruction": "You are the smoke reviewer. Verify the implementation works at runtime.\n\n## Inputs\n- .kiln/test-strategy.json — smoke.start / smoke.ready / smoke.probe / smoke.teardown, and design_verify.\n- .wheel/outputs/test-results.json; .wheel/inputs/prd-slug.txt.\n\n## Steps\n1. FIRST decide if anything is runnable: if there is no package.json `dev`/`start` script (or no package.json), OR the feature is a pure library/function with no server, SKIP starting anything and go straight to a warn report (nothing runnable) — do NOT run smoke.start. If there IS a runnable app: run smoke.start ONLY in the BACKGROUND and time-boxed, e.g. `timeout 30 <smoke.start> &` — NEVER as a blocking foreground command (a foreground server hangs your turn and stalls the ENTIRE workflow). Poll smoke.ready for at most ~25s; if it never comes up, run smoke.teardown and write a warn report. Otherwise run smoke.probe then smoke.teardown. HARD CAP: at most ~45s on this step total, then write your report+verdict — never block waiting on a server.\n2. If design_verify is true and design/<slug>/mockup.{png,jpg,html} exists, screenshot the running app and estimate a 0-100 fidelity match.\n3. Write specs/<slug>/smoke-report.md (use scaffold/smoke-report-template.md shape) and COPY it to .wheel/outputs/smoke-report.md (build-summary reads from there).\n\nIf the app cannot start or there is nothing runnable yet, do NOT error: write a report noting that and emit verdict severity=warn.\n\nEmit .wheel/outputs/smoke-verdict.json: {\"agent\":\"smoke-reviewer\",\"verdict\":\"pass|fail\",\"severity\":\"pass|warn|blocking\",\"findings\":[],\"fidelity_score\":null,\"report_path\":\"specs/<slug>/smoke-report.md\"}",
       "context_from": [
         "implement-wait",
         "run-tests"
@@ -227,7 +227,7 @@
       "id": "audit-synthesize",
       "type": "agent",
       "model": "haiku",
-      "instruction": "You are the audit synthesizer. Merge the per-role audit verdicts into one result.\n\n## Inputs (the 3 panel members each wrote a role-specific verdict file)\n- .wheel/outputs/audit-prd-auditor-verdict.json\n- .wheel/outputs/audit-spec-enforcer-verdict.json\n- .wheel/outputs/audit-quality-judge-verdict.json\nEach is {role, severity, compliance_pct, findings[]}. Any that is missing/unreadable: treat as a warn with no findings (do not error). (.wheel/outputs/audit-results/ holds wheel's collected context/assignment blobs \u2014 NOT the verdicts; read the three files above directly.)\n\n## Task\n1. Read the three role verdict files.\n2. Overall severity: blocking if ANY finding is blocking; else warn if any warn; else pass.\n3. Deduplicate findings by file+fr.\n4. compliance_pct: take the prd-auditor's value (or the min across roles that report one).\n5. Write .wheel/outputs/audit-verdict.json: {\"compliance_pct\":N,\"severity\":\"pass|warn|blocking\",\"findings\":[{\"severity\",\"fr\",\"file\",\"description\"}],\"blockers_path\":null}.\n6. If severity=blocking, write the blocking findings to .wheel/outputs/blocking-findings.json (an array); else write [].",
+      "instruction": "You are the audit synthesizer. Merge the per-role audit verdicts into one result.\n\n## Inputs (the 3 panel members each wrote a role-specific verdict file)\n- .wheel/outputs/audit-prd-auditor-verdict.json\n- .wheel/outputs/audit-spec-enforcer-verdict.json\n- .wheel/outputs/audit-quality-judge-verdict.json\nEach is {role, severity, compliance_pct, findings[]}. Any that is missing/unreadable: treat as a warn with no findings (do not error). (.wheel/outputs/audit-results/ holds wheel's collected context/assignment blobs — NOT the verdicts; read the three files above directly.)\n\n## Task\n1. Read the three role verdict files.\n2. Overall severity: blocking if ANY finding is blocking; else warn if any warn; else pass.\n3. Deduplicate findings by file+fr.\n4. compliance_pct: take the prd-auditor's value (or the min across roles that report one).\n5. Write .wheel/outputs/audit-verdict.json: {\"compliance_pct\":N,\"severity\":\"pass|warn|blocking\",\"findings\":[{\"severity\",\"fr\",\"file\",\"description\"}],\"blockers_path\":null}.\n6. If severity=blocking, write the blocking findings to .wheel/outputs/blocking-findings.json (an array); else write [].",
       "context_from": [
         "audit-wait"
       ],
@@ -237,7 +237,7 @@
       "id": "fix-blocking",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the blocking-fix implementer. Resolve audit findings that block the PR. Fix INLINE \u2014 do NOT spawn sub-agents or call kiln-fix.\n\n## Inputs\n- .wheel/outputs/blocking-findings.json \u2014 blocking findings (may be []).\n- .wheel/outputs/audit-verdict.json; specs/<slug>/spec.md; specs/<slug>/contracts/interfaces.md.\n\n## Task\n1. If blocking-findings.json is empty or absent: emit {\"fixed\":0,\"skipped\":true} and stop.\n2. For each blocking finding: read the implicated file, understand the FR it violates, fix the implementation to satisfy the FR without breaking other contracts.\n3. Re-run the test suite to confirm no regression.\n4. Any finding you cannot fix: mark status=escalate (it surfaces as priority 1 in kiln-next).\n5. Emit .wheel/outputs/fix-blocking-verdict.json: {\"fixed\":N,\"remaining\":N,\"findings\":[{\"fr\",\"file\",\"fix_summary\",\"status\":\"fixed|escalate\"}]}",
+      "instruction": "You are the blocking-fix implementer. Resolve audit findings that block the PR. Fix INLINE — do NOT spawn sub-agents or call kiln-fix.\n\n## Inputs\n- .wheel/outputs/blocking-findings.json — blocking findings (may be []).\n- .wheel/outputs/audit-verdict.json; specs/<slug>/spec.md; specs/<slug>/contracts/interfaces.md.\n\n## Task\n1. If blocking-findings.json is empty or absent: emit {\"fixed\":0,\"skipped\":true} and stop.\n2. For each blocking finding: read the implicated file, understand the FR it violates, fix the implementation to satisfy the FR without breaking other contracts.\n3. Re-run the test suite to confirm no regression.\n4. Any finding you cannot fix: mark status=escalate (it surfaces as priority 1 in kiln-next).\n5. Emit .wheel/outputs/fix-blocking-verdict.json: {\"fixed\":N,\"remaining\":N,\"findings\":[{\"fr\",\"file\",\"fix_summary\",\"status\":\"fixed|escalate\"}]}",
       "context_from": [
         "audit-synthesize"
       ],
@@ -277,7 +277,7 @@
       "id": "collect-retro",
       "type": "agent",
       "model": "sonnet",
-      "instruction": "You are the retrospective collector. Gather friction from this build and write it to the ledger.\n\n## Inputs\n- run-id from .wheel/outputs/run-id.txt; agent-notes from .kiln/runs/<run-id>/agent-notes/*.md; the verdict files (specify, plan, tasks, implement, audit, smoke).\n\n## Output\n1. Write .kiln/runs/<run-id>/retro.md using scaffold/retro-template.md (what went well / what slowed us down / improvement proposals / insight_score 1-5).\n2. For each concrete improvement proposal (actionable, with a target file/prompt), write a proposal stub to .kiln/ledger/proposals/<run-id>-<n>.json: {id, target, patch, risk:null, blast_radius, rationale, ledger_refs:[]}.\n3. For each mistake-class friction (a wrong assumption / hallucination / incorrect output by the build), write the mistake to the ledger INLINE \u2014 do NOT invoke another workflow from inside this one. For each: generate id `<YYYY-MM-DD>-<slug>`, write .kiln/mistakes/<id>.md (frontmatter: id, source: retro, tags: one mistake/* + one topic/* + one stack tag; body: ## Summary / ## Wrong assumption / ## Correction) AND .kiln/ledger/<id>.json ({id, kind:\"mistake\", summary, detail:\"<assumption> \u2192 <correction>\", blast_radius, tags, source_path, ts}). The next shelf-sync's ledger-mirror backfills these to Obsidian.\n4. Emit {\"agent\":\"retrospective\",\"ledger_entries\":N,\"proposals\":N,\"retro_path\":\"...\",\"insight_score\":N}.",
+      "instruction": "You are the retrospective collector. Gather friction from this build and write it to the ledger.\n\n## Inputs\n- run-id from .wheel/outputs/run-id.txt; agent-notes from .kiln/runs/<run-id>/agent-notes/*.md; the verdict files (specify, plan, tasks, implement, audit, smoke).\n\n## Output\n1. Write .kiln/runs/<run-id>/retro.md using scaffold/retro-template.md (what went well / what slowed us down / improvement proposals / insight_score 1-5).\n2. For each concrete improvement proposal (actionable, with a target file/prompt), write a proposal stub to .kiln/ledger/proposals/<run-id>-<n>.json: {id, target, patch, risk:null, blast_radius, rationale, ledger_refs:[]}.\n3. For each mistake-class friction (a wrong assumption / hallucination / incorrect output by the build), write the mistake to the ledger INLINE — do NOT invoke another workflow from inside this one. For each: generate id `<YYYY-MM-DD>-<slug>`, write .kiln/mistakes/<id>.md (frontmatter: id, source: retro, tags: one mistake/* + one topic/* + one stack tag; body: ## Summary / ## Wrong assumption / ## Correction) AND .kiln/ledger/<id>.json ({id, kind:\"mistake\", summary, detail:\"<assumption> → <correction>\", blast_radius, tags, source_path, ts}). The next shelf-sync's ledger-mirror backfills these to Obsidian.\n4. Emit {\"agent\":\"retrospective\",\"ledger_entries\":N,\"proposals\":N,\"retro_path\":\"...\",\"insight_score\":N}.",
       "context_from": [
         "implement-wait",
         "audit-synthesize",
@@ -311,7 +311,7 @@
       "id": "build-summary",
       "type": "agent",
       "model": "haiku",
-      "instruction": "You are the build summary agent (the run's final step \u2014 render a summary even if upstream steps failed). Read .wheel/outputs/prd-content.md, audit-verdict.json, test-results.json, smoke-report.md, pr-result.json, run-manifest-final.json, and `git diff --stat HEAD~1`. Render the canonical 5-table markdown summary (Overview with Tokens+Cost rows / What Changed / What to Test / Findings [omit if none] / Links) exactly as agents/build-summary.md specifies. Write it to .kiln/runs/<run-id>/summary.md AND print the full summary as your output \u2014 the human reads it directly.",
+      "instruction": "You are the build summary agent (the run's final step — render a summary even if upstream steps failed). Read .wheel/outputs/prd-content.md, audit-verdict.json, test-results.json, smoke-report.md, pr-result.json, run-manifest-final.json, and `git diff --stat HEAD~1`. Render the canonical 5-table markdown summary (Overview with Tokens+Cost rows / What Changed / What to Test / Findings [omit if none] / Links) exactly as agents/build-summary.md specifies. Write it to .kiln/runs/<run-id>/summary.md AND print the full summary as your output — the human reads it directly.",
       "context_from": [
         "read-prd",
         "specify",
