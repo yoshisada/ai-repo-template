@@ -138,6 +138,13 @@
       "output": ".wheel/outputs/test-results.json"
     },
     {
+      "id": "smoke-precheck",
+      "type": "branch",
+      "if_zero": "smoke-skip",
+      "if_nonzero": "smoke-review",
+      "condition": "SCRIPT=$(jq -r '.smoke.start // \"\"' .kiln/test-strategy.json 2>/dev/null | sed -nE 's/.*npm[[:space:]]+(run[[:space:]]+)?([A-Za-z0-9:_-]+).*/\\2/p'); if [ -f package.json ] && [ -n \"$SCRIPT\" ] && jq -e --arg s \"$SCRIPT\" '.scripts[$s] // empty' package.json >/dev/null 2>&1; then exit 1; else exit 0; fi"
+    },
+    {
       "id": "smoke-review",
       "type": "agent",
       "model": "sonnet",
@@ -146,6 +153,12 @@
         "implement-wait",
         "run-tests"
       ],
+      "output": ".wheel/outputs/smoke-verdict.json"
+    },
+    {
+      "id": "smoke-skip",
+      "type": "command",
+      "command": "SLUG=$(cat .wheel/inputs/prd-slug.txt 2>/dev/null || echo unknown); mkdir -p .wheel/outputs \"specs/$SLUG\"; printf '# Smoke report: %s\\n\\nNothing runnable — no matching dev/start script in package.json (pure library or script-less project). Smoke start skipped deterministically by smoke-precheck; the app was never started, so no foreground command could hang the workflow.\\n' \"$SLUG\" > \"specs/$SLUG/smoke-report.md\"; cp \"specs/$SLUG/smoke-report.md\" .wheel/outputs/smoke-report.md; printf '{\"agent\":\"smoke-reviewer\",\"verdict\":\"pass\",\"severity\":\"warn\",\"findings\":[\"nothing runnable - smoke skipped\"],\"fidelity_score\":null,\"report_path\":\"specs/%s/smoke-report.md\"}\\n' \"$SLUG\" | tee .wheel/outputs/smoke-verdict.json",
       "output": ".wheel/outputs/smoke-verdict.json"
     },
     {
