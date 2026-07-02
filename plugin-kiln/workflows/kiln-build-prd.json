@@ -97,18 +97,39 @@
       "output": ".wheel/inputs/implement-dispatch.json"
     },
     {
-      "id": "implement",
-      "type": "delegate",
+      "id": "implement-team-create",
+      "type": "team-create",
+      "team_name": "implement"
+    },
+    {
+      "id": "implement-worker",
+      "type": "teammate",
+      "team": "implement-team-create",
+      "workflow": "kiln:kiln-implement-worker",
       "model": "sonnet",
-      "instruction": "You are the implementer. Implement EVERY user story in specs/<slug>/tasks.md, in order, in your OWN context.\n\n## Read first (get <slug> from .wheel/inputs/prd-slug.txt)\n- specs/<slug>/spec.md — the FRs and acceptance scenarios.\n- specs/<slug>/plan.md and specs/<slug>/contracts/interfaces.md — the AUTHORITATIVE signatures. Every function you write MUST match its contract exactly (name, params, return type, sync/async).\n- .wheel/outputs/standards-block.md — project coding standards. FOLLOW THEM (naming, function size, error handling, no stubs on integration paths).\n- .wheel/outputs/precedent-block.md — past mistakes. Do NOT repeat them.\n- specs/<slug>/tasks.md — your task list (ALL stories are yours).\n\n## Implement (write every file to its EXACT literal path — src/ at the repo root, NOT elsewhere)\nFor each task in dependency order:\n1. Write the implementation in src/ matching the contract signature exactly.\n2. Add a comment referencing the FR it satisfies (e.g. // FR-003).\n3. Write/extend tests referencing the acceptance scenario they validate (e.g. // AC: US-1 scenario 2). No stubs on integration paths. Aim for the coverage gate (.kiln/test-strategy.json coverage_gate, default 80).\n4. Mark the task [X] in specs/<slug>/tasks.md IMMEDIATELY after completing it — not in a batch.\n5. Commit after each phase: feat(<area>): <task summary>.\n\n## Record + report\n- Append notes (decisions, surprises) to .kiln/runs/<run_id>/agent-notes/implementer.md (create the dir; run_id is the dir name under .kiln/runs/).\n- Write your verdict JSON LAST to .wheel/outputs/implement-worker-verdict.json: {\"agent\":\"implementer\",\"verdict\":\"pass|blocked\",\"stories_done\":[\"US-..\"],\"tasks_marked\":N,\"files_changed\":[\"src/..\"],\"blockers\":[]}.\n\nIf you cannot complete a story (missing contract, ambiguous spec), do NOT guess: verdict \"blocked\", list the blocker, stop cleanly — the audit/checkpoint phase surfaces it for the human.",
+      "assign": {
+        "stories": "all",
+        "note": "Implement every user story in specs/<slug>/tasks.md in order. (v1: single slot owns all stories; bounded static team — additional implementer slots can be added when worktree isolation lands.)"
+      },
       "context_from": [
         "dispatch-implement",
         "tasks",
         "plan",
         "read-standards",
         "query-precedent"
-      ],
-      "output": ".wheel/outputs/implement-worker-verdict.json"
+      ]
+    },
+    {
+      "id": "implement-wait",
+      "type": "team-wait",
+      "team": "implement-team-create",
+      "collect_to": ".wheel/outputs/implement-results/",
+      "output": ".wheel/outputs/implement-verdict.json"
+    },
+    {
+      "id": "implement-delete",
+      "type": "team-delete",
+      "team": "implement-team-create"
     },
     {
       "id": "run-tests",
@@ -140,46 +161,67 @@
       "message": "Post-implement checkpoint: review the implementation + smoke report. Approve to continue to audit, or stop to address blockers."
     },
     {
+      "id": "audit-team-create",
+      "type": "team-create",
+      "team_name": "audit"
+    },
+    {
       "id": "audit-prd-auditor",
-      "type": "delegate",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
       "model": "sonnet",
-      "instruction": "Your role is **prd-auditor**. Do ONLY your role's audit, inline in your OWN context (get <slug> from .wheel/inputs/prd-slug.txt).\\n\\n## Read first\\n- The PRD: .wheel/outputs/prd-content.md\\n- specs/<slug>/spec.md, plan.md, contracts/interfaces.md, tasks.md\\n- The implemented code (src/) and tests; .wheel/outputs/test-results.json; .wheel/outputs/smoke-report.md if present.\\n- .wheel/outputs/standards-block.md (the bar).\\n\\n## Role definitions\\n**prd-auditor** — trace every PRD requirement -> a spec FR -> an implementation -> a test. compliance_pct = requirements fully traced / total. Flag each gap as a finding.\\n**spec-enforcer** — every exported/changed src function references its FR in a comment; every test references the acceptance scenario it validates. Flag untraced functions and tests.\\n**quality-judge** — hold the senior-engineer-merge bar: simple code at one level of abstraction, names per standards, comments only for WHY, no dead code, no stubs on integration paths, tests assert behavior. Flag violations (judgement, not a checklist).\\n\\n## Vision-drift (all roles)\\nAlso read .kiln/vision.md (skip if absent) and docs/architecture.md if present. If the impl contradicts a documented boundary/constraint, add a finding severity warn with \"kind\":\"drift\", description prefixed \"DRIFT: \".\\n\\n## Emit your verdict LAST\\nWrite .wheel/outputs/audit-prd-auditor-verdict.json EXACTLY:\\n{\"role\":\"prd-auditor\",\"severity\":\"pass|warn|blocking\",\"compliance_pct\":<int or null>,\"findings\":[{\"severity\":\"blocking|warn|info\",\"fr\":\"FR-..\",\"file\":\"src/..\",\"description\":\"..\"}]}\\nseverity = blocking if any finding blocking; warn if any warn; else pass. Missing impl of a required FR = blocking; missing FR comment = warn; style nit = info. If inputs are missing, emit a single warn finding \"audit inputs incomplete\" and stop cleanly — never error.",
+      "assign": {
+        "role": "prd-auditor"
+      },
       "context_from": [
-        "implement",
+        "specify",
+        "implement-wait",
         "run-tests",
-        "tasks",
-        "plan",
-        "read-standards"
-      ],
-      "output": ".wheel/outputs/audit-prd-auditor-verdict.json"
+        "smoke-review"
+      ]
     },
     {
       "id": "audit-spec-enforcer",
-      "type": "delegate",
-      "model": "haiku",
-      "instruction": "Your role is **spec-enforcer**. Do ONLY your role's audit, inline in your OWN context (get <slug> from .wheel/inputs/prd-slug.txt).\\n\\n## Read first\\n- The PRD: .wheel/outputs/prd-content.md\\n- specs/<slug>/spec.md, plan.md, contracts/interfaces.md, tasks.md\\n- The implemented code (src/) and tests; .wheel/outputs/test-results.json; .wheel/outputs/smoke-report.md if present.\\n- .wheel/outputs/standards-block.md (the bar).\\n\\n## Role definitions\\n**prd-auditor** — trace every PRD requirement -> a spec FR -> an implementation -> a test. compliance_pct = requirements fully traced / total. Flag each gap as a finding.\\n**spec-enforcer** — every exported/changed src function references its FR in a comment; every test references the acceptance scenario it validates. Flag untraced functions and tests.\\n**quality-judge** — hold the senior-engineer-merge bar: simple code at one level of abstraction, names per standards, comments only for WHY, no dead code, no stubs on integration paths, tests assert behavior. Flag violations (judgement, not a checklist).\\n\\n## Vision-drift (all roles)\\nAlso read .kiln/vision.md (skip if absent) and docs/architecture.md if present. If the impl contradicts a documented boundary/constraint, add a finding severity warn with \"kind\":\"drift\", description prefixed \"DRIFT: \".\\n\\n## Emit your verdict LAST\\nWrite .wheel/outputs/audit-spec-enforcer-verdict.json EXACTLY:\\n{\"role\":\"spec-enforcer\",\"severity\":\"pass|warn|blocking\",\"compliance_pct\":<int or null>,\"findings\":[{\"severity\":\"blocking|warn|info\",\"fr\":\"FR-..\",\"file\":\"src/..\",\"description\":\"..\"}]}\\nseverity = blocking if any finding blocking; warn if any warn; else pass. Missing impl of a required FR = blocking; missing FR comment = warn; style nit = info. If inputs are missing, emit a single warn finding \"audit inputs incomplete\" and stop cleanly — never error.",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
+      "model": "sonnet",
+      "assign": {
+        "role": "spec-enforcer"
+      },
       "context_from": [
-        "implement",
-        "run-tests",
-        "tasks",
-        "plan",
-        "read-standards"
-      ],
-      "output": ".wheel/outputs/audit-spec-enforcer-verdict.json"
+        "specify",
+        "implement-wait",
+        "run-tests"
+      ]
     },
     {
       "id": "audit-quality-judge",
-      "type": "delegate",
+      "type": "teammate",
+      "team": "audit-team-create",
+      "workflow": "kiln:kiln-audit-worker",
       "model": "sonnet",
-      "instruction": "Your role is **quality-judge**. Do ONLY your role's audit, inline in your OWN context (get <slug> from .wheel/inputs/prd-slug.txt).\\n\\n## Read first\\n- The PRD: .wheel/outputs/prd-content.md\\n- specs/<slug>/spec.md, plan.md, contracts/interfaces.md, tasks.md\\n- The implemented code (src/) and tests; .wheel/outputs/test-results.json; .wheel/outputs/smoke-report.md if present.\\n- .wheel/outputs/standards-block.md (the bar).\\n\\n## Role definitions\\n**prd-auditor** — trace every PRD requirement -> a spec FR -> an implementation -> a test. compliance_pct = requirements fully traced / total. Flag each gap as a finding.\\n**spec-enforcer** — every exported/changed src function references its FR in a comment; every test references the acceptance scenario it validates. Flag untraced functions and tests.\\n**quality-judge** — hold the senior-engineer-merge bar: simple code at one level of abstraction, names per standards, comments only for WHY, no dead code, no stubs on integration paths, tests assert behavior. Flag violations (judgement, not a checklist).\\n\\n## Vision-drift (all roles)\\nAlso read .kiln/vision.md (skip if absent) and docs/architecture.md if present. If the impl contradicts a documented boundary/constraint, add a finding severity warn with \"kind\":\"drift\", description prefixed \"DRIFT: \".\\n\\n## Emit your verdict LAST\\nWrite .wheel/outputs/audit-quality-judge-verdict.json EXACTLY:\\n{\"role\":\"quality-judge\",\"severity\":\"pass|warn|blocking\",\"compliance_pct\":<int or null>,\"findings\":[{\"severity\":\"blocking|warn|info\",\"fr\":\"FR-..\",\"file\":\"src/..\",\"description\":\"..\"}]}\\nseverity = blocking if any finding blocking; warn if any warn; else pass. Missing impl of a required FR = blocking; missing FR comment = warn; style nit = info. If inputs are missing, emit a single warn finding \"audit inputs incomplete\" and stop cleanly — never error.",
+      "assign": {
+        "role": "quality-judge"
+      },
       "context_from": [
-        "implement",
-        "run-tests",
-        "tasks",
-        "plan",
+        "specify",
+        "implement-wait",
         "read-standards"
-      ],
-      "output": ".wheel/outputs/audit-quality-judge-verdict.json"
+      ]
+    },
+    {
+      "id": "audit-wait",
+      "type": "team-wait",
+      "team": "audit-team-create",
+      "collect_to": ".wheel/outputs/audit-results/",
+      "output": ".wheel/outputs/audit-raw-verdict.json"
+    },
+    {
+      "id": "audit-delete",
+      "type": "team-delete",
+      "team": "audit-team-create"
     },
     {
       "id": "audit-synthesize",
