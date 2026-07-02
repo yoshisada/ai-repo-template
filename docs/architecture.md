@@ -7,6 +7,19 @@
 
 ## Autonomous Rearchitecture — Build Status
 
+> **DECISION (2026-07-01): build-prd is DELEGATE-ONLY.** The implement + audit phases
+> run as `delegate` steps (one blocking sub-agent per step), NOT agent-teams. Head-to-head
+> on the same PRD, delegate beat teams decisively: **~100% vs ~40% completion**, and — the
+> clincher — teams *silently degraded the audit gate* (2 of 3 review lenses failed to
+> deliver on a "green" build, `compliance: null`). Root cause is architectural, not a fixable
+> bug: a team is N autonomous agent sessions coordinating over an async file/hook channel, so
+> reliability compounds ~p^N; a delegate is one synchronous, framework-guaranteed `Agent` call
+> (~p^1). The team pipeline (with all wheel reliability fixes) is preserved on branch
+> **`archive/team-build-prd`** — revive if/when agent-teams matures upstream. Full
+> investigation: memory `project_capstone_full_e2e`. The wheel team dispatchers + fixes below
+> remain in place for that branch; they are just unused by the delegate build-prd.
+
+
 Staged build of the autonomous loop. Each stage is implemented, dogfooded live (fresh
 isolated subprocess) where the harness allows, reviewed by agents, and pushed before the
 next begins.
